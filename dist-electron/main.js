@@ -85,6 +85,133 @@ ipcMain.handle("load-messages", async (event, folderPath, conversationId) => {
     throw error;
   }
 });
+ipcMain.handle("save-message-as-txt", async (event, folderPath, message) => {
+  var _a;
+  try {
+    const fileName = ((_a = message.txtFile) == null ? void 0 : _a.displayName) ? `${message.txtFile.displayName}.txt` : `message_${message.id}.txt`;
+    const filePath = path.join(folderPath, fileName);
+    await fs.writeFile(filePath, message.content, "utf8");
+    return {
+      name: fileName,
+      displayName: fileName.replace(".txt", ""),
+      path: filePath
+    };
+  } catch (error) {
+    console.error("Failed to save message as txt:", error);
+    throw error;
+  }
+});
+ipcMain.handle("load-message-txt", async (event, filePath) => {
+  try {
+    const content = await fs.readFile(filePath, "utf8");
+    return content;
+  } catch (error) {
+    console.error("Failed to load message txt:", error);
+    throw error;
+  }
+});
+ipcMain.handle("rename-message-file", async (event, folderPath, oldFileName, newFileName) => {
+  try {
+    const oldPath = path.join(folderPath, `${oldFileName}.txt`);
+    const newPath = path.join(folderPath, `${newFileName}.txt`);
+    try {
+      await fs.access(newPath);
+      const oldContent = await fs.readFile(oldPath, "utf8");
+      const newContent = await fs.readFile(newPath, "utf8");
+      await fs.writeFile(newPath, `${newContent}
+
+${oldContent}`, "utf8");
+      await fs.unlink(oldPath);
+      return {
+        name: `${newFileName}.txt`,
+        displayName: newFileName,
+        path: newPath,
+        merged: true
+      };
+    } catch {
+      await fs.rename(oldPath, newPath);
+      return {
+        name: `${newFileName}.txt`,
+        displayName: newFileName,
+        path: newPath,
+        merged: false
+      };
+    }
+  } catch (error) {
+    console.error("Failed to rename message file:", error);
+    throw error;
+  }
+});
+ipcMain.handle("move-to-recycle", async (event, folderPath, fileName) => {
+  try {
+    const recycleBinPath = path.join(folderPath, "..", "RecycleBin");
+    try {
+      await fs.access(recycleBinPath);
+    } catch {
+      await fs.mkdir(recycleBinPath);
+    }
+    const timestamp = (/* @__PURE__ */ new Date()).getTime();
+    const recyclePath = path.join(recycleBinPath, `${timestamp}_${fileName}`);
+    const oldPath = path.join(folderPath, fileName);
+    await fs.rename(oldPath, recyclePath);
+    return true;
+  } catch (error) {
+    console.error("Failed to move file to recycle bin:", error);
+    throw error;
+  }
+});
+ipcMain.handle("delete-message", async (event, folderPath, message) => {
+  try {
+    const recycleBinPath = path.join(folderPath, "..", "RecycleBin");
+    try {
+      await fs.access(recycleBinPath);
+    } catch {
+      await fs.mkdir(recycleBinPath);
+    }
+    if (message.txtFile) {
+      const timestamp = (/* @__PURE__ */ new Date()).getTime();
+      const recyclePath = path.join(recycleBinPath, `${timestamp}_${message.txtFile.name}`);
+      const oldPath = path.join(folderPath, message.txtFile.name);
+      await fs.rename(oldPath, recyclePath);
+    }
+    if (message.files && message.files.length > 0) {
+      for (const file of message.files) {
+        const timestamp = (/* @__PURE__ */ new Date()).getTime();
+        const oldPath = file.path;
+        const fileName = path.basename(file.path);
+        const recyclePath = path.join(recycleBinPath, `${timestamp}_${fileName}`);
+        await fs.rename(oldPath, recyclePath);
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error("Failed to delete message:", error);
+    throw error;
+  }
+});
+ipcMain.handle("renameFile", async (event, folderPath, oldFileName, newFileName, subDir = "") => {
+  try {
+    const targetDir = subDir ? path.join(folderPath, subDir) : folderPath;
+    const oldPath = path.join(targetDir, oldFileName);
+    const newPath = path.join(targetDir, newFileName);
+    try {
+      await fs.access(newPath);
+      throw new Error("文件名已存在");
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        await fs.rename(oldPath, newPath);
+        return {
+          name: newFileName,
+          path: newPath
+        };
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error("Failed to rename file:", error);
+    throw error;
+  }
+});
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,

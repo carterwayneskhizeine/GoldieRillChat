@@ -111,6 +111,166 @@ ipcMain.handle('load-messages', async (event, folderPath, conversationId) => {
   }
 })
 
+// Save message as txt file
+ipcMain.handle('save-message-as-txt', async (event, folderPath, message) => {
+  try {
+    // Use existing filename if it exists, otherwise generate new one
+    const fileName = message.txtFile?.displayName 
+      ? `${message.txtFile.displayName}.txt`
+      : `message_${message.id}.txt`
+    
+    const filePath = path.join(folderPath, fileName)
+    await fs.writeFile(filePath, message.content, 'utf8')
+    return {
+      name: fileName,
+      displayName: fileName.replace('.txt', ''),
+      path: filePath
+    }
+  } catch (error) {
+    console.error('Failed to save message as txt:', error)
+    throw error
+  }
+})
+
+// Load message from txt file
+ipcMain.handle('load-message-txt', async (event, filePath) => {
+  try {
+    const content = await fs.readFile(filePath, 'utf8')
+    return content
+  } catch (error) {
+    console.error('Failed to load message txt:', error)
+    throw error
+  }
+})
+
+// Rename message file
+ipcMain.handle('rename-message-file', async (event, folderPath, oldFileName, newFileName) => {
+  try {
+    const oldPath = path.join(folderPath, `${oldFileName}.txt`)
+    const newPath = path.join(folderPath, `${newFileName}.txt`)
+
+    // Check if target file exists (for merging)
+    try {
+      await fs.access(newPath)
+      // If file exists, read both files
+      const oldContent = await fs.readFile(oldPath, 'utf8')
+      const newContent = await fs.readFile(newPath, 'utf8')
+      // Merge contents
+      await fs.writeFile(newPath, `${newContent}\n\n${oldContent}`, 'utf8')
+      // Delete old file
+      await fs.unlink(oldPath)
+      return {
+        name: `${newFileName}.txt`,
+        displayName: newFileName,
+        path: newPath,
+        merged: true
+      }
+    } catch {
+      // If file doesn't exist, just rename
+      await fs.rename(oldPath, newPath)
+      return {
+        name: `${newFileName}.txt`,
+        displayName: newFileName,
+        path: newPath,
+        merged: false
+      }
+    }
+  } catch (error) {
+    console.error('Failed to rename message file:', error)
+    throw error
+  }
+})
+
+// Move file to recycle bin
+ipcMain.handle('move-to-recycle', async (event, folderPath, fileName) => {
+  try {
+    // Create recycle bin folder if it doesn't exist
+    const recycleBinPath = path.join(folderPath, '..', 'RecycleBin')
+    try {
+      await fs.access(recycleBinPath)
+    } catch {
+      await fs.mkdir(recycleBinPath)
+    }
+
+    // Move file to recycle bin with timestamp prefix to avoid name conflicts
+    const timestamp = new Date().getTime()
+    const recyclePath = path.join(recycleBinPath, `${timestamp}_${fileName}`)
+    
+    const oldPath = path.join(folderPath, fileName)
+    await fs.rename(oldPath, recyclePath)
+    
+    return true
+  } catch (error) {
+    console.error('Failed to move file to recycle bin:', error)
+    throw error
+  }
+})
+
+// Delete message
+ipcMain.handle('delete-message', async (event, folderPath, message) => {
+  try {
+    // Create recycle bin folder if it doesn't exist
+    const recycleBinPath = path.join(folderPath, '..', 'RecycleBin')
+    try {
+      await fs.access(recycleBinPath)
+    } catch {
+      await fs.mkdir(recycleBinPath)
+    }
+
+    // Move text file to recycle bin if exists
+    if (message.txtFile) {
+      const timestamp = new Date().getTime()
+      const recyclePath = path.join(recycleBinPath, `${timestamp}_${message.txtFile.name}`)
+      const oldPath = path.join(folderPath, message.txtFile.name)
+      await fs.rename(oldPath, recyclePath)
+    }
+
+    // Move image files to recycle bin if exists
+    if (message.files && message.files.length > 0) {
+      for (const file of message.files) {
+        const timestamp = new Date().getTime()
+        const oldPath = file.path
+        const fileName = path.basename(file.path)
+        const recyclePath = path.join(recycleBinPath, `${timestamp}_${fileName}`)
+        await fs.rename(oldPath, recyclePath)
+      }
+    }
+
+    return true
+  } catch (error) {
+    console.error('Failed to delete message:', error)
+    throw error
+  }
+})
+
+// Rename file (for both text and image files)
+ipcMain.handle('renameFile', async (event, folderPath, oldFileName, newFileName, subDir = '') => {
+  try {
+    const targetDir = subDir ? path.join(folderPath, subDir) : folderPath
+    const oldPath = path.join(targetDir, oldFileName)
+    const newPath = path.join(targetDir, newFileName)
+
+    // Check if target file exists
+    try {
+      await fs.access(newPath)
+      throw new Error('文件名已存在')
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // File doesn't exist, proceed with rename
+        await fs.rename(oldPath, newPath)
+        return {
+          name: newFileName,
+          path: newPath
+        }
+      }
+      throw error
+    }
+  } catch (error) {
+    console.error('Failed to rename file:', error)
+    throw error
+  }
+})
+
 // Create the browser window
 function createWindow() {
   mainWindow = new BrowserWindow({

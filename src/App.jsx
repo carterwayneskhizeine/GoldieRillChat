@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 
 const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine", "halloween", "garden", "forest", "lofi", "pastel", "fantasy", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "coffee", "winter"]
 
-    export default function App() {
+export default function App() {
   const [activeTool, setActiveTool] = useState('chat')
   const [showSettings, setShowSettings] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('theme') || 'dark')
@@ -20,6 +20,13 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   const [showImageModal, setShowImageModal] = useState(false)
   const [currentImage, setCurrentImage] = useState(null)
   const [allImages, setAllImages] = useState([])
+  const [editingFileName, setEditingFileName] = useState(null)
+  const [fileNameInput, setFileNameInput] = useState('')
+
+  // Add new state variables
+  const [imageResolution, setImageResolution] = useState(null)
+  const [editingImageName, setEditingImageName] = useState(null)
+  const [imageNameInput, setImageNameInput] = useState('')
 
   // Theme effect
   useEffect(() => {
@@ -109,6 +116,16 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
       timestamp: new Date().toISOString(),
       files: selectedFiles,
     }
+
+    // Save message as txt file
+    if (messageInput.trim() && currentConversation) {
+      try {
+        const txtFile = await window.electron.saveMessageAsTxt(currentConversation.path, newMessage)
+        newMessage.txtFile = txtFile
+      } catch (error) {
+        console.error('Failed to save message as txt:', error)
+      }
+    }
     
     setMessages(prev => [...prev, newMessage])
     setMessageInput('')
@@ -166,10 +183,26 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   }
 
   const deleteMessage = async (messageId) => {
-    setMessages(prev => prev.filter(msg => msg.id !== messageId))
-    if (currentConversation) {
-      const updatedMessages = messages.filter(msg => msg.id !== messageId)
-      localStorage.setItem(`messages_${currentConversation.id}`, JSON.stringify(updatedMessages))
+    const message = messages.find(msg => msg.id === messageId)
+    if (!message) return
+
+    try {
+      if (currentConversation) {
+        // Move message file to recycle bin
+        await window.electron.deleteMessage(currentConversation.path, message)
+        
+        // Update messages state and storage
+        const updatedMessages = messages.filter(msg => msg.id !== messageId)
+        setMessages(updatedMessages)
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          updatedMessages
+        )
+      }
+    } catch (error) {
+      console.error('Failed to delete message:', error)
+      alert('删除消息失败')
     }
   }
 
@@ -184,17 +217,40 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   }
 
   const updateMessage = async (messageId, newContent) => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId ? { ...msg, content: newContent } : msg
-    ))
-    exitEditMode()
+    // Get the message being edited
+    const message = messages.find(msg => msg.id === messageId)
+    if (!message) return
+
+    // Update message in state
+    const updatedMessage = { ...message, content: newContent }
     
     if (currentConversation) {
-      const updatedMessages = messages.map(msg => 
-        msg.id === messageId ? { ...msg, content: newContent } : msg
-      )
-      localStorage.setItem(`messages_${currentConversation.id}`, JSON.stringify(updatedMessages))
+      try {
+        // Update txt file
+        const txtFile = await window.electron.saveMessageAsTxt(currentConversation.path, updatedMessage)
+        updatedMessage.txtFile = txtFile
+
+        // Update messages.json
+        const updatedMessages = messages.map(msg => 
+          msg.id === messageId ? updatedMessage : msg
+        )
+        
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          updatedMessages
+        )
+
+        // Update state after successful file operations
+        setMessages(updatedMessages)
+      } catch (error) {
+        console.error('Failed to update message files:', error)
+        alert('保存修改失败')
+        return
+      }
     }
+
+    exitEditMode()
   }
 
   const deleteConversation = async (conversationId) => {
@@ -272,6 +328,125 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showImageModal, currentImage])
+
+  // Add renameMessageFile function
+  const renameMessageFile = async (message, newFileName) => {
+    if (!currentConversation || !message.txtFile) return
+    
+    try {
+      // Find if there's an existing message with the target filename
+      const existingMessage = messages.find(msg => 
+        msg.txtFile && msg.txtFile.displayName === newFileName
+      )
+
+      const result = await window.electron.renameMessageFile(
+        currentConversation.path,
+        message.txtFile.displayName,
+        newFileName
+      )
+
+      if (result.merged && existingMessage) {
+        // Merge message contents
+        const mergedMessage = {
+          ...existingMessage,
+          content: `${existingMessage.content}\n\n${message.content}`,
+          txtFile: result
+        }
+
+        // Update messages array
+        setMessages(prev => prev.map(msg => 
+          msg.id === existingMessage.id ? mergedMessage : msg
+        ).filter(msg => msg.id !== message.id))
+
+        // Save to storage
+        const updatedMessages = messages
+          .map(msg => msg.id === existingMessage.id ? mergedMessage : msg)
+          .filter(msg => msg.id !== message.id)
+
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          updatedMessages
+        )
+      } else {
+        // Just rename
+        const updatedMessage = {
+          ...message,
+          txtFile: result
+        }
+
+        setMessages(prev => prev.map(msg => 
+          msg.id === message.id ? updatedMessage : msg
+        ))
+
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          messages.map(msg => msg.id === message.id ? updatedMessage : msg)
+        )
+      }
+    } catch (error) {
+      console.error('Failed to rename file:', error)
+      alert('重命名失败')
+    }
+    
+    setEditingFileName(null)
+    setFileNameInput('')
+  }
+
+  // Add function to get image resolution
+  const getImageResolution = (imgElement) => {
+    setImageResolution({
+      width: imgElement.naturalWidth,
+      height: imgElement.naturalHeight
+    })
+  }
+
+  // Add function to rename image file
+  const renameImageFile = async (file, newFileName) => {
+    if (!currentConversation) return
+    
+    try {
+      const oldPath = file.path
+      const oldDir = window.electron.path.dirname(oldPath)
+      const extension = window.electron.path.extname(file.name)
+      const newName = newFileName + extension
+      
+      const result = await window.electron.renameFile(
+        currentConversation.path,
+        file.name,
+        newName,
+        'files'
+      )
+
+      // Update messages with new file path
+      const updatedMessages = messages.map(msg => {
+        if (msg.files) {
+          const updatedFiles = msg.files.map(f => 
+            f.path === oldPath ? { ...f, name: newName, path: result.path } : f
+          )
+          return { ...msg, files: updatedFiles }
+        }
+        return msg
+      })
+
+      setMessages(updatedMessages)
+      setCurrentImage({ ...currentImage, name: newName, path: result.path })
+      
+      // Save updated messages
+      await window.electron.saveMessages(
+        currentConversation.path,
+        currentConversation.id,
+        updatedMessages
+      )
+    } catch (error) {
+      console.error('Failed to rename image:', error)
+      alert('重命名失败')
+    }
+    
+    setEditingImageName(null)
+    setImageNameInput('')
+  }
 
   return (
     <div className="flex h-screen">
@@ -382,6 +557,51 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2">
+                          {message.txtFile && (
+                            <div className="text-sm opacity-70 mb-1">
+                              {editingFileName === message.id ? (
+                                <div className="join">
+                                  <input
+                                    type="text"
+                                    value={fileNameInput}
+                                    onChange={(e) => setFileNameInput(e.target.value)}
+                                    className="input input-xs input-bordered join-item"
+                                    placeholder="Enter new file name"
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter') {
+                                        renameMessageFile(message, fileNameInput)
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    className="btn btn-xs join-item"
+                                    onClick={() => renameMessageFile(message, fileNameInput)}
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    className="btn btn-xs join-item"
+                                    onClick={() => {
+                                      setEditingFileName(null)
+                                      setFileNameInput('')
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <span
+                                  className="cursor-pointer hover:underline"
+                                  onClick={() => {
+                                    setEditingFileName(message.id)
+                                    setFileNameInput(message.txtFile.displayName)
+                                  }}
+                                >
+                                  {message.txtFile.displayName}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <div className="flex justify-between items-start">
                             <div className="prose max-w-none whitespace-pre-wrap break-words w-full">
                               {message.content}
@@ -667,7 +887,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
       {/* Image Modal */}
       {showImageModal && currentImage && (
         <div className="modal modal-open">
-          <div className="modal-box relative max-w-5xl h-[80vh] p-0 bg-transparent shadow-none overflow-visible">
+          <div className="modal-box relative max-w-5xl h-[80vh] p-0 bg-transparent shadow-none overflow-visible flex flex-col">
             <button 
               className="btn btn-circle btn-ghost absolute right-2 top-2 z-50 bg-base-100"
               onClick={() => setShowImageModal(false)}
@@ -693,12 +913,62 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
               </button>
             </div>
 
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full flex-1 flex items-center justify-center">
               <img 
                 src={`local-file://${currentImage.path}`}
                 alt={currentImage.name}
                 className="max-w-full max-h-full object-contain"
+                onLoad={(e) => getImageResolution(e.target)}
               />
+            </div>
+
+            <div className="bg-base-100 p-4 flex items-center gap-4">
+              {editingImageName === currentImage.path ? (
+                <div className="join">
+                  <input
+                    type="text"
+                    value={imageNameInput}
+                    onChange={(e) => setImageNameInput(e.target.value)}
+                    className="input input-bordered join-item"
+                    placeholder="Enter new file name"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        renameImageFile(currentImage, imageNameInput)
+                      }
+                    }}
+                  />
+                  <button
+                    className="btn join-item"
+                    onClick={() => renameImageFile(currentImage, imageNameInput)}
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="btn join-item"
+                    onClick={() => {
+                      setEditingImageName(null)
+                      setImageNameInput('')
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <span
+                  className="cursor-pointer hover:underline"
+                  onClick={() => {
+                    setEditingImageName(currentImage.path)
+                    setImageNameInput(currentImage.name.replace(/\.[^/.]+$/, ""))
+                  }}
+                >
+                  {currentImage.name}
+                </span>
+              )}
+              {imageResolution && (
+                <span className="opacity-70">
+                  Res: {imageResolution.width} × {imageResolution.height}
+                </span>
+              )}
             </div>
           </div>
           <div 
