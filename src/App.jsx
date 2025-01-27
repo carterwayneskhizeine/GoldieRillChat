@@ -254,13 +254,28 @@ export default function App() {
   }
 
   const deleteConversation = async (conversationId) => {
-    setConversations(prev => prev.filter(c => c.id !== conversationId))
-    if (currentConversation?.id === conversationId) {
-      setCurrentConversation(null)
-      setMessages([])
+    const conversation = conversations.find(c => c.id === conversationId)
+    if (!conversation) return
+
+    try {
+      // Move conversation folder to recycle bin
+      await window.electron.moveFolderToRecycle(conversation.path)
+      
+      // Update state
+      setConversations(prev => prev.filter(c => c.id !== conversationId))
+      if (currentConversation?.id === conversationId) {
+        setCurrentConversation(null)
+        setMessages([])
+      }
+      
+      // Update storage
+      localStorage.setItem('conversations', JSON.stringify(
+        conversations.filter(c => c.id !== conversationId)
+      ))
+    } catch (error) {
+      console.error('Failed to delete conversation:', error)
+      alert('删除对话失败')
     }
-    localStorage.removeItem(`messages_${conversationId}`)
-    localStorage.setItem('conversations', JSON.stringify(conversations.filter(c => c.id !== conversationId)))
   }
 
   const handleSelectFolder = async () => {
@@ -490,7 +505,10 @@ export default function App() {
                 </div>
                 <button
                   className="btn btn-ghost btn-xs"
-                  onClick={() => deleteConversation(conversation.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    deleteConversation(conversation.id)
+                  }}
                 >
                   ×
                 </button>

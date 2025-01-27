@@ -212,6 +212,24 @@ ipcMain.handle("renameFile", async (event, folderPath, oldFileName, newFileName,
     throw error;
   }
 });
+ipcMain.handle("move-folder-to-recycle", async (event, folderPath) => {
+  try {
+    const recycleBinPath = path.join(path.dirname(folderPath), "RecycleBin");
+    try {
+      await fs.access(recycleBinPath);
+    } catch {
+      await fs.mkdir(recycleBinPath);
+    }
+    const timestamp = (/* @__PURE__ */ new Date()).getTime();
+    const folderName = path.basename(folderPath);
+    const recyclePath = path.join(recycleBinPath, `${timestamp}_${folderName}`);
+    await fs.rename(folderPath, recyclePath);
+    return true;
+  } catch (error) {
+    console.error("Failed to move folder to recycle bin:", error);
+    throw error;
+  }
+});
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,

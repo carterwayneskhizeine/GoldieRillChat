@@ -271,6 +271,30 @@ ipcMain.handle('renameFile', async (event, folderPath, oldFileName, newFileName,
   }
 })
 
+// Move folder to recycle bin
+ipcMain.handle('move-folder-to-recycle', async (event, folderPath) => {
+  try {
+    // Create recycle bin folder if it doesn't exist
+    const recycleBinPath = path.join(path.dirname(folderPath), 'RecycleBin')
+    try {
+      await fs.access(recycleBinPath)
+    } catch {
+      await fs.mkdir(recycleBinPath)
+    }
+
+    // Move folder to recycle bin with timestamp prefix
+    const timestamp = new Date().getTime()
+    const folderName = path.basename(folderPath)
+    const recyclePath = path.join(recycleBinPath, `${timestamp}_${folderName}`)
+    
+    await fs.rename(folderPath, recyclePath)
+    return true
+  } catch (error) {
+    console.error('Failed to move folder to recycle bin:', error)
+    throw error
+  }
+})
+
 // Create the browser window
 function createWindow() {
   mainWindow = new BrowserWindow({
