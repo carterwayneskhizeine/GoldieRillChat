@@ -86,6 +86,12 @@ export default function App() {
     }
   }
 
+  // 添加获取北京时间的函数
+  const getBeijingTime = () => {
+    const now = new Date()
+    return new Date(now.getTime()).toISOString()
+  }
+
   const createNewConversation = async () => {
     if (!storagePath) {
       alert('请先在设置中选择存储文件夹')
@@ -98,7 +104,7 @@ export default function App() {
       const newConversation = {
         id: Date.now().toString(),
         name: result.name,
-        timestamp: new Date().toISOString(),
+        timestamp: getBeijingTime(),
         path: result.path
       }
       
@@ -134,7 +140,7 @@ export default function App() {
     const newMessage = {
       id: Date.now().toString(),
       content: messageInput,
-      timestamp: new Date().toISOString(),
+      timestamp: getBeijingTime(),
       files: selectedFiles,
     }
 
@@ -776,6 +782,26 @@ export default function App() {
     }
   }
 
+  // 添加时间格式化函数
+  const formatMessageTime = (timestamp) => {
+    const messageDate = new Date(timestamp)
+    const today = new Date()
+    const isToday = messageDate.toDateString() === today.toDateString()
+    
+    const hours = messageDate.getHours().toString().padStart(2, '0')
+    const minutes = messageDate.getMinutes().toString().padStart(2, '0')
+    const time = `${hours}:${minutes}`
+    
+    if (isToday) {
+      return time
+    } else {
+      const year = messageDate.getFullYear()
+      const month = (messageDate.getMonth() + 1).toString().padStart(2, '0')
+      const day = messageDate.getDate().toString().padStart(2, '0')
+      return `${year}-${month}-${day} ${time}`
+    }
+  }
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -914,6 +940,56 @@ export default function App() {
               <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
                 {messages.map(message => (
                   <div key={message.id} className="chat chat-start mb-8">
+                    {message.txtFile && (
+                      <div className="chat-header opacity-70">
+                        {editingFileName === message.id ? (
+                          <div className="join">
+                            <input
+                              type="text"
+                              value={fileNameInput}
+                              onChange={(e) => setFileNameInput(e.target.value)}
+                              className="input input-xs input-bordered join-item"
+                              placeholder="Enter new file name"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  renameMessageFile(message, fileNameInput)
+                                }
+                              }}
+                            />
+                            <button
+                              className="btn btn-xs join-item"
+                              onClick={() => renameMessageFile(message, fileNameInput)}
+                            >
+                              Save
+                            </button>
+                            <button
+                              className="btn btn-xs join-item"
+                              onClick={() => {
+                                setEditingFileName(null)
+                                setFileNameInput('')
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="cursor-pointer hover:underline"
+                              onClick={() => {
+                                setEditingFileName(message.id)
+                                setFileNameInput(message.txtFile.displayName)
+                              }}
+                            >
+                              {message.txtFile.displayName}
+                            </span>
+                            <span className="text-xs opacity-50">
+                              {formatMessageTime(message.timestamp)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="chat-bubble relative max-w-[800px]">
                       {editingMessage?.id === message.id ? (
                         <div className="join w-full">
@@ -942,51 +1018,6 @@ export default function App() {
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2">
-                          {message.txtFile && (
-                            <div className="text-sm opacity-70 mb-1">
-                              {editingFileName === message.id ? (
-                                <div className="join">
-                                  <input
-                                    type="text"
-                                    value={fileNameInput}
-                                    onChange={(e) => setFileNameInput(e.target.value)}
-                                    className="input input-xs input-bordered join-item"
-                                    placeholder="Enter new file name"
-                                    onKeyPress={(e) => {
-                                      if (e.key === 'Enter') {
-                                        renameMessageFile(message, fileNameInput)
-                                      }
-                                    }}
-                                  />
-                                  <button
-                                    className="btn btn-xs join-item"
-                                    onClick={() => renameMessageFile(message, fileNameInput)}
-                                  >
-                                    Save
-                                  </button>
-                                  <button
-                                    className="btn btn-xs join-item"
-                                    onClick={() => {
-                                      setEditingFileName(null)
-                                      setFileNameInput('')
-                                    }}
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              ) : (
-                                <span
-                                  className="cursor-pointer hover:underline"
-                                  onClick={() => {
-                                    setEditingFileName(message.id)
-                                    setFileNameInput(message.txtFile.displayName)
-                                  }}
-                                >
-                                  {message.txtFile.displayName}
-                                </span>
-                              )}
-                            </div>
-                          )}
                           <div className="flex justify-between items-start">
                             <div className="prose max-w-none whitespace-pre-wrap break-words w-full">
                               {message.content}
