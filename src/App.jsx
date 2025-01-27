@@ -612,6 +612,21 @@ export default function App() {
     drawImage()
   }, [editorState, canvasSize])
 
+  // 添加对activeTool的监听，处理面板切换
+  useEffect(() => {
+    if (activeTool === 'editor') {
+      // 使用setTimeout确保canvas已经渲染
+      setTimeout(() => {
+        drawImage()
+      }, 0)
+    } else if (activeTool === 'chat') {
+      // 切换到chat面板时滚动到底部
+      setTimeout(() => {
+        scrollToBottom()
+      }, 0)
+    }
+  }, [activeTool])
+
   // 图片编辑功能
   const rotate = () => {
     setEditorState(prev => ({
@@ -629,9 +644,14 @@ export default function App() {
   }
 
   const resetTransform = () => {
+    if (!editorState.image) return
+    
+    // 计算适配画布宽度的缩放比例
+    const scaleToFit = canvasSize.width / editorState.image.width
+    
     setEditorState(prev => ({
       ...prev,
-      scale: 1,
+      scale: scaleToFit,  // 设置适配画布的缩放比例
       rotation: 0,
       flipH: false,
       flipV: false,
@@ -691,7 +711,7 @@ export default function App() {
     if (!editorState.image) return
     e.preventDefault()
     
-    const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
+    const scaleFactor = e.deltaY > 0 ? 0.99 : 1.01
     setEditorState(prev => ({
       ...prev,
       scale: Math.max(0.1, Math.min(10, prev.scale * scaleFactor))
@@ -831,6 +851,35 @@ export default function App() {
         newMessages
       )
     }
+  }
+
+  // 添加发送图片到编辑器的函数
+  const sendToEditor = async (file) => {
+    const img = new Image()
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+      img.src = `local-file://${file.path}`
+    })
+    
+    setEditorState(prev => ({
+      ...prev,
+      image: img,
+      scale: 1,
+      rotation: 0,
+      flipH: false,
+      flipV: false,
+      offsetX: 0,
+      offsetY: 0
+    }))
+    
+    setImageSize({
+      width: img.naturalWidth,
+      height: img.naturalHeight
+    })
+    
+    // 切换到编辑器面板
+    setActiveTool('editor')
   }
 
   return (
@@ -1081,12 +1130,28 @@ export default function App() {
                             </div>
                           )}
                           <div className="absolute -bottom-8 -left-1 flex gap-1">
-                            <button
-                              className="btn btn-ghost btn-xs bg-base-100"
-                              onClick={() => enterEditMode(message)}
-                            >
-                              Edit
-                            </button>
+                            {message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ? (
+                              <button
+                                className="btn btn-ghost btn-xs bg-base-100"
+                                onClick={() => {
+                                  const imageFile = message.files.find(file => 
+                                    file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                                  )
+                                  if (imageFile) {
+                                    sendToEditor(imageFile)
+                                  }
+                                }}
+                              >
+                                Send
+                              </button>
+                            ) : (
+                              <button
+                                className="btn btn-ghost btn-xs bg-base-100"
+                                onClick={() => enterEditMode(message)}
+                              >
+                                Edit
+                              </button>
+                            )}
                             <button
                               className="btn btn-ghost btn-xs bg-base-100"
                               onClick={() => deleteMessage(message.id)}
@@ -1205,7 +1270,7 @@ export default function App() {
 
         {/* Image editor area */}
         {activeTool === 'editor' && (
-          <div className="flex-1 flex flex-col p-4 gap-4">
+          <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
             {/* Tools row - 移动到顶部 */}
             <div className="flex flex-wrap gap-2 justify-center">
               <input
@@ -1351,7 +1416,7 @@ export default function App() {
             </div>
 
             {/* Resolution info */}
-            <div className="flex gap-4 text-sm">
+            <div className="flex gap-4 text-sm justify-center">
               <span className="opacity-70">Canvas: {canvasSize.width} × {canvasSize.height}</span>
               <span className="opacity-70">Image: {imageSize.width} × {imageSize.height}</span>
             </div>
