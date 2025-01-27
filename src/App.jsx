@@ -17,6 +17,9 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   const [editingMessage, setEditingMessage] = useState(null)
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [currentImage, setCurrentImage] = useState(null)
+  const [allImages, setAllImages] = useState([])
 
   // Theme effect
   useEffect(() => {
@@ -56,36 +59,43 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   }
 
   const createNewConversation = async () => {
-    const newConversation = {
-      id: Date.now().toString(),
-      name: 'New Chat',
-      timestamp: new Date().toISOString(),
+    if (!storagePath) {
+      alert('请先在设置中选择存储文件夹')
+      return
     }
-    
-    setConversations(prev => [...prev, newConversation])
-    setCurrentConversation(newConversation)
-    setMessages([])
-    
-    // Save to storage
-    localStorage.setItem('conversations', JSON.stringify([...conversations, newConversation]))
+
+    try {
+      const result = await window.electron.createChatFolder(storagePath)
+      
+      const newConversation = {
+        id: Date.now().toString(),
+        name: result.name,
+        timestamp: new Date().toISOString(),
+        path: result.path
+      }
+      
+      setConversations(prev => [...prev, newConversation])
+      setCurrentConversation(newConversation)
+      setMessages([])
+      
+      // Save to storage
+      localStorage.setItem('conversations', JSON.stringify([...conversations, newConversation]))
+    } catch (error) {
+      console.error('Failed to create new conversation:', error)
+      alert('创建新对话失败')
+    }
   }
 
   const loadConversation = async (conversationId) => {
     const conversation = conversations.find(c => c.id === conversationId)
     if (conversation) {
       setCurrentConversation(conversation)
-      if (storagePath) {
-        try {
-          const loadedMessages = await window.electron.loadMessages(storagePath, conversationId)
-          setMessages(loadedMessages || [])
-        } catch (error) {
-          console.error('Failed to load messages:', error)
-          setMessages([])
-        }
-      } else {
-        // Fallback to localStorage if no storage path set
-        const savedMessages = JSON.parse(localStorage.getItem(`messages_${conversationId}`) || '[]')
-        setMessages(savedMessages)
+      try {
+        const loadedMessages = await window.electron.loadMessages(conversation.path, conversationId)
+        setMessages(loadedMessages || [])
+      } catch (error) {
+        console.error('Failed to load messages:', error)
+        setMessages([])
       }
     }
   }
@@ -112,22 +122,47 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     }
     
     // Save to storage
-    if (currentConversation && storagePath) {
+    if (currentConversation) {
       await window.electron.saveMessages(
-        storagePath,
+        currentConversation.path,
         currentConversation.id,
         [...messages, newMessage]
       )
     }
   }
 
-  const handleFileSelect = (event) => {
+  const handleFileSelect = async (event) => {
+    if (!currentConversation) {
+      alert('请先选择或创建一个对话')
+      return
+    }
+
     const files = Array.from(event.target.files)
-    setSelectedFiles(prev => [...prev, ...files])
+    
+    // Save files to chat folder
+    const savedFiles = await Promise.all(files.map(async file => {
+      const reader = new FileReader()
+      const fileData = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target.result)
+        reader.readAsArrayBuffer(file)
+      })
+      
+      const result = await window.electron.saveFile(currentConversation.path, {
+        name: file.name,
+        data: Array.from(new Uint8Array(fileData))
+      })
+      
+      return {
+        name: file.name,
+        path: result.path
+      }
+    }))
+    
+    setSelectedFiles(prev => [...prev, ...savedFiles])
   }
 
   const removeFile = (fileToRemove) => {
-    setSelectedFiles(prev => prev.filter(file => file !== fileToRemove))
+    setSelectedFiles(prev => prev.filter(file => file.name !== fileToRemove.name))
   }
 
   const deleteMessage = async (messageId) => {
@@ -192,7 +227,53 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     }
   }
 
-      return (
+  // Function to get all images from messages
+  const getAllImages = () => {
+    const images = []
+    messages.forEach(message => {
+      message.files?.forEach(file => {
+        if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+          images.push(file)
+        }
+      })
+    })
+    return images
+  }
+
+  // Function to show next image
+  const showNextImage = () => {
+    const images = getAllImages()
+    const currentIndex = images.findIndex(img => img.path === currentImage.path)
+    const nextIndex = (currentIndex + 1) % images.length
+    setCurrentImage(images[nextIndex])
+  }
+
+  // Function to show previous image
+  const showPrevImage = () => {
+    const images = getAllImages()
+    const currentIndex = images.findIndex(img => img.path === currentImage.path)
+    const prevIndex = (currentIndex - 1 + images.length) % images.length
+    setCurrentImage(images[prevIndex])
+  }
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!showImageModal) return
+      if (e.key === 'ArrowRight') {
+        showNextImage()
+      } else if (e.key === 'ArrowLeft') {
+        showPrevImage()
+      } else if (e.key === 'Escape') {
+        setShowImageModal(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showImageModal, currentImage])
+
+  return (
     <div className="flex h-screen">
       {/* Sidebar */}
       <div className="w-64 bg-base-300 text-base-content p-2 flex flex-col">
@@ -219,12 +300,14 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
         <div className="flex-1 mt-2 overflow-y-auto">
           <div className="flex flex-col gap-2">
             {conversations.map(conversation => (
-              <button
+              <div
                 key={conversation.id}
-                onClick={() => loadConversation(conversation.id)}
                 className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''}`}
               >
-                <div className="flex items-center gap-2">
+                <div 
+                  className="flex items-center gap-2 flex-1"
+                  onClick={() => loadConversation(conversation.id)}
+                >
                   <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                   </svg>
@@ -232,14 +315,11 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                 </div>
                 <button
                   className="btn btn-ghost btn-xs"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    deleteConversation(conversation.id)
-                  }}
+                  onClick={() => deleteConversation(conversation.id)}
                 >
                   ×
                 </button>
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -274,7 +354,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
               <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
                 {messages.map(message => (
                   <div key={message.id} className="chat chat-start mb-8">
-                    <div className="chat-bubble relative">
+                    <div className="chat-bubble relative max-w-[800px]">
                       {editingMessage?.id === message.id ? (
                         <div className="join w-full">
                           <div className="mockup-code w-[650px] h-[550px] bg-base-300 relative">
@@ -310,9 +390,26 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                           {message.files?.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-2">
                               {message.files.map((file, index) => (
-                                <div key={index} className="badge badge-outline">
-                                  {file.name}
-                                </div>
+                                file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                  <div 
+                                    key={index} 
+                                    className="relative group cursor-pointer"
+                                    onClick={() => {
+                                      setCurrentImage(file)
+                                      setShowImageModal(true)
+                                    }}
+                                  >
+                                    <img 
+                                      src={`local-file://${file.path}`} 
+                                      alt={file.name}
+                                      className="max-w-[200px] max-h-[200px] rounded-lg object-cover hover:opacity-90 transition-opacity"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div key={index} className="badge badge-outline">
+                                    {file.name}
+                                  </div>
+                                )
                               ))}
                             </div>
                           )}
@@ -566,6 +663,50 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
           <div className="modal-backdrop" onClick={() => setShowSettings(false)}></div>
         </div>
       )}
+
+      {/* Image Modal */}
+      {showImageModal && currentImage && (
+        <div className="modal modal-open">
+          <div className="modal-box relative max-w-5xl h-[80vh] p-0 bg-transparent shadow-none overflow-visible">
+            <button 
+              className="btn btn-circle btn-ghost absolute right-2 top-2 z-50 bg-base-100"
+              onClick={() => setShowImageModal(false)}
+            >
+              ✕
+            </button>
+            
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16">
+              <button 
+                className="btn btn-circle btn-ghost bg-base-100"
+                onClick={showPrevImage}
+              >
+                ❮
+              </button>
+            </div>
+            
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16">
+              <button 
+                className="btn btn-circle btn-ghost bg-base-100"
+                onClick={showNextImage}
+              >
+                ❯
+              </button>
+            </div>
+
+            <div className="w-full h-full flex items-center justify-center">
+              <img 
+                src={`local-file://${currentImage.path}`}
+                alt={currentImage.name}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+          </div>
+          <div 
+            className="modal-backdrop bg-black/80" 
+            onClick={() => setShowImageModal(false)}
+          ></div>
         </div>
-      )
-    }
+      )}
+    </div>
+  )
+}
