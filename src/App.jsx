@@ -352,6 +352,9 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!showImageModal) return
+      // 如果正在重命名，不处理左右键
+      if (editingImageName) return
+      
       if (e.key === 'ArrowRight') {
         showNextImage()
       } else if (e.key === 'ArrowLeft') {
@@ -363,7 +366,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showImageModal, currentImage])
+  }, [showImageModal, currentImage, editingImageName])
 
   // Add renameMessageFile function
   const renameMessageFile = async (message, newFileName) => {
@@ -687,6 +690,92 @@ export default function App() {
     }))
   }
 
+  // 添加处理粘贴事件的函数
+  const handlePaste = async (e) => {
+    if (!currentConversation) {
+      alert('请先选择或创建一个对话')
+      return
+    }
+
+    const items = e.clipboardData.items
+    const imageItems = Array.from(items).filter(item => item.type.startsWith('image/'))
+    
+    if (imageItems.length > 0) {
+      const savedFiles = await Promise.all(imageItems.map(async item => {
+        const blob = item.getAsFile()
+        const reader = new FileReader()
+        const fileData = await new Promise((resolve) => {
+          reader.onload = (e) => resolve(e.target.result)
+          reader.readAsArrayBuffer(blob)
+        })
+        
+        const timestamp = Date.now()
+        const extension = blob.type.split('/')[1]
+        const fileName = `pasted_image_${timestamp}.${extension}`
+        
+        const result = await window.electron.saveFile(currentConversation.path, {
+          name: fileName,
+          data: Array.from(new Uint8Array(fileData))
+        })
+        
+        return {
+          name: fileName,
+          path: result.path
+        }
+      }))
+      
+      setSelectedFiles(prev => [...prev, ...savedFiles])
+    }
+  }
+
+  // 添加复制消息内容的函数
+  const copyMessageContent = async (message) => {
+    try {
+      // 创建一个新的 ClipboardItem 数组
+      const clipboardItems = []
+      
+      // 如果有文本内容，添加到剪贴板项
+      if (message.content) {
+        const textBlob = new Blob([message.content], { type: 'text/plain' })
+        clipboardItems.push(new ClipboardItem({ 'text/plain': textBlob }))
+      }
+      
+      // 如果有图片文件，添加到剪贴板项
+      if (message.files?.length > 0) {
+        await Promise.all(message.files.map(async file => {
+          if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+            // 创建一个临时的 canvas 来获取图片数据
+            const img = new Image()
+            await new Promise((resolve, reject) => {
+              img.onload = resolve
+              img.onerror = reject
+              img.src = `local-file://${file.path}`
+            })
+            
+            const canvas = document.createElement('canvas')
+            canvas.width = img.naturalWidth
+            canvas.height = img.naturalHeight
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(img, 0, 0)
+            
+            // 转换为 blob
+            const blob = await new Promise(resolve => {
+              canvas.toBlob(resolve, 'image/png')
+            })
+            
+            clipboardItems.push(new ClipboardItem({ 'image/png': blob }))
+          }
+        }))
+      }
+      
+      // 写入剪贴板
+      await navigator.clipboard.write(clipboardItems)
+    } catch (error) {
+      console.error('Failed to copy content:', error)
+      alert('复制失败')
+    }
+  }
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -942,6 +1031,12 @@ export default function App() {
                             >
                               Delete
                             </button>
+                            <button
+                              className="btn btn-ghost btn-xs bg-base-100"
+                              onClick={() => copyMessageContent(message)}
+                            >
+                              Copy
+                            </button>
                           </div>
                         </div>
                       )}
@@ -1012,6 +1107,7 @@ export default function App() {
                           e.target.style.overflowY = 'hidden'
                         }
                       }}
+                      onPaste={handlePaste}
                       placeholder="Send a message..."
                       className="textarea textarea-bordered join-item flex-1 min-h-[2.5rem] max-h-[calc(100vh-200px)] resize-none overflow-x-hidden"
                       rows="1"
@@ -1097,10 +1193,25 @@ export default function App() {
               <div className="dropdown">
                 <button tabIndex={0} className="btn btn-sm">AR</button>
                 <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
-                  <li><button onClick={() => setResolution(1920, 1080)}>16:9</button></li>
-                  <li><button onClick={() => setResolution(1080, 1920)}>9:16</button></li>
-                  <li><button onClick={() => setResolution(1600, 1200)}>4:3</button></li>
-                  <li><button onClick={() => setResolution(1000, 1000)}>1:1</button></li>
+                  <li><button onClick={() => {
+                    // 保持宽度不变，调整高度
+                    const newHeight = Math.round(canvasSize.width * (9/16))
+                    setCanvasSize(prev => ({ ...prev, height: newHeight }))
+                  }}>16:9</button></li>
+                  <li><button onClick={() => {
+                    // 保持宽度不变，调整高度
+                    const newHeight = Math.round(canvasSize.width * (16/9))
+                    setCanvasSize(prev => ({ ...prev, height: newHeight }))
+                  }}>9:16</button></li>
+                  <li><button onClick={() => {
+                    // 保持宽度不变，调整高度
+                    const newHeight = Math.round(canvasSize.width * (3/4))
+                    setCanvasSize(prev => ({ ...prev, height: newHeight }))
+                  }}>4:3</button></li>
+                  <li><button onClick={() => {
+                    // 保持宽度不变
+                    setCanvasSize(prev => ({ ...prev, height: prev.width }))
+                  }}>1:1</button></li>
                 </ul>
               </div>
 
@@ -1139,7 +1250,7 @@ export default function App() {
 
             {/* Canvas area */}
             <div 
-              className="flex-1 bg-base-200 rounded-lg flex items-center justify-center"
+              className="flex-1 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
@@ -1150,6 +1261,13 @@ export default function App() {
                 ref={canvasRef}
                 width={canvasSize.width}
                 height={canvasSize.height}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain'
+                }}
                 className="bg-base-300 rounded"
               />
             </div>
@@ -1221,13 +1339,6 @@ export default function App() {
       {showImageModal && currentImage && (
         <div className="modal modal-open">
           <div className="modal-box relative max-w-5xl h-[80vh] p-0 bg-transparent shadow-none overflow-visible flex flex-col">
-            <button 
-              className="btn btn-circle btn-ghost absolute right-2 top-2 z-50 bg-base-100"
-              onClick={() => setShowImageModal(false)}
-            >
-              ✕
-            </button>
-            
             <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16">
               <button 
                 className="btn btn-circle btn-ghost bg-base-100"
@@ -1255,7 +1366,7 @@ export default function App() {
               />
             </div>
 
-            <div className="bg-base-100 p-4 flex items-center gap-4">
+            <div className="bg-base-100 p-4 flex items-center justify-center gap-4">
               {editingImageName === currentImage.path ? (
                 <div className="join">
                   <input
@@ -1287,20 +1398,22 @@ export default function App() {
                   </button>
                 </div>
               ) : (
-                <span
-                  className="cursor-pointer hover:underline"
-                  onClick={() => {
-                    setEditingImageName(currentImage.path)
-                    setImageNameInput(currentImage.name.replace(/\.[^/.]+$/, ""))
-                  }}
-                >
-                  {currentImage.name}
-                </span>
-              )}
-              {imageResolution && (
-                <span className="opacity-70">
-                  Res: {imageResolution.width} × {imageResolution.height}
-                </span>
+                <div className="flex items-center gap-4">
+                  <span
+                    className="cursor-pointer hover:underline"
+                    onClick={() => {
+                      setEditingImageName(currentImage.path)
+                      setImageNameInput(currentImage.name.replace(/\.[^/.]+$/, ""))
+                    }}
+                  >
+                    {currentImage.name}
+                  </span>
+                  {imageResolution && (
+                    <span className="opacity-70">
+                      Res: {imageResolution.width} × {imageResolution.height}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>
