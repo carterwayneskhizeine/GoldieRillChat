@@ -1075,6 +1075,24 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     localStorage.setItem('conversations', JSON.stringify(newConversations))
   }
 
+  // 添加画布拖拽处理函数
+  const handleCanvasDrop = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const files = Array.from(e.dataTransfer.files)
+    const imageFile = files.find(file => file.type.startsWith('image/'))
+    
+    if (imageFile) {
+      loadImage(imageFile)
+    }
+  }
+
+  const handleCanvasDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
       return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -1306,7 +1324,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                                     <img 
                                       src={`local-file://${file.path}`} 
                                       alt={file.name}
-                                      className="max-w-[200px] max-h-[200px] rounded-lg object-cover hover:opacity-90 transition-opacity"
+                                      className="max-w-[300px] max-h-[300px] rounded-lg object-cover hover:opacity-90 transition-opacity"
                                     />
                                   </div>
                                 ) : (
@@ -1607,6 +1625,8 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
               onWheel={handleWheel}
+              onDrop={handleCanvasDrop}
+              onDragOver={handleCanvasDragOver}
             >
               <canvas
                 ref={canvasRef}
@@ -1712,7 +1732,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
               <img 
                 src={`local-file://${currentImage.path}`}
                 alt={currentImage.name}
-                className="max-w-full max-h-full object-contain z-10"
+                className="max-w-full max-h-[600px] object-contain z-10"
                 style={{
                   transform: `scale(${imageScale})`,
                   transition: 'transform 0.1s ease-out'
@@ -1720,10 +1740,16 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                 onLoad={(e) => {
                   getImageResolution(e.target)
                   setImageScale(1)
+                  
+                  // 如果图片高度超过600px，计算缩放比例
+                  if (e.target.naturalHeight > 600) {
+                    const scale = 600 / e.target.naturalHeight
+                    setImageScale(scale)
+                  }
                 }}
                 onWheel={handleImageWheel}
               />
-          </div>
+            </div>
 
             <div className="bg-base-100 p-4 flex items-center justify-center gap-4 relative z-0">
               {editingImageName === currentImage.path ? (
