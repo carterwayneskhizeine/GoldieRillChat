@@ -47,6 +47,8 @@ export default function App() {
     offsetY: 0
   })
   const [canvasSize, setCanvasSize] = useState({ width: 512, height: 288 })
+  const [tempCanvasSize, setTempCanvasSize] = useState({ width: 512, height: 288 })
+  const canvasSizeTimeoutRef = useRef(null)
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
 
   // Add new state variable for scroll control
@@ -882,6 +884,34 @@ export default function App() {
     setActiveTool('editor')
   }
 
+  // 添加处理分辨率输入的函数
+  const handleResolutionChange = (dimension, value) => {
+    const newValue = value === '' ? '' : parseInt(value) || 0
+    setTempCanvasSize(prev => ({ ...prev, [dimension]: newValue }))
+    
+    // 清除之前的定时器
+    if (canvasSizeTimeoutRef.current) {
+      clearTimeout(canvasSizeTimeoutRef.current)
+    }
+    
+    // 设置新的定时器
+    canvasSizeTimeoutRef.current = setTimeout(() => {
+      setCanvasSize(prev => ({
+        ...prev,
+        [dimension]: newValue === '' ? 0 : newValue
+      }))
+    }, 1000)
+  }
+
+  // 在组件卸载时清除定时器
+  useEffect(() => {
+    return () => {
+      if (canvasSizeTimeoutRef.current) {
+        clearTimeout(canvasSizeTimeoutRef.current)
+      }
+    }
+  }, [])
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -1377,15 +1407,15 @@ export default function App() {
               <div className="join">
                 <input 
                   type="number" 
-                  value={canvasSize.width}
-                  onChange={(e) => setCanvasSize(prev => ({ ...prev, width: parseInt(e.target.value) || 0 }))}
+                  value={tempCanvasSize.width}
+                  onChange={(e) => handleResolutionChange('width', e.target.value)}
                   className="input input-bordered input-sm join-item w-20" 
                 />
                 <span className="join-item flex items-center px-2 bg-base-200">×</span>
                 <input 
                   type="number"
-                  value={canvasSize.height}
-                  onChange={(e) => setCanvasSize(prev => ({ ...prev, height: parseInt(e.target.value) || 0 }))}
+                  value={tempCanvasSize.height}
+                  onChange={(e) => handleResolutionChange('height', e.target.value)}
                   className="input input-bordered input-sm join-item w-20"
                 />
               </div>
