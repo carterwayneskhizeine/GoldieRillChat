@@ -32,6 +32,23 @@ export default function App() {
   const [editingFolderName, setEditingFolderName] = useState(null)
   const [folderNameInput, setFolderNameInput] = useState('')
 
+  // 添加图片编辑器相关的状态
+  const canvasRef = useRef(null)
+  const [editorState, setEditorState] = useState({
+    image: null,
+    scale: 1,
+    rotation: 0,
+    flipH: false,
+    flipV: false,
+    dragging: false,
+    lastX: 0,
+    lastY: 0,
+    offsetX: 0,
+    offsetY: 0
+  })
+  const [canvasSize, setCanvasSize] = useState({ width: 512, height: 288 })
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -528,6 +545,148 @@ export default function App() {
     setSelectedFiles(prev => [...prev, ...savedFiles])
   }
 
+  // 图片编辑器功能
+  const loadImage = async (file) => {
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        setImageSize({
+          width: img.naturalWidth,
+          height: img.naturalHeight
+        });
+        
+        setEditorState(prev => ({
+          ...prev,
+          image: img,
+          scale: 1,
+          rotation: 0,
+          flipH: false,
+          flipV: false,
+          offsetX: 0,
+          offsetY: 0
+        }));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  const drawImage = () => {
+    const canvas = canvasRef.current
+    if (!canvas || !editorState.image) return
+
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    ctx.save()
+    ctx.translate(canvas.width/2 + editorState.offsetX, canvas.height/2 + editorState.offsetY)
+    ctx.rotate(editorState.rotation * Math.PI / 180)
+    ctx.scale(
+      editorState.flipH ? -editorState.scale : editorState.scale,
+      editorState.flipV ? -editorState.scale : editorState.scale
+    )
+    ctx.drawImage(
+      editorState.image,
+      -editorState.image.width/2,
+      -editorState.image.height/2
+    )
+    ctx.restore()
+  }
+
+  // 当图片或编辑状态改变时重绘
+  useEffect(() => {
+    drawImage()
+  }, [editorState, canvasSize])
+
+  // 图片编辑功能
+  const rotate = () => {
+    setEditorState(prev => ({
+      ...prev,
+      rotation: (prev.rotation + 90) % 360
+    }))
+  }
+
+  const flip = (direction) => {
+    setEditorState(prev => ({
+      ...prev,
+      flipH: direction === 'h' ? !prev.flipH : prev.flipH,
+      flipV: direction === 'v' ? !prev.flipV : prev.flipV
+    }))
+  }
+
+  const resetTransform = () => {
+    setEditorState(prev => ({
+      ...prev,
+      scale: 1,
+      rotation: 0,
+      flipH: false,
+      flipV: false,
+      offsetX: 0,
+      offsetY: 0
+    }))
+  }
+
+  const setResolution = (width, height) => {
+    setCanvasSize({ width, height })
+  }
+
+  const downloadImage = (format = 'png') => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const link = document.createElement('a')
+    link.download = `image.${format}`
+    link.href = canvas.toDataURL(`image/${format}`)
+    link.click()
+  }
+
+  // 鼠标事件处理
+  const handleMouseDown = (e) => {
+    if (!editorState.image) return
+    setEditorState(prev => ({
+      ...prev,
+      dragging: true,
+      lastX: e.clientX,
+      lastY: e.clientY
+    }))
+  }
+
+  const handleMouseMove = (e) => {
+    if (!editorState.dragging) return
+    
+    const dx = e.clientX - editorState.lastX
+    const dy = e.clientY - editorState.lastY
+    
+    setEditorState(prev => ({
+      ...prev,
+      offsetX: prev.offsetX + dx,
+      offsetY: prev.offsetY + dy,
+      lastX: e.clientX,
+      lastY: e.clientY
+    }))
+  }
+
+  const handleMouseUp = () => {
+    setEditorState(prev => ({
+      ...prev,
+      dragging: false
+    }))
+  }
+
+  const handleWheel = (e) => {
+    if (!editorState.image) return
+    e.preventDefault()
+    
+    const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
+    setEditorState(prev => ({
+      ...prev,
+      scale: Math.max(0.1, Math.min(10, prev.scale * scaleFactor))
+    }))
+  }
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -873,55 +1032,51 @@ export default function App() {
         {/* Image editor area */}
         {activeTool === 'editor' && (
           <div className="flex-1 flex flex-col p-4 gap-4">
-            {/* Canvas area */}
-            <div className="flex-1 bg-base-200 rounded-lg flex items-center justify-center">
-              <div className="w-[512px] h-[288px] bg-base-300 rounded relative">
-                {/* Canvas will be rendered here */}
-                <div className="absolute inset-0 flex items-center justify-center text-base-content/50">
-                  Drop image here or click Import
-                </div>
-              </div>
-            </div>
-
-            {/* Resolution info */}
-            <div className="flex gap-4 text-sm">
-              <span className="opacity-70">Canvas: 512 × 288</span>
-              <span className="opacity-70">Image: 1245 × 1210</span>
-            </div>
-
-            {/* Tools row */}
-            <div className="flex flex-wrap gap-2">
-              <button className="btn btn-sm">Import</button>
+            {/* Tools row - 移动到顶部 */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              <input
+                type="file"
+                id="imageInput"
+                className="hidden"
+                accept="image/*"
+                onChange={(e) => loadImage(e.target.files[0])}
+              />
+              <button 
+                className="btn btn-sm"
+                onClick={() => document.getElementById('imageInput').click()}
+              >
+                Import
+              </button>
 
               <div className="dropdown">
                 <button tabIndex={0} className="btn btn-sm">Res</button>
                 <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
-                  <li><button className="whitespace-nowrap">512 × 512</button></li>
-                  <li><button className="whitespace-nowrap">512 × 288</button></li>
-                  <li><button className="whitespace-nowrap">768 × 320</button></li>
-                  <li><button className="whitespace-nowrap">768 × 512</button></li>
+                  <li><button onClick={() => setResolution(512, 512)} className="whitespace-nowrap">512 × 512</button></li>
+                  <li><button onClick={() => setResolution(512, 288)} className="whitespace-nowrap">512 × 288</button></li>
+                  <li><button onClick={() => setResolution(768, 320)} className="whitespace-nowrap">768 × 320</button></li>
+                  <li><button onClick={() => setResolution(768, 512)} className="whitespace-nowrap">768 × 512</button></li>
                 </ul>
               </div>
 
-              <button className="btn btn-sm btn-square">
+              <button className="btn btn-sm btn-square" onClick={rotate}>
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
 
-              <button className="btn btn-sm btn-square">
+              <button className="btn btn-sm btn-square" onClick={() => flip('h')}>
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                 </svg>
               </button>
 
-              <button className="btn btn-sm btn-square">
+              <button className="btn btn-sm btn-square" onClick={() => flip('v')}>
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 8h16M4 16h16" />
                 </svg>
               </button>
 
-              <button className="btn btn-sm btn-square">
+              <button className="btn btn-sm btn-square" onClick={resetTransform}>
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                 </svg>
@@ -934,22 +1089,31 @@ export default function App() {
                   </svg>
                 </button>
                 <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
-                  <li><button>JPG Format</button></li>
-                  <li><button>PNG Format</button></li>
+                  <li><button onClick={() => downloadImage('jpg')}>JPG Format</button></li>
+                  <li><button onClick={() => downloadImage('png')}>PNG Format</button></li>
                 </ul>
               </div>
 
               <div className="dropdown">
                 <button tabIndex={0} className="btn btn-sm">AR</button>
                 <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
-                  <li><button>16:9</button></li>
-                  <li><button>9:16</button></li>
-                  <li><button>4:3</button></li>
-                  <li><button>1:1</button></li>
+                  <li><button onClick={() => setResolution(1920, 1080)}>16:9</button></li>
+                  <li><button onClick={() => setResolution(1080, 1920)}>9:16</button></li>
+                  <li><button onClick={() => setResolution(1600, 1200)}>4:3</button></li>
+                  <li><button onClick={() => setResolution(1000, 1000)}>1:1</button></li>
                 </ul>
               </div>
 
-              <button className="btn btn-sm btn-square">
+              <button className="btn btn-sm btn-square" onClick={() => {
+                const canvas = canvasRef.current
+                if (canvas) {
+                  canvas.toBlob(blob => {
+                    navigator.clipboard.write([
+                      new ClipboardItem({ 'image/png': blob })
+                    ])
+                  })
+                }
+              }}>
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                 </svg>
@@ -957,11 +1121,43 @@ export default function App() {
 
               {/* Resolution inputs */}
               <div className="join">
-                <input type="number" placeholder="Width" className="input input-bordered input-sm join-item w-20" />
+                <input 
+                  type="number" 
+                  value={canvasSize.width}
+                  onChange={(e) => setCanvasSize(prev => ({ ...prev, width: parseInt(e.target.value) || 0 }))}
+                  className="input input-bordered input-sm join-item w-20" 
+                />
                 <span className="join-item flex items-center px-2 bg-base-200">×</span>
-                <input type="number" placeholder="Height" className="input input-bordered input-sm join-item w-20" />
-                <button className="btn btn-sm join-item">Apply</button>
+                <input 
+                  type="number"
+                  value={canvasSize.height}
+                  onChange={(e) => setCanvasSize(prev => ({ ...prev, height: parseInt(e.target.value) || 0 }))}
+                  className="input input-bordered input-sm join-item w-20"
+                />
               </div>
+            </div>
+
+            {/* Canvas area */}
+            <div 
+              className="flex-1 bg-base-200 rounded-lg flex items-center justify-center"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onWheel={handleWheel}
+            >
+              <canvas
+                ref={canvasRef}
+                width={canvasSize.width}
+                height={canvasSize.height}
+                className="bg-base-300 rounded"
+              />
+            </div>
+
+            {/* Resolution info */}
+            <div className="flex gap-4 text-sm">
+              <span className="opacity-70">Canvas: {canvasSize.width} × {canvasSize.height}</span>
+              <span className="opacity-70">Image: {imageSize.width} × {imageSize.height}</span>
             </div>
           </div>
         )}
