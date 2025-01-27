@@ -68,6 +68,11 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   // 添加拖动排序相关的状态和函数
   const [draggedConversation, setDraggedConversation] = useState(null)
 
+  // 添加图片拖动和缩放处理函数
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
+  const [isDraggingImage, setIsDraggingImage] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -1046,7 +1051,20 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   const handleImageWheel = (e) => {
     e.preventDefault()
     const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
+    const rect = e.currentTarget.getBoundingClientRect()
+    const centerX = window.innerWidth / 2
+    const centerY = window.innerHeight / 2
+
+    // 计算图片中心点相对于屏幕中心的偏移
+    const offsetX = imagePosition.x + rect.width / 2 - centerX
+    const offsetY = imagePosition.y + rect.height / 2 - centerY
+
+    // 更新缩放和位置
     setImageScale(prev => Math.max(0.1, Math.min(10, prev * scaleFactor)))
+    setImagePosition(prev => ({
+      x: centerX - rect.width / 2 + offsetX * scaleFactor,
+      y: centerY - rect.height / 2 + offsetY * scaleFactor
+    }))
   }
 
   // 添加拖动排序相关的状态和函数
@@ -1091,6 +1109,35 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   const handleCanvasDragOver = (e) => {
     e.preventDefault()
     e.stopPropagation()
+  }
+
+  // 添加图片拖动和缩放处理函数
+  const handleImageMouseDown = (e) => {
+    // 只响应右键
+    if (e.button !== 2) return
+    e.preventDefault()
+    setIsDraggingImage(true)
+    setDragStart({
+      x: e.clientX - imagePosition.x,
+      y: e.clientY - imagePosition.y
+    })
+  }
+
+  const handleImageMouseMove = (e) => {
+    if (!isDraggingImage) return
+    e.preventDefault()
+    setImagePosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    })
+  }
+
+  const handleImageMouseUp = () => {
+    setIsDraggingImage(false)
+  }
+
+  const handleImageContextMenu = (e) => {
+    e.preventDefault()
   }
 
       return (
@@ -1732,22 +1779,44 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
               <img 
                 src={`local-file://${currentImage.path}`}
                 alt={currentImage.name}
-                className="max-w-full max-h-[600px] object-contain z-10"
+                className="max-w-full max-h-full object-contain z-10 select-none"
                 style={{
-                  transform: `scale(${imageScale})`,
-                  transition: 'transform 0.1s ease-out'
+                  transform: `translate(${imagePosition.x}px, ${imagePosition.y}px) scale(${imageScale})`,
+                  transition: 'transform 0.1s ease-out',
+                  cursor: isDraggingImage ? 'grabbing' : 'grab'
                 }}
                 onLoad={(e) => {
+                  const { naturalWidth, naturalHeight } = e.target
                   getImageResolution(e.target)
-                  setImageScale(1)
-                  
-                  // 如果图片高度超过600px，计算缩放比例
-                  if (e.target.naturalHeight > 600) {
-                    const scale = 600 / e.target.naturalHeight
-                    setImageScale(scale)
-                  }
+
+                  // 根据屏幕大小计算合适的缩放比例
+                  const maxWidth = window.innerWidth * 0.8  // 留出一些边距
+                  const maxHeight = window.innerHeight * 0.8
+
+                  // 计算宽高比例
+                  const widthRatio = maxWidth / naturalWidth
+                  const heightRatio = maxHeight / naturalHeight
+
+                  // 使用较小的比例，保证图片完整显示
+                  const scale = Math.min(widthRatio, heightRatio)
+
+                  // 计算缩放后的实际高度
+                  const scaledHeight = naturalHeight * scale
+
+                  // 计算默认居中的 Y 偏移，并额外向上偏移 50%
+                  const offsetY = (window.innerHeight - scaledHeight) / 2 - scaledHeight * 0.3
+
+                  // 设置缩放比例和位置
+                  setImageScale(scale)
+                  setImagePosition({ x: 0, y: offsetY })
                 }}
+                onMouseDown={handleImageMouseDown}
+                onMouseMove={handleImageMouseMove}
+                onMouseUp={handleImageMouseUp}
+                onMouseLeave={handleImageMouseUp}
+                onContextMenu={handleImageContextMenu}
                 onWheel={handleImageWheel}
+                draggable={false}
               />
             </div>
 
