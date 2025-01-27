@@ -110,9 +110,96 @@ export default function App() {
 
         {/* Image editor area */}
         {activeTool === 'editor' && (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="text-center">
-              <p>Image Editor Coming Soon...</p>
+          <div className="flex-1 flex flex-col p-4 gap-4">
+            {/* Canvas area */}
+            <div className="flex-1 bg-base-200 rounded-lg flex items-center justify-center">
+              <div className="w-[512px] h-[288px] bg-base-300 rounded relative">
+                {/* Canvas will be rendered here */}
+                <div className="absolute inset-0 flex items-center justify-center text-base-content/50">
+                  Drop image here or click Import
+                </div>
+              </div>
+            </div>
+
+            {/* Resolution info */}
+            <div className="flex gap-4 text-sm">
+              <span className="opacity-70">Canvas: 512 × 288</span>
+              <span className="opacity-70">Image: 1245 × 1210</span>
+            </div>
+
+            {/* Tools row */}
+            <div className="flex flex-wrap gap-2">
+              <button className="btn btn-sm">Import</button>
+
+              <div className="dropdown">
+                <button tabIndex={0} className="btn btn-sm">Res</button>
+                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
+                  <li><button>512 × 512</button></li>
+                  <li><button>512 × 288</button></li>
+                  <li><button>768 × 320</button></li>
+                  <li><button>768 × 512</button></li>
+                </ul>
+              </div>
+
+              <button className="btn btn-sm btn-square">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+
+              <button className="btn btn-sm btn-square">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+              </button>
+
+              <button className="btn btn-sm btn-square">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 8h16M4 16h16" />
+                </svg>
+              </button>
+
+              <button className="btn btn-sm btn-square">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                </svg>
+              </button>
+
+              <div className="dropdown">
+                <button tabIndex={0} className="btn btn-sm btn-square">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
+                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
+                  <li><button>JPG Format</button></li>
+                  <li><button>PNG Format</button></li>
+                </ul>
+              </div>
+
+              <div className="dropdown">
+                <button tabIndex={0} className="btn btn-sm">AR</button>
+                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
+                  <li><button>16:9</button></li>
+                  <li><button>9:16</button></li>
+                  <li><button>4:3</button></li>
+                  <li><button>1:1</button></li>
+                </ul>
+              </div>
+
+              <button className="btn btn-sm btn-square">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+              </button>
+
+              {/* Resolution inputs */}
+              <div className="join">
+                <input type="number" placeholder="Width" className="input input-bordered input-sm join-item w-20" />
+                <span className="join-item flex items-center px-2 bg-base-200">×</span>
+                <input type="number" placeholder="Height" className="input input-bordered input-sm join-item w-20" />
+                <button className="btn btn-sm join-item">Apply</button>
+              </div>
             </div>
           </div>
         )}
@@ -137,9 +224,9 @@ export default function App() {
                 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg">Storage Location</h3>
+                    <h3 className="text-lg">Folder</h3>
                     <button className="btn btn-primary">
-                      Select Storage Location
+                      Modify Folder
                     </button>
                   </div>
 
