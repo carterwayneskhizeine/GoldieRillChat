@@ -65,6 +65,9 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   // Add new state variable for image scale
   const [imageScale, setImageScale] = useState(1)
 
+  // 添加拖动排序相关的状态和函数
+  const [draggedConversation, setDraggedConversation] = useState(null)
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -1046,6 +1049,32 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     setImageScale(prev => Math.max(0.1, Math.min(10, prev * scaleFactor)))
   }
 
+  // 添加拖动排序相关的状态和函数
+  const handleDragStart = (conversation) => {
+    setDraggedConversation(conversation)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = async (targetConversation) => {
+    if (!draggedConversation || draggedConversation.id === targetConversation.id) return
+
+    const oldIndex = conversations.findIndex(c => c.id === draggedConversation.id)
+    const newIndex = conversations.findIndex(c => c.id === targetConversation.id)
+    
+    const newConversations = [...conversations]
+    newConversations.splice(oldIndex, 1)
+    newConversations.splice(newIndex, 0, draggedConversation)
+    
+    setConversations(newConversations)
+    setDraggedConversation(null)
+    
+    // 保存新的顺序到存储
+    localStorage.setItem('conversations', JSON.stringify(newConversations))
+  }
+
       return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -1075,7 +1104,13 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
             {conversations.map(conversation => (
               <div
                 key={conversation.id}
-                className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''}`}
+                className={`btn btn-ghost justify-between ${
+                  currentConversation?.id === conversation.id ? 'btn-active' : ''
+                } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                draggable
+                onDragStart={() => handleDragStart(conversation)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(conversation)}
               >
                 <div 
                   className="flex items-center gap-2 flex-1"
@@ -1088,38 +1123,23 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                   </svg>
                   {editingFolderName === conversation.id ? (
-                    <div className="flex flex-col gap-1" onClick={e => e.stopPropagation()}>
-                      <input
-                        type="text"
-                        value={folderNameInput}
-                        onChange={(e) => setFolderNameInput(e.target.value)}
-                        className="input input-xs input-bordered w-full"
-                        placeholder="Enter new folder name"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            renameChatFolder(conversation, folderNameInput)
-                          }
-                        }}
-                        autoFocus
-                      />
-                      <div className="flex gap-1">
-                        <button
-                          className="btn btn-xs flex-1"
-                          onClick={() => renameChatFolder(conversation, folderNameInput)}
-                        >
-                          Save
-                        </button>
-                        <button
-                          className="btn btn-xs flex-1"
-                          onClick={() => {
-                            setEditingFolderName(null)
-                            setFolderNameInput('')
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
+                    <input
+                      type="text"
+                      value={folderNameInput}
+                      onChange={(e) => setFolderNameInput(e.target.value)}
+                      className="input input-xs input-bordered w-full"
+                      placeholder="Enter new folder name"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          renameChatFolder(conversation, folderNameInput)
+                        }
+                      }}
+                      onBlur={() => {
+                        setEditingFolderName(null)
+                        setFolderNameInput('')
+                      }}
+                      autoFocus
+                    />
                   ) : (
                     <span 
                       className="truncate cursor-pointer hover:underline"
@@ -1699,7 +1719,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                 }}
                 onWheel={handleImageWheel}
               />
-            </div>
+          </div>
 
             <div className="bg-base-100 p-4 flex items-center justify-center gap-4 relative z-0">
               {editingImageName === currentImage.path ? (
