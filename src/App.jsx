@@ -49,6 +49,9 @@ export default function App() {
   const [canvasSize, setCanvasSize] = useState({ width: 512, height: 288 })
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
 
+  // Add new state variable for scroll control
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false)
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -62,8 +65,11 @@ export default function App() {
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    if (shouldScrollToBottom) {
+      scrollToBottom()
+      setShouldScrollToBottom(false)
+    }
+  }, [messages, shouldScrollToBottom])
 
   const toggleTheme = () => {
     const currentIndex = themes.indexOf(currentTheme)
@@ -86,12 +92,6 @@ export default function App() {
     }
   }
 
-  // 添加获取北京时间的函数
-  const getBeijingTime = () => {
-    const now = new Date()
-    return new Date(now.getTime()).toISOString()
-  }
-
   const createNewConversation = async () => {
     if (!storagePath) {
       alert('请先在设置中选择存储文件夹')
@@ -104,7 +104,7 @@ export default function App() {
       const newConversation = {
         id: Date.now().toString(),
         name: result.name,
-        timestamp: getBeijingTime(),
+        timestamp: new Date().toISOString(),
         path: result.path
       }
       
@@ -127,6 +127,7 @@ export default function App() {
       try {
         const loadedMessages = await window.electron.loadMessages(conversation.path, conversationId)
         setMessages(loadedMessages || [])
+        setShouldScrollToBottom(true)
       } catch (error) {
         console.error('Failed to load messages:', error)
         setMessages([])
@@ -140,7 +141,7 @@ export default function App() {
     const newMessage = {
       id: Date.now().toString(),
       content: messageInput,
-      timestamp: getBeijingTime(),
+      timestamp: new Date().toISOString(),
       files: selectedFiles,
     }
 
@@ -155,6 +156,7 @@ export default function App() {
     }
     
     setMessages(prev => [...prev, newMessage])
+    setShouldScrollToBottom(true)
     setMessageInput('')
     setSelectedFiles([])
     
@@ -802,6 +804,35 @@ export default function App() {
     }
   }
 
+  // 添加移动消息的函数
+  const moveMessage = async (messageId, direction) => {
+    const currentIndex = messages.findIndex(msg => msg.id === messageId)
+    if (currentIndex === -1) return
+    
+    const newMessages = [...messages]
+    const messageToMove = newMessages[currentIndex]
+    
+    // 根据方向移动消息
+    if (direction === 'up' && currentIndex > 0) {
+      newMessages.splice(currentIndex, 1)
+      newMessages.splice(currentIndex - 1, 0, messageToMove)
+    } else if (direction === 'down' && currentIndex < messages.length - 1) {
+      newMessages.splice(currentIndex, 1)
+      newMessages.splice(currentIndex + 1, 0, messageToMove)
+    }
+    
+    setMessages(newMessages)
+    
+    // 保存到存储
+    if (currentConversation) {
+      await window.electron.saveMessages(
+        currentConversation.path,
+        currentConversation.id,
+        newMessages
+      )
+    }
+  }
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -1068,6 +1099,22 @@ export default function App() {
                             >
                               Copy
                             </button>
+                            {messages.indexOf(message) > 0 && (
+                              <button
+                                className="btn btn-ghost btn-xs bg-base-100"
+                                onClick={() => moveMessage(message.id, 'up')}
+                              >
+                                Up
+                              </button>
+                            )}
+                            {messages.indexOf(message) < messages.length - 1 && (
+                              <button
+                                className="btn btn-ghost btn-xs bg-base-100"
+                                onClick={() => moveMessage(message.id, 'down')}
+                              >
+                                Down
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}
