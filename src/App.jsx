@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 
 const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine", "halloween", "garden", "forest", "lofi", "pastel", "fantasy", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "coffee", "winter"]
 
-export default function App() {
+    export default function App() {
   const [activeTool, setActiveTool] = useState('chat')
   const [showSettings, setShowSettings] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('theme') || 'dark')
@@ -54,6 +54,17 @@ export default function App() {
   // Add new state variable for scroll control
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false)
 
+  // Add new state variable for Ctrl key press
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false)
+
+  // Add new state variables for mouse rotation
+  const [startAngle, setStartAngle] = useState(0)
+  const [lastRotation, setLastRotation] = useState(0)
+  const [isRotating, setIsRotating] = useState(false)
+
+  // Add new state variable for image scale
+  const [imageScale, setImageScale] = useState(1)
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -72,6 +83,29 @@ export default function App() {
       setShouldScrollToBottom(false)
     }
   }, [messages, shouldScrollToBottom])
+
+  // Add keyboard event listeners
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Control') {
+        setIsCtrlPressed(true)
+      }
+    }
+    
+    const handleKeyUp = (e) => {
+      if (e.key === 'Control') {
+        setIsCtrlPressed(false)
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
 
   const toggleTheme = () => {
     const currentIndex = themes.indexOf(currentTheme)
@@ -664,6 +698,7 @@ export default function App() {
 
   const setResolution = (width, height) => {
     setCanvasSize({ width, height })
+    setTempCanvasSize({ width, height })  // 同步更新临时值
   }
 
   const downloadImage = (format = 'png') => {
@@ -679,6 +714,24 @@ export default function App() {
   // 鼠标事件处理
   const handleMouseDown = (e) => {
     if (!editorState.image) return
+
+    const isCtrlMode = isCtrlPressed || document.getElementById('ctrlToggle').checked
+    
+    if (isCtrlMode) {
+      // 进入旋转模式
+      setIsRotating(true)
+      const rect = canvasRef.current.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
+      const initialAngle = Math.atan2(
+        e.clientY - centerY,
+        e.clientX - centerX
+      ) * 180 / Math.PI
+      
+      setStartAngle(initialAngle)
+      setLastRotation(editorState.rotation)
+    }
+    
     setEditorState(prev => ({
       ...prev,
       dragging: true,
@@ -688,21 +741,41 @@ export default function App() {
   }
 
   const handleMouseMove = (e) => {
-    if (!editorState.dragging) return
+    if (!editorState.dragging || !editorState.image) return
     
-    const dx = e.clientX - editorState.lastX
-    const dy = e.clientY - editorState.lastY
-    
-    setEditorState(prev => ({
-      ...prev,
-      offsetX: prev.offsetX + dx,
-      offsetY: prev.offsetY + dy,
-      lastX: e.clientX,
-      lastY: e.clientY
-    }))
+    if (isRotating) {
+      // 旋转模式
+      const rect = canvasRef.current.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
+      
+      const currentAngle = Math.atan2(
+        e.clientY - centerY,
+        e.clientX - centerX
+      ) * 180 / Math.PI
+      
+      const angleDiff = currentAngle - startAngle
+      setEditorState(prev => ({
+        ...prev,
+        rotation: lastRotation + angleDiff
+      }))
+    } else {
+      // 移动模式
+      const dx = e.clientX - editorState.lastX
+      const dy = e.clientY - editorState.lastY
+      
+      setEditorState(prev => ({
+        ...prev,
+        offsetX: prev.offsetX + dx,
+        offsetY: prev.offsetY + dy,
+        lastX: e.clientX,
+        lastY: e.clientY
+      }))
+    }
   }
 
   const handleMouseUp = () => {
+    setIsRotating(false)
     setEditorState(prev => ({
       ...prev,
       dragging: false
@@ -912,7 +985,68 @@ export default function App() {
     }
   }, [])
 
-  return (
+  // 添加发送画布图片到聊天的函数
+  const sendCanvasToChat = async () => {
+    if (!currentConversation) {
+      alert('请先选择或创建一个对话')
+      return
+    }
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    try {
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+      const timestamp = Date.now()
+      const fileName = `canvas_image_${timestamp}.png`
+      
+      // 将blob转换为Uint8Array
+      const arrayBuffer = await blob.arrayBuffer()
+      const uint8Array = new Uint8Array(arrayBuffer)
+      
+      // 保存文件
+      const result = await window.electron.saveFile(currentConversation.path, {
+        name: fileName,
+        data: Array.from(uint8Array)
+      })
+      
+      // 创建新消息
+      const newMessage = {
+        id: Date.now().toString(),
+        content: '',
+        timestamp: new Date().toISOString(),
+        files: [{
+          name: fileName,
+          path: result.path
+        }]
+      }
+      
+      // 更新消息列表
+      setMessages(prev => [...prev, newMessage])
+      
+      // 保存到storage
+      await window.electron.saveMessages(
+        currentConversation.path,
+        currentConversation.id,
+        [...messages, newMessage]
+      )
+      
+      // 切换到chat面板
+      setActiveTool('chat')
+    } catch (error) {
+      console.error('Failed to send canvas image:', error)
+      alert('发送失败')
+    }
+  }
+
+  // 添加图片缩放处理函数
+  const handleImageWheel = (e) => {
+    e.preventDefault()
+    const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
+    setImageScale(prev => Math.max(0.1, Math.min(10, prev * scaleFactor)))
+  }
+
+      return (
     <div className="flex h-screen">
       {/* Sidebar */}
       <div className="w-64 bg-base-300 text-base-content p-2 flex flex-col">
@@ -1302,121 +1436,141 @@ export default function App() {
         {activeTool === 'editor' && (
           <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
             {/* Tools row - 移动到顶部 */}
-            <div className="flex flex-wrap gap-2 justify-center">
-              <input
-                type="file"
-                id="imageInput"
-                className="hidden"
-                accept="image/*"
-                onChange={(e) => loadImage(e.target.files[0])}
-              />
-              <button 
-                className="btn btn-sm"
-                onClick={() => document.getElementById('imageInput').click()}
-              >
-                Import
-              </button>
-
-              <div className="dropdown">
-                <button tabIndex={0} className="btn btn-sm">Res</button>
-                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
-                  <li><button onClick={() => setResolution(512, 512)} className="whitespace-nowrap">512 × 512</button></li>
-                  <li><button onClick={() => setResolution(512, 288)} className="whitespace-nowrap">512 × 288</button></li>
-                  <li><button onClick={() => setResolution(768, 320)} className="whitespace-nowrap">768 × 320</button></li>
-                  <li><button onClick={() => setResolution(768, 512)} className="whitespace-nowrap">768 × 512</button></li>
-                </ul>
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex-1 flex justify-start items-center">
+                <button
+                  className="btn btn-sm"
+                  disabled={!editorState.image || !currentConversation}
+                  onClick={sendCanvasToChat}
+                >
+                  Send
+                </button>
               </div>
+              <div className="flex flex-wrap gap-2 justify-center items-center">
+                <input
+                  type="file"
+                  id="imageInput"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={(e) => loadImage(e.target.files[0])}
+                />
+                <button 
+                  className="btn btn-sm"
+                  onClick={() => document.getElementById('imageInput').click()}
+                >
+                  Import
+                </button>
 
-              <button className="btn btn-sm btn-square" onClick={rotate}>
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
+                <div className="dropdown">
+                  <button tabIndex={0} className="btn btn-sm">Res</button>
+                  <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
+                    <li><button onClick={() => setResolution(512, 512)} className="whitespace-nowrap">512 × 512</button></li>
+                    <li><button onClick={() => setResolution(512, 288)} className="whitespace-nowrap">512 × 288</button></li>
+                    <li><button onClick={() => setResolution(768, 320)} className="whitespace-nowrap">768 × 320</button></li>
+                    <li><button onClick={() => setResolution(768, 512)} className="whitespace-nowrap">768 × 512</button></li>
+                  </ul>
+                </div>
 
-              <button className="btn btn-sm btn-square" onClick={() => flip('h')}>
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-              </button>
-
-              <button className="btn btn-sm btn-square" onClick={() => flip('v')}>
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 8h16M4 16h16" />
-                </svg>
-              </button>
-
-              <button className="btn btn-sm btn-square" onClick={resetTransform}>
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                </svg>
-              </button>
-
-              <div className="dropdown">
-                <button tabIndex={0} className="btn btn-sm btn-square">
+                <button className="btn btn-sm btn-square" onClick={rotate}>
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
-                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
-                  <li><button onClick={() => downloadImage('jpg')}>JPG Format</button></li>
-                  <li><button onClick={() => downloadImage('png')}>PNG Format</button></li>
-                </ul>
+
+                <button className="btn btn-sm btn-square" onClick={() => flip('h')}>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                </button>
+
+                <button className="btn btn-sm btn-square" onClick={() => flip('v')}>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 8h16M4 16h16" />
+                  </svg>
+                </button>
+
+                <button className="btn btn-sm btn-square" onClick={resetTransform}>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  </svg>
+                </button>
+
+                <div className="dropdown">
+                  <button tabIndex={0} className="btn btn-sm btn-square">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                  <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
+                    <li><button onClick={() => downloadImage('jpg')}>JPG Format</button></li>
+                    <li><button onClick={() => downloadImage('png')}>PNG Format</button></li>
+                  </ul>
+                </div>
+
+                <div className="dropdown">
+                  <button tabIndex={0} className="btn btn-sm">AR</button>
+                  <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
+                    <li><button onClick={() => {
+                      const newHeight = Math.round(canvasSize.width * (9/16))
+                      setCanvasSize(prev => ({ ...prev, height: newHeight }))
+                      setTempCanvasSize(prev => ({ ...prev, height: newHeight }))
+                    }}>16:9</button></li>
+                    <li><button onClick={() => {
+                      const newHeight = Math.round(canvasSize.width * (16/9))
+                      setCanvasSize(prev => ({ ...prev, height: newHeight }))
+                      setTempCanvasSize(prev => ({ ...prev, height: newHeight }))
+                    }}>9:16</button></li>
+                    <li><button onClick={() => {
+                      const newHeight = Math.round(canvasSize.width * (3/4))
+                      setCanvasSize(prev => ({ ...prev, height: newHeight }))
+                      setTempCanvasSize(prev => ({ ...prev, height: newHeight }))
+                    }}>4:3</button></li>
+                    <li><button onClick={() => {
+                      setCanvasSize(prev => ({ ...prev, height: prev.width }))
+                      setTempCanvasSize(prev => ({ ...prev, height: prev.width }))
+                    }}>1:1</button></li>
+                  </ul>
+                </div>
+
+                <button className="btn btn-sm btn-square" onClick={() => {
+                  const canvas = canvasRef.current
+                  if (canvas) {
+                    canvas.toBlob(blob => {
+                      navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                      ])
+                    })
+                  }
+                }}>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                </button>
+
+                <div className="join">
+                  <input 
+                    type="number" 
+                    value={tempCanvasSize.width}
+                    onChange={(e) => handleResolutionChange('width', e.target.value)}
+                    className="input input-bordered input-sm join-item w-20" 
+                  />
+                  <span className="join-item flex items-center px-2 bg-base-200">×</span>
+                  <input 
+                    type="number"
+                    value={tempCanvasSize.height}
+                    onChange={(e) => handleResolutionChange('height', e.target.value)}
+                    className="input input-bordered input-sm join-item w-20"
+                  />
+                </div>
               </div>
-
-              <div className="dropdown">
-                <button tabIndex={0} className="btn btn-sm">AR</button>
-                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
-                  <li><button onClick={() => {
-                    // 保持宽度不变，调整高度
-                    const newHeight = Math.round(canvasSize.width * (9/16))
-                    setCanvasSize(prev => ({ ...prev, height: newHeight }))
-                  }}>16:9</button></li>
-                  <li><button onClick={() => {
-                    // 保持宽度不变，调整高度
-                    const newHeight = Math.round(canvasSize.width * (16/9))
-                    setCanvasSize(prev => ({ ...prev, height: newHeight }))
-                  }}>9:16</button></li>
-                  <li><button onClick={() => {
-                    // 保持宽度不变，调整高度
-                    const newHeight = Math.round(canvasSize.width * (3/4))
-                    setCanvasSize(prev => ({ ...prev, height: newHeight }))
-                  }}>4:3</button></li>
-                  <li><button onClick={() => {
-                    // 保持宽度不变
-                    setCanvasSize(prev => ({ ...prev, height: prev.width }))
-                  }}>1:1</button></li>
-                </ul>
-              </div>
-
-              <button className="btn btn-sm btn-square" onClick={() => {
-                const canvas = canvasRef.current
-                if (canvas) {
-                  canvas.toBlob(blob => {
-                    navigator.clipboard.write([
-                      new ClipboardItem({ 'image/png': blob })
-                    ])
-                  })
-                }
-              }}>
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                </svg>
-              </button>
-
-              {/* Resolution inputs */}
-              <div className="join">
-                <input 
-                  type="number" 
-                  value={tempCanvasSize.width}
-                  onChange={(e) => handleResolutionChange('width', e.target.value)}
-                  className="input input-bordered input-sm join-item w-20" 
-                />
-                <span className="join-item flex items-center px-2 bg-base-200">×</span>
-                <input 
-                  type="number"
-                  value={tempCanvasSize.height}
-                  onChange={(e) => handleResolutionChange('height', e.target.value)}
-                  className="input input-bordered input-sm join-item w-20"
+              <div className="flex-1 flex justify-end items-center gap-2">
+                <span className="text-sm opacity-70">Ctrl</span>
+                <input
+                  type="checkbox"
+                  id="ctrlToggle"
+                  className="toggle toggle-sm"
+                  checked={isCtrlPressed}
+                  onChange={(e) => setIsCtrlPressed(e.target.checked)}
                 />
               </div>
             </div>
@@ -1441,7 +1595,7 @@ export default function App() {
                   height: 'auto',
                   objectFit: 'contain'
                 }}
-                className="bg-base-300 rounded"
+                className="bg-neutral-content rounded"
               />
             </div>
 
@@ -1471,7 +1625,7 @@ export default function App() {
               <div>
                 <h2 className="text-xl font-semibold mb-4">Storage</h2>
                 
-                <div className="space-y-4">
+              <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg">Folder</h3>
                     <div className="flex items-center gap-2">
@@ -1480,14 +1634,14 @@ export default function App() {
                         Modify Folder
                       </button>
                     </div>
-                  </div>
-
+                </div>
+                
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg">Update</h3>
                     <button className="btn btn-primary">
                       Update Folders
                     </button>
-                  </div>
+                </div>
 
                   <div className="divider"></div>
 
@@ -1498,7 +1652,7 @@ export default function App() {
                       <button onClick={toggleTheme} className="btn btn-primary">
                         Change Theme
                       </button>
-                    </div>
+              </div>
                   </div>
                 </div>
               </div>
@@ -1519,7 +1673,7 @@ export default function App() {
               >
                 ❮
               </button>
-            </div>
+              </div>
             
             <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16">
               <button 
@@ -1530,16 +1684,24 @@ export default function App() {
               </button>
             </div>
 
-            <div className="w-full flex-1 flex items-center justify-center">
+            <div className="w-full flex-1 flex items-center justify-center relative">
               <img 
                 src={`local-file://${currentImage.path}`}
                 alt={currentImage.name}
-                className="max-w-full max-h-full object-contain"
-                onLoad={(e) => getImageResolution(e.target)}
+                className="max-w-full max-h-full object-contain z-10"
+                style={{
+                  transform: `scale(${imageScale})`,
+                  transition: 'transform 0.1s ease-out'
+                }}
+                onLoad={(e) => {
+                  getImageResolution(e.target)
+                  setImageScale(1)
+                }}
+                onWheel={handleImageWheel}
               />
             </div>
 
-            <div className="bg-base-100 p-4 flex items-center justify-center gap-4">
+            <div className="bg-base-100 p-4 flex items-center justify-center gap-4 relative z-0">
               {editingImageName === currentImage.path ? (
                 <div className="join">
                   <input
@@ -1596,6 +1758,6 @@ export default function App() {
           ></div>
         </div>
       )}
-    </div>
-  )
-}
+        </div>
+      )
+    }
