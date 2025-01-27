@@ -1,18 +1,37 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine", "halloween", "garden", "forest", "lofi", "pastel", "fantasy", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "coffee", "winter"]
 
-export default function App() {
+    export default function App() {
   const [activeTool, setActiveTool] = useState('chat')
   const [showSettings, setShowSettings] = useState(false)
-  const [currentTheme, setCurrentTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'dark'
-  })
+  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+  
+  // Chat related states
+  const [conversations, setConversations] = useState([])
+  const [currentConversation, setCurrentConversation] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [messageInput, setMessageInput] = useState('')
+  const [selectedFiles, setSelectedFiles] = useState([])
+  const [editingMessage, setEditingMessage] = useState(null)
+  const messagesEndRef = useRef(null)
+  const fileInputRef = useRef(null)
 
+  // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
     localStorage.setItem('theme', currentTheme)
   }, [currentTheme])
+
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const toggleTheme = () => {
     const currentIndex = themes.indexOf(currentTheme)
@@ -20,7 +39,125 @@ export default function App() {
     setCurrentTheme(themes[nextIndex])
   }
 
-  return (
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const loadConversations = async () => {
+    try {
+      // Implementation will depend on your storage method
+      // For now, we'll use localStorage as an example
+      const savedConversations = JSON.parse(localStorage.getItem('conversations') || '[]')
+      setConversations(savedConversations)
+    } catch (error) {
+      console.error('Failed to load conversations:', error)
+    }
+  }
+
+  const createNewConversation = async () => {
+    const newConversation = {
+      id: Date.now().toString(),
+      name: 'New Chat',
+      timestamp: new Date().toISOString(),
+    }
+    
+    setConversations(prev => [...prev, newConversation])
+    setCurrentConversation(newConversation)
+    setMessages([])
+    
+    // Save to storage
+    localStorage.setItem('conversations', JSON.stringify([...conversations, newConversation]))
+  }
+
+  const loadConversation = async (conversationId) => {
+    const conversation = conversations.find(c => c.id === conversationId)
+    if (conversation) {
+      setCurrentConversation(conversation)
+      // Load messages from storage
+      const savedMessages = JSON.parse(localStorage.getItem(`messages_${conversationId}`) || '[]')
+      setMessages(savedMessages)
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!messageInput.trim() && selectedFiles.length === 0) return
+    
+    const newMessage = {
+      id: Date.now().toString(),
+      content: messageInput,
+      timestamp: new Date().toISOString(),
+      files: selectedFiles,
+    }
+    
+    setMessages(prev => [...prev, newMessage])
+    setMessageInput('')
+    setSelectedFiles([])
+    
+    // Reset textarea height and scrollbar
+    const textarea = document.querySelector('textarea')
+    if (textarea) {
+      textarea.style.height = '48px'  // 2.5rem = 40px
+      textarea.style.overflowY = 'hidden'
+    }
+    
+    // Save to storage
+    if (currentConversation) {
+      localStorage.setItem(`messages_${currentConversation.id}`, JSON.stringify([...messages, newMessage]))
+    }
+  }
+
+  const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files)
+    setSelectedFiles(prev => [...prev, ...files])
+  }
+
+  const removeFile = (fileToRemove) => {
+    setSelectedFiles(prev => prev.filter(file => file !== fileToRemove))
+  }
+
+  const deleteMessage = async (messageId) => {
+    setMessages(prev => prev.filter(msg => msg.id !== messageId))
+    if (currentConversation) {
+      const updatedMessages = messages.filter(msg => msg.id !== messageId)
+      localStorage.setItem(`messages_${currentConversation.id}`, JSON.stringify(updatedMessages))
+    }
+  }
+
+  const enterEditMode = (message) => {
+    setEditingMessage(message)
+    setMessageInput(message.content)
+  }
+
+  const exitEditMode = () => {
+    setEditingMessage(null)
+    setMessageInput('')
+  }
+
+  const updateMessage = async (messageId, newContent) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { ...msg, content: newContent } : msg
+    ))
+    exitEditMode()
+    
+    if (currentConversation) {
+      const updatedMessages = messages.map(msg => 
+        msg.id === messageId ? { ...msg, content: newContent } : msg
+      )
+      localStorage.setItem(`messages_${currentConversation.id}`, JSON.stringify(updatedMessages))
+    }
+  }
+
+  const deleteConversation = async (conversationId) => {
+    setConversations(prev => prev.filter(c => c.id !== conversationId))
+    if (currentConversation?.id === conversationId) {
+      setCurrentConversation(null)
+      setMessages([])
+    }
+    localStorage.removeItem(`messages_${conversationId}`)
+    localStorage.setItem('conversations', JSON.stringify(conversations.filter(c => c.id !== conversationId)))
+  }
+
+      return (
     <div className="flex h-screen">
       {/* Sidebar */}
       <div className="w-64 bg-base-300 text-base-content p-2 flex flex-col">
@@ -35,7 +172,7 @@ export default function App() {
           </button>
 
           {/* New chat button */}
-          <button className="btn btn-circle btn-ghost">
+          <button className="btn btn-circle btn-ghost" onClick={createNewConversation}>
             <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -46,12 +183,29 @@ export default function App() {
         {/* Chat history list */}
         <div className="flex-1 mt-2 overflow-y-auto">
           <div className="flex flex-col gap-2">
-            <button className="btn btn-ghost justify-start">
-              <svg className="h-4 w-4 mr-2" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-              Today
-            </button>
+            {conversations.map(conversation => (
+              <button
+                key={conversation.id}
+                onClick={() => loadConversation(conversation.id)}
+                className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''}`}
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  <span className="truncate">{conversation.name}</span>
+                </div>
+                <button
+                  className="btn btn-ghost btn-xs"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    deleteConversation(conversation.id)
+                  }}
+                >
+                  ×
+                </button>
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -80,28 +234,147 @@ export default function App() {
 
         {/* Chat content area */}
         {activeTool === 'chat' && (
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-3xl mx-auto py-4 px-6">
-                {/* Messages will appear here */}
+          <div className="flex-1 flex flex-col relative">
+            <div className="absolute inset-0 overflow-y-auto">
+              <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
+                {messages.map(message => (
+                  <div key={message.id} className="chat chat-start mb-8">
+                    <div className="chat-bubble relative">
+                      {editingMessage?.id === message.id ? (
+                        <div className="join w-full">
+                          <div className="mockup-code w-[650px] h-[550px] bg-base-300 relative">
+                            <pre data-prefix=""></pre>
+                            <textarea
+                              value={messageInput}
+                              onChange={(e) => setMessageInput(e.target.value)}
+                              className="absolute inset-0 top-[40px] bg-transparent text-current p-4 resize-none focus:outline-none w-full h-[calc(100%-40px)] font-mono"
+                            />
+                          </div>
+                          <div className="absolute -bottom-8 -left-1 flex gap-1">
+                            <button
+                              className="btn btn-ghost btn-xs bg-base-100"
+                              onClick={() => updateMessage(message.id, messageInput)}
+                            >
+                              Save
+                            </button>
+                            <button
+                              className="btn btn-ghost btn-xs bg-base-100"
+                              onClick={exitEditMode}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex justify-between items-start">
+                            <div className="prose max-w-none whitespace-pre-wrap break-words w-full">
+                              {message.content}
+                            </div>
+                          </div>
+                          {message.files?.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {message.files.map((file, index) => (
+                                <div key={index} className="badge badge-outline">
+                                  {file.name}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="absolute -bottom-8 -left-1 flex gap-1">
+                            <button
+                              className="btn btn-ghost btn-xs bg-base-100"
+                              onClick={() => enterEditMode(message)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn btn-ghost btn-xs bg-base-100"
+                              onClick={() => deleteMessage(message.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
               </div>
             </div>
 
-            {/* Bottom input area */}
-            <div className="border-t border-base-300 p-4">
-              <div className="max-w-3xl mx-auto relative">
-                <div className="join w-full">
-                  <button className="btn join-item">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                  </button>
-                  <input 
-                    type="text" 
-                    placeholder="Send a message..."
-                    className="input input-bordered join-item flex-1"
-                  />
-                  <button className="btn btn-primary join-item">Send</button>
+            {/* Bottom input area - fixed */}
+            <div className={`absolute bottom-0 left-0 right-0 bg-base-100 z-50 ${editingMessage ? 'hidden' : ''}`}>
+              <div className="p-4">
+                <div className="max-w-3xl mx-auto relative">
+                  {selectedFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {selectedFiles.map((file, index) => (
+                        <div key={index} className="badge badge-outline gap-2">
+                          {file.name}
+                          <button
+                            className="btn btn-ghost btn-xs"
+                            onClick={() => removeFile(file)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="join w-full">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      multiple
+                    />
+                    <button
+                      className="btn join-item"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 5v14M5 12h14"/>
+                      </svg>
+                    </button>
+                    <textarea 
+                      value={messageInput}
+                      onChange={(e) => {
+                        setMessageInput(e.target.value)
+                        // Reset height to auto to get the correct scrollHeight
+                        e.target.style.height = 'auto'
+                        // Set new height based on scrollHeight
+                        const newHeight = Math.min(e.target.scrollHeight, window.innerHeight - 200)
+                        e.target.style.height = `${newHeight}px`
+                        // Show scrollbar when content exceeds max height
+                        if (e.target.scrollHeight > window.innerHeight - 200) {
+                          e.target.style.overflowY = 'auto'
+                        } else {
+                          e.target.style.overflowY = 'hidden'
+                        }
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          sendMessage()
+                          // Reset height after sending
+                          e.target.style.height = '48px'
+                          e.target.style.overflowY = 'hidden'
+                        }
+                      }}
+                      placeholder="Send a message..."
+                      className="textarea textarea-bordered join-item flex-1 min-h-[2.5rem] max-h-[calc(100vh-200px)] resize-none overflow-x-hidden"
+                      rows="1"
+                    />
+                    <button
+                      className="btn btn-primary join-item"
+                      onClick={sendMessage}
+                    >
+                      Send
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -255,6 +528,6 @@ export default function App() {
           <div className="modal-backdrop" onClick={() => setShowSettings(false)}></div>
         </div>
       )}
-    </div>
-  )
-}
+        </div>
+      )
+    }
