@@ -6,6 +6,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   const [activeTool, setActiveTool] = useState('chat')
   const [showSettings, setShowSettings] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+  const [storagePath, setStoragePath] = useState(() => localStorage.getItem('storagePath') || '')
   
   // Chat related states
   const [conversations, setConversations] = useState([])
@@ -73,9 +74,19 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     const conversation = conversations.find(c => c.id === conversationId)
     if (conversation) {
       setCurrentConversation(conversation)
-      // Load messages from storage
-      const savedMessages = JSON.parse(localStorage.getItem(`messages_${conversationId}`) || '[]')
-      setMessages(savedMessages)
+      if (storagePath) {
+        try {
+          const loadedMessages = await window.electron.loadMessages(storagePath, conversationId)
+          setMessages(loadedMessages || [])
+        } catch (error) {
+          console.error('Failed to load messages:', error)
+          setMessages([])
+        }
+      } else {
+        // Fallback to localStorage if no storage path set
+        const savedMessages = JSON.parse(localStorage.getItem(`messages_${conversationId}`) || '[]')
+        setMessages(savedMessages)
+      }
     }
   }
 
@@ -96,13 +107,17 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     // Reset textarea height and scrollbar
     const textarea = document.querySelector('textarea')
     if (textarea) {
-      textarea.style.height = '48px'  // 2.5rem = 40px
+      textarea.style.height = '48px'
       textarea.style.overflowY = 'hidden'
     }
     
     // Save to storage
-    if (currentConversation) {
-      localStorage.setItem(`messages_${currentConversation.id}`, JSON.stringify([...messages, newMessage]))
+    if (currentConversation && storagePath) {
+      await window.electron.saveMessages(
+        storagePath,
+        currentConversation.id,
+        [...messages, newMessage]
+      )
     }
   }
 
@@ -155,6 +170,26 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     }
     localStorage.removeItem(`messages_${conversationId}`)
     localStorage.setItem('conversations', JSON.stringify(conversations.filter(c => c.id !== conversationId)))
+  }
+
+  const handleSelectFolder = async () => {
+    try {
+      const result = await window.electron.selectFolder()
+      if (result) {
+        setStoragePath(result)
+        localStorage.setItem('storagePath', result)
+        // Save current messages to the new location
+        if (currentConversation) {
+          await window.electron.saveMessages(
+            result,
+            currentConversation.id,
+            messages
+          )
+        }
+      }
+    } catch (error) {
+      console.error('Failed to select folder:', error)
+    }
   }
 
       return (
@@ -498,9 +533,12 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg">Folder</h3>
-                    <button className="btn btn-primary">
-                      Modify Folder
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm opacity-70">{storagePath || 'No folder selected'}</span>
+                      <button className="btn btn-primary" onClick={handleSelectFolder}>
+                        Modify Folder
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between">

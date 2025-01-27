@@ -1,25 +1,53 @@
 {
-      "name": "localchat",
+      "name": "goldie-chat-save",
       "private": true,
-      "version": "0.0.0",
-      "type": "module",
+      "version": "0.1.0",
+      "main": "dist-electron/main.js",
       "scripts": {
             "dev": "vite",
             "build": "vite build",
-            "preview": "vite preview"
+            "preview": "vite preview",
+            "electron:dev": "cross-env NODE_ENV=development vite --mode development",
+            "electron:build": "vite build && electron-builder",
+            "electron:preview": "vite preview"
+      },
+      "build": {
+            "appId": "com.goldie.chat",
+            "productName": "Goldie Chat",
+            "directories": {
+                  "output": "dist-electron"
+            },
+            "files": [
+                  "dist/**/*",
+                  "electron/**/*"
+            ],
+            "win": {
+                  "target": "nsis"
+            },
+            "mac": {
+                  "target": "dmg"
+            },
+            "linux": {
+                  "target": "AppImage"
+            }
       },
       "dependencies": {
             "react": "^18.2.0",
             "react-dom": "^18.2.0"
       },
       "devDependencies": {
-            "@types/react": "^18.0.28",
-            "@types/react-dom": "^18.0.11",
-            "@vitejs/plugin-react": "^3.1.0",
-            "autoprefixer": "^10.4.20",
-            "daisyui": "^4.12.23",
-            "postcss": "^8.5.1",
-            "tailwindcss": "^3.4.17",
-            "vite": "^4.2.0"
+            "@types/react": "^18.2.15",
+            "@types/react-dom": "^18.2.7",
+            "@vitejs/plugin-react": "^4.0.3",
+            "autoprefixer": "^10.4.16",
+            "cross-env": "^7.0.3",
+            "daisyui": "^4.4.19",
+            "electron": "^28.0.0",
+            "electron-builder": "^24.9.1",
+            "postcss": "^8.4.32",
+            "tailwindcss": "^3.3.6",
+            "vite": "^4.4.5",
+            "vite-plugin-electron": "^0.15.5",
+            "vite-plugin-electron-renderer": "^0.14.6"
       }
 }
