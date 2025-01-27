@@ -45,9 +45,8 @@ ipcMain.handle('create-chat-folder', async (event, basePath) => {
     const newFolderName = `NewChat${maxNumber + 1}`
     const newFolderPath = path.join(basePath, newFolderName)
     
-    // Create the folder and files subfolder
+    // Create the folder
     await fs.mkdir(newFolderPath)
-    await fs.mkdir(path.join(newFolderPath, 'files'))
     
     return {
       path: newFolderPath,
@@ -62,16 +61,7 @@ ipcMain.handle('create-chat-folder', async (event, basePath) => {
 // Save file to chat folder
 ipcMain.handle('save-file', async (event, folderPath, file) => {
   try {
-    const filesDir = path.join(folderPath, 'files')
-    
-    // Create files directory if it doesn't exist
-    try {
-      await fs.access(filesDir)
-    } catch {
-      await fs.mkdir(filesDir)
-    }
-    
-    const filePath = path.join(filesDir, file.name)
+    const filePath = path.join(folderPath, file.name)
     await fs.writeFile(filePath, Buffer.from(file.data))
     
     return {

@@ -434,8 +434,7 @@ export default function App() {
       const result = await window.electron.renameFile(
         currentConversation.path,
         file.name,
-        newName,
-        'files'
+        newName
       )
 
       // Update messages with new file path
@@ -493,6 +492,40 @@ export default function App() {
     
     setEditingFolderName(null)
     setFolderNameInput('')
+  }
+
+  // Add new function to handle file drop
+  const handleFileDrop = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!currentConversation) {
+      alert('请先选择或创建一个对话')
+      return
+    }
+
+    const files = Array.from(e.dataTransfer.files)
+    
+    // Save files to chat folder
+    const savedFiles = await Promise.all(files.map(async file => {
+      const reader = new FileReader()
+      const fileData = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target.result)
+        reader.readAsArrayBuffer(file)
+      })
+      
+      const result = await window.electron.saveFile(currentConversation.path, {
+        name: file.name,
+        data: Array.from(new Uint8Array(fileData))
+      })
+      
+      return {
+        name: file.name,
+        path: result.path
+      }
+    }))
+    
+    setSelectedFiles(prev => [...prev, ...savedFiles])
   }
 
   return (
@@ -622,7 +655,14 @@ export default function App() {
         {/* Chat content area */}
         {activeTool === 'chat' && (
           <div className="flex-1 flex flex-col relative">
-            <div className="absolute inset-0 overflow-y-auto">
+            <div 
+              className="absolute inset-0 overflow-y-auto"
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onDrop={handleFileDrop}
+            >
               <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
                 {messages.map(message => (
                   <div key={message.id} className="chat chat-start mb-8">
@@ -855,11 +895,11 @@ export default function App() {
 
               <div className="dropdown">
                 <button tabIndex={0} className="btn btn-sm">Res</button>
-                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
-                  <li><button>512 × 512</button></li>
-                  <li><button>512 × 288</button></li>
-                  <li><button>768 × 320</button></li>
-                  <li><button>768 × 512</button></li>
+                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
+                  <li><button className="whitespace-nowrap">512 × 512</button></li>
+                  <li><button className="whitespace-nowrap">512 × 288</button></li>
+                  <li><button className="whitespace-nowrap">768 × 320</button></li>
+                  <li><button className="whitespace-nowrap">768 × 512</button></li>
                 </ul>
               </div>
 

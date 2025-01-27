@@ -33,7 +33,6 @@ ipcMain.handle("create-chat-folder", async (event, basePath) => {
     const newFolderName = `NewChat${maxNumber + 1}`;
     const newFolderPath = path.join(basePath, newFolderName);
     await fs.mkdir(newFolderPath);
-    await fs.mkdir(path.join(newFolderPath, "files"));
     return {
       path: newFolderPath,
       name: newFolderName
@@ -45,13 +44,7 @@ ipcMain.handle("create-chat-folder", async (event, basePath) => {
 });
 ipcMain.handle("save-file", async (event, folderPath, file) => {
   try {
-    const filesDir = path.join(folderPath, "files");
-    try {
-      await fs.access(filesDir);
-    } catch {
-      await fs.mkdir(filesDir);
-    }
-    const filePath = path.join(filesDir, file.name);
+    const filePath = path.join(folderPath, file.name);
     await fs.writeFile(filePath, Buffer.from(file.data));
     return {
       name: file.name,
