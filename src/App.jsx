@@ -1204,9 +1204,9 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
               <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
                 {messages.map(message => (
                   <div key={message.id} className="chat chat-start mb-8">
-                    {message.txtFile && (
-                      <div className="chat-header opacity-70">
-                        {editingFileName === message.id ? (
+                    <div className="chat-header opacity-70">
+                      {message.txtFile ? (
+                        editingFileName === message.id ? (
                           <div className="join">
                             <input
                               type="text"
@@ -1251,9 +1251,13 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                               {formatMessageTime(message.timestamp)}
                             </span>
                           </div>
-                        )}
-                      </div>
-                    )}
+                        )
+                      ) : (
+                        <span className="text-xs opacity-50">
+                          {formatMessageTime(message.timestamp)}
+                        </span>
+                      )}
+                    </div>
                     <div className="chat-bubble relative max-w-[800px]">
                       {editingMessage?.id === message.id ? (
                         <div className="join w-full">
@@ -1288,7 +1292,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                             </div>
                           </div>
                           {message.files?.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
+                            <div className="flex flex-wrap gap-2">
                               {message.files.map((file, index) => (
                                 file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                                   <div 
