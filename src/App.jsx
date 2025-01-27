@@ -28,6 +28,10 @@ export default function App() {
   const [editingImageName, setEditingImageName] = useState(null)
   const [imageNameInput, setImageNameInput] = useState('')
 
+  // Add new state variables for folder renaming
+  const [editingFolderName, setEditingFolderName] = useState(null)
+  const [folderNameInput, setFolderNameInput] = useState('')
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -463,6 +467,34 @@ export default function App() {
     setImageNameInput('')
   }
 
+  // Add renameChatFolder function
+  const renameChatFolder = async (conversation, newName) => {
+    try {
+      const result = await window.electron.renameChatFolder(conversation.path, newName)
+      
+      // Update conversations state
+      const updatedConversations = conversations.map(conv => 
+        conv.id === conversation.id 
+          ? { ...conv, name: result.name, path: result.path }
+          : conv
+      )
+      
+      setConversations(updatedConversations)
+      if (currentConversation?.id === conversation.id) {
+        setCurrentConversation({ ...currentConversation, name: result.name, path: result.path })
+      }
+      
+      // Update storage
+      localStorage.setItem('conversations', JSON.stringify(updatedConversations))
+    } catch (error) {
+      console.error('Failed to rename chat folder:', error)
+      alert('重命名失败')
+    }
+    
+    setEditingFolderName(null)
+    setFolderNameInput('')
+  }
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -496,12 +528,59 @@ export default function App() {
               >
                 <div 
                   className="flex items-center gap-2 flex-1"
-                  onClick={() => loadConversation(conversation.id)}
+                  onClick={() => {
+                    if (editingFolderName === conversation.id) return
+                    loadConversation(conversation.id)
+                  }}
                 >
                   <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                   </svg>
-                  <span className="truncate">{conversation.name}</span>
+                  {editingFolderName === conversation.id ? (
+                    <div className="flex flex-col gap-1" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        value={folderNameInput}
+                        onChange={(e) => setFolderNameInput(e.target.value)}
+                        className="input input-xs input-bordered w-full"
+                        placeholder="Enter new folder name"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            renameChatFolder(conversation, folderNameInput)
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <div className="flex gap-1">
+                        <button
+                          className="btn btn-xs flex-1"
+                          onClick={() => renameChatFolder(conversation, folderNameInput)}
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="btn btn-xs flex-1"
+                          onClick={() => {
+                            setEditingFolderName(null)
+                            setFolderNameInput('')
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <span 
+                      className="truncate cursor-pointer hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingFolderName(conversation.id)
+                        setFolderNameInput(conversation.name)
+                      }}
+                    >
+                      {conversation.name}
+                    </span>
+                  )}
                 </div>
                 <button
                   className="btn btn-ghost btn-xs"

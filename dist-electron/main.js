@@ -230,6 +230,28 @@ ipcMain.handle("move-folder-to-recycle", async (event, folderPath) => {
     throw error;
   }
 });
+ipcMain.handle("rename-chat-folder", async (event, folderPath, newName) => {
+  try {
+    const parentDir = path.dirname(folderPath);
+    const newPath = path.join(parentDir, newName);
+    try {
+      await fs.access(newPath);
+      throw new Error("文件夹名已存在");
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        await fs.rename(folderPath, newPath);
+        return {
+          name: newName,
+          path: newPath
+        };
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error("Failed to rename chat folder:", error);
+    throw error;
+  }
+});
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,

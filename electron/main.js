@@ -295,6 +295,33 @@ ipcMain.handle('move-folder-to-recycle', async (event, folderPath) => {
   }
 })
 
+// Rename chat folder
+ipcMain.handle('rename-chat-folder', async (event, folderPath, newName) => {
+  try {
+    const parentDir = path.dirname(folderPath)
+    const newPath = path.join(parentDir, newName)
+
+    // Check if target folder exists
+    try {
+      await fs.access(newPath)
+      throw new Error('文件夹名已存在')
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // Folder doesn't exist, proceed with rename
+        await fs.rename(folderPath, newPath)
+        return {
+          name: newName,
+          path: newPath
+        }
+      }
+      throw error
+    }
+  } catch (error) {
+    console.error('Failed to rename chat folder:', error)
+    throw error
+  }
+})
+
 // Create the browser window
 function createWindow() {
   mainWindow = new BrowserWindow({
