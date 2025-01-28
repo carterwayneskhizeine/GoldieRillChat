@@ -1593,7 +1593,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                       }}
                       onPaste={handlePaste}
                       placeholder="Send a message..."
-                      className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-xl resize-none pr-24"
+                      className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24"
                       rows="2"
                     />
                     <div className="absolute bottom-3 right-3 flex items-center gap-2">
@@ -1850,7 +1850,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                       <button onClick={toggleTheme} className="btn btn-primary">
                         Change Theme
                       </button>
-                </div>
+              </div>
                   </div>
                 </div>
               </div>
