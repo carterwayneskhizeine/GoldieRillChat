@@ -1167,6 +1167,25 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     }
   }
 
+  // 添加更新文件夹的函数
+  const handleUpdateFolders = async () => {
+    if (!storagePath) {
+      alert('请先在设置中选择存储文件夹')
+      return
+    }
+
+    try {
+      const folders = await window.electron.scanFolders(storagePath)
+      setConversations(folders)
+      // 保存到本地存储
+      localStorage.setItem('conversations', JSON.stringify(folders))
+      alert('更新文件夹成功')
+    } catch (error) {
+      console.error('Failed to update folders:', error)
+      alert('更新文件夹失败')
+    }
+  }
+
       return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -1760,7 +1779,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                 
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg">Update</h3>
-                    <button className="btn btn-primary">
+                    <button className="btn btn-primary" onClick={handleUpdateFolders}>
                       Update Folders
                     </button>
                 </div>
@@ -1900,6 +1919,46 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                   )}
                 </div>
               )}
+              <div className="flex gap-2 mt-2">
+                <button
+                  className="btn btn-sm"
+                  onClick={() => {
+                    sendToEditor(currentImage)
+                    setShowImageModal(false)
+                  }}
+                >
+                  Send to Editor
+                </button>
+                <button
+                  className="btn btn-sm"
+                  onClick={async () => {
+                    try {
+                      const img = new Image()
+                      await new Promise((resolve, reject) => {
+                        img.onload = resolve
+                        img.onerror = reject
+                        img.src = `local-file://${currentImage.path}`
+                      })
+                      
+                      const canvas = document.createElement('canvas')
+                      canvas.width = img.naturalWidth
+                      canvas.height = img.naturalHeight
+                      const ctx = canvas.getContext('2d')
+                      ctx.drawImage(img, 0, 0)
+                      
+                      const blob = await new Promise(resolve => canvas.toBlob(resolve))
+                      await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                      ])
+                    } catch (error) {
+                      console.error('Failed to copy image:', error)
+                      alert('复制失败')
+                    }
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
             </div>
           </div>
           <div 

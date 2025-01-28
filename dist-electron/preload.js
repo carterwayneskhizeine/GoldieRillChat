@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld("electron", {
   moveFolderToRecycle: (folderPath) => ipcRenderer.invoke("move-folder-to-recycle", folderPath),
   deleteMessage: (folderPath, message) => ipcRenderer.invoke("delete-message", folderPath, message),
   openFileLocation: (filePath) => ipcRenderer.invoke("openFileLocation", filePath),
+  scanFolders: (basePath) => ipcRenderer.invoke("scanFolders", basePath),
   path: {
     basename: (filePath) => path.basename(filePath),
     dirname: (filePath) => path.dirname(filePath),

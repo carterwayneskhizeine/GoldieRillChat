@@ -200,30 +200,39 @@ ipcMain.handle('move-to-recycle', async (event, folderPath, fileName) => {
 // Delete message
 ipcMain.handle('delete-message', async (event, folderPath, message) => {
   try {
-    // Create recycle bin folder if it doesn't exist
-    const recycleBinPath = path.join(folderPath, '..', 'RecycleBin')
+    // 创建 RecycleBin 文件夹（在基础目录下）
+    const baseDir = path.dirname(folderPath)
+    const recycleBinPath = path.join(baseDir, 'RecycleBin')
     try {
       await fs.access(recycleBinPath)
     } catch {
       await fs.mkdir(recycleBinPath)
     }
 
-    // Move text file to recycle bin if exists
+    // 移动文本文件到回收站（如果存在）
     if (message.txtFile) {
-      const timestamp = new Date().getTime()
+      const timestamp = Date.now()
       const recyclePath = path.join(recycleBinPath, `${timestamp}_${message.txtFile.name}`)
-      const oldPath = path.join(folderPath, message.txtFile.name)
-      await fs.rename(oldPath, recyclePath)
+      try {
+        await fs.access(message.txtFile.path)
+        await fs.rename(message.txtFile.path, recyclePath)
+      } catch (error) {
+        console.error('Failed to move txt file:', error)
+      }
     }
 
-    // Move image files to recycle bin if exists
+    // 移动附件文件到回收站（如果存在）
     if (message.files && message.files.length > 0) {
       for (const file of message.files) {
-        const timestamp = new Date().getTime()
-        const oldPath = file.path
+        const timestamp = Date.now()
         const fileName = path.basename(file.path)
         const recyclePath = path.join(recycleBinPath, `${timestamp}_${fileName}`)
-        await fs.rename(oldPath, recyclePath)
+        try {
+          await fs.access(file.path)
+          await fs.rename(file.path, recyclePath)
+        } catch (error) {
+          console.error('Failed to move file:', error)
+        }
       }
     }
 
@@ -320,6 +329,98 @@ ipcMain.handle('openFileLocation', async (event, filePath) => {
     return true
   } catch (error) {
     console.error('Failed to open file location:', error)
+    throw error
+  }
+})
+
+// 添加扫描文件夹的方法
+ipcMain.handle('scanFolders', async (event, basePath) => {
+  try {
+    // 获取基础目录下的所有文件和文件夹
+    const items = await fs.readdir(basePath, { withFileTypes: true })
+    
+    // 只处理文件夹，排除 RecycleBin
+    const folders = items.filter(item => 
+      item.isDirectory() && item.name !== 'RecycleBin'
+    )
+    
+    // 处理每个文件夹
+    const processedFolders = await Promise.all(folders.map(async folder => {
+      const folderPath = path.join(basePath, folder.name)
+      const folderContents = await fs.readdir(folderPath, { withFileTypes: true })
+      
+      // 获取文件夹中的所有文件
+      const files = await Promise.all(folderContents
+        .filter(item => item.isFile())
+        .map(async file => {
+          const filePath = path.join(folderPath, file.name)
+          const stats = await fs.stat(filePath)
+          
+          return {
+            name: file.name,
+            path: filePath,
+            type: path.extname(file.name).toLowerCase(),
+            size: stats.size,
+            timestamp: stats.mtime.toISOString()
+          }
+        }))
+      
+      // 读取 messages.json 如果存在
+      let messages = []
+      try {
+        const messagesPath = path.join(folderPath, 'messages.json')
+        const messagesContent = await fs.readFile(messagesPath, 'utf8')
+        messages = JSON.parse(messagesContent)
+      } catch (error) {
+        // 如果 messages.json 不存在，创建新的消息数组
+        messages = []
+        
+        // 处理文本文件
+        const txtFiles = files.filter(f => f.type === '.txt')
+        for (const txtFile of txtFiles) {
+          const content = await fs.readFile(txtFile.path, 'utf8')
+          messages.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            content: content,
+            timestamp: txtFile.timestamp,
+            txtFile: {
+              name: txtFile.name,
+              displayName: txtFile.name.replace('.txt', ''),
+              path: txtFile.path
+            }
+          })
+        }
+        
+        // 处理其他文件
+        const otherFiles = files.filter(f => f.type !== '.txt')
+        if (otherFiles.length > 0) {
+          messages.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            content: '',
+            timestamp: new Date().toISOString(),
+            files: otherFiles
+          })
+        }
+        
+        // 保存新的 messages.json
+        await fs.writeFile(
+          path.join(folderPath, 'messages.json'),
+          JSON.stringify(messages, null, 2),
+          'utf8'
+        )
+      }
+      
+      return {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        name: folder.name,
+        path: folderPath,
+        timestamp: new Date().toISOString()
+      }
+    }))
+    
+    return processedFolders
+  } catch (error) {
+    console.error('Failed to scan folders:', error)
     throw error
   }
 })
