@@ -1392,7 +1392,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                     <div className="chat-bubble relative max-w-[800px]">
                       {message.content && message.content.split('\n').length > 6 && (
                         <button 
-                          className="btn btn-md btn-ghost btn-circle absolute -top-0 -right-14 z-10 bg-base-100"
+                          className="btn btn-md btn-ghost btn-circle absolute bottom-0 -right-14 z-10 bg-base-100"
                           onClick={() => toggleMessageCollapse(message.id)}
                         >
                           {collapsedMessages.has(message.id) ? (
@@ -1432,7 +1432,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                           </div>
                         </div>
                       ) : (
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2 group">
                           {message.content && (
                             <div className="flex justify-between items-start">
                               <div 
@@ -1467,6 +1467,13 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                                       className="max-w-[300px] max-h-[300px] rounded-lg object-cover hover:opacity-90 transition-opacity"
                                     />
                                   </div>
+                                ) : file.name.match(/\.mp4$/i) ? (
+                                  <div key={index} className="w-full">
+                                    <video controls className="w-full max-w-[800px] rounded-lg">
+                                      <source src={`local-file://${file.path}`} type="video/mp4" />
+                                      Your browser does not support the video tag.
+                                    </video>
+                                  </div>
                                 ) : (
                                   <div 
                                     key={index} 
@@ -1479,7 +1486,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                               ))}
                             </div>
                           )}
-                          <div className="absolute -bottom-8 -left-1 flex gap-1">
+                          <div className="absolute -bottom-8 -left-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:delay-0 delay-[500ms]">
                             {message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ? (
                               <button
                                 className="btn btn-ghost btn-xs bg-base-100"
@@ -1494,14 +1501,14 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                               >
                                 Send
                               </button>
-                            ) : (
+                            ) : message.content ? (
                               <button
                                 className="btn btn-ghost btn-xs bg-base-100"
                                 onClick={() => enterEditMode(message)}
                               >
                                 Edit
                               </button>
-                            )}
+                            ) : null}
                             <button
                               className="btn btn-ghost btn-xs bg-base-100"
                               onClick={() => deleteMessage(message.id)}
@@ -1559,7 +1566,54 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                       ))}
                     </div>
                   )}
-                  <div className="join w-full">
+                  <div className="relative">
+                    <textarea 
+                      value={messageInput}
+                      onChange={(e) => {
+                        setMessageInput(e.target.value)
+                        // 计算行数
+                        const lines = e.target.value.split('\n').length
+                        // 设置新高度
+                        const baseHeight = 64 // 2行的基础高度
+                        const lineHeight = 24 // 每行高度
+                        const maxHeight = lineHeight * 20 // 20行的最大高度
+                        const newHeight = Math.min(Math.max(baseHeight, lines * lineHeight), maxHeight)
+                        e.target.style.height = `${newHeight}px`
+                        // 超过20行显示滚动条
+                        e.target.style.overflowY = lines > 20 ? 'auto' : 'hidden'
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          sendMessage()
+                          // Reset height after sending
+                          e.target.style.height = '64px'
+                          e.target.style.overflowY = 'hidden'
+                        }
+                      }}
+                      onPaste={handlePaste}
+                      placeholder="Send a message..."
+                      className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-xl resize-none pr-24"
+                      rows="2"
+                    />
+                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                      <button
+                        className="btn btn-ghost btn-sm btn-circle"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm btn-circle"
+                        onClick={sendMessage}
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                        </svg>
+                      </button>
+                    </div>
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -1567,50 +1621,6 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                       className="hidden"
                       multiple
                     />
-                    <button
-                      className="btn join-item"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 5v14M5 12h14"/>
-                      </svg>
-                    </button>
-                    <textarea 
-                      value={messageInput}
-                      onChange={(e) => {
-                        setMessageInput(e.target.value)
-                        // Reset height to auto to get the correct scrollHeight
-                        e.target.style.height = 'auto'
-                        // Set new height based on scrollHeight
-                        const newHeight = Math.min(e.target.scrollHeight, window.innerHeight - 200)
-                        e.target.style.height = `${newHeight}px`
-                        // Show scrollbar when content exceeds max height
-                        if (e.target.scrollHeight > window.innerHeight - 200) {
-                          e.target.style.overflowY = 'auto'
-                        } else {
-                          e.target.style.overflowY = 'hidden'
-                        }
-                      }}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          sendMessage()
-                          // Reset height after sending
-                          e.target.style.height = '48px'
-                          e.target.style.overflowY = 'hidden'
-                        }
-                      }}
-                      onPaste={handlePaste}
-                      placeholder="Send a message..."
-                      className="textarea textarea-bordered join-item flex-1 min-h-[2.5rem] max-h-[calc(100vh-200px)] resize-none overflow-x-hidden"
-                      rows="1"
-                    />
-                    <button
-                      className="btn btn-primary join-item"
-                      onClick={sendMessage}
-                    >
-                      Send
-                    </button>
                   </div>
                 </div>
               </div>
@@ -1840,7 +1850,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                       <button onClick={toggleTheme} className="btn btn-primary">
                         Change Theme
                       </button>
-              </div>
+                </div>
                   </div>
                 </div>
               </div>
