@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, protocol } = require('electron')
+const { shell } = require('electron')
 const path = require('path')
 const fs = require('fs').promises
 
@@ -308,6 +309,17 @@ ipcMain.handle('rename-chat-folder', async (event, folderPath, newName) => {
     }
   } catch (error) {
     console.error('Failed to rename chat folder:', error)
+    throw error
+  }
+})
+
+// Add open file location method
+ipcMain.handle('openFileLocation', async (event, filePath) => {
+  try {
+    await shell.showItemInFolder(filePath)
+    return true
+  } catch (error) {
+    console.error('Failed to open file location:', error)
     throw error
   }
 })

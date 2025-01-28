@@ -68,6 +68,17 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   // 添加拖动排序相关的状态和函数
   const [draggedConversation, setDraggedConversation] = useState(null)
 
+  // 添加图片拖动相关的状态
+  const [imageDrag, setImageDrag] = useState({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    translateX: 0,
+    translateY: 0,
+    lastTranslateX: 0,
+    lastTranslateY: 0
+  })
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -1105,6 +1116,57 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     }
   }
 
+  // 添加图片拖动相关的处理函数
+  const handleImageContextMenu = (e) => {
+    e.preventDefault() // 阻止默认的右键菜单
+  }
+
+  const handleImageMouseDown = (e) => {
+    if (e.button === 2) { // 右键点击
+      setImageDrag(prev => ({
+        ...prev,
+        isDragging: true,
+        startX: e.clientX,
+        startY: e.clientY,
+        lastTranslateX: prev.translateX,
+        lastTranslateY: prev.translateY
+      }))
+    }
+  }
+
+  const handleImageMouseMove = (e) => {
+    if (imageDrag.isDragging) {
+      const deltaX = e.clientX - imageDrag.startX
+      const deltaY = e.clientY - imageDrag.startY
+      
+      // 添加0.25的速度系数来减缓移动速度
+      const speedFactor = 0.5
+      
+      setImageDrag(prev => ({
+        ...prev,
+        translateX: prev.lastTranslateX + deltaX * speedFactor,
+        translateY: prev.lastTranslateY + deltaY * speedFactor
+      }))
+    }
+  }
+
+  const handleImageMouseUp = () => {
+    setImageDrag(prev => ({
+      ...prev,
+      isDragging: false
+    }))
+  }
+
+  // 添加打开文件所在文件夹的函数
+  const openFileLocation = async (file) => {
+    try {
+      await window.electron.openFileLocation(file.path)
+    } catch (error) {
+      console.error('Failed to open file location:', error)
+      alert('打开文件位置失败')
+    }
+  }
+
       return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -1340,7 +1402,11 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                                     />
                                   </div>
                                 ) : (
-                                  <div key={index} className="badge badge-outline">
+                                  <div 
+                                    key={index} 
+                                    className="badge badge-outline cursor-pointer hover:bg-base-200"
+                                    onClick={() => openFileLocation(file)}
+                                  >
                                     {file.name}
                                   </div>
                                 )
@@ -1409,7 +1475,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
             </div>
 
             {/* Bottom input area - fixed */}
-            <div className={`absolute bottom-0 left-0 right-0 bg-base-100 z-50 ${editingMessage ? 'hidden' : ''}`}>
+            <div className={`absolute bottom-0 left-0 right-[20px] bg-base-100 z-50 ${editingMessage ? 'hidden' : ''}`}>
               <div className="p-4">
                 <div className="max-w-3xl mx-auto relative">
                   {selectedFiles.length > 0 && (
@@ -1754,18 +1820,34 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                 alt={currentImage.name}
                 className="max-w-full max-h-full object-contain z-10"
                 style={{
-                  transform: `scale(${imageScale})`,
-                  transition: 'transform 0.1s ease-out'
+                  transform: `scale(${imageScale}) translate(${imageDrag.translateX}px, ${imageDrag.translateY}px)`,
+                  transition: imageDrag.isDragging ? 'none' : 'transform 0.1s ease-out',
+                  cursor: imageDrag.isDragging ? 'grabbing' : 'grab'
                 }}
                 onLoad={(e) => {
                   getImageResolution(e.target)
                   setImageScale(1)
                   checkImagePosition(e.target)
+                  // 重置拖动状态
+                  setImageDrag({
+                    isDragging: false,
+                    startX: 0,
+                    startY: 0,
+                    translateX: 0,
+                    translateY: 0,
+                    lastTranslateX: 0,
+                    lastTranslateY: 0
+                  })
                 }}
                 onWheel={(e) => {
                   handleImageWheel(e)
                   checkImagePosition(e.target)
                 }}
+                onContextMenu={handleImageContextMenu}
+                onMouseDown={handleImageMouseDown}
+                onMouseMove={handleImageMouseMove}
+                onMouseUp={handleImageMouseUp}
+                onMouseLeave={handleImageMouseUp}
               />
           </div>
 
