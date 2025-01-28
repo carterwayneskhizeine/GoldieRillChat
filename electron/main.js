@@ -430,6 +430,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: 'GoldieRillChat',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,

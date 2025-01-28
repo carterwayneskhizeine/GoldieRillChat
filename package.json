@@ -19,11 +19,12 @@
             },
             "files": [
                   "dist/**/*",
-                  "electron/**/*"
+                  "dist-electron/**/*"
             ],
+            "asar": true,
             "win": {
                   "target": "nsis",
-                  "icon": "favicon.ico"
+                  "icon": "GoldieRillicon.ico"
             },
             "mac": {
                   "target": "dmg"
