@@ -1190,7 +1190,28 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     <div className="flex h-screen">
       {/* Sidebar */}
       <div className="w-64 bg-base-300 text-base-content p-2 flex flex-col">
-        {/* Top buttons row */}
+        {/* Top buttons row - Pagination style */}
+        <div className="join grid grid-cols-2 mb-2">
+          <button 
+            className="join-item btn btn-outline"
+            onClick={() => setActiveTool(prev => prev === 'chat' ? 'editor' : 'chat')}
+          >
+            Previous
+          </button>
+          <button 
+            className="join-item btn btn-outline"
+            onClick={() => setActiveTool(prev => prev === 'chat' ? 'editor' : 'chat')}
+          >
+            Next
+          </button>
+        </div>
+
+        {/* Current tool display */}
+        <div className="text-center mb-2 font-medium">
+          {activeTool === 'chat' ? 'Chat' : 'Image Editor'}
+        </div>
+
+        {/* Settings and New Chat buttons */}
         <div className="flex justify-between mb-2">
           {/* Settings button */}
           <button className="btn btn-circle btn-ghost" onClick={() => setShowSettings(true)}>
@@ -1238,7 +1259,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                       type="text"
                       value={folderNameInput}
                       onChange={(e) => setFolderNameInput(e.target.value)}
-                      className="input input-xs input-bordered w-full"
+                      className="input input-xs input-bordered join-item"
                       placeholder="Enter new folder name"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
@@ -1281,26 +1302,6 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col bg-base-100">
-        {/* Top navigation bar */}
-        <div className="navbar bg-base-200">
-          <div className="flex-1">
-            <div className="tabs tabs-boxed">
-              <button 
-                onClick={() => setActiveTool('chat')}
-                className={`tab ${activeTool === 'chat' ? 'tab-active' : ''}`}
-              >
-                Chat
-              </button>
-              <button 
-                onClick={() => setActiveTool('editor')}
-                className={`tab ${activeTool === 'editor' ? 'tab-active' : ''}`}
-              >
-                Image Editor
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Chat content area */}
         {activeTool === 'chat' && (
           <div className="flex-1 flex flex-col relative">
