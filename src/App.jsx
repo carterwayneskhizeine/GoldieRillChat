@@ -81,6 +81,9 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     lastTranslateY: 0
   })
 
+  // Add new state for collapsed messages
+  const [collapsedMessages, setCollapsedMessages] = useState(new Set())
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -1188,6 +1191,19 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     }
   }
 
+  // Add toggle function
+  const toggleMessageCollapse = (messageId) => {
+    setCollapsedMessages(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId)
+      } else {
+        newSet.add(messageId)
+      }
+      return newSet
+    })
+  }
+
       return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -1322,7 +1338,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
               <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
                 {messages.map(message => (
                   <div key={message.id} className="chat chat-start mb-8">
-                    <div className="chat-header opacity-70">
+                    <div className="chat-header opacity-70 flex items-center gap-2">
                       {message.txtFile ? (
                         editingFileName === message.id ? (
                           <div className="join">
@@ -1356,13 +1372,10 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <span
-                              className="cursor-pointer hover:underline"
-                              onClick={() => {
-                                setEditingFileName(message.id)
-                                setFileNameInput(message.txtFile.displayName)
-                              }}
-                            >
+                            <span className="cursor-pointer hover:underline" onClick={() => {
+                              setEditingFileName(message.id)
+                              setFileNameInput(message.txtFile.displayName)
+                            }}>
                               {message.txtFile.displayName}
                             </span>
                             <span className="text-xs opacity-50">
@@ -1377,6 +1390,22 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                       )}
                     </div>
                     <div className="chat-bubble relative max-w-[800px]">
+                      {message.content && message.content.split('\n').length > 6 && (
+                        <button 
+                          className="btn btn-md btn-ghost btn-circle absolute -top-0 -right-14 z-10 bg-base-100"
+                          onClick={() => toggleMessageCollapse(message.id)}
+                        >
+                          {collapsedMessages.has(message.id) ? (
+                            <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
                       {editingMessage?.id === message.id ? (
                         <div className="join w-full">
                           <div className="mockup-code w-[650px] h-[550px] bg-base-300 relative">
@@ -1404,11 +1433,22 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2">
-                          <div className="flex justify-between items-start">
-                            <div className="prose max-w-none whitespace-pre-wrap break-words w-full">
-                              {message.content}
+                          {message.content && (
+                            <div className="flex justify-between items-start">
+                              <div 
+                                className={`prose max-w-none break-words w-full ${
+                                  collapsedMessages.has(message.id) 
+                                    ? 'max-h-[144px] overflow-y-auto' 
+                                    : ''
+                                }`}
+                                style={{
+                                  whiteSpace: 'pre-wrap'
+                                }}
+                              >
+                                {message.content}
+                              </div>
                             </div>
-                          </div>
+                          )}
                           {message.files?.length > 0 && (
                             <div className="flex flex-wrap gap-2">
                               {message.files.map((file, index) => (
