@@ -68,11 +68,6 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   // 添加拖动排序相关的状态和函数
   const [draggedConversation, setDraggedConversation] = useState(null)
 
-  // 添加图片拖动和缩放处理函数
-  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
-  const [isDraggingImage, setIsDraggingImage] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -1051,20 +1046,7 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   const handleImageWheel = (e) => {
     e.preventDefault()
     const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
-    const rect = e.currentTarget.getBoundingClientRect()
-    const centerX = window.innerWidth / 2
-    const centerY = window.innerHeight / 2
-
-    // 计算图片中心点相对于屏幕中心的偏移
-    const offsetX = imagePosition.x + rect.width / 2 - centerX
-    const offsetY = imagePosition.y + rect.height / 2 - centerY
-
-    // 更新缩放和位置
     setImageScale(prev => Math.max(0.1, Math.min(10, prev * scaleFactor)))
-    setImagePosition(prev => ({
-      x: centerX - rect.width / 2 + offsetX * scaleFactor,
-      y: centerY - rect.height / 2 + offsetY * scaleFactor
-    }))
   }
 
   // 添加拖动排序相关的状态和函数
@@ -1111,33 +1093,16 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
     e.stopPropagation()
   }
 
-  // 添加图片拖动和缩放处理函数
-  const handleImageMouseDown = (e) => {
-    // 只响应右键
-    if (e.button !== 2) return
-    e.preventDefault()
-    setIsDraggingImage(true)
-    setDragStart({
-      x: e.clientX - imagePosition.x,
-      y: e.clientY - imagePosition.y
-    })
-  }
-
-  const handleImageMouseMove = (e) => {
-    if (!isDraggingImage) return
-    e.preventDefault()
-    setImagePosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    })
-  }
-
-  const handleImageMouseUp = () => {
-    setIsDraggingImage(false)
-  }
-
-  const handleImageContextMenu = (e) => {
-    e.preventDefault()
+  // 添加检查图片位置的函数
+  const checkImagePosition = (imgElement) => {
+    const rect = imgElement.getBoundingClientRect()
+    const distanceToBottom = window.innerHeight - (rect.top + rect.height)
+    
+    if (distanceToBottom < 100) {
+      imgElement.parentElement.style.overflowY = 'auto'
+    } else {
+      imgElement.parentElement.style.overflowY = 'hidden'
+    }
   }
 
       return (
@@ -1757,6 +1722,14 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
       {showImageModal && currentImage && (
         <div className="modal modal-open">
           <div className="modal-box relative max-w-5xl h-[80vh] p-0 bg-transparent shadow-none overflow-visible flex flex-col">
+            {/* 添加关闭按钮 */}
+            <button 
+              className="btn btn-circle btn-ghost bg-base-100 absolute right-0 -top-16 z-50"
+              onClick={() => setShowImageModal(false)}
+            >
+              ✕
+            </button>
+            
             <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16">
               <button 
                 className="btn btn-circle btn-ghost bg-base-100"
@@ -1779,46 +1752,22 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
               <img 
                 src={`local-file://${currentImage.path}`}
                 alt={currentImage.name}
-                className="max-w-full max-h-full object-contain z-10 select-none"
+                className="max-w-full max-h-full object-contain z-10"
                 style={{
-                  transform: `translate(${imagePosition.x}px, ${imagePosition.y}px) scale(${imageScale})`,
-                  transition: 'transform 0.1s ease-out',
-                  cursor: isDraggingImage ? 'grabbing' : 'grab'
+                  transform: `scale(${imageScale})`,
+                  transition: 'transform 0.1s ease-out'
                 }}
                 onLoad={(e) => {
-                  const { naturalWidth, naturalHeight } = e.target
                   getImageResolution(e.target)
-
-                  // 根据屏幕大小计算合适的缩放比例
-                  const maxWidth = window.innerWidth * 0.8  // 留出一些边距
-                  const maxHeight = window.innerHeight * 0.8
-
-                  // 计算宽高比例
-                  const widthRatio = maxWidth / naturalWidth
-                  const heightRatio = maxHeight / naturalHeight
-
-                  // 使用较小的比例，保证图片完整显示
-                  const scale = Math.min(widthRatio, heightRatio)
-
-                  // 计算缩放后的实际高度
-                  const scaledHeight = naturalHeight * scale
-
-                  // 计算默认居中的 Y 偏移，并额外向上偏移 50%
-                  const offsetY = (window.innerHeight - scaledHeight) / 2 - scaledHeight * 0.3
-
-                  // 设置缩放比例和位置
-                  setImageScale(scale)
-                  setImagePosition({ x: 0, y: offsetY })
+                  setImageScale(1)
+                  checkImagePosition(e.target)
                 }}
-                onMouseDown={handleImageMouseDown}
-                onMouseMove={handleImageMouseMove}
-                onMouseUp={handleImageMouseUp}
-                onMouseLeave={handleImageMouseUp}
-                onContextMenu={handleImageContextMenu}
-                onWheel={handleImageWheel}
-                draggable={false}
+                onWheel={(e) => {
+                  handleImageWheel(e)
+                  checkImagePosition(e.target)
+                }}
               />
-            </div>
+          </div>
 
             <div className="bg-base-100 p-4 flex items-center justify-center gap-4 relative z-0">
               {editingImageName === currentImage.path ? (
