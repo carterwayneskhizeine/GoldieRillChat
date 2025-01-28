@@ -31,6 +31,8 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   // Add new state variables for folder renaming
   const [editingFolderName, setEditingFolderName] = useState(null)
   const [folderNameInput, setFolderNameInput] = useState('')
+  // 添加删除确认状态
+  const [deletingConversation, setDeletingConversation] = useState(null)
 
   // 添加图片编辑器相关的状态
   const canvasRef = useRef(null)
@@ -1251,15 +1253,17 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                     loadConversation(conversation.id)
                   }}
                 >
-                  <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
+                  {!editingFolderName && (
+                    <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  )}
                   {editingFolderName === conversation.id ? (
                     <input
                       type="text"
                       value={folderNameInput}
                       onChange={(e) => setFolderNameInput(e.target.value)}
-                      className="input input-xs input-bordered join-item"
+                      className="input input-xs input-bordered join-item w-full"
                       placeholder="Enter new folder name"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
@@ -1285,15 +1289,17 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                     </span>
                   )}
                 </div>
-                <button
-                  className="btn btn-ghost btn-xs"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    deleteConversation(conversation.id)
-                  }}
-                >
-                  ×
-                </button>
+                {!editingFolderName && (
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeletingConversation(conversation)
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -1966,6 +1972,34 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
             className="modal-backdrop bg-black/80" 
             onClick={() => setShowImageModal(false)}
           ></div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingConversation && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Delete Chat</h3>
+            <p className="py-4">Are you sure you want to delete this chat?</p>
+            <div className="modal-action">
+              <button 
+                className="btn btn-ghost"
+                onClick={() => setDeletingConversation(null)}
+              >
+                No
+              </button>
+              <button 
+                className="btn btn-error"
+                onClick={() => {
+                  deleteConversation(deletingConversation.id)
+                  setDeletingConversation(null)
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setDeletingConversation(null)}></div>
         </div>
       )}
         </div>
