@@ -1930,7 +1930,12 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
               />
           </div>
 
-            <div className="bg-base-100 p-4 flex items-center justify-center gap-4 relative z-0">
+            <div className="bg-base-100 p-4 flex items-center justify-center gap-4 relative z-0" style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '20px',
+              margin: '0 20px 20px 20px'
+            }}>
               {editingImageName === currentImage.path ? (
                 <div className="join">
                   <input
@@ -1962,9 +1967,9 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center gap-4">
                   <span
-                    className="cursor-pointer hover:underline"
+                    className="cursor-pointer hover:underline text-white"
                     onClick={() => {
                       setEditingImageName(currentImage.path)
                       setImageNameInput(currentImage.name.replace(/\.[^/.]+$/, ""))
@@ -1973,52 +1978,54 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                     {currentImage.name}
                   </span>
                   {imageResolution && (
-                    <span className="opacity-70">
-                      Res: {imageResolution.width} × {imageResolution.height}
-                    </span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-white">
+                        Res: {imageResolution.width} × {imageResolution.height}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => {
+                            sendToEditor(currentImage)
+                            setShowImageModal(false)
+                          }}
+                        >
+                          Send to Editor
+                        </button>
+                        <button
+                          className="btn btn-sm"
+                          onClick={async () => {
+                            try {
+                              const img = new Image()
+                              await new Promise((resolve, reject) => {
+                                img.onload = resolve
+                                img.onerror = reject
+                                img.src = `local-file://${currentImage.path}`
+                              })
+                              
+                              const canvas = document.createElement('canvas')
+                              canvas.width = img.naturalWidth
+                              canvas.height = img.naturalHeight
+                              const ctx = canvas.getContext('2d')
+                              ctx.drawImage(img, 0, 0)
+                              
+                              const blob = await new Promise(resolve => canvas.toBlob(resolve))
+                              await navigator.clipboard.write([
+                                new ClipboardItem({ 'image/png': blob })
+                              ])
+                            } catch (error) {
+                              console.error('Failed to copy image:', error)
+                              alert('复制失败')
+                            }
+                          }}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
-              <div className="flex gap-2 mt-2">
-                <button
-                  className="btn btn-sm"
-                  onClick={() => {
-                    sendToEditor(currentImage)
-                    setShowImageModal(false)
-                  }}
-                >
-                  Send to Editor
-                </button>
-                <button
-                  className="btn btn-sm"
-                  onClick={async () => {
-                    try {
-                      const img = new Image()
-                      await new Promise((resolve, reject) => {
-                        img.onload = resolve
-                        img.onerror = reject
-                        img.src = `local-file://${currentImage.path}`
-                      })
-                      
-                      const canvas = document.createElement('canvas')
-                      canvas.width = img.naturalWidth
-                      canvas.height = img.naturalHeight
-                      const ctx = canvas.getContext('2d')
-                      ctx.drawImage(img, 0, 0)
-                      
-                      const blob = await new Promise(resolve => canvas.toBlob(resolve))
-                      await navigator.clipboard.write([
-                        new ClipboardItem({ 'image/png': blob })
-                      ])
-                    } catch (error) {
-                      console.error('Failed to copy image:', error)
-                      alert('复制失败')
-                    }
-                  }}
-                >
-                  Copy
-                </button>
-              </div>
             </div>
           </div>
           <div 
