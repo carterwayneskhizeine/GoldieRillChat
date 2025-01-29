@@ -549,7 +549,8 @@ function createWindow() {
           webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            sandbox: true
+            sandbox: true,
+            scrollBounce: true // 启用弹性滚动
           }
         })
 
@@ -697,14 +698,22 @@ function createWindow() {
     
     // 计算顶部工具栏的高度（包括标题栏和控制栏）
     const titleBarHeight = bounds.height - contentBounds.height
-    const controlBarHeight = 70 // 浏览器控制栏和标题栏的总高度
+    const controlBarHeight = 55 // 浏览器控制栏和标题栏的总高度
     
-    // 设置浏览器视图的边界，考虑侧边栏宽度
+    // 设置浏览器视图的边界，考虑侧边栏宽度和滚动条空间
     view.setBounds({ 
       x: 10 + sidebarWidth, // 10px 是侧边栏切换条的宽度
       y: titleBarHeight + controlBarHeight,
-      width: bounds.width - (10 + sidebarWidth), // 减去侧边栏宽度和切换条宽度
-      height: bounds.height - (titleBarHeight + controlBarHeight)
+      width: bounds.width - (10 + sidebarWidth + 15), // 减去侧边栏宽度、切换条宽度和滚动条宽度(15px)
+      height: bounds.height - (titleBarHeight + controlBarHeight + 60) // 减去底部滚动条高度(15px)
+    })
+
+    // 设置自动调整大小选项
+    view.setAutoResize({
+      width: true,
+      height: true,
+      horizontal: true,
+      vertical: true
     })
   }
 
