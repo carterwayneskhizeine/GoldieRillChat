@@ -1223,6 +1223,17 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
       }
       return newSet
     })
+
+    // 使用setTimeout确保状态更新后再滚动
+    setTimeout(() => {
+      const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
+      if (messageElement) {
+        messageElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        })
+      }
+    }, 100)
   }
 
   // 处理右键菜单
@@ -1287,6 +1298,63 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
       }
     }
     closeContextMenu()
+  }
+
+  // 手动解析和渲染Markdown
+  const renderMarkdown = (text) => {
+    if (!text) return ''
+
+    // 首先处理换行
+    // 将连续两个或更多换行符转换为段落标签
+    text = text.replace(/\n\s*\n/g, '</p><p>')
+    // 将单个换行符转换为 <br>
+    text = text.replace(/\n/g, '<br>')
+    // 包裹整个文本为段落
+    text = '<p>' + text + '</p>'
+    
+    // 解析标题 (需要处理段落标签)
+    text = text.replace(/<p># (.*?)<\/p>/gim, '<h1>$1</h1>')
+    text = text.replace(/<p>## (.*?)<\/p>/gim, '<h2>$1</h2>')
+    text = text.replace(/<p>### (.*?)<\/p>/gim, '<h3>$1</h3>')
+    
+    // 解析粗体和斜体
+    text = text.replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
+    text = text.replace(/\*(.*?)\*/gim, '<i>$1</i>')
+    
+    // 解析链接
+    text = text.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    
+    // 解析图片
+    text = text.replace(/!\[(.*?)\]\((.*?)\)/gim, '<img alt="$1" src="$2" class="max-w-full rounded-lg" />')
+    
+    // 解析引用 (需要处理段落标签)
+    text = text.replace(/<p>> (.*?)<\/p>/gim, '<blockquote>$1</blockquote>')
+    
+    // 解析列表 (需要处理段落标签)
+    // 将连续的列表项组合在一起
+    let listItems = text.match(/<p>(?:\-|\d+\.) .*?<\/p>/gim)
+    if (listItems) {
+      listItems.forEach(item => {
+        if (item.startsWith('<p>- ')) {
+          // 无序列表
+          text = text.replace(item, item.replace(/<p>- (.*?)<\/p>/gim, '<ul><li>$1</li></ul>'))
+        } else {
+          // 有序列表
+          text = text.replace(item, item.replace(/<p>\d+\. (.*?)<\/p>/gim, '<ol><li>$1</li></ol>'))
+        }
+      })
+    }
+    
+    // 解析表格 (需要处理段落标签)
+    text = text.replace(/<p>\|(.*?)\|<\/p>/gim, '<table><tr><td>$1</td></tr></table>')
+    
+    // 解析代码块为普通文本 (需要处理段落标签)
+    text = text.replace(/<p>```([\s\S]*?)```<\/p>/gim, '<pre>$1</pre>')
+    
+    // 清理多余的段落标签
+    text = text.replace(/<p><\/p>/g, '')
+    
+    return text.trim()
   }
 
       return (
@@ -1560,10 +1628,10 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                                 style={{
                                   whiteSpace: 'pre-wrap'
                                 }}
+                                data-message-id={message.id}
                                 onContextMenu={handleContextMenu}
-                              >
-                                {message.content}
-                              </div>
+                                dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
+                              />
                             </div>
                           )}
                           {message.files?.length > 0 && (
