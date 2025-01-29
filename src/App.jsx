@@ -1387,7 +1387,7 @@ export default function App() {
   }
 
   // 添加浏览器相关状态
-  const [browserTabs, setBrowserTabs] = useState({})
+  const [browserTabs, setBrowserTabs] = useState([])
   const [activeTabId, setActiveTabId] = useState(null)
   const [currentUrl, setCurrentUrl] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -1400,6 +1400,26 @@ export default function App() {
       window.electron.browser.setVisibility(true)
       // 更新浏览器视图位置（考虑当前侧边栏状态）
       window.electron.browser.updateSidebarWidth(sidebarOpen ? 256 : 0)
+
+      // 如果没有标签页，创建一个新的
+      if (browserTabs.length === 0) {
+        window.electron.browser.newTab('https://www.google.com')
+      }
+
+      // 监听标签页更新
+      const tabsUnsubscribe = window.electron.browser.onTabsUpdate((tabs) => {
+        setBrowserTabs(Object.values(tabs))
+      })
+
+      // 监听活动标签页更新
+      const activeTabUnsubscribe = window.electron.browser.onActiveTabUpdate((tabId) => {
+        setActiveTabId(tabId)
+        const tab = browserTabs.find(t => t.id === tabId)
+        if (tab) {
+          setCurrentUrl(tab.url)
+          setPageTitle(tab.title)
+        }
+      })
 
       // 监听 URL 更新
       const urlUnsubscribe = window.electron.browser.onUrlUpdate((url) => {
@@ -1419,12 +1439,14 @@ export default function App() {
       // 清理函数
       return () => {
         window.electron.browser.setVisibility(false)
+        tabsUnsubscribe()
+        activeTabUnsubscribe()
         urlUnsubscribe()
         loadingUnsubscribe()
         titleUnsubscribe()
       }
     }
-  }, [activeTool, sidebarOpen])
+  }, [activeTool, sidebarOpen, browserTabs.length])
 
   // 在 useEffect 中添加侧边栏状态监听
   useEffect(() => {
@@ -2145,6 +2167,51 @@ export default function App() {
         {/* Browser content */}
         {activeTool === 'browser' && (
           <div className="flex-1 flex flex-col relative">
+            {/* 标签栏 */}
+            <div className="flex items-center gap-1 p-1 bg-base-300 overflow-x-auto scrollbar-hide">
+              {browserTabs.map(tab => (
+                <div
+                  key={tab.id}
+                  className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer hover:bg-base-100 ${
+                    activeTabId === tab.id ? 'bg-base-100' : ''
+                  }`}
+                  onClick={() => window.electron.browser.switchTab(tab.id)}
+                >
+                  {tab.isLoading ? (
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-base-content border-t-transparent" />
+                  ) : (
+                    <div className="w-4 h-4 flex items-center justify-center">
+                      {tab.favicon ? (
+                        <img src={tab.favicon} alt="" className="w-4 h-4" />
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                  <span className="max-w-[150px] truncate">{tab.title}</span>
+                  <button
+                    className="opacity-50 hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      window.electron.browser.closeTab(tab.id)
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                className="btn btn-ghost btn-sm btn-circle"
+                onClick={() => window.electron.browser.newTab()}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+
             {/* 浏览器控制栏 */}
             <div className="flex items-center gap-2 p-2 bg-base-200">
               <div className="join">

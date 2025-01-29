@@ -40,20 +40,32 @@ contextBridge.exposeInMainWorld('electron', {
     back: () => ipcRenderer.invoke('browser-back'),
     forward: () => ipcRenderer.invoke('browser-forward'),
     refresh: () => ipcRenderer.invoke('browser-refresh'),
-    onUrlUpdate: (callback) => {
-      const subscription = (_event, url) => callback(url)
-      ipcRenderer.on('browser-url-update', subscription)
-      return () => ipcRenderer.removeListener('browser-url-update', subscription)
-    },
+
+    // 标签页管理
+    newTab: (url) => ipcRenderer.invoke('browser-new-tab', url),
+    closeTab: (tabId) => ipcRenderer.invoke('browser-close-tab', tabId),
+    switchTab: (tabId) => ipcRenderer.invoke('browser-switch-tab', tabId),
+
+    // 事件监听
     onLoading: (callback) => {
-      const subscription = (_event, loading) => callback(loading)
-      ipcRenderer.on('browser-loading', subscription)
-      return () => ipcRenderer.removeListener('browser-loading', subscription)
+      ipcRenderer.on('browser-loading', (_, loading) => callback(loading))
+      return () => ipcRenderer.removeListener('browser-loading', callback)
+    },
+    onUrlUpdate: (callback) => {
+      ipcRenderer.on('browser-url-update', (_, url) => callback(url))
+      return () => ipcRenderer.removeListener('browser-url-update', callback)
     },
     onTitleUpdate: (callback) => {
-      const subscription = (_event, title) => callback(title)
-      ipcRenderer.on('browser-title-update', subscription)
-      return () => ipcRenderer.removeListener('browser-title-update', subscription)
+      ipcRenderer.on('browser-title-update', (_, title) => callback(title))
+      return () => ipcRenderer.removeListener('browser-title-update', callback)
+    },
+    onTabsUpdate: (callback) => {
+      ipcRenderer.on('browser-tabs-update', (_, tabs) => callback(tabs))
+      return () => ipcRenderer.removeListener('browser-tabs-update', callback)
+    },
+    onActiveTabUpdate: (callback) => {
+      ipcRenderer.on('browser-active-tab-update', (_, tabId) => callback(tabId))
+      return () => ipcRenderer.removeListener('browser-active-tab-update', callback)
     },
     removeListener: (channel) => {
       ipcRenderer.removeAllListeners(channel)

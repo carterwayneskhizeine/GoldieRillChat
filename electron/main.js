@@ -10,6 +10,10 @@ let browserWindow = null
 // 添加侧边栏状态变量
 let sidebarWidth = 0
 
+// 添加标签页管理相关变量
+let tabs = new Map()
+let activeTabId = null
+
 // 设置应用 ID 和图标
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.goldie.chat')
@@ -577,19 +581,126 @@ function createWindow() {
     }
   })
 
+  // 添加标签页相关的 IPC 处理
+  ipcMain.handle('browser-new-tab', async (event, url = 'https://www.google.com') => {
+    const view = new BrowserView({
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true
+      }
+    })
+
+    const id = view.webContents.id
+    tabs.set(id, {
+      id,
+      url,
+      title: '新标签页',
+      isLoading: false,
+      canGoBack: false,
+      canGoForward: false
+    })
+
+    view.webContents.loadURL(url)
+
+    // 设置事件监听
+    view.webContents.on('did-start-loading', () => {
+      const tab = tabs.get(id)
+      if (tab) {
+        tab.isLoading = true
+        mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+      }
+    })
+
+    view.webContents.on('did-stop-loading', () => {
+      const tab = tabs.get(id)
+      if (tab) {
+        tab.isLoading = false
+        tab.canGoBack = view.webContents.canGoBack()
+        tab.canGoForward = view.webContents.canGoForward()
+        mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+      }
+    })
+
+    view.webContents.on('page-title-updated', (event, title) => {
+      const tab = tabs.get(id)
+      if (tab) {
+        tab.title = title
+        mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+      }
+    })
+
+    view.webContents.on('did-navigate', (event, url) => {
+      const tab = tabs.get(id)
+      if (tab) {
+        tab.url = url
+        tab.canGoBack = view.webContents.canGoBack()
+        tab.canGoForward = view.webContents.canGoForward()
+        mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+      }
+    })
+
+    // 切换到新标签页
+    activeTabId = id
+    mainWindow.setBrowserView(view)
+    updateBrowserViewBounds()
+    mainWindow.webContents.send('browser-active-tab-update', id)
+    mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+
+    return id
+  })
+
+  ipcMain.handle('browser-close-tab', (event, tabId) => {
+    const view = BrowserView.fromWebContents(BrowserView.getAllWebContents().find(wc => wc.id === tabId))
+    if (view) {
+      if (activeTabId === tabId) {
+        // 找到下一个要激活的标签页
+        const tabIds = Array.from(tabs.keys())
+        const currentIndex = tabIds.indexOf(tabId)
+        const nextId = tabIds[currentIndex - 1] || tabIds[currentIndex + 1]
+        
+        if (nextId) {
+          activeTabId = nextId
+          const nextView = BrowserView.fromWebContents(BrowserView.getAllWebContents().find(wc => wc.id === nextId))
+          mainWindow.setBrowserView(nextView)
+          updateBrowserViewBounds()
+          mainWindow.webContents.send('browser-active-tab-update', nextId)
+        } else {
+          activeTabId = null
+          mainWindow.setBrowserView(null)
+        }
+      }
+      
+      tabs.delete(tabId)
+      view.webContents.destroy()
+      mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+    }
+  })
+
+  ipcMain.handle('browser-switch-tab', (event, tabId) => {
+    const view = BrowserView.fromWebContents(BrowserView.getAllWebContents().find(wc => wc.id === tabId))
+    if (view) {
+      activeTabId = tabId
+      mainWindow.setBrowserView(view)
+      updateBrowserViewBounds()
+      mainWindow.webContents.send('browser-active-tab-update', tabId)
+    }
+  })
+
   // 修改浏览器视图的大小和位置计算
   function updateBrowserViewBounds() {
-    if (!browserView) return
+    const view = mainWindow.getBrowserView()
+    if (!view) return
 
     const bounds = mainWindow.getBounds()
     const contentBounds = mainWindow.getContentBounds()
     
     // 计算顶部工具栏的高度（包括标题栏和控制栏）
     const titleBarHeight = bounds.height - contentBounds.height
-    const controlBarHeight = 18 // 浏览器控制栏和标题栏的总高度
+    const controlBarHeight = 70 // 浏览器控制栏和标题栏的总高度
     
     // 设置浏览器视图的边界，考虑侧边栏宽度
-    browserView.setBounds({ 
+    view.setBounds({ 
       x: 10 + sidebarWidth, // 10px 是侧边栏切换条的宽度
       y: titleBarHeight + controlBarHeight,
       width: bounds.width - (10 + sidebarWidth), // 减去侧边栏宽度和切换条宽度
