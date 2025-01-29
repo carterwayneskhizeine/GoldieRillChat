@@ -1,7 +1,7 @@
 {
-      "name": "goldie-chat-save",
+      "name": "goldie-rill-chat",
       "private": true,
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "A chat application with file management capabilities",
       "author": {
             "name": "Goldie",
@@ -19,20 +19,20 @@
       },
       "build": {
             "appId": "com.goldie.chat",
-            "productName": "Goldie Chat",
+            "productName": "Goldie Rill Chat",
             "directories": {
                   "output": "dist-electron",
                   "buildResources": "resources"
             },
             "files": [
                   "dist/**/*",
-                  "dist-electron/**/*",
-                  "resources/**/*"
+                  "dist-electron/**/*"
             ],
             "extraResources": [
                   {
-                        "from": "./resources/GoldieRillicon.ico",
-                        "to": "GoldieRillicon.ico"
+                        "from": "./resources/",
+                        "to": "./",
+                        "filter": ["*.ico", "*.icns", "*.png"]
                   }
             ],
             "asar": true,

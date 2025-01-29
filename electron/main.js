@@ -12,9 +12,15 @@ if (process.platform === 'win32') {
 
 // 获取图标路径
 function getIconPath() {
-  return process.env.NODE_ENV === 'development'
+  const iconPath = process.env.NODE_ENV === 'development'
     ? path.join(__dirname, '../resources/GoldieRillicon.ico')
     : path.join(process.resourcesPath, 'GoldieRillicon.ico')
+  
+  // 添加日志输出
+  console.log('Icon path:', iconPath)
+  console.log('Icon exists:', require('fs').existsSync(iconPath))
+  
+  return iconPath
 }
 
 // Register file protocol
@@ -22,8 +28,9 @@ app.whenReady().then(() => {
   // 设置应用程序图标
   const iconPath = getIconPath()
   try {
-    app.setIcon(iconPath)
-    console.log('Icon path:', iconPath) // 添加日志以便调试
+    const icon = nativeImage.createFromPath(iconPath)
+    app.setIcon(icon)
+    console.log('Icon set successfully')
   } catch (error) {
     console.error('Failed to set app icon:', error)
   }
