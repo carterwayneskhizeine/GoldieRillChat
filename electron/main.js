@@ -761,7 +761,7 @@ function createWindow() {
     
     // 计算顶部工具栏的高度（包括标题栏和控制栏）
     const titleBarHeight = bounds.height - contentBounds.height
-    const controlBarHeight = 55 // 浏览器控制栏和标题栏的总高度
+    const controlBarHeight = 28 // 浏览器控制栏的高度
     
     // 设置浏览器视图的边界，考虑侧边栏宽度和滚动条空间
     view.setBounds({ 

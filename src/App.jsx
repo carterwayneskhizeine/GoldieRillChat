@@ -2261,11 +2261,6 @@ const tools = ['chat', 'browser', 'editor']
               />
             </div>
 
-            {/* 标题栏 */}
-            <div className="px-2 py-1 bg-base-300 text-sm opacity-70">
-              {pageTitle}
-            </div>
-
             {/* 浏览器视图容器 */}
             <div className="flex-1 bg-base-100 overflow-auto">
               {/* 浏览器视图由主进程管理 */}
