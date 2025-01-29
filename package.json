@@ -2,6 +2,12 @@
       "name": "goldie-chat-save",
       "private": true,
       "version": "0.1.0",
+      "description": "A chat application with file management capabilities",
+      "author": {
+            "name": "Goldie",
+            "email": "carterwayneskhizeine@gmail.com",
+            "url": "https://github.com/carterwayneskhizeine"
+      },
       "main": "dist-electron/main.js",
       "scripts": {
             "dev": "vite",
@@ -15,23 +21,24 @@
             "appId": "com.goldie.chat",
             "productName": "Goldie Chat",
             "directories": {
-                  "output": "dist-electron"
+                  "output": "dist-electron",
+                  "buildResources": "resources"
             },
             "files": [
                   "dist/**/*",
                   "dist-electron/**/*",
-                  "GoldieRillicon.ico"
+                  "resources/**/*"
             ],
             "extraResources": [
                   {
-                        "from": "GoldieRillicon.ico",
+                        "from": "./resources/GoldieRillicon.ico",
                         "to": "GoldieRillicon.ico"
                   }
             ],
             "asar": true,
             "win": {
                   "target": "nsis",
-                  "icon": "GoldieRillicon.ico",
+                  "icon": "./resources/GoldieRillicon.ico",
                   "signingHashAlgorithms": [
                         "sha256"
                   ],
@@ -45,18 +52,18 @@
                   "createDesktopShortcut": true,
                   "createStartMenuShortcut": true,
                   "shortcutName": "GoldieRillChat",
-                  "installerIcon": "GoldieRillicon.ico",
-                  "uninstallerIcon": "GoldieRillicon.ico",
+                  "installerIcon": "./resources/GoldieRillicon.ico",
+                  "uninstallerIcon": "./resources/GoldieRillicon.ico",
                   "uninstallDisplayName": "GoldieRillChat",
                   "artifactName": "GoldieRillChat-Setup-${version}.${ext}"
             },
             "mac": {
                   "target": "dmg",
-                  "icon": "GoldieRillicon.icns"
+                  "icon": "./resources/GoldieRillicon.icns"
             },
             "linux": {
                   "target": "AppImage",
-                  "icon": "GoldieRillicon.png"
+                  "icon": "./resources/GoldieRillicon.png"
             }
       },
       "dependencies": {

@@ -13,7 +13,7 @@ if (process.platform === 'win32') {
 // 获取图标路径
 function getIconPath() {
   return process.env.NODE_ENV === 'development'
-    ? path.join(__dirname, '../GoldieRillicon.ico')
+    ? path.join(__dirname, '../resources/GoldieRillicon.ico')
     : path.join(process.resourcesPath, 'GoldieRillicon.ico')
 }
 
@@ -23,6 +23,7 @@ app.whenReady().then(() => {
   const iconPath = getIconPath()
   try {
     app.setIcon(iconPath)
+    console.log('Icon path:', iconPath) // 添加日志以便调试
   } catch (error) {
     console.error('Failed to set app icon:', error)
   }
@@ -508,13 +509,13 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
 // Create the browser window
 function createWindow() {
   const iconPath = getIconPath()
-  const icon = nativeImage.createFromPath(iconPath)
+  console.log('Creating window with icon path:', iconPath)  // 添加日志
 
   mainWindow = new BrowserWindow({
     width: 1920,
     height: 1000,
     title: 'GoldieRillChat',
-    icon: iconPath,  // 使用路径而不是 nativeImage
+    icon: iconPath,
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: true,
@@ -526,7 +527,12 @@ function createWindow() {
 
   // 确保在 Windows 上设置任务栏图标
   if (process.platform === 'win32') {
-    mainWindow.setIcon(iconPath)
+    try {
+      mainWindow.setIcon(iconPath)
+      app.setAppUserModelId('com.goldie.chat')
+    } catch (error) {
+      console.error('Failed to set window icon:', error)
+    }
   }
 
   // 设置菜单为 null 来完全移除菜单栏

@@ -28,3 +28,4 @@ script1.js
 out/
 
 dist-electron/
+electron-as-browser/
