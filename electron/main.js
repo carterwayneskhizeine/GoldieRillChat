@@ -657,6 +657,19 @@ function createWindow() {
   })
 }
 
+// 添加设置面板状态处理
+ipcMain.handle('set-settings-visibility', (event, visible) => {
+  if (browserView && mainWindow.getBrowserView()) {
+    if (visible) {
+      // 当设置面板打开时，暂时隐藏浏览器视图
+      mainWindow.setBrowserView(null)
+    } else {
+      // 当设置面板关闭时，如果当前工具是浏览器，则恢复浏览器视图
+      mainWindow.webContents.send('check-browser-visibility')
+    }
+  }
+})
+
 module.exports = {
   createWindow
 }

@@ -16,7 +16,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
 // 在文件顶部添加工具页面配置
 const tools = ['chat', 'editor', 'browser']
 
-export default function App() {
+    export default function App() {
   // 修改初始工具为 chat
   const [activeTool, setActiveTool] = useState('chat')
   // 设置侧边栏默认打开
@@ -1434,7 +1434,31 @@ export default function App() {
     }
   }, [sidebarOpen, activeTool])
 
-  return (
+  // 添加设置面板可见性处理
+  useEffect(() => {
+    if (activeTool === 'browser') {
+      // 监听设置面板可见性检查
+      const unsubscribe = window.electron.browser.onCheckVisibility(() => {
+        if (!showSettings) {
+          window.electron.browser.setVisibility(true)
+        }
+      })
+
+      return () => {
+        unsubscribe()
+      }
+    }
+  }, [activeTool, showSettings])
+
+  // 修改设置面板的显示/隐藏处理
+  const toggleSettings = (visible) => {
+    if (activeTool === 'browser') {
+      window.electron.browser.setSettingsVisibility(visible)
+    }
+    setShowSettings(visible)
+  }
+
+      return (
     <div className="flex h-screen" onClick={closeContextMenu}>
       <style>{globalStyles}</style>
       {/* Sidebar toggle bar */}
@@ -1449,131 +1473,148 @@ export default function App() {
 
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
-        <div className="w-64 p-2 flex flex-col flex-1 overflow-hidden">
-          {/* Top buttons row - 三向切换 */}
-          <div className="join grid grid-cols-2 mb-2">
-            <button 
-              className="join-item btn btn-outline btn-sm"
-              onClick={() => switchTool('prev')}
-            >
-              Previous
-            </button>
-            <button 
-              className="join-item btn btn-outline btn-sm"
-              onClick={() => switchTool('next')}
-            >
-              Next
-            </button>
-          </div>
+        <div className="w-64 flex flex-col h-full">
+          {/* Main content area */}
+          <div className="p-2 flex-1 flex flex-col overflow-hidden">
+            {/* Top buttons row - 三向切换 */}
+        <div className="join grid grid-cols-2 mb-2">
+          <button 
+                className="join-item btn btn-outline btn-sm"
+                onClick={() => switchTool('prev')}
+          >
+            Previous
+          </button>
+          <button 
+                className="join-item btn btn-outline btn-sm"
+                onClick={() => switchTool('next')}
+          >
+            Next
+          </button>
+        </div>
 
-          {/* 工具页面指示器 */}
-          <div className="flex justify-center gap-2 mb-2">
-            {tools.map(tool => (
-              <div 
-                key={tool}
-                className={`w-2 h-2 rounded-full ${
-                  activeTool === tool 
-                    ? 'bg-primary' 
-                    : 'bg-base-content opacity-20'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* Current tool display */}
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center">
-              <span className="font-semibold mr-2">
-                {getToolDisplayName(activeTool)}
-              </span>
-              {activeTool === 'chat' && (
-                <button 
-                  className="btn btn-circle btn-ghost btn-sm" 
-                  onClick={createNewConversation}
-                >
-                  <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                </button>
-              )}
+            {/* 工具页面指示器 */}
+            <div className="flex justify-center gap-2 mb-2">
+              {tools.map(tool => (
+                <div 
+                  key={tool}
+                  className={`w-2 h-2 rounded-full ${
+                    activeTool === tool 
+                      ? 'bg-primary' 
+                      : 'bg-base-content opacity-20'
+                  }`}
+                />
+              ))}
             </div>
-          </div>
 
-          {/* Chat list */}
-          {activeTool === 'chat' && (
-            <div className="flex-1 mt-2 overflow-y-auto">
-              <div className="flex flex-col gap-2">
-                {conversations.map(conversation => (
-                  <div
-                    key={conversation.id}
-                    className={`btn btn-ghost justify-between ${
-                      currentConversation?.id === conversation.id ? 'btn-active' : ''
-                    } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
-                    draggable
-                    onDragStart={() => handleDragStart(conversation)}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop(conversation)}
+        {/* Current tool display */}
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center">
+                <span className="font-semibold mr-2">
+                  {getToolDisplayName(activeTool)}
+            </span>
+            {activeTool === 'chat' && (
+                  <button 
+                    className="btn btn-circle btn-ghost btn-sm" 
+                    onClick={createNewConversation}
                   >
-                    <div 
-                      className="flex items-center gap-2 flex-1"
-                      onClick={() => {
-                        if (editingFolderName === conversation.id) return
-                        loadConversation(conversation.id)
+                <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+            {/* Chat list */}
+            {activeTool === 'chat' && (
+        <div className="flex-1 mt-2 overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            {conversations.map(conversation => (
+              <div
+                key={conversation.id}
+                className={`btn btn-ghost justify-between ${
+                  currentConversation?.id === conversation.id ? 'btn-active' : ''
+                } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                draggable
+                onDragStart={() => handleDragStart(conversation)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(conversation)}
+              >
+                <div 
+                  className="flex items-center gap-2 flex-1"
+                  onClick={() => {
+                    if (editingFolderName === conversation.id) return
+                    loadConversation(conversation.id)
+                  }}
+                >
+                  {!editingFolderName && (
+                    <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  )}
+                  {editingFolderName === conversation.id ? (
+                    <input
+                      type="text"
+                      value={folderNameInput}
+                      onChange={(e) => setFolderNameInput(e.target.value)}
+                      className="input input-xs input-bordered join-item w-full"
+                      placeholder="Enter new folder name"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          renameChatFolder(conversation, folderNameInput)
+                        }
+                      }}
+                      onBlur={() => {
+                        setEditingFolderName(null)
+                        setFolderNameInput('')
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <span 
+                      className="truncate cursor-pointer hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingFolderName(conversation.id)
+                        setFolderNameInput(conversation.name)
                       }}
                     >
-                      {!editingFolderName && (
-                        <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                      )}
-                      {editingFolderName === conversation.id ? (
-                        <input
-                          type="text"
-                          value={folderNameInput}
-                          onChange={(e) => setFolderNameInput(e.target.value)}
-                          className="input input-xs input-bordered join-item w-full"
-                          placeholder="Enter new folder name"
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              renameChatFolder(conversation, folderNameInput)
-                            }
-                          }}
-                          onBlur={() => {
-                            setEditingFolderName(null)
-                            setFolderNameInput('')
-                          }}
-                          autoFocus
-                        />
-                      ) : (
-                        <span 
-                          className="truncate cursor-pointer hover:underline"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setEditingFolderName(conversation.id)
-                            setFolderNameInput(conversation.name)
-                          }}
-                        >
-                          {conversation.name}
-                        </span>
-                      )}
-                    </div>
-                    {!editingFolderName && (
-                      <button
-                        className="btn btn-ghost btn-xs"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeletingConversation(conversation)
-                        }}
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                ))}
+                      {conversation.name}
+                    </span>
+                  )}
+                </div>
+                {!editingFolderName && (
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeletingConversation(conversation)
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+              </div>
+            )}
+        </div>
+
+          {/* Settings button */}
+          <div className="p-2 border-t border-base-content/10">
+            <button
+              className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
+              onClick={() => toggleSettings(true)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+              <span>Settings</span>
+          </button>
+          </div>
         </div>
       </div>
 
@@ -1657,20 +1698,20 @@ export default function App() {
                             transform: 'translateX(calc(102% + 1rem))'  // 向右移动两倍
                           }}
                         >
-                          <button 
+                        <button 
                             className="btn btn-md btn-ghost btn-circle bg-base-100"
-                            onClick={() => toggleMessageCollapse(message.id)}
-                          >
-                            {collapsedMessages.has(message.id) ? (
-                              <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            ) : (
-                              <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                              </svg>
-                            )}
-                          </button>
+                          onClick={() => toggleMessageCollapse(message.id)}
+                        >
+                          {collapsedMessages.has(message.id) ? (
+                            <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          )}
+                        </button>
                         </div>
                       )}
                       {editingMessage?.id === message.id ? (
@@ -2193,7 +2234,7 @@ export default function App() {
         <div className="modal modal-open">
           <div className="modal-box">
             <button 
-              onClick={() => setShowSettings(false)}
+              onClick={() => toggleSettings(false)}
               className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
             >
               ✕
