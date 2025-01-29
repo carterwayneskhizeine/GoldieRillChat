@@ -5,6 +5,11 @@ const fs = require('fs').promises
 
 let mainWindow = null
 
+// 设置应用 ID
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.goldie.chat')
+}
+
 // Register file protocol
 app.whenReady().then(() => {
   protocol.registerFileProtocol('local-file', (request, callback) => {
@@ -371,6 +376,60 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
         const messagesPath = path.join(folderPath, 'messages.json')
         const messagesContent = await fs.readFile(messagesPath, 'utf8')
         messages = JSON.parse(messagesContent)
+
+        // 获取已存在文件的路径列表
+        const existingFilePaths = new Set()
+        messages.forEach(msg => {
+          if (msg.txtFile) {
+            existingFilePaths.add(msg.txtFile.path)
+          }
+          if (msg.files) {
+            msg.files.forEach(file => existingFilePaths.add(file.path))
+          }
+        })
+
+        // 处理新的文本文件
+        const newTxtFiles = files.filter(f => 
+          f.type === '.txt' && !existingFilePaths.has(f.path)
+        )
+        for (const txtFile of newTxtFiles) {
+          const content = await fs.readFile(txtFile.path, 'utf8')
+          messages.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            content: content,
+            timestamp: txtFile.timestamp,
+            txtFile: {
+              name: txtFile.name,
+              displayName: txtFile.name.replace('.txt', ''),
+              path: txtFile.path
+            }
+          })
+        }
+
+        // 处理新的媒体文件
+        const newMediaFiles = files.filter(f => 
+          f.type !== '.txt' && 
+          f.type !== '.json' && 
+          !existingFilePaths.has(f.path)
+        )
+        newMediaFiles.forEach(file => {
+          messages.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            content: '',
+            timestamp: file.timestamp,
+            files: [file]
+          })
+        })
+
+        // 如果有新文件，重新排序并保存
+        if (newTxtFiles.length > 0 || newMediaFiles.length > 0) {
+          messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          await fs.writeFile(
+            path.join(folderPath, 'messages.json'),
+            JSON.stringify(messages, null, 2),
+            'utf8'
+          )
+        }
       } catch (error) {
         // 如果 messages.json 不存在，创建新的消息数组
         messages = []
@@ -391,16 +450,22 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
           })
         }
         
-        // 处理其他文件
-        const otherFiles = files.filter(f => f.type !== '.txt')
-        if (otherFiles.length > 0) {
-          messages.push({
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            content: '',
-            timestamp: new Date().toISOString(),
-            files: otherFiles
+        // 处理媒体文件和其他文件
+        const mediaFiles = files.filter(f => f.type !== '.txt' && f.type !== '.json')
+        if (mediaFiles.length > 0) {
+          // 为每个文件创建独立的消息
+          mediaFiles.forEach(file => {
+            messages.push({
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              content: '',
+              timestamp: file.timestamp,
+              files: [file]
+            })
           })
         }
+        
+        // 按时间戳排序消息
+        messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         
         // 保存新的 messages.json
         await fs.writeFile(
@@ -427,10 +492,16 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
 
 // Create the browser window
 function createWindow() {
+  // 根据环境确定图标路径
+  const iconPath = process.env.NODE_ENV === 'development' 
+    ? path.join(__dirname, '../GoldieRillicon.ico')
+    : path.join(process.resourcesPath, 'GoldieRillicon.ico')
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     title: 'GoldieRillChat',
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
-const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine", "halloween", "garden", "forest", "lofi", "pastel", "fantasy", "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "coffee", "winter"]
+const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "luxury", "dracula", "business", "coffee", "emerald", "corporate", "retro", "aqua", "wireframe", "night", "dim", "sunset"]
 
     export default function App() {
   const [activeTool, setActiveTool] = useState('chat')
@@ -33,6 +35,8 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
   const [folderNameInput, setFolderNameInput] = useState('')
   // 添加删除确认状态
   const [deletingConversation, setDeletingConversation] = useState(null)
+  // 在其他 state 声明附近添加
+  const [deletingMessageId, setDeletingMessageId] = useState(null)
 
   // 添加图片编辑器相关的状态
   const canvasRef = useRef(null)
@@ -1448,7 +1452,76 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                                   whiteSpace: 'pre-wrap'
                                 }}
                               >
-                                {message.content}
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    // 自定义代码块样式
+                                    code({node, inline, className, children, ...props}) {
+                                      const match = /language-(\w+)/.exec(className || '')
+                                      const codeString = String(children).replace(/\n$/, '')
+                                      const [copyStatus, setCopyStatus] = React.useState('copy')
+                                      
+                                      const copyToClipboard = () => {
+                                        navigator.clipboard.writeText(codeString)
+                                          .then(() => {
+                                            setCopyStatus('copied')
+                                            setTimeout(() => {
+                                              setCopyStatus('copy')
+                                            }, 1000)
+                                          })
+                                          .catch(err => console.error('复制失败:', err))
+                                      }
+                                      
+                                      return !inline ? (
+                                        <div className="group/code relative">
+                                          <pre className={`bg-base-300 p-4 rounded-lg my-2 overflow-x-auto hover:bg-base-200 ${className}`}>
+                                            <code className={match ? `language-${match[1]}` : ''} {...props}>
+                                              {codeString}
+                                            </code>
+                                            <div className="absolute top-2 right-2 flex items-center gap-2">
+                                              <button
+                                                onClick={copyToClipboard}
+                                                className="btn btn-xs btn-ghost opacity-0 group-hover/code:opacity-100 transition-opacity duration-200 flex items-center gap-1"
+                                                title="复制代码"
+                                              >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                                </svg>
+                                                <span className="text-xs">
+                                                  {copyStatus === 'copied' ? 'Copied!' : 'Copy'}
+                                                </span>
+                                              </button>
+                                            </div>
+                                          </pre>
+                                        </div>
+                                      ) : (
+                                        <code className={`bg-base-300 rounded px-1 ${className}`} {...props}>
+                                          {children}
+                                        </code>
+                                      )
+                                    },
+                                    // 自定义链接样式
+                                    a: ({node, ...props}) => (
+                                      <a className="link link-primary" {...props} target="_blank" rel="noopener noreferrer" />
+                                    ),
+                                    // 自定义表格样式
+                                    table: ({node, ...props}) => (
+                                      <div className="overflow-x-auto">
+                                        <table className="table table-zebra w-full" {...props} />
+                                      </div>
+                                    ),
+                                    // 自定义图片样式
+                                    img: ({node, ...props}) => (
+                                      <img className="rounded-lg max-w-full" {...props} />
+                                    ),
+                                    // 自定义引用样式
+                                    blockquote: ({node, ...props}) => (
+                                      <blockquote className="border-l-4 border-primary pl-4 my-4" {...props} />
+                                    ),
+                                  }}
+                                >
+                                  {message.content}
+                                </ReactMarkdown>
                               </div>
                             </div>
                           )}
@@ -1514,10 +1587,47 @@ const themes = ["light", "dark", "cupcake", "synthwave", "cyberpunk", "valentine
                             ) : null}
                             <button
                               className="btn btn-ghost btn-xs bg-base-100"
-                              onClick={() => deleteMessage(message.id)}
+                              onClick={() => setDeletingMessageId(message.id)}
                             >
                               Delete
                             </button>
+                            
+                            {deletingMessageId === message.id && (
+                              <div className="modal modal-open flex items-center justify-center">
+                                <div role="alert" className="alert w-[400px]">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    className="stroke-info h-6 w-6 shrink-0">
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                  </svg>
+                                  <span>Del msg?</span>
+                                  <div>
+                                    <button 
+                                      className="btn btn-sm"
+                                      onClick={() => setDeletingMessageId(null)}
+                                    >
+                                      No
+                                    </button>
+                                    <button 
+                                      className="btn btn-sm btn-primary ml-2"
+                                      onClick={() => {
+                                        deleteMessage(deletingMessageId)
+                                        setDeletingMessageId(null)
+                                      }}
+                                    >
+                                      Yes
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="modal-backdrop" onClick={() => setDeletingMessageId(null)}></div>
+                              </div>
+                            )}
                             <button
                               className="btn btn-ghost btn-xs bg-base-100"
                               onClick={() => copyMessageContent(message)}
