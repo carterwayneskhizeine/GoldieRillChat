@@ -1,17 +1,32 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, protocol, nativeImage } = require('electron')
 const { shell } = require('electron')
 const path = require('path')
 const fs = require('fs').promises
 
 let mainWindow = null
 
-// 设置应用 ID
+// 设置应用 ID 和图标
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.goldie.chat')
 }
 
+// 获取图标路径
+function getIconPath() {
+  return process.env.NODE_ENV === 'development'
+    ? path.join(__dirname, '../GoldieRillicon.ico')
+    : path.join(process.resourcesPath, 'GoldieRillicon.ico')
+}
+
 // Register file protocol
 app.whenReady().then(() => {
+  // 设置应用程序图标
+  const iconPath = getIconPath()
+  try {
+    app.setIcon(iconPath)
+  } catch (error) {
+    console.error('Failed to set app icon:', error)
+  }
+
   protocol.registerFileProtocol('local-file', (request, callback) => {
     const filePath = request.url.replace('local-file://', '')
     callback(decodeURI(filePath))
@@ -492,17 +507,15 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
 
 // Create the browser window
 function createWindow() {
-  // 根据环境确定图标路径
-  const iconPath = process.env.NODE_ENV === 'development' 
-    ? path.join(__dirname, '../GoldieRillicon.ico')
-    : path.join(process.resourcesPath, 'GoldieRillicon.ico')
+  const iconPath = getIconPath()
+  const icon = nativeImage.createFromPath(iconPath)
 
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     title: 'GoldieRillChat',
-    icon: iconPath,
-    autoHideMenuBar: true,  // 自动隐藏菜单栏
+    icon: iconPath,  // 使用路径而不是 nativeImage
+    autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -510,6 +523,12 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     }
   })
+
+  // 确保在 Windows 上设置任务栏图标
+  if (process.platform === 'win32') {
+    mainWindow.setOverlayIcon(icon, 'GoldieRillChat')
+    mainWindow.setIcon(iconPath)
+  }
 
   // 设置菜单为 null 来完全移除菜单栏
   mainWindow.setMenu(null)
