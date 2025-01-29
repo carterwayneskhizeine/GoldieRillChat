@@ -14,6 +14,9 @@ let sidebarWidth = 0
 let tabs = new Map()
 let activeTabId = null
 
+// 添加视图存储
+let viewMap = new Map()
+
 // 设置应用 ID 和图标
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.goldie.chat')
@@ -582,13 +585,14 @@ function createWindow() {
     }
   })
 
-  // 添加标签页相关的 IPC 处理
+  // 修改新建标签页处理
   ipcMain.handle('browser-new-tab', async (event, url = 'https://www.google.com') => {
     const view = new BrowserView({
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: true
+        sandbox: true,
+        scrollBounce: true
       }
     })
 
@@ -602,7 +606,8 @@ function createWindow() {
       canGoForward: false
     })
 
-    view.webContents.loadURL(url)
+    // 存储视图引用
+    viewMap.set(id, view)
 
     // 设置事件监听
     view.webContents.on('did-start-loading', () => {
@@ -610,6 +615,9 @@ function createWindow() {
       if (tab) {
         tab.isLoading = true
         mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+        if (id === activeTabId) {
+          mainWindow.webContents.send('browser-loading', true)
+        }
       }
     })
 
@@ -620,6 +628,9 @@ function createWindow() {
         tab.canGoBack = view.webContents.canGoBack()
         tab.canGoForward = view.webContents.canGoForward()
         mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+        if (id === activeTabId) {
+          mainWindow.webContents.send('browser-loading', false)
+        }
       }
     })
 
@@ -628,6 +639,9 @@ function createWindow() {
       if (tab) {
         tab.title = title
         mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+        if (id === activeTabId) {
+          mainWindow.webContents.send('browser-title-update', title)
+        }
       }
     })
 
@@ -638,8 +652,14 @@ function createWindow() {
         tab.canGoBack = view.webContents.canGoBack()
         tab.canGoForward = view.webContents.canGoForward()
         mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+        if (id === activeTabId) {
+          mainWindow.webContents.send('browser-url-update', url)
+        }
       }
     })
+
+    // 加载URL
+    await view.webContents.loadURL(url)
 
     // 切换到新标签页
     activeTabId = id
@@ -651,8 +671,9 @@ function createWindow() {
     return id
   })
 
+  // 修改关闭标签页处理
   ipcMain.handle('browser-close-tab', (event, tabId) => {
-    const view = BrowserView.fromWebContents(BrowserView.getAllWebContents().find(wc => wc.id === tabId))
+    const view = viewMap.get(tabId)
     if (view) {
       if (activeTabId === tabId) {
         // 找到下一个要激活的标签页
@@ -662,29 +683,50 @@ function createWindow() {
         
         if (nextId) {
           activeTabId = nextId
-          const nextView = BrowserView.fromWebContents(BrowserView.getAllWebContents().find(wc => wc.id === nextId))
-          mainWindow.setBrowserView(nextView)
-          updateBrowserViewBounds()
-          mainWindow.webContents.send('browser-active-tab-update', nextId)
+          const nextView = viewMap.get(nextId)
+          if (nextView) {
+            mainWindow.setBrowserView(nextView)
+            updateBrowserViewBounds()
+            mainWindow.webContents.send('browser-active-tab-update', nextId)
+            
+            // 同步新活动标签页的状态
+            const tab = tabs.get(nextId)
+            if (tab) {
+              mainWindow.webContents.send('browser-url-update', tab.url)
+              mainWindow.webContents.send('browser-title-update', tab.title)
+              mainWindow.webContents.send('browser-loading', tab.isLoading)
+            }
+          }
         } else {
           activeTabId = null
           mainWindow.setBrowserView(null)
         }
       }
       
+      // 清理资源
       tabs.delete(tabId)
+      viewMap.delete(tabId)
       view.webContents.destroy()
       mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
     }
   })
 
+  // 修改切换标签页处理
   ipcMain.handle('browser-switch-tab', (event, tabId) => {
-    const view = BrowserView.fromWebContents(BrowserView.getAllWebContents().find(wc => wc.id === tabId))
+    const view = viewMap.get(tabId)
     if (view) {
       activeTabId = tabId
       mainWindow.setBrowserView(view)
       updateBrowserViewBounds()
-      mainWindow.webContents.send('browser-active-tab-update', tabId)
+
+      // 同步当前标签页的状态
+      const tab = tabs.get(tabId)
+      if (tab) {
+        mainWindow.webContents.send('browser-url-update', tab.url)
+        mainWindow.webContents.send('browser-title-update', tab.title)
+        mainWindow.webContents.send('browser-loading', tab.isLoading)
+        mainWindow.webContents.send('browser-active-tab-update', tabId)
+      }
     }
   })
 
@@ -732,30 +774,45 @@ function createWindow() {
     }
   })
 
-  // 处理浏览器相关的 IPC 消息
+  // 修改浏览器导航处理
   ipcMain.handle('browser-navigate', async (event, url) => {
-    if (!browserView) return
+    const view = mainWindow.getBrowserView()
+    if (!view) return
+
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://' + url
     }
-    browserView.webContents.loadURL(url)
+
+    try {
+      await view.webContents.loadURL(url)
+      const tab = tabs.get(activeTabId)
+      if (tab) {
+        tab.url = url
+        mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+      }
+    } catch (error) {
+      console.error('Navigation failed:', error)
+    }
   })
 
   ipcMain.handle('browser-back', () => {
-    if (browserView && browserView.webContents.canGoBack()) {
-      browserView.webContents.goBack()
+    const view = mainWindow.getBrowserView()
+    if (view && view.webContents.canGoBack()) {
+      view.webContents.goBack()
     }
   })
 
   ipcMain.handle('browser-forward', () => {
-    if (browserView && browserView.webContents.canGoForward()) {
-      browserView.webContents.goForward()
+    const view = mainWindow.getBrowserView()
+    if (view && view.webContents.canGoForward()) {
+      view.webContents.goForward()
     }
   })
 
   ipcMain.handle('browser-refresh', () => {
-    if (browserView) {
-      browserView.webContents.reload()
+    const view = mainWindow.getBrowserView()
+    if (view) {
+      view.webContents.reload()
     }
   })
 
@@ -773,6 +830,12 @@ function createWindow() {
 
   // 主窗口关闭时清理资源
   mainWindow.on('closed', () => {
+    // 清理所有标签页
+    for (const [id, view] of viewMap) {
+      view.webContents.destroy()
+    }
+    tabs.clear()
+    viewMap.clear()
     browserView = null
     mainWindow = null
   })
