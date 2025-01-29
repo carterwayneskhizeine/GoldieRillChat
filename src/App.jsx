@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 
 // 添加全局样式
 const globalStyles = `
@@ -1246,61 +1244,6 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
     setSelectedElement(null)
   }
 
-  // 转换为代码块
-  const convertToCode = () => {
-    const selection = window.getSelection()
-    const range = selection.getRangeAt(0)
-    const text = selection.toString()
-    
-    const pre = document.createElement('pre')
-    pre.className = 'bg-base-300 p-4 rounded-lg my-2 group/code relative'
-    const code = document.createElement('code')
-    code.textContent = text
-    pre.appendChild(code)
-    
-    // 添加复制按钮
-    const copyButton = document.createElement('div')
-    copyButton.className = 'absolute top-2 right-2 flex items-center gap-2'
-    copyButton.innerHTML = `
-      <button
-        class="btn btn-xs btn-ghost opacity-0 group-hover/code:opacity-100 transition-opacity duration-200 flex items-center gap-1"
-        title="复制代码"
-        onclick="(function(btn){
-          navigator.clipboard.writeText(btn.closest('pre').textContent)
-            .then(() => {
-              const span = btn.querySelector('span')
-              span.textContent = 'Copied!'
-              setTimeout(() => {
-                span.textContent = 'Copy'
-              }, 1000)
-            })
-        })(this)"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-        </svg>
-        <span class="text-xs">Copy</span>
-      </button>
-    `
-    pre.appendChild(copyButton)
-    
-    range.deleteContents()
-    range.insertNode(pre)
-    closeContextMenu()
-  }
-
-  // 转换为普通文本
-  const convertToText = () => {
-    const pre = selectedElement.closest('pre')
-    if (pre) {
-      const code = pre.querySelector('code')
-      const cleanText = code ? code.textContent : pre.textContent.replace(/\s*Copy\s*$/, '')
-      const textNode = document.createTextNode(cleanText)
-      pre.parentNode.replaceChild(textNode, pre)
-    }
-    closeContextMenu()
-  }
-
   // 复制代码
   const copyCode = () => {
     const pre = selectedElement?.closest('pre')
@@ -1557,7 +1500,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                           className="absolute right-0 flex items-center"
                           style={{
                             position: 'sticky',
-                            top: '660px',  // 向下移动一倍
+                            top: '655px',  // 向下移动一倍
                             height: '0',
                             zIndex: 10,
                             transform: 'translateX(calc(102% + 1rem))'  // 向右移动两倍
@@ -1619,76 +1562,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                                 }}
                                 onContextMenu={handleContextMenu}
                               >
-                                <ReactMarkdown 
-                                  remarkPlugins={[remarkGfm]}
-                                  components={{
-                                    // 自定义代码块样式
-                                    code({node, inline, className, children, ...props}) {
-                                      const match = /language-(\w+)/.exec(className || '')
-                                      const codeString = String(children).replace(/\n$/, '')
-                                      const [copyStatus, setCopyStatus] = useState('copy')
-                                      
-                                      const copyToClipboard = () => {
-                                        navigator.clipboard.writeText(codeString)
-                                          .then(() => {
-                                            setCopyStatus('copied')
-                                            setTimeout(() => {
-                                              setCopyStatus('copy')
-                                            }, 1000)
-                                          })
-                                          .catch(err => console.error('复制失败:', err))
-                                      }
-                                      
-                                      return !inline ? (
-                                        <div className="group/code relative">
-                                          <pre className={`bg-base-300 p-4 rounded-lg my-2 overflow-x-auto hover:bg-base-200 ${className}`}>
-                                            <code className={match ? `language-${match[1]}` : ''} {...props}>
-                                              {codeString}
-                                            </code>
-                                            <div className="absolute top-2 right-2 flex items-center gap-2">
-                                              <button
-                                                onClick={copyToClipboard}
-                                                className="btn btn-xs btn-ghost opacity-0 group-hover/code:opacity-100 transition-opacity duration-200 flex items-center gap-1"
-                                                title="复制代码"
-                                              >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                                                </svg>
-                                                <span className="text-xs">
-                                                  {copyStatus}
-                                                </span>
-                                              </button>
-                                            </div>
-                                          </pre>
-                                        </div>
-                                      ) : (
-                                        <code className={`bg-base-300 rounded px-1 ${className}`} {...props}>
-                                          {children}
-                                        </code>
-                                      )
-                                    },
-                                    // 自定义链接样式
-                                    a: ({node, ...props}) => (
-                                      <a className="link link-primary" {...props} target="_blank" rel="noopener noreferrer" />
-                                    ),
-                                    // 自定义表格样式
-                                    table: ({node, ...props}) => (
-                                      <div className="overflow-x-auto">
-                                        <table className="table table-zebra w-full" {...props} />
-                                      </div>
-                                    ),
-                                    // 自定义图片样式
-                                    img: ({node, ...props}) => (
-                                      <img className="rounded-lg max-w-full" {...props} />
-                                    ),
-                                    // 自定义引用样式
-                                    blockquote: ({node, ...props}) => (
-                                      <blockquote className="border-l-4 border-primary pl-4 my-4" {...props} />
-                                    ),
-                                  }}
-                                >
-                                  {message.content}
-                                </ReactMarkdown>
+                                {message.content}
                               </div>
                             </div>
                           )}
@@ -2363,7 +2237,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
           onContextMenu={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
-          <ul className="menu bg-base-200 w-56 rounded-box shadow-lg">
+          <ul className={`menu ${selectedElement?.closest('textarea') ? 'menu-horizontal' : ''} bg-base-200 ${selectedElement?.closest('textarea') ? '' : 'w-56'} rounded-box shadow-lg`}>
             <li>
               <button 
                 className="w-full text-left px-4 py-2 hover:bg-base-300"
@@ -2386,32 +2260,6 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                 Paste
               </button>
             </li>
-            {selectedText && !selectedElement?.closest('pre') && (
-              <li>
-                <button 
-                  className="w-full text-left px-4 py-2 hover:bg-base-300"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    convertToCode()
-                  }}
-                >
-                  Code
-                </button>
-              </li>
-            )}
-            {selectedElement?.closest('pre') && (
-              <li>
-                <button 
-                  className="w-full text-left px-4 py-2 hover:bg-base-300"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    convertToText()
-                  }}
-                >
-                  Non Code
-                </button>
-              </li>
-            )}
           </ul>
         </div>
       )}
