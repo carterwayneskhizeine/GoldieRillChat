@@ -69,7 +69,7 @@
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/yourusername/GoldieRillChat.git
+git clone https://github.com/carterwayneskhizeine/GoldieRillChat.git
 ```
 
 2. 安装依赖
