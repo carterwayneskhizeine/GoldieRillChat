@@ -88,6 +88,9 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
   // Add new state for collapsed messages
   const [collapsedMessages, setCollapsedMessages] = useState(new Set())
 
+  // 在其他 state 声明附近添加
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -1210,120 +1213,136 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
 
       return (
     <div className="flex h-screen">
+      {/* Sidebar toggle bar */}
+      <div 
+        className="h-full w-[10px] cursor-pointer flex items-center justify-center"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+      >
+        <div className="text-base-content">
+          {sidebarOpen ? '◂' : '▸'}
+        </div>
+      </div>
+
       {/* Sidebar */}
-      <div className="w-64 bg-base-300 text-base-content p-2 flex flex-col">
-        {/* Top buttons row - Pagination style */}
-        <div className="join grid grid-cols-2 mb-2">
-          <button 
-            className="join-item btn btn-outline"
-            onClick={() => setActiveTool(prev => prev === 'chat' ? 'editor' : 'chat')}
-          >
-            Previous
-          </button>
-          <button 
-            className="join-item btn btn-outline"
-            onClick={() => setActiveTool(prev => prev === 'chat' ? 'editor' : 'chat')}
-          >
-            Next
-          </button>
-        </div>
-
-        {/* Current tool display */}
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center">
-            <span className="font-semibold mr-[157px]">
-              {activeTool === 'chat' ? 'Chat' : 'Image Editor'}
-            </span>
-            {activeTool === 'chat' && (
-              <button className="btn btn-circle btn-ghost btn-sm" onClick={createNewConversation}>
-                <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-              </button>
-            )}
+      <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
+        <div className="w-64 p-2 flex flex-col flex-1 overflow-hidden">
+          {/* 原有的侧边栏内容 */}
+          {/* Top buttons row - Pagination style */}
+          <div className="join grid grid-cols-2 mb-2">
+            <button 
+              className="join-item btn btn-outline"
+              onClick={() => setActiveTool(prev => prev === 'chat' ? 'editor' : 'chat')}
+            >
+              Previous
+            </button>
+            <button 
+              className="join-item btn btn-outline"
+              onClick={() => setActiveTool(prev => prev === 'chat' ? 'editor' : 'chat')}
+            >
+              Next
+            </button>
           </div>
-        </div>
 
-        {/* Chat history list */}
-        <div className="flex-1 mt-2 overflow-y-auto">
-          <div className="flex flex-col gap-2">
-            {conversations.map(conversation => (
-              <div
-                key={conversation.id}
-                className={`btn btn-ghost justify-between ${
-                  currentConversation?.id === conversation.id ? 'btn-active' : ''
-                } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
-                draggable
-                onDragStart={() => handleDragStart(conversation)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(conversation)}
-              >
-                <div 
-                  className="flex items-center gap-2 flex-1"
-                  onClick={() => {
-                    if (editingFolderName === conversation.id) return
-                    loadConversation(conversation.id)
-                  }}
+          {/* Current tool display */}
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center">
+              <span className="font-semibold mr-[157px]">
+                {activeTool === 'chat' ? 'Chat' : 'Image Editor'}
+              </span>
+              {activeTool === 'chat' && (
+                <button className="btn btn-circle btn-ghost btn-sm" onClick={createNewConversation}>
+                  <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Chat history list */}
+          <div className="flex-1 mt-2 overflow-y-auto">
+            <div className="flex flex-col gap-2">
+              {conversations.map(conversation => (
+                <div
+                  key={conversation.id}
+                  className={`btn btn-ghost justify-between ${
+                    currentConversation?.id === conversation.id ? 'btn-active' : ''
+                  } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                  draggable
+                  onDragStart={() => handleDragStart(conversation)}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(conversation)}
                 >
-                  {!editingFolderName && (
-                    <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                  )}
-                  {editingFolderName === conversation.id ? (
-                    <input
-                      type="text"
-                      value={folderNameInput}
-                      onChange={(e) => setFolderNameInput(e.target.value)}
-                      className="input input-xs input-bordered join-item w-full"
-                      placeholder="Enter new folder name"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          renameChatFolder(conversation, folderNameInput)
-                        }
-                      }}
-                      onBlur={() => {
-                        setEditingFolderName(null)
-                        setFolderNameInput('')
-                      }}
-                      autoFocus
-                    />
-                  ) : (
-                    <span 
-                      className="truncate cursor-pointer hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditingFolderName(conversation.id)
-                        setFolderNameInput(conversation.name)
-                      }}
-                    >
-                      {conversation.name}
-                    </span>
-                  )}
-                </div>
-                {!editingFolderName && (
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setDeletingConversation(conversation)
+                  <div 
+                    className="flex items-center gap-2 flex-1"
+                    onClick={() => {
+                      if (editingFolderName === conversation.id) return
+                      loadConversation(conversation.id)
                     }}
                   >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
+                    {!editingFolderName && (
+                      <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                    )}
+                    {editingFolderName === conversation.id ? (
+                      <input
+                        type="text"
+                        value={folderNameInput}
+                        onChange={(e) => setFolderNameInput(e.target.value)}
+                        className="input input-xs input-bordered join-item w-full"
+                        placeholder="Enter new folder name"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            renameChatFolder(conversation, folderNameInput)
+                          }
+                        }}
+                        onBlur={() => {
+                          setEditingFolderName(null)
+                          setFolderNameInput('')
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <span 
+                        className="truncate cursor-pointer hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingFolderName(conversation.id)
+                          setFolderNameInput(conversation.name)
+                        }}
+                      >
+                        {conversation.name}
+                      </span>
+                    )}
+                  </div>
+                  {!editingFolderName && (
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeletingConversation(conversation)
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Settings button - moved to bottom */}
-        <div className="mt-2">
-          <button className="btn btn-circle btn-ghost" onClick={() => setShowSettings(true)}>
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+        {/* 固定在底部的设置按钮 */}
+        <div className="w-64 p-2">
+          <button
+            className="btn btn-ghost btn-circle"
+            onClick={() => setShowSettings(true)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </button>
         </div>
