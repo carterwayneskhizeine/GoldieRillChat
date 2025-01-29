@@ -1568,7 +1568,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                           className="absolute right-0 flex items-center"
                           style={{
                             position: 'sticky',
-                            top: '655px',  // 向下移动一倍
+                            top: '50px',  // 向下移动一倍
                             height: '0',
                             zIndex: 10,
                             transform: 'translateX(calc(102% + 1rem))'  // 向右移动两倍

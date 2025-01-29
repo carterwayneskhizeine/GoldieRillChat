@@ -51,10 +51,12 @@
                   "artifactName": "GoldieRillChat-Setup-${version}.${ext}"
             },
             "mac": {
-                  "target": "dmg"
+                  "target": "dmg",
+                  "icon": "GoldieRillicon.icns"
             },
             "linux": {
-                  "target": "AppImage"
+                  "target": "AppImage",
+                  "icon": "GoldieRillicon.png"
             }
       },
       "dependencies": {
