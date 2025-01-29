@@ -502,6 +502,7 @@ function createWindow() {
     height: 800,
     title: 'GoldieRillChat',
     icon: iconPath,
+    autoHideMenuBar: true,  // 自动隐藏菜单栏
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -509,6 +510,9 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     }
   })
+
+  // 设置菜单为 null 来完全移除菜单栏
+  mainWindow.setMenu(null)
 
   // Set CSP header
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {

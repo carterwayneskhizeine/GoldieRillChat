@@ -2,6 +2,17 @@ import React, { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+// 添加全局样式
+const globalStyles = `
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;            /* Chrome, Safari, Opera */
+  }
+`
+
 const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "luxury", "dracula", "business", "coffee", "emerald", "corporate", "retro", "aqua", "wireframe", "night", "dim", "sunset"]
 
     export default function App() {
@@ -52,8 +63,8 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
     offsetX: 0,
     offsetY: 0
   })
-  const [canvasSize, setCanvasSize] = useState({ width: 512, height: 288 })
-  const [tempCanvasSize, setTempCanvasSize] = useState({ width: 512, height: 288 })
+  const [canvasSize, setCanvasSize] = useState({ width: 1920, height: 1080 })
+  const [tempCanvasSize, setTempCanvasSize] = useState({ width: 1920, height: 1080 })
   const canvasSizeTimeoutRef = useRef(null)
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
 
@@ -1213,6 +1224,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
 
       return (
     <div className="flex h-screen">
+      <style>{globalStyles}</style>
       {/* Sidebar toggle bar */}
       <div 
         className="h-full w-[10px] cursor-pointer flex items-center justify-center"
@@ -1703,29 +1715,35 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                       value={messageInput}
                       onChange={(e) => {
                         setMessageInput(e.target.value)
-                        // 计算行数
-                        const lines = e.target.value.split('\n').length
-                        // 设置新高度
-                        const baseHeight = 64 // 2行的基础高度
-                        const lineHeight = 24 // 每行高度
-                        const maxHeight = lineHeight * 20 // 20行的最大高度
-                        const newHeight = Math.min(Math.max(baseHeight, lines * lineHeight), maxHeight)
-                        e.target.style.height = `${newHeight}px`
-                        // 超过20行显示滚动条
-                        e.target.style.overflowY = lines > 20 ? 'auto' : 'hidden'
+                        // 自动调整高度
+                        e.target.style.height = 'auto'  // 先重置高度
+                        e.target.style.height = `${e.target.scrollHeight}px`  // 设置为实际内容高度
+                        // 如果超过最大高度，显示滚动功能（但滚动条隐藏）
+                        if (e.target.scrollHeight > 480) {
+                          e.target.style.overflowY = 'scroll'
+                        } else {
+                          e.target.style.overflowY = 'hidden'
+                        }
                       }}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault()
                           sendMessage()
-                          // Reset height after sending
+                          // 重置高度
                           e.target.style.height = '64px'
                           e.target.style.overflowY = 'hidden'
                         }
                       }}
                       onPaste={handlePaste}
                       placeholder="Send a message..."
-                      className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24"
+                      className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide"
+                      style={{
+                        scrollbarWidth: 'none',  // Firefox
+                        msOverflowStyle: 'none',  // IE and Edge
+                        '&::-webkit-scrollbar': {  // Chrome, Safari, Opera
+                          display: 'none'
+                        }
+                      }}
                       rows="2"
                     />
                     <div className="absolute bottom-3 right-3 flex items-center gap-2">
@@ -1792,6 +1810,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                 <div className="dropdown">
                   <button tabIndex={0} className="btn btn-sm">Res</button>
                   <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
+                    <li><button onClick={() => setResolution(1920, 1080)} className="whitespace-nowrap">1920 × 1080</button></li>
                     <li><button onClick={() => setResolution(512, 512)} className="whitespace-nowrap">512 × 512</button></li>
                     <li><button onClick={() => setResolution(512, 288)} className="whitespace-nowrap">512 × 288</button></li>
                     <li><button onClick={() => setResolution(768, 320)} className="whitespace-nowrap">768 × 320</button></li>
