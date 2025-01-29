@@ -57,12 +57,6 @@ contextBridge.exposeInMainWorld('electron', {
     },
     removeListener: (channel) => {
       ipcRenderer.removeAllListeners(channel)
-    },
-    setSettingsVisibility: (visible) => ipcRenderer.invoke('set-settings-visibility', visible),
-    onCheckVisibility: (callback) => {
-      const subscription = (_event) => callback()
-      ipcRenderer.on('check-browser-visibility', subscription)
-      return () => ipcRenderer.removeListener('check-browser-visibility', subscription)
     }
   }
 }) 
