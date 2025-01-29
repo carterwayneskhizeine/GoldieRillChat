@@ -102,6 +102,11 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
   // 在其他 state 声明附近添加
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
+  // 添加新的状态和函数
+  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 })
+  const [selectedText, setSelectedText] = useState('')
+  const [selectedElement, setSelectedElement] = useState(null)
+
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme)
@@ -1222,8 +1227,127 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
     })
   }
 
+  // 处理右键菜单
+  const handleContextMenu = (e) => {
+    e.preventDefault()
+    e.stopPropagation()  // 阻止事件冒泡
+    const selection = window.getSelection()
+    const text = selection.toString()
+    
+    setContextMenu({ visible: true, x: e.pageX, y: e.pageY })
+    setSelectedText(text)
+    setSelectedElement(e.target)
+  }
+
+  // 关闭右键菜单
+  const closeContextMenu = () => {
+    setContextMenu({ visible: false, x: 0, y: 0 })
+    setSelectedText('')
+    setSelectedElement(null)
+  }
+
+  // 转换为代码块
+  const convertToCode = () => {
+    const selection = window.getSelection()
+    const range = selection.getRangeAt(0)
+    const text = selection.toString()
+    
+    const pre = document.createElement('pre')
+    pre.className = 'bg-base-300 p-4 rounded-lg my-2 group/code relative'
+    const code = document.createElement('code')
+    code.textContent = text
+    pre.appendChild(code)
+    
+    // 添加复制按钮
+    const copyButton = document.createElement('div')
+    copyButton.className = 'absolute top-2 right-2 flex items-center gap-2'
+    copyButton.innerHTML = `
+      <button
+        class="btn btn-xs btn-ghost opacity-0 group-hover/code:opacity-100 transition-opacity duration-200 flex items-center gap-1"
+        title="复制代码"
+        onclick="(function(btn){
+          navigator.clipboard.writeText(btn.closest('pre').textContent)
+            .then(() => {
+              const span = btn.querySelector('span')
+              span.textContent = 'Copied!'
+              setTimeout(() => {
+                span.textContent = 'Copy'
+              }, 1000)
+            })
+        })(this)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+        </svg>
+        <span class="text-xs">Copy</span>
+      </button>
+    `
+    pre.appendChild(copyButton)
+    
+    range.deleteContents()
+    range.insertNode(pre)
+    closeContextMenu()
+  }
+
+  // 转换为普通文本
+  const convertToText = () => {
+    const pre = selectedElement.closest('pre')
+    if (pre) {
+      const code = pre.querySelector('code')
+      const cleanText = code ? code.textContent : pre.textContent.replace(/\s*Copy\s*$/, '')
+      const textNode = document.createTextNode(cleanText)
+      pre.parentNode.replaceChild(textNode, pre)
+    }
+    closeContextMenu()
+  }
+
+  // 复制代码
+  const copyCode = () => {
+    const pre = selectedElement?.closest('pre')
+    const textarea = selectedElement?.closest('textarea')
+    if (pre) {
+      navigator.clipboard.writeText(pre.textContent)
+    } else if (textarea) {
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = textarea.value.substring(start, end)
+      if (selectedText) {
+        navigator.clipboard.writeText(selectedText)
+      }
+    } else if (selectedText) {
+      navigator.clipboard.writeText(selectedText)
+    }
+    closeContextMenu()
+  }
+
+  // 粘贴代码
+  const pasteCode = async () => {
+    const pre = selectedElement?.closest('pre')
+    const textarea = selectedElement?.closest('textarea')
+    if (pre) {
+      try {
+        const text = await navigator.clipboard.readText()
+        pre.querySelector('code').textContent = text
+      } catch (error) {
+        console.error('Failed to paste:', error)
+      }
+    } else if (textarea) {
+      try {
+        const text = await navigator.clipboard.readText()
+        const start = textarea.selectionStart
+        const end = textarea.selectionEnd
+        const currentValue = textarea.value
+        textarea.value = currentValue.substring(0, start) + text + currentValue.substring(end)
+        setMessageInput(textarea.value)
+      } catch (error) {
+        console.error('Failed to paste:', error)
+      }
+    }
+    closeContextMenu()
+  }
+
       return (
-    <div className="flex h-screen">
+    <div className="flex h-screen" onClick={closeContextMenu}>
       <style>{globalStyles}</style>
       {/* Sidebar toggle bar */}
       <div 
@@ -1375,7 +1499,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
             >
               <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
                 {messages.map(message => (
-                  <div key={message.id} className="chat chat-start mb-8">
+                  <div key={message.id} className="chat chat-start mb-8 relative">
                     <div className="chat-header opacity-70 flex items-center gap-2">
                       {message.txtFile ? (
                         editingFileName === message.id ? (
@@ -1429,20 +1553,31 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                     </div>
                     <div className="chat-bubble relative max-w-[800px]">
                       {message.content && message.content.split('\n').length > 6 && (
-                        <button 
-                          className="btn btn-md btn-ghost btn-circle absolute bottom-0 -right-14 z-10 bg-base-100"
-                          onClick={() => toggleMessageCollapse(message.id)}
+                        <div 
+                          className="absolute right-0 flex items-center"
+                          style={{
+                            position: 'sticky',
+                            top: '350px',  // 向下移动一倍
+                            height: '0',
+                            zIndex: 10,
+                            transform: 'translateX(calc(102% + 1rem))'  // 向右移动两倍
+                          }}
                         >
-                          {collapsedMessages.has(message.id) ? (
-                            <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          ) : (
-                            <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                            </svg>
-                          )}
-                        </button>
+                          <button 
+                            className="btn btn-md btn-ghost btn-circle bg-base-100"
+                            onClick={() => toggleMessageCollapse(message.id)}
+                          >
+                            {collapsedMessages.has(message.id) ? (
+                              <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            ) : (
+                              <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
                       )}
                       {editingMessage?.id === message.id ? (
                         <div className="join w-full">
@@ -1482,6 +1617,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                                 style={{
                                   whiteSpace: 'pre-wrap'
                                 }}
+                                onContextMenu={handleContextMenu}
                               >
                                 <ReactMarkdown 
                                   remarkPlugins={[remarkGfm]}
@@ -1490,7 +1626,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                                     code({node, inline, className, children, ...props}) {
                                       const match = /language-(\w+)/.exec(className || '')
                                       const codeString = String(children).replace(/\n$/, '')
-                                      const [copyStatus, setCopyStatus] = React.useState('copy')
+                                      const [copyStatus, setCopyStatus] = useState('copy')
                                       
                                       const copyToClipboard = () => {
                                         navigator.clipboard.writeText(codeString)
@@ -1519,7 +1655,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                                                 </svg>
                                                 <span className="text-xs">
-                                                  {copyStatus === 'copied' ? 'Copied!' : 'Copy'}
+                                                  {copyStatus}
                                                 </span>
                                               </button>
                                             </div>
@@ -1735,6 +1871,11 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
                         }
                       }}
                       onPaste={handlePaste}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleContextMenu(e)
+                      }}
                       placeholder="Send a message..."
                       className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide"
                       style={{
@@ -2208,6 +2349,70 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
             </div>
           </div>
           <div className="modal-backdrop" onClick={() => setDeletingConversation(null)}></div>
+        </div>
+      )}
+
+      {/* 添加右键菜单 */}
+      {contextMenu.visible && (
+        <div 
+          className="fixed z-[100]"
+          style={{ 
+            top: `${contextMenu.y}px`, 
+            left: `${contextMenu.x}px` 
+          }}
+          onContextMenu={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ul className="menu bg-base-200 w-56 rounded-box shadow-lg">
+            <li>
+              <button 
+                className="w-full text-left px-4 py-2 hover:bg-base-300"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  copyCode()
+                }}
+              >
+                Copy
+              </button>
+            </li>
+            <li>
+              <button 
+                className="w-full text-left px-4 py-2 hover:bg-base-300"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  pasteCode()
+                }}
+              >
+                Paste
+              </button>
+            </li>
+            {selectedText && !selectedElement?.closest('pre') && (
+              <li>
+                <button 
+                  className="w-full text-left px-4 py-2 hover:bg-base-300"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    convertToCode()
+                  }}
+                >
+                  Code
+                </button>
+              </li>
+            )}
+            {selectedElement?.closest('pre') && (
+              <li>
+                <button 
+                  className="w-full text-left px-4 py-2 hover:bg-base-300"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    convertToText()
+                  }}
+                >
+                  Non Code
+                </button>
+              </li>
+            )}
+          </ul>
         </div>
       )}
         </div>

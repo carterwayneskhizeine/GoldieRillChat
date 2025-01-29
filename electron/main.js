@@ -526,7 +526,6 @@ function createWindow() {
 
   // 确保在 Windows 上设置任务栏图标
   if (process.platform === 'win32') {
-    mainWindow.setOverlayIcon(icon, 'GoldieRillChat')
     mainWindow.setIcon(iconPath)
   }
 
