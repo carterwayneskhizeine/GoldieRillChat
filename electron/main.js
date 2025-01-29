@@ -1,9 +1,14 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, nativeImage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, protocol, nativeImage, BrowserView } = require('electron')
 const { shell } = require('electron')
 const path = require('path')
 const fs = require('fs').promises
+const BrowserLikeWindow = require('electron-as-browser')
 
 let mainWindow = null
+let browserWindow = null
+
+// 添加侧边栏状态变量
+let sidebarWidth = 0
 
 // 设置应用 ID 和图标
 if (process.platform === 'win32') {
@@ -516,46 +521,124 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
 // Create the browser window
 function createWindow() {
   const iconPath = getIconPath()
-  console.log('Creating window with icon path:', iconPath)  // 添加日志
+  console.log('Creating window with icon path:', iconPath)
 
   mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1000,
-    title: 'GoldieRillChat',
-    icon: iconPath,
-    autoHideMenuBar: true,
+    width: 1200,
+    height: 800,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
-      webSecurity: false,
       preload: path.join(__dirname, 'preload.js')
+    },
+    icon: iconPath
+  })
+
+  let browserView = null
+
+  // 修改浏览器视图的可见性处理
+  ipcMain.handle('set-browser-view-visibility', (event, visible) => {
+    if (visible) {
+      if (!browserView) {
+        // 创建浏览器视图
+        browserView = new BrowserView({
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true
+          }
+        })
+
+        // 设置事件监听
+        browserView.webContents.on('did-start-loading', () => {
+          mainWindow.webContents.send('browser-loading', true)
+        })
+
+        browserView.webContents.on('did-stop-loading', () => {
+          mainWindow.webContents.send('browser-loading', false)
+        })
+
+        browserView.webContents.on('did-navigate', (event, url) => {
+          mainWindow.webContents.send('browser-url-update', url)
+        })
+
+        browserView.webContents.on('page-title-updated', (event, title) => {
+          mainWindow.webContents.send('browser-title-update', title)
+        })
+
+        // 加载初始页面
+        browserView.webContents.loadURL('https://www.google.com')
+      }
+
+      mainWindow.setBrowserView(browserView)
+      updateBrowserViewBounds()
+    } else {
+      mainWindow.setBrowserView(null)
     }
   })
 
-  // 确保在 Windows 上设置任务栏图标
-  if (process.platform === 'win32') {
-    try {
-      mainWindow.setIcon(iconPath)
-      app.setAppUserModelId('com.goldie.chat')
-    } catch (error) {
-      console.error('Failed to set window icon:', error)
-    }
+  // 修改浏览器视图的大小和位置计算
+  function updateBrowserViewBounds() {
+    if (!browserView) return
+
+    const bounds = mainWindow.getBounds()
+    const contentBounds = mainWindow.getContentBounds()
+    
+    // 计算顶部工具栏的高度（包括标题栏和控制栏）
+    const topOffset = bounds.height - contentBounds.height + 100 // 标题栏高度 + 控制栏高度(80px)
+    
+    // 设置浏览器视图的边界，考虑侧边栏宽度
+    browserView.setBounds({ 
+      x: 10 + sidebarWidth, // 10px 是侧边栏切换条的宽度
+      y: topOffset,
+      width: bounds.width - (10 + sidebarWidth), // 减去侧边栏宽度和切换条宽度
+      height: bounds.height - topOffset
+    })
   }
 
-  // 设置菜单为 null 来完全移除菜单栏
-  mainWindow.setMenu(null)
-
-  // Set CSP header
-  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' 'unsafe-eval' data: local-file:"]
-      }
-    })
+  // 监听窗口大小变化
+  mainWindow.on('resize', () => {
+    if (mainWindow.getBrowserView()) {
+      updateBrowserViewBounds()
+    }
   })
 
-  // Load the app
+  // 修改侧边栏状态
+  ipcMain.handle('update-sidebar-width', (event, width) => {
+    sidebarWidth = width
+    if (mainWindow && mainWindow.getBrowserView()) {
+      updateBrowserViewBounds()
+    }
+  })
+
+  // 处理浏览器相关的 IPC 消息
+  ipcMain.handle('browser-navigate', async (event, url) => {
+    if (!browserView) return
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url
+    }
+    browserView.webContents.loadURL(url)
+  })
+
+  ipcMain.handle('browser-back', () => {
+    if (browserView && browserView.webContents.canGoBack()) {
+      browserView.webContents.goBack()
+    }
+  })
+
+  ipcMain.handle('browser-forward', () => {
+    if (browserView && browserView.webContents.canGoForward()) {
+      browserView.webContents.goForward()
+    }
+  })
+
+  ipcMain.handle('browser-refresh', () => {
+    if (browserView) {
+      browserView.webContents.reload()
+    }
+  })
+
+  // 加载主应用
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
   } else {
@@ -567,7 +650,9 @@ function createWindow() {
     mainWindow.webContents.openDevTools()
   }
 
+  // 主窗口关闭时清理资源
   mainWindow.on('closed', () => {
+    browserView = null
     mainWindow = null
   })
 }

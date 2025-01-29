@@ -30,5 +30,33 @@ contextBridge.exposeInMainWorld('electron', {
     dirname: (filePath) => path.dirname(filePath),
     extname: (filePath) => path.extname(filePath),
     join: (...paths) => path.join(...paths)
+  },
+
+  // 浏览器相关的方法
+  browser: {
+    setVisibility: (visible) => ipcRenderer.invoke('set-browser-view-visibility', visible),
+    updateSidebarWidth: (width) => ipcRenderer.invoke('update-sidebar-width', width),
+    navigate: (url) => ipcRenderer.invoke('browser-navigate', url),
+    back: () => ipcRenderer.invoke('browser-back'),
+    forward: () => ipcRenderer.invoke('browser-forward'),
+    refresh: () => ipcRenderer.invoke('browser-refresh'),
+    onUrlUpdate: (callback) => {
+      const subscription = (_event, url) => callback(url)
+      ipcRenderer.on('browser-url-update', subscription)
+      return () => ipcRenderer.removeListener('browser-url-update', subscription)
+    },
+    onLoading: (callback) => {
+      const subscription = (_event, loading) => callback(loading)
+      ipcRenderer.on('browser-loading', subscription)
+      return () => ipcRenderer.removeListener('browser-loading', subscription)
+    },
+    onTitleUpdate: (callback) => {
+      const subscription = (_event, title) => callback(title)
+      ipcRenderer.on('browser-title-update', subscription)
+      return () => ipcRenderer.removeListener('browser-title-update', subscription)
+    },
+    removeListener: (channel) => {
+      ipcRenderer.removeAllListeners(channel)
+    }
   }
 }) 

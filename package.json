@@ -32,7 +32,11 @@
                   {
                         "from": "./resources/",
                         "to": "./",
-                        "filter": ["*.ico", "*.icns", "*.png"]
+                        "filter": [
+                              "*.ico",
+                              "*.icns",
+                              "*.png"
+                        ]
                   }
             ],
             "asar": true,
@@ -67,6 +71,7 @@
             }
       },
       "dependencies": {
+            "electron-as-browser": "^1.0.0",
             "react": "^18.2.0",
             "react-dom": "^18.2.0"
       },

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Browser Control</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+    .control-panel {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      background-color: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    .nav-buttons {
+      display: flex;
+      gap: 8px;
+      margin-right: 8px;
+    }
+    .nav-button {
+      padding: 4px 8px;
+      border: none;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .nav-button:hover {
+      background-color: #e0e0e0;
+    }
+    .url-bar {
+      flex: 1;
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-right: 8px;
+    }
+    .url-bar:focus {
+      outline: none;
+      border-color: #4a90e2;
+    }
+    .tab-list {
+      display: flex;
+      padding: 8px;
+      background-color: #f8f8f8;
+      border-bottom: 1px solid #ddd;
+      overflow-x: auto;
+    }
+    .tab {
+      padding: 6px 12px;
+      margin-right: 4px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+      white-space: nowrap;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tab.active {
+      background-color: #4a90e2;
+      color: #fff;
+      border-color: #4a90e2;
+    }
+    .tab-close {
+      margin-left: 8px;
+      opacity: 0.5;
+    }
+    .tab-close:hover {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="control-panel">
+    <div class="nav-buttons">
+      <button class="nav-button" onclick="goBack()">←</button>
+      <button class="nav-button" onclick="goForward()">→</button>
+      <button class="nav-button" onclick="refresh()">↻</button>
+    </div>
+    <input type="text" class="url-bar" id="urlBar" placeholder="输入网址..." onkeydown="handleUrlEnter(event)">
+    <button class="nav-button" onclick="createTab()">+</button>
+  </div>
+  <div class="tab-list" id="tabList"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron')
+    let tabs = {}
+    let activeId = null
+
+    // 连接到主进程
+    ipcRenderer.send('control-ready')
+
+    // 监听标签页更新
+    ipcRenderer.on('tabs-update', (e, newTabs) => {
+      tabs = newTabs
+      updateTabList()
+    })
+
+    // 监听活动标签页更新
+    ipcRenderer.on('active-update', (e, newActiveId) => {
+      activeId = newActiveId
+      updateTabList()
+      updateUrlBar()
+    })
+
+    // 更新标签页列表
+    function updateTabList() {
+      const tabList = document.getElementById('tabList')
+      tabList.innerHTML = ''
+      
+      Object.entries(tabs).forEach(([id, tab]) => {
+        const tabElement = document.createElement('div')
+        tabElement.className = `tab ${id === activeId ? 'active' : ''}`
+        tabElement.onclick = () => switchTab(id)
+        
+        const title = document.createElement('span')
+        title.textContent = tab.title || '新标签页'
+        tabElement.appendChild(title)
+        
+        const closeButton = document.createElement('span')
+        closeButton.className = 'tab-close'
+        closeButton.textContent = '×'
+        closeButton.onclick = (e) => {
+          e.stopPropagation()
+          closeTab(id)
+        }
+        tabElement.appendChild(closeButton)
+        
+        tabList.appendChild(tabElement)
+      })
+    }
+
+    // 更新地址栏
+    function updateUrlBar() {
+      const urlBar = document.getElementById('urlBar')
+      const activeTab = tabs[activeId]
+      if (activeTab) {
+        urlBar.value = activeTab.url || ''
+      }
+    }
+
+    // 导航函数
+    function goBack() {
+      if (activeId && tabs[activeId]) {
+        tabs[activeId].webContents.goBack()
+      }
+    }
+
+    function goForward() {
+      if (activeId && tabs[activeId]) {
+        tabs[activeId].webContents.goForward()
+      }
+    }
+
+    function refresh() {
+      if (activeId && tabs[activeId]) {
+        tabs[activeId].webContents.reload()
+      }
+    }
+
+    function handleUrlEnter(event) {
+      if (event.key === 'Enter') {
+        const url = event.target.value
+        if (activeId) {
+          ipcRenderer.invoke('browser-navigate', activeId, url)
+        }
+      }
+    }
+
+    function createTab() {
+      ipcRenderer.invoke('browser-new-tab')
+    }
+
+    function closeTab(id) {
+      ipcRenderer.invoke('browser-close-tab', id)
+    }
+
+    function switchTab(id) {
+      ipcRenderer.invoke('browser-switch-tab', id)
+    }
+  </script>
+</body>
+</html> 

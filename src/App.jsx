@@ -13,8 +13,14 @@ const globalStyles = `
 
 const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "luxury", "dracula", "business", "coffee", "emerald", "corporate", "retro", "aqua", "wireframe", "night", "dim", "sunset"]
 
-    export default function App() {
+// 在文件顶部添加工具页面配置
+const tools = ['chat', 'editor', 'browser']
+
+export default function App() {
+  // 修改初始工具为 chat
   const [activeTool, setActiveTool] = useState('chat')
+  // 设置侧边栏默认打开
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('theme') || 'dark')
   const [storagePath, setStoragePath] = useState(() => localStorage.getItem('storagePath') || '')
@@ -98,9 +104,6 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
   const [collapsedMessages, setCollapsedMessages] = useState(new Set())
 
   // 在其他 state 声明附近添加
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-
-  // 添加新的状态和函数
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 })
   const [selectedText, setSelectedText] = useState('')
   const [selectedElement, setSelectedElement] = useState(null)
@@ -1357,12 +1360,86 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
     return text.trim()
   }
 
-      return (
+  // 添加工具切换函数
+  const switchTool = (direction) => {
+    const currentIndex = tools.indexOf(activeTool)
+    if (direction === 'prev') {
+      const prevIndex = (currentIndex - 1 + tools.length) % tools.length
+      setActiveTool(tools[prevIndex])
+    } else {
+      const nextIndex = (currentIndex + 1) % tools.length
+      setActiveTool(tools[nextIndex])
+    }
+  }
+
+  // 获取当前工具显示名称
+  const getToolDisplayName = (tool) => {
+    switch (tool) {
+      case 'chat':
+        return 'Chat'
+      case 'editor':
+        return 'Image Editor'
+      case 'browser':
+        return 'Browser'
+      default:
+        return tool
+    }
+  }
+
+  // 添加浏览器相关状态
+  const [browserTabs, setBrowserTabs] = useState({})
+  const [activeTabId, setActiveTabId] = useState(null)
+  const [currentUrl, setCurrentUrl] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [pageTitle, setPageTitle] = useState('新标签页')
+
+  // 修改浏览器事件监听的 useEffect
+  useEffect(() => {
+    if (activeTool === 'browser') {
+      // 显示浏览器视图
+      window.electron.browser.setVisibility(true)
+      // 更新浏览器视图位置（考虑当前侧边栏状态）
+      window.electron.browser.updateSidebarWidth(sidebarOpen ? 256 : 0)
+
+      // 监听 URL 更新
+      const urlUnsubscribe = window.electron.browser.onUrlUpdate((url) => {
+        setCurrentUrl(url)
+      })
+
+      // 监听加载状态
+      const loadingUnsubscribe = window.electron.browser.onLoading((loading) => {
+        setIsLoading(loading)
+      })
+
+      // 监听标题更新
+      const titleUnsubscribe = window.electron.browser.onTitleUpdate((title) => {
+        setPageTitle(title)
+      })
+
+      // 清理函数
+      return () => {
+        window.electron.browser.setVisibility(false)
+        urlUnsubscribe()
+        loadingUnsubscribe()
+        titleUnsubscribe()
+      }
+    }
+  }, [activeTool, sidebarOpen])
+
+  // 在 useEffect 中添加侧边栏状态监听
+  useEffect(() => {
+    if (activeTool === 'browser') {
+      // 通知主进程侧边栏状态变化
+      window.electron.browser.updateSidebarWidth(sidebarOpen ? 256 : 0)
+    }
+  }, [sidebarOpen, activeTool])
+
+  return (
     <div className="flex h-screen" onClick={closeContextMenu}>
       <style>{globalStyles}</style>
       {/* Sidebar toggle bar */}
       <div 
-        className="h-full w-[10px] cursor-pointer flex items-center justify-center"
+        className="h-full w-[10px] cursor-pointer hover:bg-base-300 flex items-center justify-center"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         <div className="text-base-content">
@@ -1373,31 +1450,47 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
         <div className="w-64 p-2 flex flex-col flex-1 overflow-hidden">
-          {/* 原有的侧边栏内容 */}
-          {/* Top buttons row - Pagination style */}
+          {/* Top buttons row - 三向切换 */}
           <div className="join grid grid-cols-2 mb-2">
             <button 
-              className="join-item btn btn-outline"
-              onClick={() => setActiveTool(prev => prev === 'chat' ? 'editor' : 'chat')}
+              className="join-item btn btn-outline btn-sm"
+              onClick={() => switchTool('prev')}
             >
               Previous
             </button>
             <button 
-              className="join-item btn btn-outline"
-              onClick={() => setActiveTool(prev => prev === 'chat' ? 'editor' : 'chat')}
+              className="join-item btn btn-outline btn-sm"
+              onClick={() => switchTool('next')}
             >
               Next
             </button>
           </div>
 
+          {/* 工具页面指示器 */}
+          <div className="flex justify-center gap-2 mb-2">
+            {tools.map(tool => (
+              <div 
+                key={tool}
+                className={`w-2 h-2 rounded-full ${
+                  activeTool === tool 
+                    ? 'bg-primary' 
+                    : 'bg-base-content opacity-20'
+                }`}
+              />
+            ))}
+          </div>
+
           {/* Current tool display */}
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center">
-              <span className="font-semibold mr-[157px]">
-                {activeTool === 'chat' ? 'Chat' : 'Image Editor'}
+              <span className="font-semibold mr-2">
+                {getToolDisplayName(activeTool)}
               </span>
               {activeTool === 'chat' && (
-                <button className="btn btn-circle btn-ghost btn-sm" onClick={createNewConversation}>
+                <button 
+                  className="btn btn-circle btn-ghost btn-sm" 
+                  onClick={createNewConversation}
+                >
                   <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1407,99 +1500,89 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
             </div>
           </div>
 
-          {/* Chat history list */}
-          <div className="flex-1 mt-2 overflow-y-auto">
-            <div className="flex flex-col gap-2">
-              {conversations.map(conversation => (
-                <div
-                  key={conversation.id}
-                  className={`btn btn-ghost justify-between ${
-                    currentConversation?.id === conversation.id ? 'btn-active' : ''
-                  } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
-                  draggable
-                  onDragStart={() => handleDragStart(conversation)}
-                  onDragOver={handleDragOver}
-                  onDrop={() => handleDrop(conversation)}
-                >
-                  <div 
-                    className="flex items-center gap-2 flex-1"
-                    onClick={() => {
-                      if (editingFolderName === conversation.id) return
-                      loadConversation(conversation.id)
-                    }}
+          {/* Chat list */}
+          {activeTool === 'chat' && (
+            <div className="flex-1 mt-2 overflow-y-auto">
+              <div className="flex flex-col gap-2">
+                {conversations.map(conversation => (
+                  <div
+                    key={conversation.id}
+                    className={`btn btn-ghost justify-between ${
+                      currentConversation?.id === conversation.id ? 'btn-active' : ''
+                    } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                    draggable
+                    onDragStart={() => handleDragStart(conversation)}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(conversation)}
                   >
-                    {!editingFolderName && (
-                      <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                      </svg>
-                    )}
-                    {editingFolderName === conversation.id ? (
-                      <input
-                        type="text"
-                        value={folderNameInput}
-                        onChange={(e) => setFolderNameInput(e.target.value)}
-                        className="input input-xs input-bordered join-item w-full"
-                        placeholder="Enter new folder name"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            renameChatFolder(conversation, folderNameInput)
-                          }
-                        }}
-                        onBlur={() => {
-                          setEditingFolderName(null)
-                          setFolderNameInput('')
-                        }}
-                        autoFocus
-                      />
-                    ) : (
-                      <span 
-                        className="truncate cursor-pointer hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditingFolderName(conversation.id)
-                          setFolderNameInput(conversation.name)
-                        }}
-                      >
-                        {conversation.name}
-                      </span>
-                    )}
-                  </div>
-                  {!editingFolderName && (
-                    <button
-                      className="btn btn-ghost btn-xs"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setDeletingConversation(conversation)
+                    <div 
+                      className="flex items-center gap-2 flex-1"
+                      onClick={() => {
+                        if (editingFolderName === conversation.id) return
+                        loadConversation(conversation.id)
                       }}
                     >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
+                      {!editingFolderName && (
+                        <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                      )}
+                      {editingFolderName === conversation.id ? (
+                        <input
+                          type="text"
+                          value={folderNameInput}
+                          onChange={(e) => setFolderNameInput(e.target.value)}
+                          className="input input-xs input-bordered join-item w-full"
+                          placeholder="Enter new folder name"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              renameChatFolder(conversation, folderNameInput)
+                            }
+                          }}
+                          onBlur={() => {
+                            setEditingFolderName(null)
+                            setFolderNameInput('')
+                          }}
+                          autoFocus
+                        />
+                      ) : (
+                        <span 
+                          className="truncate cursor-pointer hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingFolderName(conversation.id)
+                            setFolderNameInput(conversation.name)
+                          }}
+                        >
+                          {conversation.name}
+                        </span>
+                      )}
+                    </div>
+                    {!editingFolderName && (
+                      <button
+                        className="btn btn-ghost btn-xs"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeletingConversation(conversation)
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* 固定在底部的设置按钮 */}
-        <div className="w-64 p-2">
-          <button
-            className="btn btn-ghost btn-circle"
-            onClick={() => setShowSettings(true)}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
+          )}
         </div>
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col bg-base-100">
-        {/* Chat content area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Chat content */}
         {activeTool === 'chat' && (
           <div className="flex-1 flex flex-col relative">
+            {/* 现有的聊天内容 */}
             <div 
               className="absolute inset-0 overflow-y-auto"
               onDragOver={(e) => {
@@ -1861,9 +1944,10 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
           </div>
         )}
 
-        {/* Image editor area */}
+        {/* Editor content */}
         {activeTool === 'editor' && (
           <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+            {/* 现有的编辑器内容 */}
             {/* Tools row - 移动到顶部 */}
             <div className="flex flex-wrap gap-2 items-center">
               <div className="flex-1 flex justify-start items-center">
@@ -2035,6 +2119,70 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
             <div className="flex gap-4 text-sm justify-center">
               <span className="opacity-70">Canvas: {canvasSize.width} × {canvasSize.height}</span>
               <span className="opacity-70">Image: {imageSize.width} × {imageSize.height}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Browser content */}
+        {activeTool === 'browser' && (
+          <div className="flex-1 flex flex-col relative">
+            {/* 浏览器控制栏 */}
+            <div className="flex items-center gap-2 p-2 bg-base-200">
+              <div className="join">
+                <button 
+                  className="join-item btn btn-sm" 
+                  onClick={() => window.electron.browser.back()}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button 
+                  className="join-item btn btn-sm" 
+                  onClick={() => window.electron.browser.forward()}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button 
+                  className="join-item btn btn-sm" 
+                  onClick={() => window.electron.browser.refresh()}
+                >
+                  {isLoading ? (
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              <input
+                type="text"
+                className="input input-sm input-bordered flex-1"
+                value={currentUrl}
+                onChange={(e) => setCurrentUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    window.electron.browser.navigate(currentUrl)
+                  }
+                }}
+                placeholder="输入网址..."
+              />
+            </div>
+
+            {/* 标题栏 */}
+            <div className="px-2 py-1 bg-base-300 text-sm opacity-70">
+              {pageTitle}
+            </div>
+
+            {/* 浏览器视图容器 */}
+            <div className="flex-1 bg-base-100">
+              {/* 浏览器视图由主进程管理 */}
             </div>
           </div>
         )}
