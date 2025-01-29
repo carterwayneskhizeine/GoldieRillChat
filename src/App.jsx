@@ -14,7 +14,7 @@ const globalStyles = `
 const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "luxury", "dracula", "business", "coffee", "emerald", "corporate", "retro", "aqua", "wireframe", "night", "dim", "sunset"]
 
 // 在文件顶部添加工具页面配置
-const tools = ['chat', 'editor', 'browser']
+const tools = ['chat', 'browser', 'editor']
 
     export default function App() {
   // 修改初始工具为 chat
@@ -1401,8 +1401,8 @@ const tools = ['chat', 'editor', 'browser']
       // 更新浏览器视图位置（考虑当前侧边栏状态）
       window.electron.browser.updateSidebarWidth(sidebarOpen ? 256 : 0)
 
-      // 如果没有标签页，创建一个新的
-      if (browserTabs.length === 0) {
+      // 只在没有任何标签页时创建新标签页
+      if (browserTabs.length === 0 && !activeTabId) {
         window.electron.browser.newTab('https://www.google.com')
       }
 
@@ -1446,7 +1446,7 @@ const tools = ['chat', 'editor', 'browser']
         titleUnsubscribe()
       }
     }
-  }, [activeTool, sidebarOpen, browserTabs.length])
+  }, [activeTool, sidebarOpen, browserTabs.length, activeTabId])
 
   // 在 useEffect 中添加侧边栏状态监听
   useEffect(() => {

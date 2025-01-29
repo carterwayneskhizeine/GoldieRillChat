@@ -546,53 +546,29 @@ function createWindow() {
   // 修改浏览器视图的可见性处理
   ipcMain.handle('set-browser-view-visibility', (event, visible) => {
     if (visible) {
-      if (!browserView) {
-        // 创建浏览器视图
-        browserView = new BrowserView({
-          webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            sandbox: true,
-            scrollBounce: true // 启用弹性滚动
-          }
-        })
-
-        // 设置事件监听
-        browserView.webContents.on('did-start-loading', () => {
-          mainWindow.webContents.send('browser-loading', true)
-        })
-
-        browserView.webContents.on('did-stop-loading', () => {
-          mainWindow.webContents.send('browser-loading', false)
-        })
-
-        browserView.webContents.on('did-navigate', (event, url) => {
-          mainWindow.webContents.send('browser-url-update', url)
-        })
-
-        browserView.webContents.on('page-title-updated', (event, title) => {
-          mainWindow.webContents.send('browser-title-update', title)
-        })
-
-        // 加载初始页面
-        browserView.webContents.loadURL('https://www.google.com')
+      // 如果有活动的标签页，显示它
+      if (activeTabId && viewMap.get(activeTabId)) {
+        const view = viewMap.get(activeTabId)
+        mainWindow.setBrowserView(view)
+        updateBrowserViewBounds()
       }
-
-      mainWindow.setBrowserView(browserView)
-      updateBrowserViewBounds()
+      // 不在这里创建新标签页，让渲染进程处理
     } else {
       mainWindow.setBrowserView(null)
     }
   })
 
-  // 修改新建标签页处理
-  ipcMain.handle('browser-new-tab', async (event, url = 'https://www.google.com') => {
+  // 添加通用的新窗口处理函数
+  async function createNewTab(url, options = {}) {
     const view = new BrowserView({
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true,
-        scrollBounce: true
+        scrollBounce: true,
+        webSecurity: true,
+        allowRunningInsecureContent: false,
+        nativeWindowOpen: true
       }
     })
 
@@ -658,18 +634,63 @@ function createWindow() {
       }
     })
 
-    // 加载URL
-    await view.webContents.loadURL(url)
+    // 处理新窗口打开
+    view.webContents.setWindowOpenHandler((details) => {
+      createNewTab(details.url, {
+        userAgent: details.options?.userAgent,
+        features: details.features
+      })
+      return { action: 'deny' }
+    })
 
-    // 切换到新标签页
-    activeTabId = id
-    mainWindow.setBrowserView(view)
-    updateBrowserViewBounds()
-    mainWindow.webContents.send('browser-active-tab-update', id)
-    mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+    // 加载URL
+    try {
+      if (options.features) {
+        await view.webContents.loadURL(url, {
+          userAgent: options.userAgent || view.webContents.getUserAgent()
+        })
+      } else {
+        await view.webContents.loadURL(url)
+      }
+
+      // 切换到新标签页
+      activeTabId = id
+      mainWindow.setBrowserView(view)
+      updateBrowserViewBounds()
+      mainWindow.webContents.send('browser-active-tab-update', id)
+      mainWindow.webContents.send('browser-tabs-update', Array.from(tabs.values()))
+    } catch (error) {
+      console.error('Failed to load URL:', error)
+    }
 
     return id
+  }
+
+  // 修改新建标签页处理
+  ipcMain.handle('browser-new-tab', async (event, url = 'https://www.google.com', options = {}) => {
+    return createNewTab(url, options)
   })
+
+  // 修改新窗口处理函数
+  function handleNewWindow(details) {
+    const { url, frameName, features } = details
+    createNewTab(url, {
+      features,
+      userAgent: details.options?.userAgent
+    })
+    return { action: 'deny' }
+  }
+
+  // 为每个新创建的视图添加新窗口处理
+  function setupNewWindowHandling(view) {
+    view.webContents.setWindowOpenHandler(handleNewWindow)
+    
+    // 处理target="_blank"链接
+    view.webContents.on('new-window', (event, url) => {
+      event.preventDefault()
+      createNewTab(url)
+    })
+  }
 
   // 修改关闭标签页处理
   ipcMain.handle('browser-close-tab', (event, tabId) => {
