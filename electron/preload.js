@@ -70,5 +70,19 @@ contextBridge.exposeInMainWorld('electron', {
     removeListener: (channel) => {
       ipcRenderer.removeAllListeners(channel)
     }
+  },
+
+  // 添加窗口控制接口
+  window: {
+    minimize: () => ipcRenderer.invoke('window-minimize'),
+    maximize: () => ipcRenderer.invoke('window-maximize'),
+    close: () => ipcRenderer.invoke('window-close'),
+    isMaximized: () => ipcRenderer.invoke('is-window-maximized'),
+    onMaximizedStateChanged: (callback) => {
+      ipcRenderer.on('window-maximized-state-changed', (_, isMaximized) => callback(isMaximized))
+      return () => {
+        ipcRenderer.removeListener('window-maximized-state-changed', callback)
+      }
+    }
   }
 }) 

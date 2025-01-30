@@ -490,9 +490,9 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
         if (mediaFiles.length > 0) {
           // 为每个文件创建独立的消息
           mediaFiles.forEach(file => {
-            messages.push({
-              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-              content: '',
+          messages.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            content: '',
               timestamp: file.timestamp,
               files: [file]
             })
@@ -533,6 +533,9 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    frame: false, // 移除默认标题栏
+    transparent: false,
+    backgroundColor: '#2e2e2e', // 设置背景色，避免透明时闪烁
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -767,8 +770,8 @@ function createWindow() {
     view.setBounds({ 
       x: 10 + sidebarWidth, // 10px 是侧边栏切换条的宽度
       y: titleBarHeight + controlBarHeight,
-      width: bounds.width - (10 + sidebarWidth + 15), // 减去侧边栏宽度、切换条宽度和滚动条宽度(15px)
-      height: bounds.height - (titleBarHeight + controlBarHeight + 60) // 减去底部滚动条高度(15px)
+      width: bounds.width - (10 + sidebarWidth + 0), // 减去侧边栏宽度、切换条宽度和滚动条宽度(15px)
+      height: bounds.height - (titleBarHeight + controlBarHeight + 0) // 减去底部滚动条高度(15px)
     })
 
     // 设置自动调整大小选项
@@ -835,6 +838,36 @@ function createWindow() {
     if (view) {
       view.webContents.reload()
     }
+  })
+
+  // 添加窗口控制处理程序
+  ipcMain.handle('window-minimize', () => {
+    mainWindow?.minimize()
+  })
+
+  ipcMain.handle('window-maximize', () => {
+    if (mainWindow?.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow?.maximize()
+    }
+  })
+
+  ipcMain.handle('window-close', () => {
+    mainWindow?.close()
+  })
+
+  ipcMain.handle('is-window-maximized', () => {
+    return mainWindow?.isMaximized()
+  })
+
+  // 监听窗口最大化状态变化
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('window-maximized-state-changed', true)
+  })
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('window-maximized-state-changed', false)
   })
 
   // 加载主应用
