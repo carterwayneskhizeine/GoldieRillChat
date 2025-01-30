@@ -764,7 +764,7 @@ function createWindow() {
     
     // 计算顶部工具栏的高度（包括标题栏和标签栏）
     const titleBarHeight = bounds.height - contentBounds.height
-    const tabBarHeight = 32 // 标签栏高度
+    const tabBarHeight = 64 // 标签栏高度
     
     // 设置浏览器视图的边界，考虑侧边栏宽度和滚动条空间
     view.setBounds({ 
