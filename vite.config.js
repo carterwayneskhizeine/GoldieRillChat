@@ -26,4 +26,17 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        resources: 'resources/GoldieRillicon.ico'
+      }
+    }
+  },
+  server: {
+    fs: {
+      allow: ['resources', 'src']
+    }
+  }
 }) 

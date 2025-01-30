@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react'
 import TitleBar from './components/TitleBar'
+import { 
+  updateMessage,
+  sendMessage as sendMessageOp,
+  deleteMessage as deleteMessageOp,
+  enterEditMode as enterEditModeOp,
+  exitEditMode as exitEditModeOp
+} from './components/messageOperations'
+import { 
+  loadConversations, 
+  createNewConversation as createNewConversationOp,
+  loadConversation as loadConversationOp 
+} from './components/conversationOperations'
+import { moveMessage as moveMessageOp } from './components/messageMovement'
 
 // 添加全局样式
 const globalStyles = `
@@ -128,7 +141,15 @@ const tools = ['chat', 'browser', 'editor']
 
   // Load conversations on mount
   useEffect(() => {
-    loadConversations()
+    const initializeConversations = async () => {
+      try {
+        const savedConversations = await loadConversations()
+        setConversations(savedConversations)
+      } catch (error) {
+        alert(error.message)
+      }
+    }
+    initializeConversations()
   }, [])
 
   // Scroll to bottom when messages change
@@ -172,202 +193,112 @@ const tools = ['chat', 'browser', 'editor']
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const loadConversations = async () => {
-    try {
-      // Implementation will depend on your storage method
-      // For now, we'll use localStorage as an example
-      const savedConversations = JSON.parse(localStorage.getItem('conversations') || '[]')
-      setConversations(savedConversations)
-    } catch (error) {
-      console.error('Failed to load conversations:', error)
-    }
-  }
-
   const createNewConversation = async () => {
-    if (!storagePath) {
-      alert('请先在设置中选择存储文件夹')
-      return
-    }
-
     try {
-      const result = await window.electron.createChatFolder(storagePath)
+      const result = await createNewConversationOp(storagePath, conversations, window.electron)
       
-      const newConversation = {
-        id: Date.now().toString(),
-        name: result.name,
-        timestamp: new Date().toISOString(),
-        path: result.path
-      }
-      
-      setConversations(prev => [...prev, newConversation])
-      setCurrentConversation(newConversation)
+      setConversations(result.updatedConversations)
+      setCurrentConversation(result.newConversation)
       setMessages([])
-      
-      // Save to storage
-      localStorage.setItem('conversations', JSON.stringify([...conversations, newConversation]))
     } catch (error) {
-      console.error('Failed to create new conversation:', error)
-      alert('创建新对话失败')
+      alert(error.message)
     }
   }
 
   const loadConversation = async (conversationId) => {
-    const conversation = conversations.find(c => c.id === conversationId)
-    if (conversation) {
-      setCurrentConversation(conversation)
-      try {
-        const loadedMessages = await window.electron.loadMessages(conversation.path, conversationId)
-        setMessages(loadedMessages || [])
-        setShouldScrollToBottom(true)
-      } catch (error) {
-        console.error('Failed to load messages:', error)
-        setMessages([])
-      }
+    try {
+      const result = await loadConversationOp(conversationId, conversations, window.electron)
+      setCurrentConversation(result.conversation)
+      setMessages(result.messages)
+      setShouldScrollToBottom(true)
+    } catch (error) {
+      alert(error.message)
+      setMessages([])
     }
   }
 
   const sendMessage = async () => {
-    if (!messageInput.trim() && selectedFiles.length === 0) return
-    
-    const newMessage = {
-      id: Date.now().toString(),
-      content: messageInput,
-      timestamp: new Date().toISOString(),
-      files: selectedFiles,
-    }
-
-    // Save message as txt file
-    if (messageInput.trim() && currentConversation) {
-      try {
-        const txtFile = await window.electron.saveMessageAsTxt(currentConversation.path, newMessage)
-        newMessage.txtFile = txtFile
-      } catch (error) {
-        console.error('Failed to save message as txt:', error)
-      }
-    }
-    
-    setMessages(prev => [...prev, newMessage])
-    setShouldScrollToBottom(true)
-    setMessageInput('')
-    setSelectedFiles([])
-    
-    // Reset textarea height and scrollbar
-    const textarea = document.querySelector('textarea')
-    if (textarea) {
-      textarea.style.height = '48px'
-      textarea.style.overflowY = 'hidden'
-    }
-    
-    // Save to storage
-    if (currentConversation) {
-      await window.electron.saveMessages(
-        currentConversation.path,
-        currentConversation.id,
-        [...messages, newMessage]
-      )
-    }
-  }
-
-  const handleFileSelect = async (event) => {
-    if (!currentConversation) {
-      alert('请先选择或创建一个对话')
-      return
-    }
-
-    const files = Array.from(event.target.files)
-    
-    // Save files to chat folder
-    const savedFiles = await Promise.all(files.map(async file => {
-      const reader = new FileReader()
-      const fileData = await new Promise((resolve) => {
-        reader.onload = (e) => resolve(e.target.result)
-        reader.readAsArrayBuffer(file)
-      })
-      
-      const result = await window.electron.saveFile(currentConversation.path, {
-        name: file.name,
-        data: Array.from(new Uint8Array(fileData))
-      })
-      
-      return {
-        name: file.name,
-        path: result.path
-      }
-    }))
-    
-    setSelectedFiles(prev => [...prev, ...savedFiles])
-  }
-
-  const removeFile = (fileToRemove) => {
-    setSelectedFiles(prev => prev.filter(file => file.name !== fileToRemove.name))
-  }
-
-  const deleteMessage = async (messageId) => {
-    const message = messages.find(msg => msg.id === messageId)
-    if (!message) return
-
     try {
-      if (currentConversation) {
-        // Move message file to recycle bin
-        await window.electron.deleteMessage(currentConversation.path, message)
-        
-        // Update messages state and storage
-        const updatedMessages = messages.filter(msg => msg.id !== messageId)
-        setMessages(updatedMessages)
-        await window.electron.saveMessages(
-          currentConversation.path,
-          currentConversation.id,
-          updatedMessages
-        )
+      const result = await sendMessageOp(
+        messageInput,
+        selectedFiles,
+        messages,
+        currentConversation,
+        window.electron
+      )
+      
+      setMessages(result.updatedMessages)
+      setShouldScrollToBottom(true)
+      setMessageInput('')
+      setSelectedFiles([])
+      
+      // Reset textarea height and scrollbar
+      const textarea = document.querySelector('textarea')
+      if (textarea) {
+        textarea.style.height = '48px'
+        textarea.style.overflowY = 'hidden'
       }
     } catch (error) {
-      console.error('Failed to delete message:', error)
-      alert('删除消息失败')
+      alert(error.message)
     }
+  }
+
+  const deleteMessageInApp = async (messageId) => {
+    setDeletingMessageId(messageId)
+  }
+
+  const confirmDeleteMessage = async () => {
+    try {
+      const updatedMessages = await deleteMessageOp(
+        deletingMessageId,
+        messages,
+        currentConversation,
+        window.electron
+      )
+      setMessages(updatedMessages)
+      setDeletingMessageId(null)
+    } catch (error) {
+      alert(error.message)
+    }
+  }
+
+  const cancelDeleteMessage = () => {
+    setDeletingMessageId(null)
   }
 
   const enterEditMode = (message) => {
-    setEditingMessage(message)
-    setMessageInput(message.content)
+    const editState = enterEditModeOp(message)
+    setEditingMessage(editState.editingMessage)
+    setMessageInput(editState.messageInput)
   }
 
   const exitEditMode = () => {
-    setEditingMessage(null)
-    setMessageInput('')
+    const editState = exitEditModeOp()
+    setEditingMessage(editState.editingMessage)
+    setMessageInput(editState.messageInput)
   }
 
-  const updateMessage = async (messageId, newContent) => {
+  const updateMessageInApp = async (messageId, newContent) => {
     // Get the message being edited
     const message = messages.find(msg => msg.id === messageId)
     if (!message) return
 
-    // Update message in state
-    const updatedMessage = { ...message, content: newContent }
-    
-    if (currentConversation) {
-      try {
-        // Update txt file
-        const txtFile = await window.electron.saveMessageAsTxt(currentConversation.path, updatedMessage)
-        updatedMessage.txtFile = txtFile
+    try {
+      // 使用提取出的 updateMessage 函数
+      const updatedMessages = await updateMessage(
+        messageId,
+        newContent,
+        message,
+        messages,
+        currentConversation,
+        window.electron
+      )
 
-        // Update messages.json
-        const updatedMessages = messages.map(msg => 
-          msg.id === messageId ? updatedMessage : msg
-        )
-        
-        await window.electron.saveMessages(
-          currentConversation.path,
-          currentConversation.id,
-          updatedMessages
-        )
-
-        // Update state after successful file operations
-        setMessages(updatedMessages)
-      } catch (error) {
-        console.error('Failed to update message files:', error)
-        alert('保存修改失败')
-        return
-      }
+      // Update state after successful file operations
+      setMessages(updatedMessages)
+    } catch (error) {
+      alert(error.message)
+      return
     }
 
     exitEditMode()
@@ -955,31 +886,19 @@ const tools = ['chat', 'browser', 'editor']
   }
 
   // 添加移动消息的函数
-  const moveMessage = async (messageId, direction) => {
-    const currentIndex = messages.findIndex(msg => msg.id === messageId)
-    if (currentIndex === -1) return
-    
-    const newMessages = [...messages]
-    const messageToMove = newMessages[currentIndex]
-    
-    // 根据方向移动消息
-    if (direction === 'up' && currentIndex > 0) {
-      newMessages.splice(currentIndex, 1)
-      newMessages.splice(currentIndex - 1, 0, messageToMove)
-    } else if (direction === 'down' && currentIndex < messages.length - 1) {
-      newMessages.splice(currentIndex, 1)
-      newMessages.splice(currentIndex + 1, 0, messageToMove)
-    }
-    
-    setMessages(newMessages)
-    
-    // 保存到存储
-    if (currentConversation) {
-      await window.electron.saveMessages(
-        currentConversation.path,
-        currentConversation.id,
-        newMessages
+  const moveMessageInApp = async (messageId, direction) => {
+    try {
+      const updatedMessages = await moveMessageOp(
+        messageId,
+        direction,
+        messages,
+        isCtrlPressed,
+        currentConversation,
+        window.electron
       )
+      setMessages(updatedMessages)
+    } catch (error) {
+      alert(error.message)
     }
   }
 
@@ -1468,6 +1387,40 @@ const tools = ['chat', 'browser', 'editor']
     }
   }, [sidebarOpen, activeTool])
 
+  const handleFileSelect = async (event) => {
+    if (!currentConversation) {
+      alert('请先选择或创建一个对话')
+      return
+    }
+
+    const files = Array.from(event.target.files)
+    
+    // Save files to chat folder
+    const savedFiles = await Promise.all(files.map(async file => {
+      const reader = new FileReader()
+      const fileData = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target.result)
+        reader.readAsArrayBuffer(file)
+      })
+      
+      const result = await window.electron.saveFile(currentConversation.path, {
+        name: file.name,
+        data: Array.from(new Uint8Array(fileData))
+      })
+      
+      return {
+        name: file.name,
+        path: result.path
+      }
+    }))
+    
+    setSelectedFiles(prev => [...prev, ...savedFiles])
+  }
+
+  const removeFile = (fileToRemove) => {
+    setSelectedFiles(prev => prev.filter(file => file.name !== fileToRemove.name))
+  }
+
       return (
     <div className="flex flex-col h-screen" onClick={closeContextMenu}>
       <style>{globalStyles}</style>
@@ -1758,7 +1711,7 @@ const tools = ['chat', 'browser', 'editor']
                           <div className="absolute -bottom-8 -left-1 flex gap-1">
                             <button
                               className="btn btn-ghost btn-xs bg-base-100"
-                              onClick={() => updateMessage(message.id, messageInput)}
+                              onClick={() => updateMessageInApp(message.id, messageInput)}
                             >
                               Save
                             </button>
@@ -1850,7 +1803,7 @@ const tools = ['chat', 'browser', 'editor']
                             ) : null}
                             <button
                               className="btn btn-ghost btn-xs bg-base-100"
-                                onClick={() => setDeletingMessageId(message.id)}
+                                onClick={() => deleteMessageInApp(message.id)}
                             >
                               Delete
                             </button>
@@ -1869,26 +1822,17 @@ const tools = ['chat', 'browser', 'editor']
                                         strokeWidth="2"
                                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <span>Del msg?</span>
+                                    <span>Delete this message?</span>
                                     <div>
-                                      <button
-                                        className="btn btn-sm"
-                                        onClick={() => setDeletingMessageId(null)}
-                                      >
+                                      <button className="btn btn-sm" onClick={cancelDeleteMessage}>
                                         No
                                       </button>
-                                      <button
-                                        className="btn btn-sm btn-primary ml-2"
-                                        onClick={() => {
-                                          deleteMessage(deletingMessageId)
-                                          setDeletingMessageId(null)
-                                        }}
-                                      >
+                                      <button className="btn btn-sm btn-primary ml-2" onClick={confirmDeleteMessage}>
                                         Yes
                                       </button>
                                     </div>
                                   </div>
-                                  <div className="modal-backdrop" onClick={() => setDeletingMessageId(null)}></div>
+                                  <div className="modal-backdrop" onClick={cancelDeleteMessage}></div>
                                 </div>
                               )}
                             <button
@@ -1900,7 +1844,7 @@ const tools = ['chat', 'browser', 'editor']
                             {messages.indexOf(message) > 0 && (
                               <button
                                 className="btn btn-ghost btn-xs bg-base-100"
-                                onClick={() => moveMessage(message.id, 'up')}
+                                onClick={() => moveMessageInApp(message.id, 'up')}
                               >
                                 Up
                               </button>
@@ -1908,7 +1852,7 @@ const tools = ['chat', 'browser', 'editor']
                             {messages.indexOf(message) < messages.length - 1 && (
                               <button
                                 className="btn btn-ghost btn-xs bg-base-100"
-                                onClick={() => moveMessage(message.id, 'down')}
+                                onClick={() => moveMessageInApp(message.id, 'down')}
                               >
                                 Down
                               </button>

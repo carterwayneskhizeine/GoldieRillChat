@@ -21,7 +21,7 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
     <div className="h-8 flex items-center bg-base-300 select-none app-drag-region">
       {/* 应用图标和名称 */}
       <div className="flex items-center px-2 gap-2 app-drag-region">
-        <img src="/GoldieRillicon.ico" alt="logo" className="w-4 h-4 app-drag-region" />
+        <img src="resources/GoldieRillicon.ico" alt="logo" className="w-4 h-4 app-drag-region" />
         <span className="text-sm font-semibold app-drag-region">GoldieRillChat</span>
       </div>
 
