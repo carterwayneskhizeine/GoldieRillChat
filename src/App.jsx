@@ -28,7 +28,7 @@ const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "
 // 在文件顶部添加工具页面配置
 const tools = ['chat', 'browser', 'editor']
 
-export default function App() {
+    export default function App() {
   // 修改初始工具为 chat
   const [activeTool, setActiveTool] = useState('chat')
   // 设置侧边栏默认打开
@@ -36,7 +36,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('theme') || 'dark')
   const [storagePath, setStoragePath] = useState(() => localStorage.getItem('storagePath') || '')
-
+  
   // Chat related states
   const [conversations, setConversations] = useState([])
   const [currentConversation, setCurrentConversation] = useState(null)
@@ -146,16 +146,16 @@ export default function App() {
         setIsCtrlPressed(true)
       }
     }
-
+    
     const handleKeyUp = (e) => {
       if (e.key === 'Control') {
         setIsCtrlPressed(false)
       }
     }
-
+    
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
-
+    
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
@@ -191,18 +191,18 @@ export default function App() {
 
     try {
       const result = await window.electron.createChatFolder(storagePath)
-
+      
       const newConversation = {
         id: Date.now().toString(),
         name: result.name,
         timestamp: new Date().toISOString(),
         path: result.path
       }
-
+      
       setConversations(prev => [...prev, newConversation])
       setCurrentConversation(newConversation)
       setMessages([])
-
+      
       // Save to storage
       localStorage.setItem('conversations', JSON.stringify([...conversations, newConversation]))
     } catch (error) {
@@ -228,7 +228,7 @@ export default function App() {
 
   const sendMessage = async () => {
     if (!messageInput.trim() && selectedFiles.length === 0) return
-
+    
     const newMessage = {
       id: Date.now().toString(),
       content: messageInput,
@@ -245,19 +245,19 @@ export default function App() {
         console.error('Failed to save message as txt:', error)
       }
     }
-
+    
     setMessages(prev => [...prev, newMessage])
     setShouldScrollToBottom(true)
     setMessageInput('')
     setSelectedFiles([])
-
+    
     // Reset textarea height and scrollbar
     const textarea = document.querySelector('textarea')
     if (textarea) {
       textarea.style.height = '48px'
       textarea.style.overflowY = 'hidden'
     }
-
+    
     // Save to storage
     if (currentConversation) {
       await window.electron.saveMessages(
@@ -275,7 +275,7 @@ export default function App() {
     }
 
     const files = Array.from(event.target.files)
-
+    
     // Save files to chat folder
     const savedFiles = await Promise.all(files.map(async file => {
       const reader = new FileReader()
@@ -283,18 +283,18 @@ export default function App() {
         reader.onload = (e) => resolve(e.target.result)
         reader.readAsArrayBuffer(file)
       })
-
+      
       const result = await window.electron.saveFile(currentConversation.path, {
         name: file.name,
         data: Array.from(new Uint8Array(fileData))
       })
-
+      
       return {
         name: file.name,
         path: result.path
       }
     }))
-
+    
     setSelectedFiles(prev => [...prev, ...savedFiles])
   }
 
@@ -310,7 +310,7 @@ export default function App() {
       if (currentConversation) {
         // Move message file to recycle bin
         await window.electron.deleteMessage(currentConversation.path, message)
-
+        
         // Update messages state and storage
         const updatedMessages = messages.filter(msg => msg.id !== messageId)
         setMessages(updatedMessages)
@@ -343,7 +343,7 @@ export default function App() {
 
     // Update message in state
     const updatedMessage = { ...message, content: newContent }
-
+    
     if (currentConversation) {
       try {
         // Update txt file
@@ -351,10 +351,10 @@ export default function App() {
         updatedMessage.txtFile = txtFile
 
         // Update messages.json
-        const updatedMessages = messages.map(msg =>
+        const updatedMessages = messages.map(msg => 
           msg.id === messageId ? updatedMessage : msg
         )
-
+        
         await window.electron.saveMessages(
           currentConversation.path,
           currentConversation.id,
@@ -380,14 +380,14 @@ export default function App() {
     try {
       // Move conversation folder to recycle bin
       await window.electron.moveFolderToRecycle(conversation.path)
-
+      
       // Update state
       setConversations(prev => prev.filter(c => c.id !== conversationId))
       if (currentConversation?.id === conversationId) {
         setCurrentConversation(null)
         setMessages([])
       }
-
+      
       // Update storage
       localStorage.setItem('conversations', JSON.stringify(
         conversations.filter(c => c.id !== conversationId)
@@ -453,7 +453,7 @@ export default function App() {
       if (!showImageModal) return
       // 如果正在重命名，不处理左右键
       if (editingImageName) return
-
+      
       if (e.key === 'ArrowRight') {
         showNextImage()
       } else if (e.key === 'ArrowLeft') {
@@ -470,10 +470,10 @@ export default function App() {
   // Add renameMessageFile function
   const renameMessageFile = async (message, newFileName) => {
     if (!currentConversation || !message.txtFile) return
-
+    
     try {
       // Find if there's an existing message with the target filename
-      const existingMessage = messages.find(msg =>
+      const existingMessage = messages.find(msg => 
         msg.txtFile && msg.txtFile.displayName === newFileName
       )
 
@@ -492,7 +492,7 @@ export default function App() {
         }
 
         // Update messages array
-        setMessages(prev => prev.map(msg =>
+        setMessages(prev => prev.map(msg => 
           msg.id === existingMessage.id ? mergedMessage : msg
         ).filter(msg => msg.id !== message.id))
 
@@ -513,7 +513,7 @@ export default function App() {
           txtFile: result
         }
 
-        setMessages(prev => prev.map(msg =>
+        setMessages(prev => prev.map(msg => 
           msg.id === message.id ? updatedMessage : msg
         ))
 
@@ -527,7 +527,7 @@ export default function App() {
       console.error('Failed to rename file:', error)
       alert('重命名失败')
     }
-
+    
     setEditingFileName(null)
     setFileNameInput('')
   }
@@ -543,13 +543,13 @@ export default function App() {
   // Add function to rename image file
   const renameImageFile = async (file, newFileName) => {
     if (!currentConversation) return
-
+    
     try {
       const oldPath = file.path
       const oldDir = window.electron.path.dirname(oldPath)
       const extension = window.electron.path.extname(file.name)
       const newName = newFileName + extension
-
+      
       const result = await window.electron.renameFile(
         currentConversation.path,
         file.name,
@@ -559,7 +559,7 @@ export default function App() {
       // Update messages with new file path
       const updatedMessages = messages.map(msg => {
         if (msg.files) {
-          const updatedFiles = msg.files.map(f =>
+          const updatedFiles = msg.files.map(f => 
             f.path === oldPath ? { ...f, name: newName, path: result.path } : f
           )
           return { ...msg, files: updatedFiles }
@@ -569,7 +569,7 @@ export default function App() {
 
       setMessages(updatedMessages)
       setCurrentImage({ ...currentImage, name: newName, path: result.path })
-
+      
       // Save updated messages
       await window.electron.saveMessages(
         currentConversation.path,
@@ -580,7 +580,7 @@ export default function App() {
       console.error('Failed to rename image:', error)
       alert('重命名失败')
     }
-
+    
     setEditingImageName(null)
     setImageNameInput('')
   }
@@ -589,26 +589,26 @@ export default function App() {
   const renameChatFolder = async (conversation, newName) => {
     try {
       const result = await window.electron.renameChatFolder(conversation.path, newName)
-
+      
       // Update conversations state
-      const updatedConversations = conversations.map(conv =>
-        conv.id === conversation.id
+      const updatedConversations = conversations.map(conv => 
+        conv.id === conversation.id 
           ? { ...conv, name: result.name, path: result.path }
           : conv
       )
-
+      
       setConversations(updatedConversations)
       if (currentConversation?.id === conversation.id) {
         setCurrentConversation({ ...currentConversation, name: result.name, path: result.path })
       }
-
+      
       // Update storage
       localStorage.setItem('conversations', JSON.stringify(updatedConversations))
     } catch (error) {
       console.error('Failed to rename chat folder:', error)
       alert('重命名失败')
     }
-
+    
     setEditingFolderName(null)
     setFolderNameInput('')
   }
@@ -624,7 +624,7 @@ export default function App() {
     }
 
     const files = Array.from(e.dataTransfer.files)
-
+    
     // Save files to chat folder
     const savedFiles = await Promise.all(files.map(async file => {
       const reader = new FileReader()
@@ -632,25 +632,25 @@ export default function App() {
         reader.onload = (e) => resolve(e.target.result)
         reader.readAsArrayBuffer(file)
       })
-
+      
       const result = await window.electron.saveFile(currentConversation.path, {
         name: file.name,
         data: Array.from(new Uint8Array(fileData))
       })
-
+      
       return {
         name: file.name,
         path: result.path
       }
     }))
-
+    
     setSelectedFiles(prev => [...prev, ...savedFiles])
   }
 
   // 图片编辑器功能
   const loadImage = async (file) => {
     if (!file) return;
-
+    
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
@@ -659,7 +659,7 @@ export default function App() {
           width: img.naturalWidth,
           height: img.naturalHeight
         });
-
+        
         setEditorState(prev => ({
           ...prev,
           image: img,
@@ -736,10 +736,10 @@ export default function App() {
 
   const resetTransform = () => {
     if (!editorState.image) return
-
+    
     // 计算适配画布宽度的缩放比例
     const scaleToFit = canvasSize.width / editorState.image.width
-
+    
     setEditorState(prev => ({
       ...prev,
       scale: scaleToFit,  // 设置适配画布的缩放比例
@@ -771,7 +771,7 @@ export default function App() {
     if (!editorState.image) return
 
     const isCtrlMode = isCtrlPressed || document.getElementById('ctrlToggle').checked
-
+    
     if (isCtrlMode) {
       // 进入旋转模式
       setIsRotating(true)
@@ -782,11 +782,11 @@ export default function App() {
         e.clientY - centerY,
         e.clientX - centerX
       ) * 180 / Math.PI
-
+      
       setStartAngle(initialAngle)
       setLastRotation(editorState.rotation)
     }
-
+    
     setEditorState(prev => ({
       ...prev,
       dragging: true,
@@ -797,18 +797,18 @@ export default function App() {
 
   const handleMouseMove = (e) => {
     if (!editorState.dragging || !editorState.image) return
-
+    
     if (isRotating) {
       // 旋转模式
       const rect = canvasRef.current.getBoundingClientRect()
       const centerX = rect.left + rect.width / 2
       const centerY = rect.top + rect.height / 2
-
+      
       const currentAngle = Math.atan2(
         e.clientY - centerY,
         e.clientX - centerX
       ) * 180 / Math.PI
-
+      
       const angleDiff = currentAngle - startAngle
       setEditorState(prev => ({
         ...prev,
@@ -818,7 +818,7 @@ export default function App() {
       // 移动模式
       const dx = e.clientX - editorState.lastX
       const dy = e.clientY - editorState.lastY
-
+      
       setEditorState(prev => ({
         ...prev,
         offsetX: prev.offsetX + dx,
@@ -840,7 +840,7 @@ export default function App() {
   const handleWheel = (e) => {
     if (!editorState.image) return
     e.preventDefault()
-
+    
     const scaleFactor = e.deltaY > 0 ? 0.99 : 1.01
     setEditorState(prev => ({
       ...prev,
@@ -857,7 +857,7 @@ export default function App() {
 
     const items = e.clipboardData.items
     const imageItems = Array.from(items).filter(item => item.type.startsWith('image/'))
-
+    
     if (imageItems.length > 0) {
       const savedFiles = await Promise.all(imageItems.map(async item => {
         const blob = item.getAsFile()
@@ -866,22 +866,22 @@ export default function App() {
           reader.onload = (e) => resolve(e.target.result)
           reader.readAsArrayBuffer(blob)
         })
-
+        
         const timestamp = Date.now()
         const extension = blob.type.split('/')[1]
         const fileName = `pasted_image_${timestamp}.${extension}`
-
+        
         const result = await window.electron.saveFile(currentConversation.path, {
           name: fileName,
           data: Array.from(new Uint8Array(fileData))
         })
-
+        
         return {
           name: fileName,
           path: result.path
         }
       }))
-
+      
       setSelectedFiles(prev => [...prev, ...savedFiles])
     }
   }
@@ -891,13 +891,13 @@ export default function App() {
     try {
       // 创建一个新的 ClipboardItem 数组
       const clipboardItems = []
-
+      
       // 如果有文本内容，添加到剪贴板项
       if (message.content) {
         const textBlob = new Blob([message.content], { type: 'text/plain' })
         clipboardItems.push(new ClipboardItem({ 'text/plain': textBlob }))
       }
-
+      
       // 如果有图片文件，添加到剪贴板项
       if (message.files?.length > 0) {
         await Promise.all(message.files.map(async file => {
@@ -909,23 +909,23 @@ export default function App() {
               img.onerror = reject
               img.src = `local-file://${file.path}`
             })
-
+            
             const canvas = document.createElement('canvas')
             canvas.width = img.naturalWidth
             canvas.height = img.naturalHeight
             const ctx = canvas.getContext('2d')
             ctx.drawImage(img, 0, 0)
-
+            
             // 转换为 blob
             const blob = await new Promise(resolve => {
               canvas.toBlob(resolve, 'image/png')
             })
-
+            
             clipboardItems.push(new ClipboardItem({ 'image/png': blob }))
           }
         }))
       }
-
+      
       // 写入剪贴板
       await navigator.clipboard.write(clipboardItems)
     } catch (error) {
@@ -939,11 +939,11 @@ export default function App() {
     const messageDate = new Date(timestamp)
     const today = new Date()
     const isToday = messageDate.toDateString() === today.toDateString()
-
+    
     const hours = messageDate.getHours().toString().padStart(2, '0')
     const minutes = messageDate.getMinutes().toString().padStart(2, '0')
     const time = `${hours}:${minutes}`
-
+    
     if (isToday) {
       return time
     } else {
@@ -958,10 +958,10 @@ export default function App() {
   const moveMessage = async (messageId, direction) => {
     const currentIndex = messages.findIndex(msg => msg.id === messageId)
     if (currentIndex === -1) return
-
+    
     const newMessages = [...messages]
     const messageToMove = newMessages[currentIndex]
-
+    
     // 根据方向移动消息
     if (direction === 'up' && currentIndex > 0) {
       newMessages.splice(currentIndex, 1)
@@ -970,9 +970,9 @@ export default function App() {
       newMessages.splice(currentIndex, 1)
       newMessages.splice(currentIndex + 1, 0, messageToMove)
     }
-
+    
     setMessages(newMessages)
-
+    
     // 保存到存储
     if (currentConversation) {
       await window.electron.saveMessages(
@@ -991,7 +991,7 @@ export default function App() {
       img.onerror = reject
       img.src = `local-file://${file.path}`
     })
-
+    
     setEditorState(prev => ({
       ...prev,
       image: img,
@@ -1002,12 +1002,12 @@ export default function App() {
       offsetX: 0,
       offsetY: 0
     }))
-
+    
     setImageSize({
       width: img.naturalWidth,
       height: img.naturalHeight
     })
-
+    
     // 切换到编辑器面板
     setActiveTool('editor')
   }
@@ -1016,12 +1016,12 @@ export default function App() {
   const handleResolutionChange = (dimension, value) => {
     const newValue = value === '' ? '' : parseInt(value) || 0
     setTempCanvasSize(prev => ({ ...prev, [dimension]: newValue }))
-
+    
     // 清除之前的定时器
     if (canvasSizeTimeoutRef.current) {
       clearTimeout(canvasSizeTimeoutRef.current)
     }
-
+    
     // 设置新的定时器
     canvasSizeTimeoutRef.current = setTimeout(() => {
       setCanvasSize(prev => ({
@@ -1054,17 +1054,17 @@ export default function App() {
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
       const timestamp = Date.now()
       const fileName = `canvas_image_${timestamp}.png`
-
+      
       // 将blob转换为Uint8Array
       const arrayBuffer = await blob.arrayBuffer()
       const uint8Array = new Uint8Array(arrayBuffer)
-
+      
       // 保存文件
       const result = await window.electron.saveFile(currentConversation.path, {
         name: fileName,
         data: Array.from(uint8Array)
       })
-
+      
       // 创建新消息
       const newMessage = {
         id: Date.now().toString(),
@@ -1075,17 +1075,17 @@ export default function App() {
           path: result.path
         }]
       }
-
+      
       // 更新消息列表
       setMessages(prev => [...prev, newMessage])
-
+      
       // 保存到storage
       await window.electron.saveMessages(
         currentConversation.path,
         currentConversation.id,
         [...messages, newMessage]
       )
-
+      
       // 切换到chat面板
       setActiveTool('chat')
     } catch (error) {
@@ -1115,14 +1115,14 @@ export default function App() {
 
     const oldIndex = conversations.findIndex(c => c.id === draggedConversation.id)
     const newIndex = conversations.findIndex(c => c.id === targetConversation.id)
-
+    
     const newConversations = [...conversations]
     newConversations.splice(oldIndex, 1)
     newConversations.splice(newIndex, 0, draggedConversation)
-
+    
     setConversations(newConversations)
     setDraggedConversation(null)
-
+    
     // 保存新的顺序到存储
     localStorage.setItem('conversations', JSON.stringify(newConversations))
   }
@@ -1134,7 +1134,7 @@ export default function App() {
 
     const files = Array.from(e.dataTransfer.files)
     const imageFile = files.find(file => file.type.startsWith('image/'))
-
+    
     if (imageFile) {
       loadImage(imageFile)
     }
@@ -1149,7 +1149,7 @@ export default function App() {
   const checkImagePosition = (imgElement) => {
     const rect = imgElement.getBoundingClientRect()
     const distanceToBottom = window.innerHeight - (rect.top + rect.height)
-
+    
     if (distanceToBottom < 100) {
       imgElement.parentElement.style.overflowY = 'auto'
     } else {
@@ -1179,10 +1179,10 @@ export default function App() {
     if (imageDrag.isDragging) {
       const deltaX = e.clientX - imageDrag.startX
       const deltaY = e.clientY - imageDrag.startY
-
+      
       // 添加0.25的速度系数来减缓移动速度
       const speedFactor = 0.5
-
+      
       setImageDrag(prev => ({
         ...prev,
         translateX: prev.lastTranslateX + deltaX * speedFactor,
@@ -1464,16 +1464,21 @@ export default function App() {
   useEffect(() => {
     if (activeTool === 'browser') {
       // 通知主进程侧边栏状态变化
-      window.electron.browser.updateSidebarWidth(sidebarOpen ? 256 : 0)
+      window.electron.browser.updateSidebarWidth(sidebarOpen ? 200 : 0)
     }
   }, [sidebarOpen, activeTool])
 
-  return (
+      return (
     <div className="flex flex-col h-screen" onClick={closeContextMenu}>
       <style>{globalStyles}</style>
 
       {/* 添加标题栏 */}
-      <TitleBar />
+      <TitleBar 
+        activeTool={activeTool}
+        currentUrl={currentUrl}
+        setCurrentUrl={setCurrentUrl}
+        isLoading={isLoading}
+      />
 
       {/* 主内容区域 */}
       <div className="flex flex-1 overflow-hidden">
@@ -1487,26 +1492,26 @@ export default function App() {
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
-          <div className="w-64 flex flex-col h-full">
+      {/* Sidebar */}
+        <div className={`${sidebarOpen ? 'w-50' : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
+          <div className="w-50 flex flex-col h-full">
             {/* Main content area */}
             <div className="p-2 flex-1 flex flex-col overflow-hidden">
               {/* Top buttons row - 三向切换 */}
-              <div className="join grid grid-cols-2 mb-2">
-                <button
+        <div className="join grid grid-cols-2 mb-2">
+          <button 
                   className="join-item btn btn-outline btn-sm"
                   onClick={() => switchTool('prev')}
-                >
-                  Previous
-                </button>
-                <button
+          >
+            Previous
+          </button>
+          <button 
                   className="join-item btn btn-outline btn-sm"
                   onClick={() => switchTool('next')}
-                >
-                  Next
-                </button>
-              </div>
+          >
+            Next
+          </button>
+        </div>
 
               {/* 工具页面指示器 */}
               <div className="flex justify-center gap-2 mb-2">
@@ -1519,102 +1524,102 @@ export default function App() {
                       }`}
                   />
                 ))}
-              </div>
+        </div>
 
-              {/* Current tool display */}
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center">
+        {/* Current tool display */}
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center">
                   <span className="font-semibold mr-2">
                     {getToolDisplayName(activeTool)}
-                  </span>
-                  {activeTool === 'chat' && (
+            </span>
+            {activeTool === 'chat' && (
                     <button
                       className="btn btn-circle btn-ghost btn-sm"
                       onClick={createNewConversation}
                     >
-                      <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
+                <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
 
               {/* Chat list */}
               {activeTool === 'chat' && (
-                <div className="flex-1 mt-2 overflow-y-auto">
-                  <div className="flex flex-col gap-2">
-                    {conversations.map(conversation => (
-                      <div
-                        key={conversation.id}
+        <div className="flex-1 mt-2 overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            {conversations.map(conversation => (
+              <div
+                key={conversation.id}
                         className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''
-                          } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
-                        draggable
-                        onDragStart={() => handleDragStart(conversation)}
-                        onDragOver={handleDragOver}
-                        onDrop={() => handleDrop(conversation)}
-                      >
-                        <div
-                          className="flex items-center gap-2 flex-1"
-                          onClick={() => {
-                            if (editingFolderName === conversation.id) return
-                            loadConversation(conversation.id)
-                          }}
-                        >
-                          {!editingFolderName && (
-                            <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                            </svg>
-                          )}
-                          {editingFolderName === conversation.id ? (
-                            <input
-                              type="text"
-                              value={folderNameInput}
-                              onChange={(e) => setFolderNameInput(e.target.value)}
-                              className="input input-xs input-bordered join-item w-full"
-                              placeholder="Enter new folder name"
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  renameChatFolder(conversation, folderNameInput)
-                                }
-                              }}
-                              onBlur={() => {
-                                setEditingFolderName(null)
-                                setFolderNameInput('')
-                              }}
-                              autoFocus
-                            />
-                          ) : (
-                            <span
-                              className="truncate cursor-pointer hover:underline"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setEditingFolderName(conversation.id)
-                                setFolderNameInput(conversation.name)
-                              }}
-                            >
-                              {conversation.name}
-                            </span>
-                          )}
-                        </div>
-                        {!editingFolderName && (
-                          <button
-                            className="btn btn-ghost btn-xs"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setDeletingConversation(conversation)
-                            }}
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                draggable
+                onDragStart={() => handleDragStart(conversation)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(conversation)}
+              >
+                <div 
+                  className="flex items-center gap-2 flex-1"
+                  onClick={() => {
+                    if (editingFolderName === conversation.id) return
+                    loadConversation(conversation.id)
+                  }}
+                >
+                  {!editingFolderName && (
+                    <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  )}
+                  {editingFolderName === conversation.id ? (
+                    <input
+                      type="text"
+                      value={folderNameInput}
+                      onChange={(e) => setFolderNameInput(e.target.value)}
+                      className="input input-xs input-bordered join-item w-full"
+                      placeholder="Enter new folder name"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          renameChatFolder(conversation, folderNameInput)
+                        }
+                      }}
+                      onBlur={() => {
+                        setEditingFolderName(null)
+                        setFolderNameInput('')
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <span 
+                      className="truncate cursor-pointer hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingFolderName(conversation.id)
+                        setFolderNameInput(conversation.name)
+                      }}
+                    >
+                      {conversation.name}
+                    </span>
+                  )}
+                </div>
+                {!editingFolderName && (
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeletingConversation(conversation)
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
                 </div>
               )}
-            </div>
+        </div>
 
             {/* Settings button - 只在 Chat 工具激活时显示 */}
             {activeTool === 'chat' && (
@@ -1626,84 +1631,84 @@ export default function App() {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+            </svg>
                   <span>Settings</span>
-                </button>
+          </button>
               </div>
             )}
-          </div>
         </div>
+      </div>
 
-        {/* Main content area */}
+      {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Chat content */}
-          {activeTool === 'chat' && (
-            <div className="flex-1 flex flex-col relative">
+        {activeTool === 'chat' && (
+          <div className="flex-1 flex flex-col relative">
               {/* 现有的聊天内容 */}
-              <div
-                className="absolute inset-0 overflow-y-auto"
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                }}
-                onDrop={handleFileDrop}
-              >
-                <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
-                  {messages.map(message => (
+            <div 
+              className="absolute inset-0 overflow-y-auto"
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onDrop={handleFileDrop}
+            >
+              <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
+                {messages.map(message => (
                     <div key={message.id} className="chat chat-start mb-8 relative">
-                      <div className="chat-header opacity-70 flex items-center gap-2">
-                        {message.txtFile ? (
-                          editingFileName === message.id ? (
-                            <div className="join">
-                              <input
-                                type="text"
-                                value={fileNameInput}
-                                onChange={(e) => setFileNameInput(e.target.value)}
-                                className="input input-xs input-bordered join-item"
-                                placeholder="Enter new file name"
-                                onKeyPress={(e) => {
-                                  if (e.key === 'Enter') {
-                                    renameMessageFile(message, fileNameInput)
-                                  }
-                                }}
-                              />
-                              <button
-                                className="btn btn-xs join-item"
-                                onClick={() => renameMessageFile(message, fileNameInput)}
-                              >
-                                Save
-                              </button>
-                              <button
-                                className="btn btn-xs join-item"
-                                onClick={() => {
-                                  setEditingFileName(null)
-                                  setFileNameInput('')
-                                }}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="cursor-pointer hover:underline" onClick={() => {
-                                setEditingFileName(message.id)
-                                setFileNameInput(message.txtFile.displayName)
-                              }}>
-                                {message.txtFile.displayName}
-                              </span>
-                              <span className="text-xs opacity-50">
-                                {formatMessageTime(message.timestamp)}
-                              </span>
-                            </div>
-                          )
+                    <div className="chat-header opacity-70 flex items-center gap-2">
+                      {message.txtFile ? (
+                        editingFileName === message.id ? (
+                          <div className="join">
+                            <input
+                              type="text"
+                              value={fileNameInput}
+                              onChange={(e) => setFileNameInput(e.target.value)}
+                              className="input input-xs input-bordered join-item"
+                              placeholder="Enter new file name"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  renameMessageFile(message, fileNameInput)
+                                }
+                              }}
+                            />
+                            <button
+                              className="btn btn-xs join-item"
+                              onClick={() => renameMessageFile(message, fileNameInput)}
+                            >
+                              Save
+                            </button>
+                            <button
+                              className="btn btn-xs join-item"
+                              onClick={() => {
+                                setEditingFileName(null)
+                                setFileNameInput('')
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         ) : (
-                          <span className="text-xs opacity-50">
-                            {formatMessageTime(message.timestamp)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="chat-bubble relative max-w-[800px]">
-                        {message.content && message.content.split('\n').length > 6 && (
+                          <div className="flex items-center gap-2">
+                            <span className="cursor-pointer hover:underline" onClick={() => {
+                              setEditingFileName(message.id)
+                              setFileNameInput(message.txtFile.displayName)
+                            }}>
+                              {message.txtFile.displayName}
+                            </span>
+                            <span className="text-xs opacity-50">
+                              {formatMessageTime(message.timestamp)}
+                            </span>
+                          </div>
+                        )
+                      ) : (
+                        <span className="text-xs opacity-50">
+                          {formatMessageTime(message.timestamp)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="chat-bubble relative max-w-[800px]">
+                      {message.content && message.content.split('\n').length > 6 && (
                           <div
                             className="absolute right-0 flex items-center"
                             style={{
@@ -1714,131 +1719,131 @@ export default function App() {
                               transform: 'translateX(calc(102% + 1rem))'  // 向右移动两倍
                             }}
                           >
-                            <button
+                        <button 
                               className="btn btn-md btn-ghost btn-circle bg-base-100"
-                              onClick={() => toggleMessageCollapse(message.id)}
+                          onClick={() => toggleMessageCollapse(message.id)}
+                        >
+                          {collapsedMessages.has(message.id) ? (
+                            <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          )}
+                        </button>
+                          </div>
+                      )}
+                      {editingMessage?.id === message.id ? (
+                        <div className="join w-full">
+                          <div className="mockup-code w-[650px] h-[550px] bg-base-300 relative">
+                            <pre data-prefix=""></pre>
+                            <textarea
+                              value={messageInput}
+                              onChange={(e) => setMessageInput(e.target.value)}
+                              className="absolute inset-0 top-[40px] bg-transparent text-current p-4 resize-none focus:outline-none w-full h-[calc(100%-40px)] font-mono"
+                            />
+                          </div>
+                          <div className="absolute -bottom-8 -left-1 flex gap-1">
+                            <button
+                              className="btn btn-ghost btn-xs bg-base-100"
+                              onClick={() => updateMessage(message.id, messageInput)}
                             >
-                              {collapsedMessages.has(message.id) ? (
-                                <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              ) : (
-                                <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                </svg>
-                              )}
+                              Save
+                            </button>
+                            <button
+                              className="btn btn-ghost btn-xs bg-base-100"
+                              onClick={exitEditMode}
+                            >
+                              Cancel
                             </button>
                           </div>
-                        )}
-                        {editingMessage?.id === message.id ? (
-                          <div className="join w-full">
-                            <div className="mockup-code w-[650px] h-[550px] bg-base-300 relative">
-                              <pre data-prefix=""></pre>
-                              <textarea
-                                value={messageInput}
-                                onChange={(e) => setMessageInput(e.target.value)}
-                                className="absolute inset-0 top-[40px] bg-transparent text-current p-4 resize-none focus:outline-none w-full h-[calc(100%-40px)] font-mono"
-                              />
-                            </div>
-                            <div className="absolute -bottom-8 -left-1 flex gap-1">
-                              <button
-                                className="btn btn-ghost btn-xs bg-base-100"
-                                onClick={() => updateMessage(message.id, messageInput)}
-                              >
-                                Save
-                              </button>
-                              <button
-                                className="btn btn-ghost btn-xs bg-base-100"
-                                onClick={exitEditMode}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col gap-2 group">
-                            {message.content && (
-                              <div className="flex justify-between items-start">
-                                <div
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2 group">
+                          {message.content && (
+                            <div className="flex justify-between items-start">
+                              <div 
                                   className={`prose max-w-none break-words w-full ${collapsedMessages.has(message.id)
-                                      ? 'max-h-[144px] overflow-y-auto'
-                                      : ''
-                                    }`}
-                                  style={{
-                                    whiteSpace: 'pre-wrap'
-                                  }}
+                                    ? 'max-h-[144px] overflow-y-auto' 
+                                    : ''
+                                }`}
+                                style={{
+                                  whiteSpace: 'pre-wrap'
+                                }}
                                   data-message-id={message.id}
                                   onContextMenu={handleContextMenu}
                                   dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
                                 />
-                              </div>
-                            )}
-                            {message.files?.length > 0 && (
-                              <div className="flex flex-wrap gap-2">
-                                {message.files.map((file, index) => (
-                                  file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                    <div
-                                      key={index}
-                                      className="relative group cursor-pointer"
-                                      onClick={() => {
-                                        setCurrentImage(file)
-                                        setShowImageModal(true)
-                                      }}
-                                    >
-                                      <img
-                                        src={`local-file://${file.path}`}
-                                        alt={file.name}
-                                        className="max-w-[300px] max-h-[300px] rounded-lg object-cover hover:opacity-90 transition-opacity"
-                                      />
-                                    </div>
-                                  ) : file.name.match(/\.mp4$/i) ? (
-                                    <div key={index} className="w-full">
-                                      <video controls className="w-full max-w-[800px] rounded-lg">
-                                        <source src={`local-file://${file.path}`} type="video/mp4" />
-                                        Your browser does not support the video tag.
-                                      </video>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      key={index}
-                                      className="badge badge-outline cursor-pointer hover:bg-base-200"
-                                      onClick={() => openFileLocation(file)}
-                                    >
-                                      {file.name}
-                                    </div>
-                                  )
-                                ))}
-                              </div>
-                            )}
-                            <div className="absolute -bottom-8 -left-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:delay-0 delay-[500ms]">
-                              {message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ? (
-                                <button
-                                  className="btn btn-ghost btn-xs bg-base-100"
-                                  onClick={() => {
-                                    const imageFile = message.files.find(file =>
-                                      file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-                                    )
-                                    if (imageFile) {
-                                      sendToEditor(imageFile)
-                                    }
-                                  }}
-                                >
-                                  Send
-                                </button>
-                              ) : message.content ? (
-                                <button
-                                  className="btn btn-ghost btn-xs bg-base-100"
-                                  onClick={() => enterEditMode(message)}
-                                >
-                                  Edit
-                                </button>
-                              ) : null}
+                            </div>
+                          )}
+                          {message.files?.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {message.files.map((file, index) => (
+                                file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                  <div 
+                                    key={index} 
+                                    className="relative group cursor-pointer"
+                                    onClick={() => {
+                                      setCurrentImage(file)
+                                      setShowImageModal(true)
+                                    }}
+                                  >
+                                    <img 
+                                      src={`local-file://${file.path}`} 
+                                      alt={file.name}
+                                      className="max-w-[300px] max-h-[300px] rounded-lg object-cover hover:opacity-90 transition-opacity"
+                                    />
+                                  </div>
+                                ) : file.name.match(/\.mp4$/i) ? (
+                                  <div key={index} className="w-full">
+                                    <video controls className="w-full max-w-[800px] rounded-lg">
+                                      <source src={`local-file://${file.path}`} type="video/mp4" />
+                                      Your browser does not support the video tag.
+                                    </video>
+                                  </div>
+                                ) : (
+                                  <div 
+                                    key={index} 
+                                    className="badge badge-outline cursor-pointer hover:bg-base-200"
+                                    onClick={() => openFileLocation(file)}
+                                  >
+                                    {file.name}
+                                  </div>
+                                )
+                              ))}
+                            </div>
+                          )}
+                          <div className="absolute -bottom-8 -left-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:delay-0 delay-[500ms]">
+                            {message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ? (
                               <button
                                 className="btn btn-ghost btn-xs bg-base-100"
-                                onClick={() => setDeletingMessageId(message.id)}
+                                onClick={() => {
+                                  const imageFile = message.files.find(file => 
+                                    file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                                  )
+                                  if (imageFile) {
+                                    sendToEditor(imageFile)
+                                  }
+                                }}
                               >
-                                Delete
+                                Send
                               </button>
+                            ) : message.content ? (
+                              <button
+                                className="btn btn-ghost btn-xs bg-base-100"
+                                onClick={() => enterEditMode(message)}
+                              >
+                                Edit
+                              </button>
+                            ) : null}
+                            <button
+                              className="btn btn-ghost btn-xs bg-base-100"
+                                onClick={() => setDeletingMessageId(message.id)}
+                            >
+                              Delete
+                            </button>
 
                               {deletingMessageId === message.id && (
                                 <div className="modal modal-open flex items-center justify-center">
@@ -1876,62 +1881,62 @@ export default function App() {
                                   <div className="modal-backdrop" onClick={() => setDeletingMessageId(null)}></div>
                                 </div>
                               )}
+                            <button
+                              className="btn btn-ghost btn-xs bg-base-100"
+                              onClick={() => copyMessageContent(message)}
+                            >
+                              Copy
+                            </button>
+                            {messages.indexOf(message) > 0 && (
                               <button
                                 className="btn btn-ghost btn-xs bg-base-100"
-                                onClick={() => copyMessageContent(message)}
+                                onClick={() => moveMessage(message.id, 'up')}
                               >
-                                Copy
+                                Up
                               </button>
-                              {messages.indexOf(message) > 0 && (
-                                <button
-                                  className="btn btn-ghost btn-xs bg-base-100"
-                                  onClick={() => moveMessage(message.id, 'up')}
-                                >
-                                  Up
-                                </button>
-                              )}
-                              {messages.indexOf(message) < messages.length - 1 && (
-                                <button
-                                  className="btn btn-ghost btn-xs bg-base-100"
-                                  onClick={() => moveMessage(message.id, 'down')}
-                                >
-                                  Down
-                                </button>
-                              )}
-                            </div>
+                            )}
+                            {messages.indexOf(message) < messages.length - 1 && (
+                              <button
+                                className="btn btn-ghost btn-xs bg-base-100"
+                                onClick={() => moveMessage(message.id, 'down')}
+                              >
+                                Down
+                              </button>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
               </div>
+            </div>
 
-              {/* Bottom input area - fixed */}
-              <div className={`absolute bottom-0 left-0 right-[20px] bg-base-100 z-50 ${editingMessage ? 'hidden' : ''}`}>
-                <div className="p-4">
-                  <div className="max-w-3xl mx-auto relative">
-                    {selectedFiles.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {selectedFiles.map((file, index) => (
-                          <div key={index} className="badge badge-outline gap-2">
-                            {file.name}
-                            <button
-                              className="btn btn-ghost btn-xs"
-                              onClick={() => removeFile(file)}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="relative">
-                      <textarea
-                        value={messageInput}
-                        onChange={(e) => {
-                          setMessageInput(e.target.value)
+            {/* Bottom input area - fixed */}
+            <div className={`absolute bottom-0 left-0 right-[20px] bg-base-100 z-50 ${editingMessage ? 'hidden' : ''}`}>
+              <div className="p-4">
+                <div className="max-w-3xl mx-auto relative">
+                  {selectedFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {selectedFiles.map((file, index) => (
+                        <div key={index} className="badge badge-outline gap-2">
+                          {file.name}
+                          <button
+                            className="btn btn-ghost btn-xs"
+                            onClick={() => removeFile(file)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="relative">
+                    <textarea 
+                      value={messageInput}
+                      onChange={(e) => {
+                        setMessageInput(e.target.value)
                           // 自动调整高度
                           e.target.style.height = 'auto'  // 先重置高度
                           e.target.style.height = `${e.target.scrollHeight}px`  // 设置为实际内容高度
@@ -1941,23 +1946,23 @@ export default function App() {
                           } else {
                             e.target.style.overflowY = 'hidden'
                           }
-                        }}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault()
-                            sendMessage()
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          sendMessage()
                             // 重置高度
-                            e.target.style.height = '64px'
-                            e.target.style.overflowY = 'hidden'
-                          }
-                        }}
-                        onPaste={handlePaste}
+                          e.target.style.height = '64px'
+                          e.target.style.overflowY = 'hidden'
+                        }
+                      }}
+                      onPaste={handlePaste}
                         onContextMenu={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
                           handleContextMenu(e)
                         }}
-                        placeholder="Send a message..."
+                      placeholder="Send a message..."
                         className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide"
                         style={{
                           scrollbarWidth: 'none',  // Firefox
@@ -1966,218 +1971,218 @@ export default function App() {
                             display: 'none'
                           }
                         }}
-                        rows="2"
-                      />
-                      <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                        <button
-                          className="btn btn-ghost btn-sm btn-circle"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                          </svg>
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-sm btn-circle"
-                          onClick={sendMessage}
-                        >
-                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                          </svg>
-                        </button>
-                      </div>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
-                        className="hidden"
-                        multiple
-                      />
+                      rows="2"
+                    />
+                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                      <button
+                        className="btn btn-ghost btn-sm btn-circle"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm btn-circle"
+                        onClick={sendMessage}
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                        </svg>
+                      </button>
                     </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      multiple
+                    />
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           {/* Editor content */}
-          {activeTool === 'editor' && (
-            <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+        {activeTool === 'editor' && (
+          <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
               {/* 现有的编辑器内容 */}
-              {/* Tools row - 移动到顶部 */}
-              <div className="flex flex-wrap gap-2 items-center">
-                <div className="flex-1 flex justify-start items-center">
-                  <button
-                    className="btn btn-sm"
-                    disabled={!editorState.image || !currentConversation}
-                    onClick={sendCanvasToChat}
-                  >
-                    Send
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-center items-center">
-                  <input
-                    type="file"
-                    id="imageInput"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => loadImage(e.target.files[0])}
-                  />
-                  <button
-                    className="btn btn-sm"
-                    onClick={() => document.getElementById('imageInput').click()}
-                  >
-                    Import
-                  </button>
+            {/* Tools row - 移动到顶部 */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex-1 flex justify-start items-center">
+                <button
+                  className="btn btn-sm"
+                  disabled={!editorState.image || !currentConversation}
+                  onClick={sendCanvasToChat}
+                >
+                  Send
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center items-center">
+                <input
+                  type="file"
+                  id="imageInput"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={(e) => loadImage(e.target.files[0])}
+                />
+                <button 
+                  className="btn btn-sm"
+                  onClick={() => document.getElementById('imageInput').click()}
+                >
+                  Import
+                </button>
 
-                  <div className="dropdown">
-                    <button tabIndex={0} className="btn btn-sm">Res</button>
-                    <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
+                <div className="dropdown">
+                  <button tabIndex={0} className="btn btn-sm">Res</button>
+                  <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
                       <li><button onClick={() => setResolution(1920, 1080)} className="whitespace-nowrap">1920 × 1080</button></li>
-                      <li><button onClick={() => setResolution(512, 512)} className="whitespace-nowrap">512 × 512</button></li>
-                      <li><button onClick={() => setResolution(512, 288)} className="whitespace-nowrap">512 × 288</button></li>
-                      <li><button onClick={() => setResolution(768, 320)} className="whitespace-nowrap">768 × 320</button></li>
-                      <li><button onClick={() => setResolution(768, 512)} className="whitespace-nowrap">768 × 512</button></li>
-                    </ul>
-                  </div>
-
-                  <button className="btn btn-sm btn-square" onClick={rotate}>
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-
-                  <button className="btn btn-sm btn-square" onClick={() => flip('h')}>
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                    </svg>
-                  </button>
-
-                  <button className="btn btn-sm btn-square" onClick={() => flip('v')}>
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M4 8h16M4 16h16" />
-                    </svg>
-                  </button>
-
-                  <button className="btn btn-sm btn-square" onClick={resetTransform}>
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                    </svg>
-                  </button>
-
-                  <div className="dropdown">
-                    <button tabIndex={0} className="btn btn-sm btn-square">
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
-                    <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
-                      <li><button onClick={() => downloadImage('jpg')}>JPG Format</button></li>
-                      <li><button onClick={() => downloadImage('png')}>PNG Format</button></li>
-                    </ul>
-                  </div>
-
-                  <div className="dropdown">
-                    <button tabIndex={0} className="btn btn-sm">AR</button>
-                    <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
-                      <li><button onClick={() => {
-                        const newHeight = Math.round(canvasSize.width * (9 / 16))
-                        setCanvasSize(prev => ({ ...prev, height: newHeight }))
-                        setTempCanvasSize(prev => ({ ...prev, height: newHeight }))
-                      }}>16:9</button></li>
-                      <li><button onClick={() => {
-                        const newHeight = Math.round(canvasSize.width * (16 / 9))
-                        setCanvasSize(prev => ({ ...prev, height: newHeight }))
-                        setTempCanvasSize(prev => ({ ...prev, height: newHeight }))
-                      }}>9:16</button></li>
-                      <li><button onClick={() => {
-                        const newHeight = Math.round(canvasSize.width * (3 / 4))
-                        setCanvasSize(prev => ({ ...prev, height: newHeight }))
-                        setTempCanvasSize(prev => ({ ...prev, height: newHeight }))
-                      }}>4:3</button></li>
-                      <li><button onClick={() => {
-                        setCanvasSize(prev => ({ ...prev, height: prev.width }))
-                        setTempCanvasSize(prev => ({ ...prev, height: prev.width }))
-                      }}>1:1</button></li>
-                    </ul>
-                  </div>
-
-                  <button className="btn btn-sm btn-square" onClick={() => {
-                    const canvas = canvasRef.current
-                    if (canvas) {
-                      canvas.toBlob(blob => {
-                        navigator.clipboard.write([
-                          new ClipboardItem({ 'image/png': blob })
-                        ])
-                      })
-                    }
-                  }}>
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                    </svg>
-                  </button>
-
-                  <div className="join">
-                    <input
-                      type="number"
-                      value={tempCanvasSize.width}
-                      onChange={(e) => handleResolutionChange('width', e.target.value)}
-                      className="input input-bordered input-sm join-item w-20"
-                    />
-                    <span className="join-item flex items-center px-2 bg-base-200">×</span>
-                    <input
-                      type="number"
-                      value={tempCanvasSize.height}
-                      onChange={(e) => handleResolutionChange('height', e.target.value)}
-                      className="input input-bordered input-sm join-item w-20"
-                    />
-                  </div>
+                    <li><button onClick={() => setResolution(512, 512)} className="whitespace-nowrap">512 × 512</button></li>
+                    <li><button onClick={() => setResolution(512, 288)} className="whitespace-nowrap">512 × 288</button></li>
+                    <li><button onClick={() => setResolution(768, 320)} className="whitespace-nowrap">768 × 320</button></li>
+                    <li><button onClick={() => setResolution(768, 512)} className="whitespace-nowrap">768 × 512</button></li>
+                  </ul>
                 </div>
-                <div className="flex-1 flex justify-end items-center gap-2">
-                  <span className="text-sm opacity-70">Ctrl</span>
-                  <input
-                    type="checkbox"
-                    id="ctrlToggle"
-                    className="toggle toggle-sm"
-                    checked={isCtrlPressed}
-                    onChange={(e) => setIsCtrlPressed(e.target.checked)}
+
+                <button className="btn btn-sm btn-square" onClick={rotate}>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+
+                <button className="btn btn-sm btn-square" onClick={() => flip('h')}>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                </button>
+
+                <button className="btn btn-sm btn-square" onClick={() => flip('v')}>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 8h16M4 16h16" />
+                  </svg>
+                </button>
+
+                <button className="btn btn-sm btn-square" onClick={resetTransform}>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  </svg>
+                </button>
+
+                <div className="dropdown">
+                  <button tabIndex={0} className="btn btn-sm btn-square">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                  <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
+                    <li><button onClick={() => downloadImage('jpg')}>JPG Format</button></li>
+                    <li><button onClick={() => downloadImage('png')}>PNG Format</button></li>
+                  </ul>
+                </div>
+
+                <div className="dropdown">
+                  <button tabIndex={0} className="btn btn-sm">AR</button>
+                  <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
+                    <li><button onClick={() => {
+                        const newHeight = Math.round(canvasSize.width * (9 / 16))
+                      setCanvasSize(prev => ({ ...prev, height: newHeight }))
+                      setTempCanvasSize(prev => ({ ...prev, height: newHeight }))
+                    }}>16:9</button></li>
+                    <li><button onClick={() => {
+                        const newHeight = Math.round(canvasSize.width * (16 / 9))
+                      setCanvasSize(prev => ({ ...prev, height: newHeight }))
+                      setTempCanvasSize(prev => ({ ...prev, height: newHeight }))
+                    }}>9:16</button></li>
+                    <li><button onClick={() => {
+                        const newHeight = Math.round(canvasSize.width * (3 / 4))
+                      setCanvasSize(prev => ({ ...prev, height: newHeight }))
+                      setTempCanvasSize(prev => ({ ...prev, height: newHeight }))
+                    }}>4:3</button></li>
+                    <li><button onClick={() => {
+                      setCanvasSize(prev => ({ ...prev, height: prev.width }))
+                      setTempCanvasSize(prev => ({ ...prev, height: prev.width }))
+                    }}>1:1</button></li>
+                  </ul>
+                </div>
+
+                <button className="btn btn-sm btn-square" onClick={() => {
+                  const canvas = canvasRef.current
+                  if (canvas) {
+                    canvas.toBlob(blob => {
+                      navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                      ])
+                    })
+                  }
+                }}>
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                </button>
+
+                <div className="join">
+                  <input 
+                    type="number" 
+                    value={tempCanvasSize.width}
+                    onChange={(e) => handleResolutionChange('width', e.target.value)}
+                    className="input input-bordered input-sm join-item w-20" 
+                  />
+                  <span className="join-item flex items-center px-2 bg-base-200">×</span>
+                  <input 
+                    type="number"
+                    value={tempCanvasSize.height}
+                    onChange={(e) => handleResolutionChange('height', e.target.value)}
+                    className="input input-bordered input-sm join-item w-20"
                   />
                 </div>
               </div>
-
-              {/* Canvas area */}
-              <div
-                className="flex-1 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onWheel={handleWheel}
-                onDrop={handleCanvasDrop}
-                onDragOver={handleCanvasDragOver}
-              >
-                <canvas
-                  ref={canvasRef}
-                  width={canvasSize.width}
-                  height={canvasSize.height}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    width: 'auto',
-                    height: 'auto',
-                    objectFit: 'contain'
-                  }}
-                  className="bg-neutral-content rounded"
+              <div className="flex-1 flex justify-end items-center gap-2">
+                <span className="text-sm opacity-70">Ctrl</span>
+                <input
+                  type="checkbox"
+                  id="ctrlToggle"
+                  className="toggle toggle-sm"
+                  checked={isCtrlPressed}
+                  onChange={(e) => setIsCtrlPressed(e.target.checked)}
                 />
               </div>
-
-              {/* Resolution info */}
-              <div className="flex gap-4 text-sm justify-center">
-                <span className="opacity-70">Canvas: {canvasSize.width} × {canvasSize.height}</span>
-                <span className="opacity-70">Image: {imageSize.width} × {imageSize.height}</span>
-              </div>
             </div>
-          )}
+
+            {/* Canvas area */}
+            <div 
+              className="flex-1 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onWheel={handleWheel}
+              onDrop={handleCanvasDrop}
+              onDragOver={handleCanvasDragOver}
+            >
+              <canvas
+                ref={canvasRef}
+                width={canvasSize.width}
+                height={canvasSize.height}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain'
+                }}
+                className="bg-neutral-content rounded"
+              />
+            </div>
+
+            {/* Resolution info */}
+            <div className="flex gap-4 text-sm justify-center">
+              <span className="opacity-70">Canvas: {canvasSize.width} × {canvasSize.height}</span>
+              <span className="opacity-70">Image: {imageSize.width} × {imageSize.height}</span>
+            </div>
+          </div>
+        )}
 
           {/* Browser content */}
           {activeTool === 'browser' && (
@@ -2187,8 +2192,9 @@ export default function App() {
                 {browserTabs.map(tab => (
                   <div
                     key={tab.id}
-                    className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer hover:bg-base-100 ${activeTabId === tab.id ? 'bg-base-100' : ''
-                      }`}
+                    className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer hover:bg-base-100 ${
+                      activeTabId === tab.id ? 'bg-base-100' : ''
+                    }`}
                     onClick={() => window.electron.browser.switchTab(tab.id)}
                   >
                     {tab.isLoading ? (
@@ -2226,316 +2232,267 @@ export default function App() {
                 </button>
               </div>
 
-              {/* 浏览器控制栏 */}
-              <div className="flex items-center gap-2 p-2 bg-base-200">
-                <div className="join">
-                  <button
-                    className="join-item btn btn-sm"
-                    onClick={() => window.electron.browser.back()}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
-                    className="join-item btn btn-sm"
-                    onClick={() => window.electron.browser.forward()}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                  <button
-                    className="join-item btn btn-sm"
-                    onClick={() => window.electron.browser.refresh()}
-                  >
-                    {isLoading ? (
-                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  className="input input-sm input-bordered flex-1"
-                  value={currentUrl}
-                  onChange={(e) => setCurrentUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      window.electron.browser.navigate(currentUrl)
-                    }
-                  }}
-                  placeholder="输入网址..."
-                />
-              </div>
-
               {/* 浏览器视图容器 */}
               <div className="flex-1 bg-base-100 overflow-auto">
                 {/* 浏览器视图由主进程管理 */}
               </div>
             </div>
           )}
-        </div>
+      </div>
 
-        {/* Settings Modal */}
-        {showSettings && (
-          <div className="modal modal-open">
-            <div className="modal-box">
-              <button
-                onClick={() => setShowSettings(false)}
-                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-              >
-                ✕
-              </button>
-
-              <h1 className="text-2xl font-bold mb-6">Settings</h1>
-
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Storage</h2>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg">Folder</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm opacity-70">{storagePath || 'No folder selected'}</span>
-                        <button className="btn btn-primary" onClick={handleSelectFolder}>
-                          Modify Folder
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg">Update</h3>
-                      <button className="btn btn-primary" onClick={handleUpdateFolders}>
-                        Update Folders
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <button 
+              onClick={() => setShowSettings(false)}
+              className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+            >
+              ✕
+            </button>
+            
+            <h1 className="text-2xl font-bold mb-6">Settings</h1>
+            
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Storage</h2>
+                
+              <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg">Folder</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm opacity-70">{storagePath || 'No folder selected'}</span>
+                      <button className="btn btn-primary" onClick={handleSelectFolder}>
+                        Modify Folder
                       </button>
                     </div>
+                </div>
+                
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg">Update</h3>
+                    <button className="btn btn-primary" onClick={handleUpdateFolders}>
+                      Update Folders
+                    </button>
+                </div>
 
-                    <div className="divider"></div>
+                  <div className="divider"></div>
 
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg">Theme</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm opacity-70">{currentTheme}</span>
-                        <button onClick={toggleTheme} className="btn btn-primary">
-                          Change Theme
-                        </button>
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg">Theme</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm opacity-70">{currentTheme}</span>
+                      <button onClick={toggleTheme} className="btn btn-primary">
+                        Change Theme
+                      </button>
+              </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="modal-backdrop" onClick={() => setShowSettings(false)}></div>
           </div>
-        )}
+          <div className="modal-backdrop" onClick={() => setShowSettings(false)}></div>
+        </div>
+      )}
 
-        {/* Image Modal */}
-        {showImageModal && currentImage && (
-          <div className="modal modal-open">
-            <div className="modal-box relative max-w-5xl h-[80vh] p-0 bg-transparent shadow-none overflow-visible flex flex-col">
-              {/* 添加关闭按钮 */}
-              <button
-                className="btn btn-circle btn-ghost bg-base-100 absolute right-0 -top-16 z-50"
-                onClick={() => setShowImageModal(false)}
-              >
-                ✕
-              </button>
-
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16">
-                <button
-                  className="btn btn-circle btn-ghost bg-base-100"
-                  onClick={showPrevImage}
-                >
-                  ❮
-                </button>
-              </div>
-
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16">
-                <button
-                  className="btn btn-circle btn-ghost bg-base-100"
-                  onClick={showNextImage}
-                >
-                  ❯
-                </button>
-              </div>
-
-              <div className="w-full flex-1 flex items-center justify-center relative">
-                <img
-                  src={`local-file://${currentImage.path}`}
-                  alt={currentImage.name}
-                  className="max-w-full max-h-full object-contain z-10"
-                  style={{
-                    transform: `scale(${imageScale}) translate(${imageDrag.translateX}px, ${imageDrag.translateY}px)`,
-                    transition: imageDrag.isDragging ? 'none' : 'transform 0.1s ease-out',
-                    cursor: imageDrag.isDragging ? 'grabbing' : 'grab'
-                  }}
-                  onLoad={(e) => {
-                    getImageResolution(e.target)
-                    setImageScale(1)
-                    checkImagePosition(e.target)
-                    // 重置拖动状态
-                    setImageDrag({
-                      isDragging: false,
-                      startX: 0,
-                      startY: 0,
-                      translateX: 0,
-                      translateY: 0,
-                      lastTranslateX: 0,
-                      lastTranslateY: 0
-                    })
-                  }}
-                  onWheel={(e) => {
-                    handleImageWheel(e)
-                    checkImagePosition(e.target)
-                  }}
-                  onContextMenu={handleImageContextMenu}
-                  onMouseDown={handleImageMouseDown}
-                  onMouseMove={handleImageMouseMove}
-                  onMouseUp={handleImageMouseUp}
-                  onMouseLeave={handleImageMouseUp}
-                />
-              </div>
-
-              <div className="bg-base-100 p-4 flex items-center justify-center gap-4 relative z-0" style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: '20px',
-                margin: '0 20px 20px 20px'
-              }}>
-                {editingImageName === currentImage.path ? (
-                  <div className="join">
-                    <input
-                      type="text"
-                      value={imageNameInput}
-                      onChange={(e) => setImageNameInput(e.target.value)}
-                      className="input input-bordered join-item"
-                      placeholder="Enter new file name"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          renameImageFile(currentImage, imageNameInput)
-                        }
-                      }}
-                    />
-                    <button
-                      className="btn join-item"
-                      onClick={() => renameImageFile(currentImage, imageNameInput)}
-                    >
-                      Save
-                    </button>
-                    <button
-                      className="btn join-item"
-                      onClick={() => {
-                        setEditingImageName(null)
-                        setImageNameInput('')
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-4">
-                    <span
-                      className="cursor-pointer hover:underline text-white"
-                      onClick={() => {
-                        setEditingImageName(currentImage.path)
-                        setImageNameInput(currentImage.name.replace(/\.[^/.]+$/, ""))
-                      }}
-                    >
-                      {currentImage.name}
-                    </span>
-                    {imageResolution && (
-                      <div className="flex items-center gap-4">
-                        <span className="text-white">
-                          Res: {imageResolution.width} × {imageResolution.height}
-                        </span>
-                        <div className="flex gap-2">
-                          <button
-                            className="btn btn-sm"
-                            onClick={() => {
-                              sendToEditor(currentImage)
-                              setShowImageModal(false)
-                            }}
-                          >
-                            Send to Editor
-                          </button>
-                          <button
-                            className="btn btn-sm"
-                            onClick={async () => {
-                              try {
-                                const img = new Image()
-                                await new Promise((resolve, reject) => {
-                                  img.onload = resolve
-                                  img.onerror = reject
-                                  img.src = `local-file://${currentImage.path}`
-                                })
-
-                                const canvas = document.createElement('canvas')
-                                canvas.width = img.naturalWidth
-                                canvas.height = img.naturalHeight
-                                const ctx = canvas.getContext('2d')
-                                ctx.drawImage(img, 0, 0)
-
-                                const blob = await new Promise(resolve => canvas.toBlob(resolve))
-                                await navigator.clipboard.write([
-                                  new ClipboardItem({ 'image/png': blob })
-                                ])
-                              } catch (error) {
-                                console.error('Failed to copy image:', error)
-                                alert('复制失败')
-                              }
-                            }}
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div
-              className="modal-backdrop bg-black/80"
+      {/* Image Modal */}
+      {showImageModal && currentImage && (
+        <div className="modal modal-open">
+          <div className="modal-box relative max-w-5xl h-[80vh] p-0 bg-transparent shadow-none overflow-visible flex flex-col">
+            {/* 添加关闭按钮 */}
+            <button 
+              className="btn btn-circle btn-ghost bg-base-100 absolute right-0 -top-16 z-50"
               onClick={() => setShowImageModal(false)}
-            ></div>
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {deletingConversation && (
-          <div className="modal modal-open">
-            <div className="modal-box">
-              <h3 className="font-bold text-lg">Delete Chat</h3>
-              <p className="py-4">Are you sure you want to delete this chat?</p>
-              <div className="modal-action">
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => setDeletingConversation(null)}
-                >
-                  No
-                </button>
-                <button
-                  className="btn btn-error"
-                  onClick={() => {
-                    deleteConversation(deletingConversation.id)
-                    setDeletingConversation(null)
-                  }}
-                >
-                  Yes
-                </button>
+            >
+              ✕
+            </button>
+            
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16">
+              <button 
+                className="btn btn-circle btn-ghost bg-base-100"
+                onClick={showPrevImage}
+              >
+                ❮
+              </button>
               </div>
+            
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16">
+              <button 
+                className="btn btn-circle btn-ghost bg-base-100"
+                onClick={showNextImage}
+              >
+                ❯
+              </button>
             </div>
-            <div className="modal-backdrop" onClick={() => setDeletingConversation(null)}></div>
+
+            <div className="w-full flex-1 flex items-center justify-center relative">
+              <img 
+                src={`local-file://${currentImage.path}`}
+                alt={currentImage.name}
+                className="max-w-full max-h-full object-contain z-10"
+                style={{
+                  transform: `scale(${imageScale}) translate(${imageDrag.translateX}px, ${imageDrag.translateY}px)`,
+                  transition: imageDrag.isDragging ? 'none' : 'transform 0.1s ease-out',
+                  cursor: imageDrag.isDragging ? 'grabbing' : 'grab'
+                }}
+                onLoad={(e) => {
+                  getImageResolution(e.target)
+                  setImageScale(1)
+                  checkImagePosition(e.target)
+                  // 重置拖动状态
+                  setImageDrag({
+                    isDragging: false,
+                    startX: 0,
+                    startY: 0,
+                    translateX: 0,
+                    translateY: 0,
+                    lastTranslateX: 0,
+                    lastTranslateY: 0
+                  })
+                }}
+                onWheel={(e) => {
+                  handleImageWheel(e)
+                  checkImagePosition(e.target)
+                }}
+                onContextMenu={handleImageContextMenu}
+                onMouseDown={handleImageMouseDown}
+                onMouseMove={handleImageMouseMove}
+                onMouseUp={handleImageMouseUp}
+                onMouseLeave={handleImageMouseUp}
+              />
           </div>
-        )}
+
+            <div className="bg-base-100 p-4 flex items-center justify-center gap-4 relative z-0" style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '20px',
+              margin: '0 20px 20px 20px'
+            }}>
+              {editingImageName === currentImage.path ? (
+                <div className="join">
+                  <input
+                    type="text"
+                    value={imageNameInput}
+                    onChange={(e) => setImageNameInput(e.target.value)}
+                    className="input input-bordered join-item"
+                    placeholder="Enter new file name"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        renameImageFile(currentImage, imageNameInput)
+                      }
+                    }}
+                  />
+                  <button
+                    className="btn join-item"
+                    onClick={() => renameImageFile(currentImage, imageNameInput)}
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="btn join-item"
+                    onClick={() => {
+                      setEditingImageName(null)
+                      setImageNameInput('')
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <span
+                    className="cursor-pointer hover:underline text-white"
+                    onClick={() => {
+                      setEditingImageName(currentImage.path)
+                      setImageNameInput(currentImage.name.replace(/\.[^/.]+$/, ""))
+                    }}
+                  >
+                    {currentImage.name}
+                  </span>
+                  {imageResolution && (
+                    <div className="flex items-center gap-4">
+                      <span className="text-white">
+                        Res: {imageResolution.width} × {imageResolution.height}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => {
+                            sendToEditor(currentImage)
+                            setShowImageModal(false)
+                          }}
+                        >
+                          Send to Editor
+                        </button>
+                        <button
+                          className="btn btn-sm"
+                          onClick={async () => {
+                            try {
+                              const img = new Image()
+                              await new Promise((resolve, reject) => {
+                                img.onload = resolve
+                                img.onerror = reject
+                                img.src = `local-file://${currentImage.path}`
+                              })
+                              
+                              const canvas = document.createElement('canvas')
+                              canvas.width = img.naturalWidth
+                              canvas.height = img.naturalHeight
+                              const ctx = canvas.getContext('2d')
+                              ctx.drawImage(img, 0, 0)
+                              
+                              const blob = await new Promise(resolve => canvas.toBlob(resolve))
+                              await navigator.clipboard.write([
+                                new ClipboardItem({ 'image/png': blob })
+                              ])
+                            } catch (error) {
+                              console.error('Failed to copy image:', error)
+                              alert('复制失败')
+                            }
+                          }}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <div 
+            className="modal-backdrop bg-black/80" 
+            onClick={() => setShowImageModal(false)}
+          ></div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingConversation && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Delete Chat</h3>
+            <p className="py-4">Are you sure you want to delete this chat?</p>
+            <div className="modal-action">
+              <button 
+                className="btn btn-ghost"
+                onClick={() => setDeletingConversation(null)}
+              >
+                No
+              </button>
+              <button 
+                className="btn btn-error"
+                onClick={() => {
+                  deleteConversation(deletingConversation.id)
+                  setDeletingConversation(null)
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setDeletingConversation(null)}></div>
+        </div>
+      )}
 
         {/* 右键菜单 */}
         {contextMenu.visible && (
@@ -2575,6 +2532,6 @@ export default function App() {
           </div>
         )}
       </div>
-    </div>
-  )
-}
+        </div>
+      )
+    }
