@@ -16,6 +16,9 @@ import { moveMessage as moveMessageOp } from './components/messageMovement'
 import { copyMessageContent } from './components/messageUtils'
 import { handlePaste } from './components/pasteHandler'
 import { copyCode, pasteCode } from './components/codeOperations'
+import { ContextMenu } from './components/ContextMenu'
+import { formatMessageTime } from './utils/timeFormat'
+import { handleFileSelect, removeFile, handleFileDrop } from './components/fileHandlers'
 
 // 添加全局样式
 const globalStyles = `
@@ -820,26 +823,6 @@ const tools = ['chat', 'browser', 'editor']
     }
   }
 
-  // 添加时间格式化函数
-  const formatMessageTime = (timestamp) => {
-    const messageDate = new Date(timestamp)
-    const today = new Date()
-    const isToday = messageDate.toDateString() === today.toDateString()
-    
-    const hours = messageDate.getHours().toString().padStart(2, '0')
-    const minutes = messageDate.getMinutes().toString().padStart(2, '0')
-    const time = `${hours}:${minutes}`
-    
-    if (isToday) {
-      return time
-    } else {
-      const year = messageDate.getFullYear()
-      const month = (messageDate.getMonth() + 1).toString().padStart(2, '0')
-      const day = messageDate.getDate().toString().padStart(2, '0')
-      return `${year}-${month}-${day} ${time}`
-    }
-  }
-
   // 添加移动消息的函数
   const moveMessageInApp = async (messageId, direction) => {
     try {
@@ -1128,7 +1111,7 @@ const tools = ['chat', 'browser', 'editor']
   // 处理右键菜单
   const handleContextMenu = (e) => {
     e.preventDefault()
-    e.stopPropagation()  // 阻止事件冒泡
+    e.stopPropagation()
     const selection = window.getSelection()
     const text = selection.toString()
 
@@ -1154,6 +1137,17 @@ const tools = ['chat', 'browser', 'editor']
   const handlePasteCode = async () => {
     await pasteCode(selectedElement, setMessageInput)
     closeContextMenu()
+  }
+
+  // 处理删除对话
+  const handleDeleteConversation = (conversation) => {
+    setDeletingConversation(conversation)
+  }
+
+  // 处理重命名对话
+  const handleRenameConversation = (conversation) => {
+    setEditingFolderName(conversation.id)
+    setFolderNameInput(conversation.name)
   }
 
   // 手动解析和渲染Markdown
@@ -1309,41 +1303,7 @@ const tools = ['chat', 'browser', 'editor']
     }
   }, [sidebarOpen, activeTool])
 
-  const handleFileSelect = async (event) => {
-    if (!currentConversation) {
-      alert('请先选择或创建一个对话')
-      return
-    }
-
-    const files = Array.from(event.target.files)
-    
-    // Save files to chat folder
-    const savedFiles = await Promise.all(files.map(async file => {
-      const reader = new FileReader()
-      const fileData = await new Promise((resolve) => {
-        reader.onload = (e) => resolve(e.target.result)
-        reader.readAsArrayBuffer(file)
-      })
-      
-      const result = await window.electron.saveFile(currentConversation.path, {
-        name: file.name,
-        data: Array.from(new Uint8Array(fileData))
-      })
-      
-      return {
-        name: file.name,
-        path: result.path
-      }
-    }))
-    
-    setSelectedFiles(prev => [...prev, ...savedFiles])
-  }
-
-  const removeFile = (fileToRemove) => {
-    setSelectedFiles(prev => prev.filter(file => file.name !== fileToRemove.name))
-  }
-
-      return (
+  return (
     <div className="flex flex-col h-screen" onClick={closeContextMenu}>
       <style>{globalStyles}</style>
 
@@ -1536,7 +1496,7 @@ const tools = ['chat', 'browser', 'editor']
                 e.preventDefault()
                 e.stopPropagation()
               }}
-              onDrop={handleFileDrop}
+              onDrop={(e) => handleFileDrop(e, currentConversation, setSelectedFiles, window.electron)}
             >
               <div className="max-w-3xl mx-auto py-4 px-6 pb-32">
                 {messages.map(message => (
@@ -1800,7 +1760,7 @@ const tools = ['chat', 'browser', 'editor']
                           {file.name}
                           <button
                             className="btn btn-ghost btn-xs"
-                            onClick={() => removeFile(file)}
+                            onClick={() => removeFile(file, setSelectedFiles)}
                           >
                             ×
                           </button>
@@ -1870,7 +1830,7 @@ const tools = ['chat', 'browser', 'editor']
                     <input
                       type="file"
                       ref={fileInputRef}
-                      onChange={handleFileSelect}
+                      onChange={(e) => handleFileSelect(e, currentConversation, setSelectedFiles, window.electron)}
                       className="hidden"
                       multiple
                     />
@@ -2370,71 +2330,16 @@ const tools = ['chat', 'browser', 'editor']
         </div>
       )}
 
-        {/* 右键菜单 */}
-        {contextMenu.visible && (
-          <div
-            className="fixed z-[100]"
-            style={{
-              top: `${contextMenu.y}px`,
-              left: `${contextMenu.x}px`
-            }}
-            onContextMenu={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {contextMenu.type === 'chat' ? (
-              <ul className="menu menu-horizontal bg-base-200 rounded-box shadow-lg">
-                <li>
-                  <button
-                    className="text-left px-4 py-2 hover:bg-base-300"
-                    onClick={() => {
-                      setDeletingConversation(contextMenu.data)
-                      closeContextMenu()
-                    }}
-                  >
-                    Delete
-                  </button>
-                </li>
-                <li>
-                  <button
-                    className="text-left px-4 py-2 hover:bg-base-300"
-                    onClick={() => {
-                      setEditingFolderName(contextMenu.data.id)
-                      setFolderNameInput(contextMenu.data.name)
-                      closeContextMenu()
-                    }}
-                  >
-                    Rename
-                  </button>
-                </li>
-              </ul>
-            ) : (
-              <ul className={`menu ${selectedElement?.closest('textarea') ? 'menu-horizontal' : ''} bg-base-200 ${selectedElement?.closest('textarea') ? '' : 'w-56'} rounded-box shadow-lg`}>
-                <li>
-                  <button
-                    className="w-full text-left px-4 py-2 hover:bg-base-300"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleCopyCode()
-                    }}
-                  >
-                    Copy
-                  </button>
-                </li>
-                <li>
-                  <button
-                    className="w-full text-left px-4 py-2 hover:bg-base-300"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handlePasteCode()
-                    }}
-                  >
-                    Paste
-                  </button>
-                </li>
-              </ul>
-            )}
-          </div>
-        )}
+        {/* 使用新的 ContextMenu 组件 */}
+        <ContextMenu
+          contextMenu={contextMenu}
+          onClose={closeContextMenu}
+          onDelete={handleDeleteConversation}
+          onRename={handleRenameConversation}
+          onCopy={handleCopyCode}
+          onPaste={handlePasteCode}
+          selectedElement={selectedElement}
+        />
       </div>
         </div>
       )
