@@ -1548,75 +1548,85 @@ const tools = ['chat', 'browser', 'editor']
 
               {/* Chat list */}
               {activeTool === 'chat' && (
-        <div className="flex-1 mt-2 overflow-y-auto">
-          <div className="flex flex-col gap-2">
-            {conversations.map(conversation => (
-              <div
-                key={conversation.id}
-                        className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''
-                } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
-                draggable
-                onDragStart={() => handleDragStart(conversation)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(conversation)}
-              >
-                <div 
-                  className="flex items-center gap-2 flex-1"
-                  onClick={() => {
-                    if (editingFolderName === conversation.id) return
-                    loadConversation(conversation.id)
-                  }}
-                >
-                  {!editingFolderName && (
-                    <svg className="h-4 w-4" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                  )}
-                  {editingFolderName === conversation.id ? (
-                    <input
-                      type="text"
-                      value={folderNameInput}
-                      onChange={(e) => setFolderNameInput(e.target.value)}
-                      className="input input-xs input-bordered join-item w-full"
-                      placeholder="Enter new folder name"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          renameChatFolder(conversation, folderNameInput)
-                        }
-                      }}
-                      onBlur={() => {
-                        setEditingFolderName(null)
-                        setFolderNameInput('')
-                      }}
-                      autoFocus
-                    />
-                  ) : (
-                    <span 
-                      className="truncate cursor-pointer hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditingFolderName(conversation.id)
-                        setFolderNameInput(conversation.name)
-                      }}
-                    >
-                      {conversation.name}
-                    </span>
-                  )}
-                </div>
-                {!editingFolderName && (
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setDeletingConversation(conversation)
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+                <div className="flex-1 mt-2 overflow-y-auto">
+                  <div className="flex flex-col gap-2">
+                    {conversations.map(conversation => (
+                      <div
+                        key={conversation.id}
+                        className={`btn btn-ghost justify-between ${
+                          currentConversation?.id === conversation.id ? 'btn-active' : ''
+                        } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                        draggable={editingFolderName === null}
+                        onDragStart={() => {
+                          if (editingFolderName !== null) return
+                          handleDragStart(conversation)
+                        }}
+                        onDragOver={(e) => {
+                          if (editingFolderName !== null) return
+                          handleDragOver(e)
+                        }}
+                        onDrop={(e) => {
+                          if (editingFolderName !== null) return
+                          handleDrop(conversation)
+                        }}
+                        onContextMenu={(e) => {
+                          if (editingFolderName !== null) return
+                          e.preventDefault()
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          setContextMenu({
+                            visible: true,
+                            x: rect.right,
+                            y: rect.top,
+                            type: 'chat',
+                            data: conversation
+                          })
+                        }}
+                        onClick={() => {
+                          if (editingFolderName === conversation.id) return
+                          loadConversation(conversation.id)
+                        }}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          {editingFolderName === conversation.id ? (
+                            <div className="join w-full" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="text"
+                                value={folderNameInput}
+                                onChange={(e) => setFolderNameInput(e.target.value)}
+                                className="input input-xs input-bordered join-item flex-1"
+                                placeholder="Enter new folder name"
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    renameChatFolder(conversation, folderNameInput)
+                                  }
+                                }}
+                                autoFocus
+                              />
+                              <button
+                                className="btn btn-xs join-item"
+                                onClick={() => renameChatFolder(conversation, folderNameInput)}
+                              >
+                                Yes
+                              </button>
+                              <button
+                                className="btn btn-xs join-item"
+                                onClick={() => {
+                                  setEditingFolderName(null)
+                                  setFolderNameInput('')
+                                }}
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="truncate">
+                              {conversation.name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
         </div>
@@ -2237,7 +2247,7 @@ const tools = ['chat', 'browser', 'editor']
                 {/* 浏览器视图由主进程管理 */}
               </div>
             </div>
-          )}
+        )}
       </div>
 
       {/* Settings Modal */}
@@ -2505,30 +2515,58 @@ const tools = ['chat', 'browser', 'editor']
             onContextMenu={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
-            <ul className={`menu ${selectedElement?.closest('textarea') ? 'menu-horizontal' : ''} bg-base-200 ${selectedElement?.closest('textarea') ? '' : 'w-56'} rounded-box shadow-lg`}>
-              <li>
-                <button
-                  className="w-full text-left px-4 py-2 hover:bg-base-300"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    copyCode()
-                  }}
-                >
-                  Copy
-                </button>
-              </li>
-              <li>
-                <button
-                  className="w-full text-left px-4 py-2 hover:bg-base-300"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    pasteCode()
-                  }}
-                >
-                  Paste
-                </button>
-              </li>
-            </ul>
+            {contextMenu.type === 'chat' ? (
+              <ul className="menu menu-horizontal bg-base-200 rounded-box shadow-lg">
+                <li>
+                  <button
+                    className="text-left px-4 py-2 hover:bg-base-300"
+                    onClick={() => {
+                      setDeletingConversation(contextMenu.data)
+                      closeContextMenu()
+                    }}
+                  >
+                    Delete
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className="text-left px-4 py-2 hover:bg-base-300"
+                    onClick={() => {
+                      setEditingFolderName(contextMenu.data.id)
+                      setFolderNameInput(contextMenu.data.name)
+                      closeContextMenu()
+                    }}
+                  >
+                    Rename
+                  </button>
+                </li>
+              </ul>
+            ) : (
+              <ul className={`menu ${selectedElement?.closest('textarea') ? 'menu-horizontal' : ''} bg-base-200 ${selectedElement?.closest('textarea') ? '' : 'w-56'} rounded-box shadow-lg`}>
+                <li>
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-base-300"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      copyCode()
+                    }}
+                  >
+                    Copy
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-base-300"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      pasteCode()
+                    }}
+                  >
+                    Paste
+                  </button>
+                </li>
+              </ul>
+            )}
           </div>
         )}
       </div>

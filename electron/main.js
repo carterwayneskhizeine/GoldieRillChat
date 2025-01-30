@@ -762,16 +762,16 @@ function createWindow() {
     const bounds = mainWindow.getBounds()
     const contentBounds = mainWindow.getContentBounds()
     
-    // 计算顶部工具栏的高度（包括标题栏和标签栏）
+    // 计算顶部工具栏的高度（包括标题栏和控制栏）
     const titleBarHeight = bounds.height - contentBounds.height
-    const tabBarHeight = 64 // 标签栏高度
+    const controlBarHeight = 50 // 浏览器控制栏的高度28
     
     // 设置浏览器视图的边界，考虑侧边栏宽度和滚动条空间
     view.setBounds({ 
       x: 10 + sidebarWidth, // 10px 是侧边栏切换条的宽度
-      y: titleBarHeight + tabBarHeight,
-      width: bounds.width - (10 + sidebarWidth + 15), // 减去侧边栏宽度、切换条宽度和滚动条宽度
-      height: bounds.height - (titleBarHeight + tabBarHeight + 0) // 减去底部滚动条高度
+      y: titleBarHeight + controlBarHeight,
+      width: bounds.width - (10 + sidebarWidth + 0), // 减去侧边栏宽度、切换条宽度和滚动条宽度
+      height: bounds.height - (titleBarHeight + controlBarHeight + 0) // 减去底部滚动条高度
     })
 
     // 设置自动调整大小选项

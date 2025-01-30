@@ -18,16 +18,16 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
   }, [])
 
   return (
-    <div className="h-8 flex items-center bg-base-300 select-none">
+    <div className="h-8 flex items-center bg-base-300 select-none app-drag-region">
       {/* 应用图标和名称 */}
-      <div className="flex items-center px-2 gap-2">
-        <img src="/GoldieRillicon.ico" alt="logo" className="w-4 h-4" />
-        <span className="text-sm font-semibold">GoldieRillChat</span>
+      <div className="flex items-center px-2 gap-2 app-drag-region">
+        <img src="/GoldieRillicon.ico" alt="logo" className="w-4 h-4 app-drag-region" />
+        <span className="text-sm font-semibold app-drag-region">GoldieRillChat</span>
       </div>
 
       {/* 浏览器控制栏 - 只在浏览器工具激活时显示 */}
       {activeTool === 'browser' ? (
-        <div className="flex-1 flex justify-center items-center gap-2 px-4">
+        <div className="flex-1 flex justify-center items-center gap-2 px-4 no-drag">
           <div className="join">
             <button 
               className="join-item btn btn-sm btn-ghost"
@@ -79,7 +79,7 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
       )}
 
       {/* 窗口控制按钮 */}
-      <div className="flex h-full">
+      <div className="flex h-full no-drag">
         <button
           className="h-full px-4 hover:bg-base-100 flex items-center justify-center"
           onClick={() => window.electron.window.minimize()}
