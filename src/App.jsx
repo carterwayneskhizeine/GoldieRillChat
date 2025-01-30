@@ -1548,14 +1548,14 @@ const tools = ['chat', 'browser', 'editor']
 
               {/* Chat list */}
               {activeTool === 'chat' && (
-                <div className="flex-1 mt-2 overflow-y-auto">
-                  <div className="flex flex-col gap-2">
-                    {conversations.map(conversation => (
-                      <div
-                        key={conversation.id}
-                        className={`btn btn-ghost justify-between ${
-                          currentConversation?.id === conversation.id ? 'btn-active' : ''
-                        } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+        <div className="flex-1 mt-2 overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            {conversations.map(conversation => (
+              <div
+                key={conversation.id}
+                className={`btn btn-ghost justify-between ${
+                  currentConversation?.id === conversation.id ? 'btn-active' : ''
+                } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
                         draggable={editingFolderName === null}
                         onDragStart={() => {
                           if (editingFolderName !== null) return
@@ -1581,34 +1581,34 @@ const tools = ['chat', 'browser', 'editor']
                             data: conversation
                           })
                         }}
-                        onClick={() => {
-                          if (editingFolderName === conversation.id) return
-                          loadConversation(conversation.id)
-                        }}
-                      >
+                  onClick={() => {
+                    if (editingFolderName === conversation.id) return
+                    loadConversation(conversation.id)
+                  }}
+                >
                         <div className="flex items-center gap-2 flex-1">
-                          {editingFolderName === conversation.id ? (
+                  {editingFolderName === conversation.id ? (
                             <div className="join w-full" onClick={(e) => e.stopPropagation()}>
-                              <input
-                                type="text"
-                                value={folderNameInput}
-                                onChange={(e) => setFolderNameInput(e.target.value)}
+                    <input
+                      type="text"
+                      value={folderNameInput}
+                      onChange={(e) => setFolderNameInput(e.target.value)}
                                 className="input input-xs input-bordered join-item flex-1"
-                                placeholder="Enter new folder name"
-                                onKeyPress={(e) => {
-                                  if (e.key === 'Enter') {
-                                    renameChatFolder(conversation, folderNameInput)
-                                  }
-                                }}
-                                autoFocus
-                              />
+                      placeholder="Enter new folder name"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          renameChatFolder(conversation, folderNameInput)
+                        }
+                      }}
+                      autoFocus
+                    />
                               <button
                                 className="btn btn-xs join-item"
                                 onClick={() => renameChatFolder(conversation, folderNameInput)}
                               >
                                 Yes
                               </button>
-                              <button
+                  <button
                                 className="btn btn-xs join-item"
                                 onClick={() => {
                                   setEditingFolderName(null)
@@ -1616,17 +1616,17 @@ const tools = ['chat', 'browser', 'editor']
                                 }}
                               >
                                 No
-                              </button>
+                  </button>
                             </div>
                           ) : (
                             <span className="truncate">
                               {conversation.name}
                             </span>
-                          )}
+                )}
                         </div>
-                      </div>
-                    ))}
-                  </div>
+              </div>
+            ))}
+          </div>
                 </div>
               )}
         </div>
@@ -1656,7 +1656,7 @@ const tools = ['chat', 'browser', 'editor']
           <div className="flex-1 flex flex-col relative">
               {/* 现有的聊天内容 */}
             <div 
-              className="absolute inset-0 overflow-y-auto"
+              className="absolute inset-0 overflow-y-auto overflow-x-hidden"
               onDragOver={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
@@ -1717,7 +1717,7 @@ const tools = ['chat', 'browser', 'editor']
                         </span>
                       )}
                     </div>
-                    <div className="chat-bubble relative max-w-[800px]">
+                    <div className="chat-bubble relative max-w-[800px] break-words">
                       {message.content && message.content.split('\n').length > 6 && (
                           <div
                             className="absolute right-0 flex items-center"
@@ -1924,7 +1924,7 @@ const tools = ['chat', 'browser', 'editor']
             </div>
 
             {/* Bottom input area - fixed */}
-            <div className={`absolute bottom-0 left-0 right-[20px] bg-base-100 z-50 ${editingMessage ? 'hidden' : ''}`}>
+            <div className={`absolute bottom-0 left-0 right-0 bg-transparent z-50 ${editingMessage ? 'hidden' : ''}`}>
               <div className="p-4">
                 <div className="max-w-3xl mx-auto relative">
                   {selectedFiles.length > 0 && (
@@ -1973,7 +1973,7 @@ const tools = ['chat', 'browser', 'editor']
                           handleContextMenu(e)
                         }}
                       placeholder="Send a message..."
-                        className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide"
+                        className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide bg-base-100"
                         style={{
                           scrollbarWidth: 'none',  // Firefox
                           msOverflowStyle: 'none',  // IE and Edge
