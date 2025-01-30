@@ -13,6 +13,9 @@ import {
   loadConversation as loadConversationOp 
 } from './components/conversationOperations'
 import { moveMessage as moveMessageOp } from './components/messageMovement'
+import { copyMessageContent } from './components/messageUtils'
+import { handlePaste } from './components/pasteHandler'
+import { copyCode, pasteCode } from './components/codeOperations'
 
 // 添加全局样式
 const globalStyles = `
@@ -817,54 +820,6 @@ const tools = ['chat', 'browser', 'editor']
     }
   }
 
-  // 添加复制消息内容的函数
-  const copyMessageContent = async (message) => {
-    try {
-      // 创建一个新的 ClipboardItem 数组
-      const clipboardItems = []
-      
-      // 如果有文本内容，添加到剪贴板项
-      if (message.content) {
-        const textBlob = new Blob([message.content], { type: 'text/plain' })
-        clipboardItems.push(new ClipboardItem({ 'text/plain': textBlob }))
-      }
-      
-      // 如果有图片文件，添加到剪贴板项
-      if (message.files?.length > 0) {
-        await Promise.all(message.files.map(async file => {
-          if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-            // 创建一个临时的 canvas 来获取图片数据
-            const img = new Image()
-            await new Promise((resolve, reject) => {
-              img.onload = resolve
-              img.onerror = reject
-              img.src = `local-file://${file.path}`
-            })
-            
-            const canvas = document.createElement('canvas')
-            canvas.width = img.naturalWidth
-            canvas.height = img.naturalHeight
-            const ctx = canvas.getContext('2d')
-            ctx.drawImage(img, 0, 0)
-            
-            // 转换为 blob
-            const blob = await new Promise(resolve => {
-              canvas.toBlob(resolve, 'image/png')
-            })
-            
-            clipboardItems.push(new ClipboardItem({ 'image/png': blob }))
-          }
-        }))
-      }
-      
-      // 写入剪贴板
-      await navigator.clipboard.write(clipboardItems)
-    } catch (error) {
-      console.error('Failed to copy content:', error)
-      alert('复制失败')
-    }
-  }
-
   // 添加时间格式化函数
   const formatMessageTime = (timestamp) => {
     const messageDate = new Date(timestamp)
@@ -1190,47 +1145,14 @@ const tools = ['chat', 'browser', 'editor']
   }
 
   // 复制代码
-  const copyCode = () => {
-    const pre = selectedElement?.closest('pre')
-    const textarea = selectedElement?.closest('textarea')
-    if (pre) {
-      navigator.clipboard.writeText(pre.textContent)
-    } else if (textarea) {
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const selectedText = textarea.value.substring(start, end)
-      if (selectedText) {
-        navigator.clipboard.writeText(selectedText)
-      }
-    } else if (selectedText) {
-      navigator.clipboard.writeText(selectedText)
-    }
+  const handleCopyCode = () => {
+    copyCode(selectedElement, selectedText)
     closeContextMenu()
   }
 
   // 粘贴代码
-  const pasteCode = async () => {
-    const pre = selectedElement?.closest('pre')
-    const textarea = selectedElement?.closest('textarea')
-    if (pre) {
-      try {
-        const text = await navigator.clipboard.readText()
-        pre.querySelector('code').textContent = text
-      } catch (error) {
-        console.error('Failed to paste:', error)
-      }
-    } else if (textarea) {
-      try {
-        const text = await navigator.clipboard.readText()
-        const start = textarea.selectionStart
-        const end = textarea.selectionEnd
-        const currentValue = textarea.value
-        textarea.value = currentValue.substring(0, start) + text + currentValue.substring(end)
-        setMessageInput(textarea.value)
-      } catch (error) {
-        console.error('Failed to paste:', error)
-      }
-    }
+  const handlePasteCode = async () => {
+    await pasteCode(selectedElement, setMessageInput)
     closeContextMenu()
   }
 
@@ -1910,21 +1832,21 @@ const tools = ['chat', 'browser', 'editor']
                           e.target.style.overflowY = 'hidden'
                         }
                       }}
-                      onPaste={handlePaste}
-                        onContextMenu={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleContextMenu(e)
-                        }}
+                      onPaste={(e) => handlePaste(e, currentConversation, setSelectedFiles, window.electron)}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleContextMenu(e)
+                      }}
                       placeholder="Send a message..."
-                        className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide bg-base-100"
-                        style={{
-                          scrollbarWidth: 'none',  // Firefox
-                          msOverflowStyle: 'none',  // IE and Edge
-                          '&::-webkit-scrollbar': {  // Chrome, Safari, Opera
-                            display: 'none'
-                          }
-                        }}
+                      className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide bg-base-100"
+                      style={{
+                        scrollbarWidth: 'none',  // Firefox
+                        msOverflowStyle: 'none',  // IE and Edge
+                        '&::-webkit-scrollbar': {  // Chrome, Safari, Opera
+                          display: 'none'
+                        }
+                      }}
                       rows="2"
                     />
                     <div className="absolute bottom-3 right-3 flex items-center gap-2">
@@ -2492,7 +2414,7 @@ const tools = ['chat', 'browser', 'editor']
                     className="w-full text-left px-4 py-2 hover:bg-base-300"
                     onClick={(e) => {
                       e.stopPropagation()
-                      copyCode()
+                      handleCopyCode()
                     }}
                   >
                     Copy
@@ -2503,7 +2425,7 @@ const tools = ['chat', 'browser', 'editor']
                     className="w-full text-left px-4 py-2 hover:bg-base-300"
                     onClick={(e) => {
                       e.stopPropagation()
-                      pasteCode()
+                      handlePasteCode()
                     }}
                   >
                     Paste
