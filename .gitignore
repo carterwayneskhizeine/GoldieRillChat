@@ -30,3 +30,4 @@ out/
 dist-electron/
 electron-as-browser/
 App-old.jsx
+electron-react-markdown-editor/
