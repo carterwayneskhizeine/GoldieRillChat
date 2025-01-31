@@ -21,6 +21,8 @@ import { formatMessageTime } from './utils/timeFormat'
 import { handleFileSelect, removeFile, handleFileDrop } from './components/fileHandlers'
 import { BrowserTabs } from './components/BrowserTabs'
 import { toggleMessageCollapse } from './components/messageCollapse'
+import { loadImage, drawImage, rotate, flip, resetTransform, setResolution, downloadImage } from './components/imageOperations'
+import { handleMouseDown, handleMouseMove, handleMouseUp, handleWheel } from './components/mouseEventHandlers'
 
 // 添加全局样式
 const globalStyles = `
@@ -586,60 +588,9 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     setSelectedFiles(prev => [...prev, ...savedFiles])
   }
 
-  // 图片编辑器功能
-  const loadImage = async (file) => {
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        setImageSize({
-          width: img.naturalWidth,
-          height: img.naturalHeight
-        });
-        
-        setEditorState(prev => ({
-          ...prev,
-          image: img,
-          scale: 1,
-          rotation: 0,
-          flipH: false,
-          flipV: false,
-          offsetX: 0,
-          offsetY: 0
-        }));
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  const drawImage = () => {
-    const canvas = canvasRef.current
-    if (!canvas || !editorState.image) return
-
-    const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    ctx.save()
-    ctx.translate(canvas.width / 2 + editorState.offsetX, canvas.height / 2 + editorState.offsetY)
-    ctx.rotate(editorState.rotation * Math.PI / 180)
-    ctx.scale(
-      editorState.flipH ? -editorState.scale : editorState.scale,
-      editorState.flipV ? -editorState.scale : editorState.scale
-    )
-    ctx.drawImage(
-      editorState.image,
-      -editorState.image.width / 2,
-      -editorState.image.height / 2
-    )
-    ctx.restore()
-  }
-
   // 当图片或编辑状态改变时重绘
   useEffect(() => {
-    drawImage()
+    drawImage(canvasRef.current, editorState)
   }, [editorState, canvasSize])
 
   // 添加对activeTool的监听，处理面板切换
@@ -647,7 +598,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     if (activeTool === 'editor') {
       // 使用setTimeout确保canvas已经渲染
       setTimeout(() => {
-        drawImage()
+        drawImage(canvasRef.current, editorState)
       }, 0)
     } else if (activeTool === 'chat') {
       // 切换到chat面板时滚动到底部
@@ -656,174 +607,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
       }, 0)
     }
   }, [activeTool])
-
-  // 图片编辑功能
-  const rotate = () => {
-    setEditorState(prev => ({
-      ...prev,
-      rotation: (prev.rotation + 90) % 360
-    }))
-  }
-
-  const flip = (direction) => {
-    setEditorState(prev => ({
-      ...prev,
-      flipH: direction === 'h' ? !prev.flipH : prev.flipH,
-      flipV: direction === 'v' ? !prev.flipV : prev.flipV
-    }))
-  }
-
-  const resetTransform = () => {
-    if (!editorState.image) return
-    
-    // 计算适配画布宽度的缩放比例
-    const scaleToFit = canvasSize.width / editorState.image.width
-    
-    setEditorState(prev => ({
-      ...prev,
-      scale: scaleToFit,  // 设置适配画布的缩放比例
-      rotation: 0,
-      flipH: false,
-      flipV: false,
-      offsetX: 0,
-      offsetY: 0
-    }))
-  }
-
-  const setResolution = (width, height) => {
-    setCanvasSize({ width, height })
-    setTempCanvasSize({ width, height })  // 同步更新临时值
-  }
-
-  const downloadImage = (format = 'png') => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const link = document.createElement('a')
-    link.download = `image.${format}`
-    link.href = canvas.toDataURL(`image/${format}`)
-    link.click()
-  }
-
-  // 鼠标事件处理
-  const handleMouseDown = (e) => {
-    if (!editorState.image) return
-
-    const isCtrlMode = isCtrlPressed || document.getElementById('ctrlToggle').checked
-    
-    if (isCtrlMode) {
-      // 进入旋转模式
-      setIsRotating(true)
-      const rect = canvasRef.current.getBoundingClientRect()
-      const centerX = rect.left + rect.width / 2
-      const centerY = rect.top + rect.height / 2
-      const initialAngle = Math.atan2(
-        e.clientY - centerY,
-        e.clientX - centerX
-      ) * 180 / Math.PI
-      
-      setStartAngle(initialAngle)
-      setLastRotation(editorState.rotation)
-    }
-    
-    setEditorState(prev => ({
-      ...prev,
-      dragging: true,
-      lastX: e.clientX,
-      lastY: e.clientY
-    }))
-  }
-
-  const handleMouseMove = (e) => {
-    if (!editorState.dragging || !editorState.image) return
-    
-    if (isRotating) {
-      // 旋转模式
-      const rect = canvasRef.current.getBoundingClientRect()
-      const centerX = rect.left + rect.width / 2
-      const centerY = rect.top + rect.height / 2
-      
-      const currentAngle = Math.atan2(
-        e.clientY - centerY,
-        e.clientX - centerX
-      ) * 180 / Math.PI
-      
-      const angleDiff = currentAngle - startAngle
-      setEditorState(prev => ({
-        ...prev,
-        rotation: lastRotation + angleDiff
-      }))
-    } else {
-      // 移动模式
-      const dx = e.clientX - editorState.lastX
-      const dy = e.clientY - editorState.lastY
-      
-      setEditorState(prev => ({
-        ...prev,
-        offsetX: prev.offsetX + dx,
-        offsetY: prev.offsetY + dy,
-        lastX: e.clientX,
-        lastY: e.clientY
-      }))
-    }
-  }
-
-  const handleMouseUp = () => {
-    setIsRotating(false)
-    setEditorState(prev => ({
-      ...prev,
-      dragging: false
-    }))
-  }
-
-  const handleWheel = (e) => {
-    if (!editorState.image) return
-    e.preventDefault()
-    
-    const scaleFactor = e.deltaY > 0 ? 0.99 : 1.01
-    setEditorState(prev => ({
-      ...prev,
-      scale: Math.max(0.1, Math.min(10, prev.scale * scaleFactor))
-    }))
-  }
-
-  // 添加处理粘贴事件的函数
-  const handlePaste = async (e) => {
-    if (!currentConversation) {
-      alert('请先选择或创建一个对话')
-      return
-    }
-
-    const items = e.clipboardData.items
-    const imageItems = Array.from(items).filter(item => item.type.startsWith('image/'))
-    
-    if (imageItems.length > 0) {
-      const savedFiles = await Promise.all(imageItems.map(async item => {
-        const blob = item.getAsFile()
-        const reader = new FileReader()
-        const fileData = await new Promise((resolve) => {
-          reader.onload = (e) => resolve(e.target.result)
-          reader.readAsArrayBuffer(blob)
-        })
-        
-        const timestamp = Date.now()
-        const extension = blob.type.split('/')[1]
-        const fileName = `pasted_image_${timestamp}.${extension}`
-        
-        const result = await window.electron.saveFile(currentConversation.path, {
-          name: fileName,
-          data: Array.from(new Uint8Array(fileData))
-        })
-        
-        return {
-          name: fileName,
-          path: result.path
-        }
-      }))
-      
-      setSelectedFiles(prev => [...prev, ...savedFiles])
-    }
-  }
 
   // 添加移动消息的函数
   const moveMessageInApp = async (messageId, direction) => {
@@ -995,7 +778,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     const imageFile = files.find(file => file.type.startsWith('image/'))
     
     if (imageFile) {
-      loadImage(imageFile)
+      loadImage(imageFile, setImageSize, setEditorState)
     }
   }
 
@@ -1086,30 +869,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     }
   }
 
-  // Add toggle function
-  const toggleMessageCollapse = (messageId) => {
-    setCollapsedMessages(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(messageId)) {
-        newSet.delete(messageId)
-      } else {
-        newSet.add(messageId)
-      }
-      return newSet
-    })
-
-    // 使用setTimeout确保状态更新后再滚动
-    setTimeout(() => {
-      const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
-      if (messageElement) {
-        messageElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        })
-      }
-    }, 100)
-  }
-
   // 处理右键菜单
   const handleContextMenu = (e) => {
     e.preventDefault()
@@ -1150,63 +909,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
   const handleRenameConversation = (conversation) => {
     setEditingFolderName(conversation.id)
     setFolderNameInput(conversation.name)
-  }
-
-  // 手动解析和渲染Markdown
-  const renderMarkdown = (text) => {
-    if (!text) return ''
-
-    // 首先处理换行
-    // 将连续两个或更多换行符转换为段落标签
-    text = text.replace(/\n\s*\n/g, '</p><p>')
-    // 将单个换行符转换为 <br>
-    text = text.replace(/\n/g, '<br>')
-    // 包裹整个文本为段落
-    text = '<p>' + text + '</p>'
-
-    // 解析标题 (需要处理段落标签)
-    text = text.replace(/<p># (.*?)<\/p>/gim, '<h1>$1</h1>')
-    text = text.replace(/<p>## (.*?)<\/p>/gim, '<h2>$1</h2>')
-    text = text.replace(/<p>### (.*?)<\/p>/gim, '<h3>$1</h3>')
-
-    // 解析粗体和斜体
-    text = text.replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
-    text = text.replace(/\*(.*?)\*/gim, '<i>$1</i>')
-
-    // 解析链接
-    text = text.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
-
-    // 解析图片
-    text = text.replace(/!\[(.*?)\]\((.*?)\)/gim, '<img alt="$1" src="$2" class="max-w-full rounded-lg" />')
-
-    // 解析引用 (需要处理段落标签)
-    text = text.replace(/<p>> (.*?)<\/p>/gim, '<blockquote>$1</blockquote>')
-
-    // 解析列表 (需要处理段落标签)
-    // 将连续的列表项组合在一起
-    let listItems = text.match(/<p>(?:\-|\d+\.) .*?<\/p>/gim)
-    if (listItems) {
-      listItems.forEach(item => {
-        if (item.startsWith('<p>- ')) {
-          // 无序列表
-          text = text.replace(item, item.replace(/<p>- (.*?)<\/p>/gim, '<ul><li>$1</li></ul>'))
-        } else {
-          // 有序列表
-          text = text.replace(item, item.replace(/<p>\d+\. (.*?)<\/p>/gim, '<ol><li>$1</li></ol>'))
-        }
-      })
-    }
-
-    // 解析表格 (需要处理段落标签)
-    text = text.replace(/<p>\|(.*?)\|<\/p>/gim, '<table><tr><td>$1</td></tr></table>')
-
-    // 解析代码块为普通文本 (需要处理段落标签)
-    text = text.replace(/<p>```([\s\S]*?)```<\/p>/gim, '<pre>$1</pre>')
-
-    // 清理多余的段落标签
-    text = text.replace(/<p><\/p>/g, '')
-
-    return text.trim()
   }
 
   // 添加工具切换函数
@@ -1593,7 +1295,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                           >
                         <button 
                               className="btn btn-md btn-ghost btn-circle bg-base-100"
-                          onClick={() => toggleMessageCollapse(message.id, collapsedMessages, setCollapsedMessages)}
+                          onClick={() => toggleMessageCollapse(message.id)}
                         >
                           {collapsedMessages.has(message.id) ? (
                             <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1646,8 +1348,9 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                                 }}
                                   data-message-id={message.id}
                                   onContextMenu={handleContextMenu}
-                                  dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
-                                />
+                                >
+                                  {message.content}
+                                </div>
                             </div>
                           )}
                           {message.files?.length > 0 && (
@@ -1889,7 +1592,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                   id="imageInput"
                   className="hidden"
                   accept="image/*"
-                  onChange={(e) => loadImage(e.target.files[0])}
+                  onChange={(e) => loadImage(e.target.files[0], setImageSize, setEditorState)}
                 />
                 <button 
                   className="btn btn-sm"
@@ -1901,33 +1604,33 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                 <div className="dropdown">
                   <button tabIndex={0} className="btn btn-sm">Res</button>
                   <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
-                      <li><button onClick={() => setResolution(1920, 1080)} className="whitespace-nowrap">1920 × 1080</button></li>
-                    <li><button onClick={() => setResolution(512, 512)} className="whitespace-nowrap">512 × 512</button></li>
-                    <li><button onClick={() => setResolution(512, 288)} className="whitespace-nowrap">512 × 288</button></li>
-                    <li><button onClick={() => setResolution(768, 320)} className="whitespace-nowrap">768 × 320</button></li>
-                    <li><button onClick={() => setResolution(768, 512)} className="whitespace-nowrap">768 × 512</button></li>
+                      <li><button onClick={() => setResolution(1920, 1080, setCanvasSize, setTempCanvasSize)} className="whitespace-nowrap">1920 × 1080</button></li>
+                    <li><button onClick={() => setResolution(512, 512, setCanvasSize, setTempCanvasSize)} className="whitespace-nowrap">512 × 512</button></li>
+                    <li><button onClick={() => setResolution(512, 288, setCanvasSize, setTempCanvasSize)} className="whitespace-nowrap">512 × 288</button></li>
+                    <li><button onClick={() => setResolution(768, 320, setCanvasSize, setTempCanvasSize)} className="whitespace-nowrap">768 × 320</button></li>
+                    <li><button onClick={() => setResolution(768, 512, setCanvasSize, setTempCanvasSize)} className="whitespace-nowrap">768 × 512</button></li>
                   </ul>
                 </div>
 
-                <button className="btn btn-sm btn-square" onClick={rotate}>
+                <button className="btn btn-sm btn-square" onClick={() => rotate(setEditorState)}>
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
 
-                <button className="btn btn-sm btn-square" onClick={() => flip('h')}>
+                <button className="btn btn-sm btn-square" onClick={() => flip('h', setEditorState)}>
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                   </svg>
                 </button>
 
-                <button className="btn btn-sm btn-square" onClick={() => flip('v')}>
+                <button className="btn btn-sm btn-square" onClick={() => flip('v', setEditorState)}>
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 8h16M4 16h16" />
                   </svg>
                 </button>
 
-                <button className="btn btn-sm btn-square" onClick={resetTransform}>
+                <button className="btn btn-sm btn-square" onClick={() => resetTransform(editorState, canvasSize, setEditorState)}>
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                   </svg>
@@ -1940,8 +1643,8 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                     </svg>
                   </button>
                   <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
-                    <li><button onClick={() => downloadImage('jpg')}>JPG Format</button></li>
-                    <li><button onClick={() => downloadImage('png')}>PNG Format</button></li>
+                    <li><button onClick={() => downloadImage('jpg', canvasRef.current)}>JPG Format</button></li>
+                    <li><button onClick={() => downloadImage('png', canvasRef.current)}>PNG Format</button></li>
                   </ul>
                 </div>
 
@@ -2016,11 +1719,11 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
             {/* Canvas area */}
             <div 
               className="flex-1 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              onWheel={handleWheel}
+              onMouseDown={(e) => handleMouseDown(e, editorState, isCtrlPressed, canvasRef.current, setIsRotating, setStartAngle, setLastRotation, setEditorState)}
+              onMouseMove={(e) => handleMouseMove(e, editorState, isRotating, canvasRef.current, startAngle, lastRotation, setEditorState)}
+              onMouseUp={() => handleMouseUp(setIsRotating, setEditorState)}
+              onMouseLeave={() => handleMouseUp(setIsRotating, setEditorState)}
+              onWheel={(e) => handleWheel(e, editorState, setEditorState)}
               onDrop={handleCanvasDrop}
               onDragOver={handleCanvasDragOver}
             >
