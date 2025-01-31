@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, nativeImage, BrowserView } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, protocol, nativeImage, BrowserView, Menu, clipboard } = require('electron')
 const { shell } = require('electron')
 const path = require('path')
 const fs = require('fs').promises
@@ -675,6 +675,33 @@ function createWindow() {
     } catch (error) {
       console.error('Failed to load URL:', error)
     }
+
+    // 添加右键菜单处理
+    view.webContents.on('context-menu', (event, params) => {
+      const menu = Menu.buildFromTemplate([
+        {
+          label: 'Copy',
+          accelerator: 'CmdOrCtrl+C',
+          enabled: params.isEditable || params.selectionText.length > 0,
+          click: () => {
+            if (params.isEditable) {
+              view.webContents.copy()
+            } else if (params.selectionText) {
+              clipboard.writeText(params.selectionText)
+            }
+          }
+        },
+        {
+          label: 'Paste',
+          accelerator: 'CmdOrCtrl+V',
+          enabled: params.isEditable,
+          click: () => {
+            view.webContents.paste()
+          }
+        }
+      ])
+      menu.popup()
+    })
 
     return id
   }

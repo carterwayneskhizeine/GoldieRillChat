@@ -20,6 +20,7 @@ import { ContextMenu } from './components/ContextMenu'
 import { formatMessageTime } from './utils/timeFormat'
 import { handleFileSelect, removeFile, handleFileDrop } from './components/fileHandlers'
 import { BrowserTabs } from './components/BrowserTabs'
+import { toggleMessageCollapse } from './components/messageCollapse'
 
 // 添加全局样式
 const globalStyles = `
@@ -1590,7 +1591,7 @@ const tools = ['chat', 'browser', 'editor']
                           >
                         <button 
                               className="btn btn-md btn-ghost btn-circle bg-base-100"
-                          onClick={() => toggleMessageCollapse(message.id)}
+                          onClick={() => toggleMessageCollapse(message.id, collapsedMessages, setCollapsedMessages)}
                         >
                           {collapsedMessages.has(message.id) ? (
                             <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
