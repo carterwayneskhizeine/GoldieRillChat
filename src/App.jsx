@@ -23,6 +23,14 @@ import { BrowserTabs } from './components/BrowserTabs'
 import { toggleMessageCollapse } from './components/messageCollapse'
 import { loadImage, drawImage, rotate, flip, resetTransform, setResolution, downloadImage } from './components/imageOperations'
 import { handleMouseDown, handleMouseMove, handleMouseUp, handleWheel } from './components/mouseEventHandlers'
+import { handleCanvasDrop, handleCanvasDragOver } from './components/canvasDropHandlers'
+import { handleResolutionChange } from './components/resolutionHandlers'
+import { sendCanvasToChat } from './components/canvasChatHandlers'
+import { handleDragStart, handleDragOver, handleDrop } from './components/conversationDragHandlers'
+import { renameChatFolder } from './components/conversationRenameHandlers'
+import { deleteConversation } from './components/conversationDeleteHandlers'
+import { handleSelectFolder } from './components/folderHandlers'
+import { handleUpdateFolders } from './components/folderUpdateHandlers'
 
 // 添加全局样式
 const globalStyles = `
@@ -121,7 +129,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
   // Add new state variable for image scale
   const [imageScale, setImageScale] = useState(1)
 
-  // 添加拖动排序相关的状态和函数
+  // 添加拖动排序相关的状态
   const [draggedConversation, setDraggedConversation] = useState(null)
 
   // 添加图片拖动相关的状态
@@ -314,51 +322,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     exitEditMode()
   }
 
-  const deleteConversation = async (conversationId) => {
-    const conversation = conversations.find(c => c.id === conversationId)
-    if (!conversation) return
-
-    try {
-      // Move conversation folder to recycle bin
-      await window.electron.moveFolderToRecycle(conversation.path)
-      
-      // Update state
-      setConversations(prev => prev.filter(c => c.id !== conversationId))
-      if (currentConversation?.id === conversationId) {
-        setCurrentConversation(null)
-        setMessages([])
-      }
-      
-      // Update storage
-      localStorage.setItem('conversations', JSON.stringify(
-        conversations.filter(c => c.id !== conversationId)
-      ))
-    } catch (error) {
-      console.error('Failed to delete conversation:', error)
-      alert('删除对话失败')
-    }
-  }
-
-  const handleSelectFolder = async () => {
-    try {
-      const result = await window.electron.selectFolder()
-      if (result) {
-        setStoragePath(result)
-        localStorage.setItem('storagePath', result)
-        // Save current messages to the new location
-        if (currentConversation) {
-          await window.electron.saveMessages(
-            result,
-            currentConversation.id,
-            messages
-          )
-        }
-      }
-    } catch (error) {
-      console.error('Failed to select folder:', error)
-    }
-  }
-
   // Function to get all images from messages
   const getAllImages = () => {
     const images = []
@@ -526,34 +489,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     setImageNameInput('')
   }
 
-  // Add renameChatFolder function
-  const renameChatFolder = async (conversation, newName) => {
-    try {
-      const result = await window.electron.renameChatFolder(conversation.path, newName)
-      
-      // Update conversations state
-      const updatedConversations = conversations.map(conv => 
-        conv.id === conversation.id 
-          ? { ...conv, name: result.name, path: result.path }
-          : conv
-      )
-      
-      setConversations(updatedConversations)
-      if (currentConversation?.id === conversation.id) {
-        setCurrentConversation({ ...currentConversation, name: result.name, path: result.path })
-      }
-      
-      // Update storage
-      localStorage.setItem('conversations', JSON.stringify(updatedConversations))
-    } catch (error) {
-      console.error('Failed to rename chat folder:', error)
-      alert('重命名失败')
-    }
-    
-    setEditingFolderName(null)
-    setFolderNameInput('')
-  }
-
   // Add new function to handle file drop
   const handleFileDrop = async (e) => {
     e.preventDefault()
@@ -654,25 +589,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     setActiveTool('editor')
   }
 
-  // 添加处理分辨率输入的函数
-  const handleResolutionChange = (dimension, value) => {
-    const newValue = value === '' ? '' : parseInt(value) || 0
-    setTempCanvasSize(prev => ({ ...prev, [dimension]: newValue }))
-    
-    // 清除之前的定时器
-    if (canvasSizeTimeoutRef.current) {
-      clearTimeout(canvasSizeTimeoutRef.current)
-    }
-    
-    // 设置新的定时器
-    canvasSizeTimeoutRef.current = setTimeout(() => {
-      setCanvasSize(prev => ({
-        ...prev,
-        [dimension]: newValue === '' ? 0 : newValue
-      }))
-    }, 1000)
-  }
-
   // 在组件卸载时清除定时器
   useEffect(() => {
     return () => {
@@ -682,104 +598,11 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     }
   }, [])
 
-  // 添加发送画布图片到聊天的函数
-  const sendCanvasToChat = async () => {
-    if (!currentConversation) {
-      alert('请先选择或创建一个对话')
-      return
-    }
-
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    try {
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
-      const timestamp = Date.now()
-      const fileName = `canvas_image_${timestamp}.png`
-      
-      // 将blob转换为Uint8Array
-      const arrayBuffer = await blob.arrayBuffer()
-      const uint8Array = new Uint8Array(arrayBuffer)
-      
-      // 保存文件
-      const result = await window.electron.saveFile(currentConversation.path, {
-        name: fileName,
-        data: Array.from(uint8Array)
-      })
-      
-      // 创建新消息
-      const newMessage = {
-        id: Date.now().toString(),
-        content: '',
-        timestamp: new Date().toISOString(),
-        files: [{
-          name: fileName,
-          path: result.path
-        }]
-      }
-      
-      // 更新消息列表
-      setMessages(prev => [...prev, newMessage])
-      
-      // 保存到storage
-      await window.electron.saveMessages(
-        currentConversation.path,
-        currentConversation.id,
-        [...messages, newMessage]
-      )
-      
-      // 切换到chat面板
-      setActiveTool('chat')
-    } catch (error) {
-      console.error('Failed to send canvas image:', error)
-      alert('发送失败')
-    }
-  }
-
   // 添加图片缩放处理函数
   const handleImageWheel = (e) => {
     e.preventDefault()
     const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
     setImageScale(prev => Math.max(0.1, Math.min(10, prev * scaleFactor)))
-  }
-
-  // 添加拖动排序相关的状态和函数
-  const handleDragStart = (conversation) => {
-    setDraggedConversation(conversation)
-  }
-
-  const handleDragOver = (e) => {
-    e.preventDefault()
-  }
-
-  const handleDrop = async (targetConversation) => {
-    if (!draggedConversation || draggedConversation.id === targetConversation.id) return
-
-    const oldIndex = conversations.findIndex(c => c.id === draggedConversation.id)
-    const newIndex = conversations.findIndex(c => c.id === targetConversation.id)
-    
-    const newConversations = [...conversations]
-    newConversations.splice(oldIndex, 1)
-    newConversations.splice(newIndex, 0, draggedConversation)
-    
-    setConversations(newConversations)
-    setDraggedConversation(null)
-    
-    // 保存新的顺序到存储
-    localStorage.setItem('conversations', JSON.stringify(newConversations))
-  }
-
-  // 添加画布拖拽处理函数
-  const handleCanvasDrop = async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    const files = Array.from(e.dataTransfer.files)
-    const imageFile = files.find(file => file.type.startsWith('image/'))
-    
-    if (imageFile) {
-      loadImage(imageFile, setImageSize, setEditorState)
-    }
   }
 
   const handleCanvasDragOver = (e) => {
@@ -847,25 +670,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     } catch (error) {
       console.error('Failed to open file location:', error)
       alert('打开文件位置失败')
-    }
-  }
-
-  // 添加更新文件夹的函数
-  const handleUpdateFolders = async () => {
-    if (!storagePath) {
-      alert('请先在设置中选择存储文件夹')
-      return
-    }
-
-    try {
-      const folders = await window.electron.scanFolders(storagePath)
-      setConversations(folders)
-      // 保存到本地存储
-      localStorage.setItem('conversations', JSON.stringify(folders))
-      alert('更新文件夹成功')
-    } catch (error) {
-      console.error('Failed to update folders:', error)
-      alert('更新文件夹失败')
     }
   }
 
@@ -1111,7 +915,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                         draggable={editingFolderName === null}
                         onDragStart={() => {
                           if (editingFolderName !== null) return
-                          handleDragStart(conversation)
+                          handleDragStart(conversation, setDraggedConversation)
                         }}
                         onDragOver={(e) => {
                           if (editingFolderName !== null) return
@@ -1119,7 +923,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                         }}
                         onDrop={(e) => {
                           if (editingFolderName !== null) return
-                          handleDrop(conversation)
+                          handleDrop(conversation, draggedConversation, conversations, setConversations, setDraggedConversation)
                         }}
                         onContextMenu={(e) => {
                           if (editingFolderName !== null) return
@@ -1149,14 +953,37 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                       placeholder="Enter new folder name"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
-                          renameChatFolder(conversation, folderNameInput)
+                          renameChatFolder(
+                            conversation, 
+                            folderNameInput,
+                            conversations,
+                            currentConversation,
+                            setConversations,
+                            setCurrentConversation,
+                            setEditingFolderName,
+                            setFolderNameInput,
+                            window
+                          )
                         }
                       }}
                       autoFocus
                     />
                               <button
                                 className="btn btn-xs join-item"
-                                onClick={() => renameChatFolder(conversation, folderNameInput)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  renameChatFolder(
+                                    conversation, 
+                                    folderNameInput,
+                                    conversations,
+                                    currentConversation,
+                                    setConversations,
+                                    setCurrentConversation,
+                                    setEditingFolderName,
+                                    setFolderNameInput,
+                                    window
+                                  )
+                                }}
                               >
                                 Yes
                               </button>
@@ -1581,7 +1408,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                 <button
                   className="btn btn-sm"
                   disabled={!editorState.image || !currentConversation}
-                  onClick={sendCanvasToChat}
+                  onClick={() => sendCanvasToChat(currentConversation, canvasRef.current, messages, setMessages, setActiveTool, window)}
                 >
                   Send
                 </button>
@@ -1692,14 +1519,14 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                   <input 
                     type="number" 
                     value={tempCanvasSize.width}
-                    onChange={(e) => handleResolutionChange('width', e.target.value)}
+                    onChange={(e) => handleResolutionChange('width', e.target.value, setTempCanvasSize, setCanvasSize, canvasSizeTimeoutRef)}
                     className="input input-bordered input-sm join-item w-20" 
                   />
                   <span className="join-item flex items-center px-2 bg-base-200">×</span>
                   <input 
                     type="number"
                     value={tempCanvasSize.height}
-                    onChange={(e) => handleResolutionChange('height', e.target.value)}
+                    onChange={(e) => handleResolutionChange('height', e.target.value, setTempCanvasSize, setCanvasSize, canvasSizeTimeoutRef)}
                     className="input input-bordered input-sm join-item w-20"
                   />
                 </div>
@@ -1724,7 +1551,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
               onMouseUp={() => handleMouseUp(setIsRotating, setEditorState)}
               onMouseLeave={() => handleMouseUp(setIsRotating, setEditorState)}
               onWheel={(e) => handleWheel(e, editorState, setEditorState)}
-              onDrop={handleCanvasDrop}
+              onDrop={(e) => handleCanvasDrop(e, loadImage, setImageSize, setEditorState)}
               onDragOver={handleCanvasDragOver}
             >
               <canvas
@@ -1792,7 +1619,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                     <h3 className="text-lg">Folder</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-sm opacity-70">{storagePath || 'No folder selected'}</span>
-                      <button className="btn btn-primary" onClick={handleSelectFolder}>
+                      <button className="btn btn-primary" onClick={() => handleSelectFolder(setStoragePath, currentConversation, messages, window)}>
                         Modify Folder
                       </button>
                     </div>
@@ -1800,7 +1627,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                 
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg">Update</h3>
-                    <button className="btn btn-primary" onClick={handleUpdateFolders}>
+                    <button className="btn btn-primary" onClick={() => handleUpdateFolders(storagePath, setConversations, window)}>
                       Update Folders
                     </button>
                 </div>
@@ -2012,7 +1839,15 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
               <button 
                 className="btn btn-error"
                 onClick={() => {
-                  deleteConversation(deletingConversation.id)
+                  deleteConversation(
+                    deletingConversation.id,
+                    conversations,
+                    currentConversation,
+                    setConversations,
+                    setCurrentConversation,
+                    setMessages,
+                    window
+                  )
                   setDeletingConversation(null)
                 }}
               >
