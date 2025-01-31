@@ -19,6 +19,7 @@ import { copyCode, pasteCode } from './components/codeOperations'
 import { ContextMenu } from './components/ContextMenu'
 import { formatMessageTime } from './utils/timeFormat'
 import { handleFileSelect, removeFile, handleFileDrop } from './components/fileHandlers'
+import { BrowserTabs } from './components/BrowserTabs'
 
 // 添加全局样式
 const globalStyles = `
@@ -1246,7 +1247,7 @@ const tools = ['chat', 'browser', 'editor']
       // 显示浏览器视图
       window.electron.browser.setVisibility(true)
       // 更新浏览器视图位置（考虑当前侧边栏状态）
-      window.electron.browser.updateSidebarWidth(sidebarOpen ? 256 : 0)
+      window.electron.browser.updateSidebarWidth(sidebarOpen ? 200 : 0)
 
       // 只在没有任何标签页时创建新标签页
       if (browserTabs.length === 0 && !activeTabId) {
@@ -1327,20 +1328,20 @@ const tools = ['chat', 'browser', 'editor']
           </div>
         </div>
 
-      {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'w-50' : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
-          <div className="w-50 flex flex-col h-full">
+        {/* Sidebar */}
+        <div className={`${sidebarOpen ? 'w-[200px]' : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
+          <div className="w-[200px] flex flex-col h-full">
             {/* Main content area */}
             <div className="p-2 flex-1 flex flex-col overflow-hidden">
               {/* Top buttons row - 三向切换 */}
-        <div className="join grid grid-cols-2 mb-2">
-          <button 
+              <div className="join grid grid-cols-2 mb-2">
+                <button 
                   className="join-item btn btn-outline btn-sm"
                   onClick={() => switchTool('prev')}
-          >
-            Previous
-          </button>
-          <button 
+                >
+                  Previous
+                </button>
+                <button 
                   className="join-item btn btn-outline btn-sm"
                   onClick={() => switchTool('next')}
           >
@@ -1381,16 +1382,16 @@ const tools = ['chat', 'browser', 'editor']
           </div>
         </div>
 
-              {/* Chat list */}
+              {/* 工具特定内容 */}
               {activeTool === 'chat' && (
-        <div className="flex-1 mt-2 overflow-y-auto">
-          <div className="flex flex-col gap-2">
-            {conversations.map(conversation => (
-              <div
-                key={conversation.id}
-                className={`btn btn-ghost justify-between ${
-                  currentConversation?.id === conversation.id ? 'btn-active' : ''
-                } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                <div className="flex-1 mt-2 overflow-y-auto">
+                  <div className="flex flex-col gap-2">
+                    {conversations.map(conversation => (
+                      <div
+                        key={conversation.id}
+                        className={`btn btn-ghost justify-between ${
+                          currentConversation?.id === conversation.id ? 'btn-active' : ''
+                        } ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
                         draggable={editingFolderName === null}
                         onDragStart={() => {
                           if (editingFolderName !== null) return
@@ -1462,6 +1463,18 @@ const tools = ['chat', 'browser', 'editor']
               </div>
             ))}
           </div>
+                </div>
+              )}
+
+              {activeTool === 'browser' && (
+                <div className="flex-1 mt-2 overflow-hidden">
+                  <BrowserTabs
+                    tabs={browserTabs}
+                    activeTabId={activeTabId}
+                    onTabClick={(tabId) => window.electron.browser.switchTab(tabId)}
+                    onTabClose={(tabId) => window.electron.browser.closeTab(tabId)}
+                    onNewTab={() => window.electron.browser.newTab()}
+                  />
                 </div>
               )}
         </div>
@@ -2023,57 +2036,12 @@ const tools = ['chat', 'browser', 'editor']
           {/* Browser content */}
           {activeTool === 'browser' && (
             <div className="flex-1 flex flex-col relative">
-              {/* 标签栏 */}
-              <div className="flex items-center gap-1 p-1 bg-base-300 overflow-x-auto scrollbar-hide">
-                {browserTabs.map(tab => (
-                  <div
-                    key={tab.id}
-                    className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer hover:bg-base-100 ${
-                      activeTabId === tab.id ? 'bg-base-100' : ''
-                    }`}
-                    onClick={() => window.electron.browser.switchTab(tab.id)}
-                  >
-                    {tab.isLoading ? (
-                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-base-content border-t-transparent" />
-                    ) : (
-                      <div className="w-4 h-4 flex items-center justify-center">
-                        {tab.favicon ? (
-                          <img src={tab.favicon} alt="" className="w-4 h-4" />
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        )}
-                      </div>
-                    )}
-                    <span className="max-w-[150px] truncate">{tab.title}</span>
-                    <button
-                      className="opacity-50 hover:opacity-100"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        window.electron.browser.closeTab(tab.id)
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                <button
-                  className="btn btn-ghost btn-sm btn-circle"
-                  onClick={() => window.electron.browser.newTab()}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
-              </div>
-
               {/* 浏览器视图容器 */}
               <div className="flex-1 bg-base-100 overflow-auto">
                 {/* 浏览器视图由主进程管理 */}
               </div>
             </div>
-        )}
+          )}
       </div>
 
       {/* Settings Modal */}
