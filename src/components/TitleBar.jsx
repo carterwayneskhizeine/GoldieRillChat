@@ -32,8 +32,8 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
 
       {/* 浏览器控制栏 - 只在浏览器工具激活时显示 */}
       {activeTool === 'browser' ? (
-        <div className="flex-1 flex justify-center items-center gap-2 px-4 no-drag">
-          <div className="join">
+        <div className="flex-1 flex justify-center items-center gap-2 px-4 app-drag-region">
+          <div className="join no-drag">
             <button 
               className="join-item btn btn-sm btn-ghost"
               onClick={() => window.electron.browser.back()}

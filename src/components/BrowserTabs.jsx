@@ -28,7 +28,7 @@ export const BrowserTabs = ({ tabs, activeTabId, onTabClick, onTabClose, onNewTa
                     )}
                   </div>
                   <span className="truncate block">
-                    {tab.title || '新标签页'}
+                    {tab.title || 'New Tab'}
                   </span>
                 </div>
                 <button
@@ -55,7 +55,7 @@ export const BrowserTabs = ({ tabs, activeTabId, onTabClick, onTabClose, onNewTa
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span>新标签页</span>
+          <span>New Tab</span>
         </button>
       </div>
     </div>
