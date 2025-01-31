@@ -31,6 +31,7 @@ import { renameChatFolder } from './components/conversationRenameHandlers'
 import { deleteConversation } from './components/conversationDeleteHandlers'
 import { handleSelectFolder } from './components/folderHandlers'
 import { handleUpdateFolders } from './components/folderUpdateHandlers'
+import { toggleTheme, themes } from './components/themeHandlers'
 
 // 添加全局样式
 const globalStyles = `
@@ -53,8 +54,6 @@ const globalStyles = `
     app-region: no-drag;
   }
 `
-
-const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "luxury", "dracula", "business", "coffee", "emerald", "corporate", "retro", "aqua", "wireframe", "night", "dim", "sunset"]
 
 // 在文件顶部添加工具页面配置
 const tools = ['chat', 'browser', 'editor', 'markdown']
@@ -200,12 +199,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
       window.removeEventListener('keyup', handleKeyUp)
     }
   }, [])
-
-  const toggleTheme = () => {
-    const currentIndex = themes.indexOf(currentTheme)
-    const nextIndex = (currentIndex + 1) % themes.length
-    setCurrentTheme(themes[nextIndex])
-  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -1638,7 +1631,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                     <h3 className="text-lg">Theme</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-sm opacity-70">{currentTheme}</span>
-                      <button onClick={toggleTheme} className="btn btn-primary">
+                      <button onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)} className="btn btn-primary">
                         Change Theme
                       </button>
               </div>
