@@ -2037,7 +2037,7 @@ const tools = ['chat', 'browser', 'editor']
           {activeTool === 'browser' && (
             <div className="flex-1 flex flex-col relative">
               {/* 浏览器视图容器 */}
-              <div className="flex-1 bg-base-100 overflow-auto">
+              <div className="flex-1 bg-base-100 overflow-y-scroll">
                 {/* 浏览器视图由主进程管理 */}
               </div>
             </div>
