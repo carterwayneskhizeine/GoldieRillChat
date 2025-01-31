@@ -1365,21 +1365,32 @@ const tools = ['chat', 'browser', 'editor']
         {/* Current tool display */}
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center">
-                  <span className="font-semibold mr-2">
-                    {getToolDisplayName(activeTool)}
+            <span className="font-semibold">
+              {getToolDisplayName(activeTool)}
             </span>
-            {activeTool === 'chat' && (
-                    <button
-                      className="btn btn-circle btn-ghost btn-sm"
-                      onClick={createNewConversation}
-                    >
-                <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-              </button>
-            )}
           </div>
+          {activeTool === 'chat' && (
+            <button
+              className="btn btn-circle btn-ghost btn-sm"
+              onClick={createNewConversation}
+            >
+              <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          )}
+          {activeTool === 'browser' && (
+            <button
+              className="btn btn-circle btn-ghost btn-sm"
+              onClick={() => window.electron.browser.newTab()}
+            >
+              <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          )}
         </div>
 
               {/* 工具特定内容 */}

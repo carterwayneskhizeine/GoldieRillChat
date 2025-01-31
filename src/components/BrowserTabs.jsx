@@ -45,19 +45,6 @@ export const BrowserTabs = ({ tabs, activeTabId, onTabClick, onTabClose, onNewTa
           ))}
         </div>
       </div>
-
-      {/* 新建标签页按钮 - 固定在底部 */}
-      <div className="flex-none p-2 border-t border-base-content/10">
-        <button
-          className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
-          onClick={onNewTab}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>New Tab</span>
-        </button>
-      </div>
     </div>
   )
 } 
