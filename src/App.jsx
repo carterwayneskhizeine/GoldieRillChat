@@ -47,7 +47,7 @@ const globalStyles = `
 const themes = ["dark", "synthwave", "halloween", "forest", "pastel", "black", "luxury", "dracula", "business", "coffee", "emerald", "corporate", "retro", "aqua", "wireframe", "night", "dim", "sunset"]
 
 // 在文件顶部添加工具页面配置
-const tools = ['chat', 'browser', 'editor']
+const tools = ['chat', 'browser', 'editor', 'markdown']
 
     export default function App() {
   // 修改初始工具为 chat
@@ -1230,6 +1230,8 @@ const tools = ['chat', 'browser', 'editor']
         return 'Image Editor'
       case 'browser':
         return 'Browser'
+      case 'markdown':
+        return 'Markdown'
       default:
         return tool
     }
@@ -2051,6 +2053,15 @@ const tools = ['chat', 'browser', 'editor']
               {/* 浏览器视图容器 */}
               <div className="flex-1 bg-base-100 overflow-auto">
                 {/* 浏览器视图由主进程管理 */}
+              </div>
+            </div>
+          )}
+
+          {/* Markdown Editor */}
+          {activeTool === 'markdown' && (
+            <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+              <div className="flex-1 flex justify-center items-center text-base-content opacity-50">
+                Markdown Editor Coming Soon...
               </div>
             </div>
           )}
