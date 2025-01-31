@@ -84,5 +84,5 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.removeListener('window-maximized-state-changed', callback)
       }
     }
-  }
+  },
 }) 

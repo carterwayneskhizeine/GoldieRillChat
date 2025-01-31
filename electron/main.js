@@ -47,9 +47,19 @@ app.whenReady().then(() => {
     console.error('Failed to set app icon:', error)
   }
 
+  // 注册本地文件协议
   protocol.registerFileProtocol('local-file', (request, callback) => {
     const filePath = request.url.replace('local-file://', '')
     callback(decodeURI(filePath))
+  })
+
+  // 注册资源文件协议
+  protocol.registerFileProtocol('app-resource', (request, callback) => {
+    const filePath = request.url.replace('app-resource://', '')
+    const resourcePath = app.isPackaged
+      ? path.join(process.resourcesPath, filePath)
+      : path.join(__dirname, '..', 'resources', filePath)
+    callback(resourcePath)
   })
 })
 
@@ -910,5 +920,16 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
+  }
+})
+
+// 在其他 ipcMain.handle 声明附近添加
+ipcMain.handle('getResourcePath', (event, fileName) => {
+  if (app.isPackaged) {
+    // 在打包后的应用中，资源文件位于 resources 目录
+    return path.join(process.resourcesPath, fileName)
+  } else {
+    // 在开发环境中，使用项目根目录下的 resources
+    return path.join(__dirname, '..', 'resources', fileName)
   }
 }) 

@@ -2,10 +2,15 @@ import React, { useState, useEffect } from 'react'
 
 export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoading }) {
   const [isMaximized, setIsMaximized] = useState(false)
+  const [iconPath, setIconPath] = useState('')
 
   useEffect(() => {
     // 初始化窗口状态
     window.electron.window.isMaximized().then(setIsMaximized)
+
+    // 获取图标路径
+    const iconName = 'GoldieRillicon.png'
+    setIconPath(`app-resource://${iconName}`)
 
     // 监听窗口最大化状态变化
     const unsubscribe = window.electron.window.onMaximizedStateChanged((state) => {
@@ -21,7 +26,7 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
     <div className="h-8 flex items-center bg-base-300 select-none app-drag-region">
       {/* 应用图标和名称 */}
       <div className="flex items-center px-2 gap-2 app-drag-region">
-        <img src="resources/GoldieRillicon.ico" alt="logo" className="w-4 h-4 app-drag-region" />
+        <img src={iconPath} alt="logo" className="w-4 h-4 app-drag-region" />
         <span className="text-sm font-semibold app-drag-region">GoldieRillChat</span>
       </div>
 
