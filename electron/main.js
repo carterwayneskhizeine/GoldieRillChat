@@ -550,23 +550,8 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webSecurity: true,
-      // 添加 CSP
-      additionalArguments: ['--js-flags=--max-old-space-size=4096'],
     },
     icon: iconPath
-  })
-
-  // 设置 CSP
-  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self' 'unsafe-inline' data: local-file: app-resource:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
-        ]
-      }
-    })
   })
 
   let browserView = null
