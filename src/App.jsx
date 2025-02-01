@@ -76,16 +76,10 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
   const [editingMessage, setEditingMessage] = useState(null)
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
-  const [showImageModal, setShowImageModal] = useState(false)
-  const [currentImage, setCurrentImage] = useState(null)
-  const [allImages, setAllImages] = useState([])
-  const [editingFileName, setEditingFileName] = useState(null)
-  const [fileNameInput, setFileNameInput] = useState('')
 
   // Add new state variables
-  const [imageResolution, setImageResolution] = useState(null)
-  const [editingImageName, setEditingImageName] = useState(null)
-  const [imageNameInput, setImageNameInput] = useState('')
+  const [editingFileName, setEditingFileName] = useState(null)
+  const [fileNameInput, setFileNameInput] = useState('')
 
   // Add new state variables for folder renaming
   const [editingFolderName, setEditingFolderName] = useState(null)
@@ -125,22 +119,8 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
   const [lastRotation, setLastRotation] = useState(0)
   const [isRotating, setIsRotating] = useState(false)
 
-  // Add new state variable for image scale
-  const [imageScale, setImageScale] = useState(1)
-
   // 添加拖动排序相关的状态
   const [draggedConversation, setDraggedConversation] = useState(null)
-
-  // 添加图片拖动相关的状态
-  const [imageDrag, setImageDrag] = useState({
-    isDragging: false,
-    startX: 0,
-    startY: 0,
-    translateX: 0,
-    translateY: 0,
-    lastTranslateX: 0,
-    lastTranslateY: 0
-  })
 
   // Add new state for collapsed messages
   const [collapsedMessages, setCollapsedMessages] = useState(new Set())
@@ -315,55 +295,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     exitEditMode()
   }
 
-  // Function to get all images from messages
-  const getAllImages = () => {
-    const images = []
-    messages.forEach(message => {
-      message.files?.forEach(file => {
-        if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-          images.push(file)
-        }
-      })
-    })
-    return images
-  }
-
-  // Function to show next image
-  const showNextImage = () => {
-    const images = getAllImages()
-    const currentIndex = images.findIndex(img => img.path === currentImage.path)
-    const nextIndex = (currentIndex + 1) % images.length
-    setCurrentImage(images[nextIndex])
-  }
-
-  // Function to show previous image
-  const showPrevImage = () => {
-    const images = getAllImages()
-    const currentIndex = images.findIndex(img => img.path === currentImage.path)
-    const prevIndex = (currentIndex - 1 + images.length) % images.length
-    setCurrentImage(images[prevIndex])
-  }
-
-  // Handle keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!showImageModal) return
-      // 如果正在重命名，不处理左右键
-      if (editingImageName) return
-      
-      if (e.key === 'ArrowRight') {
-        showNextImage()
-      } else if (e.key === 'ArrowLeft') {
-        showPrevImage()
-      } else if (e.key === 'Escape') {
-        setShowImageModal(false)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showImageModal, currentImage, editingImageName])
-
   // Add renameMessageFile function
   const renameMessageFile = async (message, newFileName) => {
     if (!currentConversation || !message.txtFile) return
@@ -427,93 +358,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     
     setEditingFileName(null)
     setFileNameInput('')
-  }
-
-  // Add function to get image resolution
-  const getImageResolution = (imgElement) => {
-    setImageResolution({
-      width: imgElement.naturalWidth,
-      height: imgElement.naturalHeight
-    })
-  }
-
-  // Add function to rename image file
-  const renameImageFile = async (file, newFileName) => {
-    if (!currentConversation) return
-    
-    try {
-      const oldPath = file.path
-      const oldDir = window.electron.path.dirname(oldPath)
-      const extension = window.electron.path.extname(file.name)
-      const newName = newFileName + extension
-      
-      const result = await window.electron.renameFile(
-        currentConversation.path,
-        file.name,
-        newName
-      )
-
-      // Update messages with new file path
-      const updatedMessages = messages.map(msg => {
-        if (msg.files) {
-          const updatedFiles = msg.files.map(f => 
-            f.path === oldPath ? { ...f, name: newName, path: result.path } : f
-          )
-          return { ...msg, files: updatedFiles }
-        }
-        return msg
-      })
-
-      setMessages(updatedMessages)
-      setCurrentImage({ ...currentImage, name: newName, path: result.path })
-      
-      // Save updated messages
-      await window.electron.saveMessages(
-        currentConversation.path,
-        currentConversation.id,
-        updatedMessages
-      )
-    } catch (error) {
-      console.error('Failed to rename image:', error)
-      alert('重命名失败')
-    }
-    
-    setEditingImageName(null)
-    setImageNameInput('')
-  }
-
-  // Add new function to handle file drop
-  const handleFileDrop = async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (!currentConversation) {
-      alert('请先选择或创建一个对话')
-      return
-    }
-
-    const files = Array.from(e.dataTransfer.files)
-    
-    // Save files to chat folder
-    const savedFiles = await Promise.all(files.map(async file => {
-      const reader = new FileReader()
-      const fileData = await new Promise((resolve) => {
-        reader.onload = (e) => resolve(e.target.result)
-        reader.readAsArrayBuffer(file)
-      })
-      
-      const result = await window.electron.saveFile(currentConversation.path, {
-        name: file.name,
-        data: Array.from(new Uint8Array(fileData))
-      })
-      
-      return {
-        name: file.name,
-        path: result.path
-      }
-    }))
-    
-    setSelectedFiles(prev => [...prev, ...savedFiles])
   }
 
   // 当图片或编辑状态改变时重绘
@@ -595,7 +439,10 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
   const handleImageWheel = (e) => {
     e.preventDefault()
     const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
-    setImageScale(prev => Math.max(0.1, Math.min(10, prev * scaleFactor)))
+    setEditorState(prev => ({
+      ...prev,
+      scale: Math.max(0.1, Math.min(10, prev.scale * scaleFactor))
+    }))
   }
 
   const handleCanvasDragOver = (e) => {
@@ -622,37 +469,37 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
 
   const handleImageMouseDown = (e) => {
     if (e.button === 2) { // 右键点击
-      setImageDrag(prev => ({
+      setEditorState(prev => ({
         ...prev,
-        isDragging: true,
-        startX: e.clientX,
-        startY: e.clientY,
-        lastTranslateX: prev.translateX,
-        lastTranslateY: prev.translateY
+        dragging: true,
+        lastX: e.clientX,
+        lastY: e.clientY,
+        offsetX: prev.offsetX,
+        offsetY: prev.offsetY
       }))
     }
   }
 
   const handleImageMouseMove = (e) => {
-    if (imageDrag.isDragging) {
-      const deltaX = e.clientX - imageDrag.startX
-      const deltaY = e.clientY - imageDrag.startY
+    if (editorState.dragging) {
+      const deltaX = e.clientX - editorState.lastX
+      const deltaY = e.clientY - editorState.lastY
       
       // 添加0.25的速度系数来减缓移动速度
       const speedFactor = 0.5
       
-      setImageDrag(prev => ({
+      setEditorState(prev => ({
         ...prev,
-        translateX: prev.lastTranslateX + deltaX * speedFactor,
-        translateY: prev.lastTranslateY + deltaY * speedFactor
+        offsetX: prev.offsetX + deltaX * speedFactor,
+        offsetY: prev.offsetY + deltaY * speedFactor
       }))
     }
   }
 
   const handleImageMouseUp = () => {
-    setImageDrag(prev => ({
+    setEditorState(prev => ({
       ...prev,
-      isDragging: false
+      dragging: false
     }))
   }
 
@@ -1179,16 +1026,12 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                                 file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                                   <div 
                                     key={index} 
-                                    className="relative group cursor-pointer"
-                                    onClick={() => {
-                                      setCurrentImage(file)
-                                      setShowImageModal(true)
-                                    }}
+                                    className="relative"
                                   >
                                     <img 
                                       src={`local-file://${file.path}`} 
                                       alt={file.name}
-                                      className="max-w-[300px] max-h-[300px] rounded-lg object-cover hover:opacity-90 transition-opacity"
+                                      className="max-w-[300px] max-h-[300px] rounded-lg object-cover"
                                     />
                                   </div>
                                 ) : file.name.match(/\.mp4$/i) ? (
@@ -1217,7 +1060,7 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                                 onClick={() => {
                                   const imageFile = message.files.find(file => 
                                     file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-                                  )
+                                  );
                                   if (imageFile) {
                                     sendToEditor(imageFile)
                                   }
@@ -1644,178 +1487,6 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
         </div>
       )}
 
-      {/* Image Modal */}
-      {showImageModal && currentImage && (
-        <div className="modal modal-open">
-          <div className="modal-box relative max-w-5xl h-[80vh] p-0 bg-transparent shadow-none overflow-visible flex flex-col">
-            {/* 添加关闭按钮 */}
-            <button 
-              className="btn btn-circle btn-ghost bg-base-100 absolute right-0 -top-16 z-50"
-              onClick={() => setShowImageModal(false)}
-            >
-              ✕
-            </button>
-            
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16">
-              <button 
-                className="btn btn-circle btn-ghost bg-base-100"
-                onClick={showPrevImage}
-              >
-                ❮
-              </button>
-              </div>
-            
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16">
-              <button 
-                className="btn btn-circle btn-ghost bg-base-100"
-                onClick={showNextImage}
-              >
-                ❯
-              </button>
-            </div>
-
-            <div className="w-full flex-1 flex items-center justify-center relative">
-              <img 
-                src={`local-file://${currentImage.path}`}
-                alt={currentImage.name}
-                className="max-w-full max-h-full object-contain z-10"
-                style={{
-                  transform: `scale(${imageScale}) translate(${imageDrag.translateX}px, ${imageDrag.translateY}px)`,
-                  transition: imageDrag.isDragging ? 'none' : 'transform 0.1s ease-out',
-                  cursor: imageDrag.isDragging ? 'grabbing' : 'grab'
-                }}
-                onLoad={(e) => {
-                  getImageResolution(e.target)
-                  setImageScale(1)
-                  checkImagePosition(e.target)
-                  // 重置拖动状态
-                  setImageDrag({
-                    isDragging: false,
-                    startX: 0,
-                    startY: 0,
-                    translateX: 0,
-                    translateY: 0,
-                    lastTranslateX: 0,
-                    lastTranslateY: 0
-                  })
-                }}
-                onWheel={(e) => {
-                  handleImageWheel(e)
-                  checkImagePosition(e.target)
-                }}
-                onContextMenu={handleImageContextMenu}
-                onMouseDown={handleImageMouseDown}
-                onMouseMove={handleImageMouseMove}
-                onMouseUp={handleImageMouseUp}
-                onMouseLeave={handleImageMouseUp}
-              />
-          </div>
-
-            <div className="bg-base-100 p-4 flex items-center justify-center gap-4 relative z-0" style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: '20px',
-              margin: '0 20px 20px 20px'
-            }}>
-              {editingImageName === currentImage.path ? (
-                <div className="join">
-                  <input
-                    type="text"
-                    value={imageNameInput}
-                    onChange={(e) => setImageNameInput(e.target.value)}
-                    className="input input-bordered join-item"
-                    placeholder="Enter new file name"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        renameImageFile(currentImage, imageNameInput)
-                      }
-                    }}
-                  />
-                  <button
-                    className="btn join-item"
-                    onClick={() => renameImageFile(currentImage, imageNameInput)}
-                  >
-                    Save
-                  </button>
-                  <button
-                    className="btn join-item"
-                    onClick={() => {
-                      setEditingImageName(null)
-                      setImageNameInput('')
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-4">
-                  <span
-                    className="cursor-pointer hover:underline text-white"
-                    onClick={() => {
-                      setEditingImageName(currentImage.path)
-                      setImageNameInput(currentImage.name.replace(/\.[^/.]+$/, ""))
-                    }}
-                  >
-                    {currentImage.name}
-                  </span>
-                  {imageResolution && (
-                    <div className="flex items-center gap-4">
-                      <span className="text-white">
-                        Res: {imageResolution.width} × {imageResolution.height}
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => {
-                            sendToEditor(currentImage)
-                            setShowImageModal(false)
-                          }}
-                        >
-                          Send to Editor
-                        </button>
-                        <button
-                          className="btn btn-sm"
-                          onClick={async () => {
-                            try {
-                              const img = new Image()
-                              await new Promise((resolve, reject) => {
-                                img.onload = resolve
-                                img.onerror = reject
-                                img.src = `local-file://${currentImage.path}`
-                              })
-                              
-                              const canvas = document.createElement('canvas')
-                              canvas.width = img.naturalWidth
-                              canvas.height = img.naturalHeight
-                              const ctx = canvas.getContext('2d')
-                              ctx.drawImage(img, 0, 0)
-                              
-                              const blob = await new Promise(resolve => canvas.toBlob(resolve))
-                              await navigator.clipboard.write([
-                                new ClipboardItem({ 'image/png': blob })
-                              ])
-                            } catch (error) {
-                              console.error('Failed to copy image:', error)
-                              alert('复制失败')
-                            }
-                          }}
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-          <div 
-            className="modal-backdrop bg-black/80" 
-            onClick={() => setShowImageModal(false)}
-          ></div>
-        </div>
-      )}
-
       {/* Delete Confirmation Modal */}
       {deletingConversation && (
         <div className="modal modal-open">
@@ -1852,17 +1523,17 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
         </div>
       )}
 
-        {/* 使用新的 ContextMenu 组件 */}
-        <ContextMenu
-          contextMenu={contextMenu}
-          onClose={closeContextMenu}
-          onDelete={handleDeleteConversation}
-          onRename={handleRenameConversation}
-          onCopy={handleCopyCode}
-          onPaste={handlePasteCode}
-          selectedElement={selectedElement}
-        />
-      </div>
-        </div>
-      )
-    }
+      {/* 使用新的 ContextMenu 组件 */}
+      <ContextMenu
+        contextMenu={contextMenu}
+        onClose={closeContextMenu}
+        onDelete={handleDeleteConversation}
+        onRename={handleRenameConversation}
+        onCopy={handleCopyCode}
+        onPaste={handlePasteCode}
+        selectedElement={selectedElement}
+      />
+    </div>
+  </div>
+)
+}
