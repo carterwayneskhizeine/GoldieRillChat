@@ -10,6 +10,13 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 export const MarkdownEditor = () => {
   const [markdownContent, setMarkdownContent] = useState('# Welcome to Markdown Editor\n\nStart typing...');
 
+  // 处理链接点击
+  const handleLinkClick = (href) => {
+    if (window.electron && href) {
+      window.electron.openExternal(href);
+    }
+  };
+
   return (
     <div className="flex-1 flex h-full overflow-hidden">
       {/* 编辑器部分 */}
@@ -58,6 +65,14 @@ export const MarkdownEditor = () => {
             .prose h6 {
               font-size: 1.1em !important;
             }
+            .prose a {
+              cursor: pointer;
+              color: #3b82f6 !important;
+              text-decoration: none !important;
+            }
+            .prose a:hover {
+              text-decoration: underline !important;
+            }
           `}
         </style>
         <ReactMarkdown
@@ -78,6 +93,20 @@ export const MarkdownEditor = () => {
                 <code className={className} {...props}>
                   {children}
                 </code>
+              );
+            },
+            a({node, href, children, ...props}) {
+              return (
+                <a
+                  href={href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLinkClick(href);
+                  }}
+                  {...props}
+                >
+                  {children}
+                </a>
               );
             }
           }}
