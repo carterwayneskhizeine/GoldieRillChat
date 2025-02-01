@@ -17,7 +17,10 @@ export const MarkdownEditor = () => {
         <CodeMirror
           value={markdownContent}
           height="100%"
-          extensions={[markdown()]}
+          extensions={[
+            markdown(),
+            EditorView.lineWrapping
+          ]}
           onChange={(value) => setMarkdownContent(value)}
           theme="dark"
           basicSetup={{
@@ -30,7 +33,33 @@ export const MarkdownEditor = () => {
       </div>
 
       {/* 预览部分 */}
-      <div className="w-1/2 h-full overflow-auto bg-base-100 p-4 prose prose-invert max-w-none">
+      <div className="w-1/2 h-full overflow-auto bg-base-100 p-4 prose prose-invert prose-headings:font-bold max-w-none">
+        <style>
+          {`
+            .prose h1 {
+              font-size: 2.5em !important;
+              margin-top: 0.5em !important;
+              margin-bottom: 0.5em !important;
+            }
+            .prose h2 {
+              font-size: 2em !important;
+              margin-top: 0.5em !important;
+              margin-bottom: 0.5em !important;
+            }
+            .prose h3 {
+              font-size: 1.75em !important;
+            }
+            .prose h4 {
+              font-size: 1.5em !important;
+            }
+            .prose h5 {
+              font-size: 1.25em !important;
+            }
+            .prose h6 {
+              font-size: 1.1em !important;
+            }
+          `}
+        </style>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
