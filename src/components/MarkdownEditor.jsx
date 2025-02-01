@@ -10,10 +10,20 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 export const MarkdownEditor = () => {
   const [markdownContent, setMarkdownContent] = useState('# Welcome to Markdown Editor\n\nStart typing...');
 
-  // 处理链接点击
+  // 处理链接点击，在新窗口打开
   const handleLinkClick = (href) => {
-    if (window.electron && href) {
-      window.electron.openExternal(href);
+    if (href) {
+      // 使用window.open打开新窗口，设置窗口大小和位置
+      const width = 800;
+      const height = 600;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
+      
+      window.open(
+        href,
+        '_blank',
+        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,status=no`
+      );
     }
   };
 
