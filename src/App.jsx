@@ -32,6 +32,9 @@ import { deleteConversation } from './components/conversationDeleteHandlers'
 import { handleSelectFolder } from './components/folderHandlers'
 import { handleUpdateFolders } from './components/folderUpdateHandlers'
 import { toggleTheme, themes } from './components/themeHandlers'
+import { ImageLightbox } from './components/ImageLightbox'
+import { getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
+import './styles/lightbox.css'
 
 // 添加全局样式
 const globalStyles = `
@@ -129,6 +132,11 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 })
   const [selectedText, setSelectedText] = useState('')
   const [selectedElement, setSelectedElement] = useState(null)
+
+  // 在其他 state 声明附近添加
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxImages, setLightboxImages] = useState([])
+  const [lightboxIndex, setLightboxIndex] = useState(0)
 
   // Theme effect
   useEffect(() => {
@@ -653,6 +661,20 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
     }
   }, [sidebarOpen, activeTool])
 
+  // 在 handleImageClick 函数附近添加
+  const handleImageClick = (e, file) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const allImages = getAllMessageImages(messages)
+    const currentImage = { src: `local-file://${file.path}` }
+    const imageIndex = findImageIndex(messages, currentImage)
+    
+    setLightboxImages(allImages)
+    setLightboxIndex(imageIndex)
+    setLightboxOpen(true)
+  }
+
   return (
     <div className="flex flex-col h-screen" onClick={closeContextMenu}>
       <style>{globalStyles}</style>
@@ -1031,7 +1053,8 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
                                     <img 
                                       src={`local-file://${file.path}`} 
                                       alt={file.name}
-                                      className="max-w-[300px] max-h-[300px] rounded-lg object-cover"
+                                      className="max-w-[300px] max-h-[300px] rounded-lg object-cover cursor-pointer"
+                                      onClick={(e) => handleImageClick(e, file)}
                                     />
                                   </div>
                                 ) : file.name.match(/\.mp4$/i) ? (
@@ -1532,6 +1555,14 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
         onCopy={handleCopyCode}
         onPaste={handlePasteCode}
         selectedElement={selectedElement}
+      />
+
+      {/* 在最后添加 ImageLightbox 组件 */}
+      <ImageLightbox
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={lightboxImages}
+        startIndex={lightboxIndex}
       />
     </div>
   </div>

@@ -74,7 +74,8 @@
             "electron-as-browser": "^1.0.0",
             "lightgallery": "^2.8.2",
             "react": "^18.2.0",
-            "react-dom": "^18.2.0"
+            "react-dom": "^18.2.0",
+            "yet-another-react-lightbox": "^3.21.7"
       },
       "devDependencies": {
             "@types/react": "^18.2.15",

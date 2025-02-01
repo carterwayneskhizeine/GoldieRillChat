@@ -1,0 +1,7 @@
+@import '../../node_modules/yet-another-react-lightbox/dist/styles.css';
+
+/* 自定义样式覆盖 */
+.yarl__root {
+  --yarl__color_backdrop: rgba(0, 0, 0, 0.9);
+  --yarl__slide_title_color: #fff;
+} 

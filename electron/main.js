@@ -543,15 +543,30 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    frame: false, // 移除默认标题栏
+    frame: false,
     transparent: false,
-    backgroundColor: '#2e2e2e', // 设置背景色，避免透明时闪烁
+    backgroundColor: '#2e2e2e',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: true,
+      // 添加 CSP
+      additionalArguments: ['--js-flags=--max-old-space-size=4096'],
     },
     icon: iconPath
+  })
+
+  // 设置 CSP
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self' 'unsafe-inline' data: local-file: app-resource:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+        ]
+      }
+    })
   })
 
   let browserView = null
