@@ -35,6 +35,7 @@ import { toggleTheme, themes } from './components/themeHandlers'
 import { ImageLightbox } from './components/ImageLightbox'
 import { getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
 import './styles/lightbox.css'
+import { MarkdownEditor } from './components/MarkdownEditor'
 
 // 添加全局样式
 const globalStyles = `
@@ -1448,10 +1449,8 @@ const tools = ['chat', 'browser', 'editor', 'markdown']
 
           {/* Markdown Editor */}
           {activeTool === 'markdown' && (
-            <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
-              <div className="flex-1 flex justify-center items-center text-base-content opacity-50">
-                Markdown Editor Coming Soon...
-              </div>
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <MarkdownEditor />
             </div>
           )}
       </div>

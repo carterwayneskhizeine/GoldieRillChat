@@ -71,10 +71,16 @@
             }
       },
       "dependencies": {
+            "@codemirror/lang-markdown": "^6.3.2",
+            "@codemirror/view": "^6.36.2",
+            "@uiw/react-codemirror": "^4.23.7",
             "electron-as-browser": "^1.0.0",
             "lightgallery": "^2.8.2",
             "react": "^18.2.0",
             "react-dom": "^18.2.0",
+            "react-markdown": "^9.0.3",
+            "react-syntax-highlighter": "^15.6.1",
+            "remark-gfm": "^4.0.0",
             "yet-another-react-lightbox": "^3.21.7"
       },
       "devDependencies": {
