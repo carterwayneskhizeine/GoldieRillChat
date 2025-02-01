@@ -72,6 +72,7 @@
       },
       "dependencies": {
             "electron-as-browser": "^1.0.0",
+            "lightgallery": "^2.8.2",
             "react": "^18.2.0",
             "react-dom": "^18.2.0"
       },
