@@ -1,7 +1,23 @@
 @import '../../node_modules/yet-another-react-lightbox/dist/styles.css';
+@import '../../node_modules/yet-another-react-lightbox/dist/plugins/captions/captions.css';
 
 /* 自定义样式覆盖 */
 .yarl__root {
   --yarl__color_backdrop: rgba(0, 0, 0, 0.9);
   --yarl__slide_title_color: #fff;
+  --yarl__caption_color: rgba(255, 255, 255, 0.9);
+}
+
+/* 标题样式 */
+.yarl__slide_title {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+/* 描述样式 */
+.yarl__slide_description {
+  font-size: 0.9em;
+  opacity: 0.9;
+  white-space: pre-line;
 } 

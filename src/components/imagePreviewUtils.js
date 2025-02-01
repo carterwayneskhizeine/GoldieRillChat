@@ -5,7 +5,9 @@ export const prepareImagesForLightbox = (message) => {
   return message.files
     .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
     .map(file => ({
-      src: `local-file://${file.path}`
+      src: `local-file://${file.path}`,
+      title: file.name,
+      description: `文件路径: ${file.path}`
     }));
 };
 
@@ -18,7 +20,9 @@ export const getAllMessageImages = (messages) => {
       const messageImages = message.files
         .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
         .map(file => ({
-          src: `local-file://${file.path}`
+          src: `local-file://${file.path}`,
+          title: file.name,
+          description: `发送时间: ${new Date(message.timestamp).toLocaleString()}\n文件路径: ${file.path}`
         }));
       allImages.push(...messageImages);
     }
