@@ -629,8 +629,9 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
     if (activeTool === 'browser') {
       // 显示浏览器视图
       window.electron.browser.setVisibility(true)
-      // 更新浏览器视图位置（考虑当前侧边栏状态）
-      window.electron.browser.updateSidebarWidth(sidebarOpen ? 200 : 0)
+      // 更新浏览器视图位置（考虑当前侧边栏状态和模式）
+      const sidebarWidth = sidebarOpen ? (sidebarMode === 'chat' ? 400 : 200) : 0
+      window.electron.browser.updateSidebarWidth(sidebarWidth)
 
       // 只在没有任何标签页时创建新标签页
       if (browserTabs.length === 0 && !activeTabId) {
@@ -677,15 +678,16 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
         titleUnsubscribe()
       }
     }
-  }, [activeTool, sidebarOpen, browserTabs.length, activeTabId])
+  }, [activeTool, sidebarOpen, browserTabs.length, activeTabId, sidebarMode])
 
-  // 在 useEffect 中添加侧边栏状态监听
+  // 修改侧边栏状态监听的 useEffect
   useEffect(() => {
     if (activeTool === 'browser') {
       // 通知主进程侧边栏状态变化
-      window.electron.browser.updateSidebarWidth(sidebarOpen ? 200 : 0)
+      const sidebarWidth = sidebarOpen ? (sidebarMode === 'chat' ? 400 : 200) : 0
+      window.electron.browser.updateSidebarWidth(sidebarWidth)
     }
-  }, [sidebarOpen, activeTool])
+  }, [sidebarOpen, sidebarMode, activeTool])
 
   // 在 handleImageClick 函数附近添加
   const handleImageClick = (e, file) => {
@@ -742,8 +744,8 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
         </div>
 
         {/* Sidebar */}
-        <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[600px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
-          <div className={`${sidebarMode === 'chat' ? 'w-[600px]' : 'w-[200px]'} flex flex-col h-full`}>
+        <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
+          <div className={`${sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]'} flex flex-col h-full`}>
             {/* Main content area */}
             <div className="p-2 flex-1 flex flex-col overflow-hidden">
               {/* Top buttons row - 三向切换 */}
