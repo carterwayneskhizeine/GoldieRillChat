@@ -742,8 +742,8 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
         </div>
 
         {/* Sidebar */}
-        <div className={`${sidebarOpen ? 'w-[200px]' : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
-          <div className="w-[200px] flex flex-col h-full">
+        <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[600px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
+          <div className={`${sidebarMode === 'chat' ? 'w-[600px]' : 'w-[200px]'} flex flex-col h-full`}>
             {/* Main content area */}
             <div className="p-2 flex-1 flex flex-col overflow-hidden">
               {/* Top buttons row - 三向切换 */}
