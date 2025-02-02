@@ -36,6 +36,8 @@ import { ImageLightbox } from './components/ImageLightbox'
 import { getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
 import './styles/lightbox.css'
 import { MarkdownEditor } from './components/MarkdownEditor'
+import { ChatView } from './components/ChatView'
+import './styles/chatview.css'
 
 // 添加全局样式
 const globalStyles = `
@@ -56,6 +58,25 @@ const globalStyles = `
   button, input, .no-drag {
     -webkit-app-region: no-drag;
     app-region: no-drag;
+  }
+
+  .chat-view-compact {
+    height: calc(100vh - 180px); /* 调整高度以留出底部按钮的空间 */
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-view-compact .messages-container {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+  }
+
+  .chat-view-compact .input-container {
+    flex-shrink: 0;
+    margin-bottom: 1rem;
   }
 `
 
@@ -138,6 +159,10 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxImages, setLightboxImages] = useState([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
+
+  // 在state声明部分添加新的状态
+  const [sidebarMode, setSidebarMode] = useState('default')
+  const [previousMode, setPreviousMode] = useState(null)
 
   // Theme effect
   useEffect(() => {
@@ -676,6 +701,22 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
     setLightboxOpen(true)
   }
 
+  // 添加处理侧边栏模式切换的函数
+  const handleSidebarModeToggle = () => {
+    if (sidebarMode === 'default') {
+      setPreviousMode('default')
+      setSidebarMode('chat')
+      
+      // 如果没有选中的对话，选择第一个
+      if (!currentConversation && conversations.length > 0) {
+        loadConversation(conversations[0].id)
+      }
+    } else {
+      setSidebarMode(previousMode)
+      setPreviousMode(null)
+    }
+  }
+
   return (
     <div className="flex flex-col h-screen" onClick={closeContextMenu}>
       <style>{globalStyles}</style>
@@ -873,30 +914,92 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
               )}
 
               {activeTool === 'browser' && (
-                <div className="flex-1 mt-2 overflow-hidden">
-                  <BrowserTabs
-                    tabs={browserTabs}
-                    activeTabId={activeTabId}
-                    onTabClick={(tabId) => window.electron.browser.switchTab(tabId)}
-                    onTabClose={(tabId) => window.electron.browser.closeTab(tabId)}
-                    onNewTab={() => window.electron.browser.newTab()}
-                  />
+                <div className="flex-1 mt-2 overflow-hidden flex flex-col">
+                  <div className="flex-1">
+                    {sidebarMode === 'default' ? (
+                      <BrowserTabs
+                        tabs={browserTabs}
+                        activeTabId={activeTabId}
+                        onTabClick={(tabId) => window.electron.browser.switchTab(tabId)}
+                        onTabClose={(tabId) => window.electron.browser.closeTab(tabId)}
+                        onNewTab={() => window.electron.browser.newTab()}
+                      />
+                    ) : (
+                      <ChatView
+                        messages={messages}
+                        currentConversation={currentConversation}
+                        editingMessage={editingMessage}
+                        setEditingMessage={setEditingMessage}
+                        messageInput={messageInput}
+                        setMessageInput={setMessageInput}
+                        selectedFiles={selectedFiles}
+                        setSelectedFiles={setSelectedFiles}
+                        sendMessage={sendMessage}
+                        deleteMessage={confirmDeleteMessage}
+                        updateMessage={updateMessageInApp}
+                        moveMessage={moveMessageInApp}
+                        enterEditMode={enterEditMode}
+                        exitEditMode={exitEditMode}
+                        collapsedMessages={collapsedMessages}
+                        isCompact={true}
+                        handleImageClick={handleImageClick}
+                        fileInputRef={fileInputRef}
+                      />
+                    )}
+                  </div>
+                  <div className="p-2 border-t border-base-content/10">
+                    <button
+                      className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
+                      onClick={handleSidebarModeToggle}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span>{sidebarMode === 'default' ? 'Open Chat' : 'Back'}</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {activeTool === 'markdown' && (
                 <div className="flex-1 mt-2 overflow-hidden flex flex-col">
                   <div className="flex-1">
-                    {/* Markdown侧边栏的内容可以在这里添加 */}
+                    {sidebarMode === 'default' ? (
+                      <div className="empty-sidebar">
+                        {/* Markdown侧边栏的内容可以在这里添加 */}
+                      </div>
+                    ) : (
+                      <ChatView
+                        messages={messages}
+                        currentConversation={currentConversation}
+                        editingMessage={editingMessage}
+                        setEditingMessage={setEditingMessage}
+                        messageInput={messageInput}
+                        setMessageInput={setMessageInput}
+                        selectedFiles={selectedFiles}
+                        setSelectedFiles={setSelectedFiles}
+                        sendMessage={sendMessage}
+                        deleteMessage={confirmDeleteMessage}
+                        updateMessage={updateMessageInApp}
+                        moveMessage={moveMessageInApp}
+                        enterEditMode={enterEditMode}
+                        exitEditMode={exitEditMode}
+                        collapsedMessages={collapsedMessages}
+                        isCompact={true}
+                        handleImageClick={handleImageClick}
+                        fileInputRef={fileInputRef}
+                      />
+                    )}
                   </div>
                   <div className="p-2 border-t border-base-content/10">
                     <button
                       className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
+                      onClick={handleSidebarModeToggle}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
-                      <span>Open Chat</span>
+                      <span>{sidebarMode === 'default' ? 'Open Chat' : 'Back'}</span>
                     </button>
                   </div>
                 </div>

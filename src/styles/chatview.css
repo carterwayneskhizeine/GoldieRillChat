@@ -1,0 +1,40 @@
+/* ChatView紧凑模式样式 */
+.chat-view-compact {
+  font-size: 0.9em;
+}
+
+.chat-view-compact .chat {
+  margin-bottom: 1rem;
+}
+
+.chat-view-compact .chat-bubble {
+  padding: 0.5rem 0.75rem;
+}
+
+.chat-view-compact .prose {
+  font-size: 0.9em;
+}
+
+.chat-view-compact .btn {
+  scale: 0.9;
+}
+
+.chat-view-compact .textarea {
+  font-size: 0.9em;
+  min-height: 48px;
+  padding: 0.5rem 1rem;
+}
+
+.chat-view-compact .badge {
+  scale: 0.9;
+}
+
+/* 滚动条样式 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+} 
