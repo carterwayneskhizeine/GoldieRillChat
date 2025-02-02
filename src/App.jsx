@@ -36,7 +36,6 @@ import { ImageLightbox } from './components/ImageLightbox'
 import { getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
 import './styles/lightbox.css'
 import { MarkdownEditor } from './components/MarkdownEditor'
-import { ChatDropdown } from './components/ChatDropdown'
 
 // 添加全局样式
 const globalStyles = `
@@ -139,9 +138,6 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxImages, setLightboxImages] = useState([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
-
-  // Add new state variable for ChatDropdown
-  const [isChatDropdownOpen, setIsChatDropdownOpen] = useState(false)
 
   // Theme effect
   useEffect(() => {
@@ -680,30 +676,6 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
     setLightboxOpen(true)
   }
 
-  // 在useEffect部分添加点击外部关闭的逻辑
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const dropdownElements = document.querySelectorAll('.chat-dropdown-container')
-      let clickedInside = false
-      
-      dropdownElements.forEach(element => {
-        if (element.contains(event.target) || 
-            event.target.closest('.btn-open-chat')) {
-          clickedInside = true
-        }
-      })
-      
-      if (!clickedInside) {
-        setIsChatDropdownOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
-
   return (
     <div className="flex flex-col h-screen" onClick={closeContextMenu}>
       <style>{globalStyles}</style>
@@ -901,7 +873,7 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
               )}
 
               {activeTool === 'browser' && (
-                <div className="flex-1 mt-2 overflow-hidden flex flex-col">
+                <div className="flex-1 mt-2 overflow-hidden">
                   <BrowserTabs
                     tabs={browserTabs}
                     activeTabId={activeTabId}
@@ -909,45 +881,6 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
                     onTabClose={(tabId) => window.electron.browser.closeTab(tabId)}
                     onNewTab={() => window.electron.browser.newTab()}
                   />
-                  <div className="p-2 border-t border-base-content/10 mt-auto">
-                    <div className="dropdown dropdown-end chat-dropdown-container">
-                      <button
-                        className="btn btn-ghost btn-sm w-full flex justify-start gap-2 btn-open-chat"
-                        onClick={() => {
-                          if (!currentConversation && conversations.length > 0) {
-                            loadConversation(conversations[0].id)
-                          }
-                          setIsChatDropdownOpen(!isChatDropdownOpen)
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <span>Open Chat</span>
-                      </button>
-                      {isChatDropdownOpen && (
-                        <div className="fixed" style={{ zIndex: 1000 }}>
-                          <ChatDropdown
-                            messages={messages}
-                            currentConversation={currentConversation}
-                            messageInput={messageInput}
-                            setMessageInput={setMessageInput}
-                            selectedFiles={selectedFiles}
-                            setSelectedFiles={setSelectedFiles}
-                            editingMessage={editingMessage}
-                            setEditingMessage={setEditingMessage}
-                            sendMessage={sendMessage}
-                            deleteMessage={deleteMessageInApp}
-                            updateMessage={updateMessageInApp}
-                            moveMessage={moveMessageInApp}
-                            collapsedMessages={collapsedMessages}
-                            toggleMessageCollapse={toggleMessageCollapse}
-                            handleImageClick={handleImageClick}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -957,43 +890,14 @@ const tools = ['chat', 'browser', 'markdown', 'editor']
                     {/* Markdown侧边栏的内容可以在这里添加 */}
                   </div>
                   <div className="p-2 border-t border-base-content/10">
-                    <div className="dropdown dropdown-end chat-dropdown-container">
-                      <button
-                        className="btn btn-ghost btn-sm w-full flex justify-start gap-2 btn-open-chat"
-                        onClick={() => {
-                          if (!currentConversation && conversations.length > 0) {
-                            loadConversation(conversations[0].id)
-                          }
-                          setIsChatDropdownOpen(!isChatDropdownOpen)
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <span>Open Chat</span>
-                      </button>
-                      {isChatDropdownOpen && (
-                        <div className="fixed" style={{ zIndex: 1000 }}>
-                          <ChatDropdown
-                            messages={messages}
-                            currentConversation={currentConversation}
-                            messageInput={messageInput}
-                            setMessageInput={setMessageInput}
-                            selectedFiles={selectedFiles}
-                            setSelectedFiles={setSelectedFiles}
-                            editingMessage={editingMessage}
-                            setEditingMessage={setEditingMessage}
-                            sendMessage={sendMessage}
-                            deleteMessage={deleteMessageInApp}
-                            updateMessage={updateMessageInApp}
-                            moveMessage={moveMessageInApp}
-                            collapsedMessages={collapsedMessages}
-                            toggleMessageCollapse={toggleMessageCollapse}
-                            handleImageClick={handleImageClick}
-                          />
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span>Open Chat</span>
+                    </button>
                   </div>
                 </div>
               )}
