@@ -39,6 +39,7 @@ import { MarkdownEditor } from './components/MarkdownEditor'
 import { ChatView } from './components/ChatView'
 import './styles/chatview.css'
 import { tools, getToolDisplayName, createToolSwitcher } from './components/toolbarHandlers'
+import { useBrowserState, useBrowserEvents, useSidebarEffect } from './components/browserHandlers'
 
 // 添加全局样式
 const globalStyles = `
@@ -161,6 +162,24 @@ export default function App() {
   // 在state声明部分添加新的状态
   const [sidebarMode, setSidebarMode] = useState('default')
   const [previousMode, setPreviousMode] = useState(null)
+
+  // 使用浏览器状态管理 hook
+  const browserState = useBrowserState()
+  
+  // 使用浏览器事件监听 hook
+  useBrowserEvents({
+    activeTool,
+    sidebarOpen,
+    sidebarMode,
+    ...browserState
+  })
+  
+  // 使用侧边栏状态监听 hook
+  useSidebarEffect({
+    activeTool,
+    sidebarOpen,
+    sidebarMode
+  })
 
   // Theme effect
   useEffect(() => {
@@ -593,78 +612,6 @@ export default function App() {
   // 获取当前工具显示名称
   // const getToolDisplayName = (tool) => { ... }
 
-  // 添加浏览器相关状态
-  const [browserTabs, setBrowserTabs] = useState([])
-  const [activeTabId, setActiveTabId] = useState(null)
-  const [currentUrl, setCurrentUrl] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [pageTitle, setPageTitle] = useState('新标签页')
-
-  // 修改浏览器事件监听的 useEffect
-  useEffect(() => {
-    if (activeTool === 'browser') {
-      // 显示浏览器视图
-      window.electron.browser.setVisibility(true)
-      // 更新浏览器视图位置（考虑当前侧边栏状态和模式）
-      const sidebarWidth = sidebarOpen ? (sidebarMode === 'chat' ? 400 : 200) : 0
-      window.electron.browser.updateSidebarWidth(sidebarWidth)
-
-      // 只在没有任何标签页时创建新标签页
-      if (browserTabs.length === 0 && !activeTabId) {
-        window.electron.browser.newTab('https://www.google.com')
-      }
-
-      // 监听标签页更新
-      const tabsUnsubscribe = window.electron.browser.onTabsUpdate((tabs) => {
-        setBrowserTabs(Object.values(tabs))
-      })
-
-      // 监听活动标签页更新
-      const activeTabUnsubscribe = window.electron.browser.onActiveTabUpdate((tabId) => {
-        setActiveTabId(tabId)
-        const tab = browserTabs.find(t => t.id === tabId)
-        if (tab) {
-          setCurrentUrl(tab.url)
-          setPageTitle(tab.title)
-        }
-      })
-
-      // 监听 URL 更新
-      const urlUnsubscribe = window.electron.browser.onUrlUpdate((url) => {
-        setCurrentUrl(url)
-      })
-
-      // 监听加载状态
-      const loadingUnsubscribe = window.electron.browser.onLoading((loading) => {
-        setIsLoading(loading)
-      })
-
-      // 监听标题更新
-      const titleUnsubscribe = window.electron.browser.onTitleUpdate((title) => {
-        setPageTitle(title)
-      })
-
-      // 清理函数
-      return () => {
-        window.electron.browser.setVisibility(false)
-        tabsUnsubscribe()
-        activeTabUnsubscribe()
-        urlUnsubscribe()
-        loadingUnsubscribe()
-        titleUnsubscribe()
-      }
-    }
-  }, [activeTool, sidebarOpen, browserTabs.length, activeTabId, sidebarMode])
-
-  // 修改侧边栏状态监听的 useEffect
-  useEffect(() => {
-    if (activeTool === 'browser') {
-      // 通知主进程侧边栏状态变化
-      const sidebarWidth = sidebarOpen ? (sidebarMode === 'chat' ? 400 : 200) : 0
-      window.electron.browser.updateSidebarWidth(sidebarWidth)
-    }
-  }, [sidebarOpen, sidebarMode, activeTool])
-
   // 在 handleImageClick 函数附近添加
   const handleImageClick = (e, file) => {
     e.preventDefault()
@@ -887,8 +834,8 @@ export default function App() {
                   <div className="flex-1">
                     {sidebarMode === 'default' ? (
                       <BrowserTabs
-                        tabs={browserTabs}
-                        activeTabId={activeTabId}
+                        tabs={browserState.browserTabs}
+                        activeTabId={browserState.activeTabId}
                         onTabClick={(tabId) => window.electron.browser.switchTab(tabId)}
                         onTabClose={(tabId) => window.electron.browser.closeTab(tabId)}
                         onNewTab={() => window.electron.browser.newTab()}
