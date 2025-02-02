@@ -1,28 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 
-// 浏览器状态初始化 hook
-export const useBrowserState = () => {
-  const [browserTabs, setBrowserTabs] = useState([])
-  const [activeTabId, setActiveTabId] = useState(null)
-  const [currentUrl, setCurrentUrl] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [pageTitle, setPageTitle] = useState('新标签页')
-
+// 浏览器状态初始化函数
+export const initializeBrowserState = () => {
   return {
-    browserTabs,
-    setBrowserTabs,
-    activeTabId,
-    setActiveTabId,
-    currentUrl,
-    setCurrentUrl,
-    isLoading,
-    setIsLoading,
-    pageTitle,
-    setPageTitle
+    browserTabs: [],
+    activeTabId: null,
+    currentUrl: '',
+    isLoading: false,
+    pageTitle: '新标签页'
   }
 }
 
-// 浏览器事件监听 hook
+// 浏览器事件监听函数
 export const useBrowserEvents = ({
   activeTool,
   sidebarOpen,
@@ -91,8 +80,12 @@ export const useBrowserEvents = ({
   }, [activeTool, sidebarOpen, browserTabs.length, activeTabId, sidebarMode])
 }
 
-// 侧边栏状态监听 hook
-export const useSidebarEffect = ({ activeTool, sidebarOpen, sidebarMode }) => {
+// 侧边栏状态监听函数
+export const useSidebarEffect = ({
+  activeTool,
+  sidebarOpen,
+  sidebarMode
+}) => {
   useEffect(() => {
     if (activeTool === 'browser') {
       // 通知主进程侧边栏状态变化
