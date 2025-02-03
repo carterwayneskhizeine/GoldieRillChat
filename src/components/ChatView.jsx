@@ -42,9 +42,17 @@ export const ChatView = ({
 
   return (
     <div className={`flex flex-col relative ${isCompact ? 'chat-view-compact' : ''}`}>
+      <style>
+        {`
+          .mask-bottom {
+            mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+          }
+        `}
+      </style>
       {/* 消息列表区域 */}
       <div 
-        className="flex-1 overflow-y-auto overflow-x-hidden"
+        className="flex-1 overflow-y-auto overflow-x-visible"
         style={{
           bottom: isCompact ? '60px' : '65px',
           paddingBottom: isCompact ? '10px' : '0px',
@@ -56,7 +64,7 @@ export const ChatView = ({
         }}
         onDrop={(e) => handleFileDrop(e, currentConversation, setSelectedFiles, window.electron)}
       >
-        <div className={`${isCompact ? 'px-2 py-2' : 'max-w-3xl mx-auto py-4 px-6'} ${isCompact ? 'pb-16' : 'pb-32'}`}>
+        <div className={`${isCompact ? 'px-2 py-2' : 'max-w-3xl mx-auto py-4 px-6'} ${isCompact ? 'pb-16' : 'pb-32'} relative overflow-visible`}>
           {messages.map(message => (
             <div key={message.id} className={`chat chat-start mb-8 relative ${isCompact ? 'compact-message -ml-5' : ''}`}>
               <div className="chat-header opacity-70">
@@ -65,56 +73,40 @@ export const ChatView = ({
                 </span>
               </div>
               <div className="chat-bubble relative max-w-[800px] break-words">
-                {message.content && message.content.split('\n').length > 6 && (
-                  <div className="absolute right-0 flex items-center"
+                {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
+                  <div
+                    className="absolute right-0 flex items-center"
                     style={{
-                      position: 'sticky',
-                      top: '50px',
-                      height: '0',
-                      zIndex: 10,
-                      transform: 'translateX(calc(102% + 1rem))'
+                      position: 'absolute',
+                      right: '-32px',
+                      top: '2px',
+                      zIndex: 50,
+                      pointerEvents: 'auto',
+                      cursor: 'pointer'
                     }}
                   >
                     <button 
-                      className="btn btn-md btn-ghost btn-circle bg-base-100"
+                      className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
+                      style={{
+                        pointerEvents: 'auto'
+                      }}
                       onClick={() => {
-                        setCollapsedMessages(prev => {
-                          const newSet = new Set(prev);
-                          const isCurrentlyCollapsed = newSet.has(message.id);
-                          
-                          if (isCurrentlyCollapsed) {
-                            newSet.delete(message.id);
-                            setTimeout(() => {
-                              const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-                              if (messageElement) {
-                                messageElement.scrollIntoView({
-                                  behavior: 'smooth',
-                                  block: 'start'
-                                });
-                              }
-                            }, 100);
-                          } else {
-                            newSet.add(message.id);
-                            setTimeout(() => {
-                              const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-                              if (messageElement) {
-                                messageElement.scrollIntoView({
-                                  behavior: 'smooth',
-                                  block: 'center'
-                                });
-                              }
-                            }, 100);
-                          }
-                          return newSet;
-                        });
+                        const isCollapsed = collapsedMessages.has(message.id);
+                        const newSet = new Set([...collapsedMessages]);
+                        if (isCollapsed) {
+                          newSet.delete(message.id);
+                        } else {
+                          newSet.add(message.id);
+                        }
+                        setCollapsedMessages(newSet);
                       }}
                     >
                       {collapsedMessages.has(message.id) ? (
-                        <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       ) : (
-                        <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                         </svg>
                       )}
@@ -152,14 +144,13 @@ export const ChatView = ({
                     {message.content && (
                       <div className="flex justify-between items-start">
                         <div 
-                          className={`prose max-w-none break-words w-full ${
-                            collapsedMessages.has(message.id) ? 'max-h-[144px] overflow-y-auto' : ''
+                          className={`prose max-w-none w-full transition-all duration-200 ease-in-out ${
+                            collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
                           } ${isCompact ? 'whitespace-pre-wrap break-all' : ''}`}
                           style={{ 
                             whiteSpace: 'pre-wrap',
                             maxWidth: isCompact ? '260px' : '800px'
                           }}
-                          data-message-id={message.id}
                         >
                           {message.content}
                         </div>
