@@ -424,49 +424,14 @@ export default function App() {
     }
   }, [])
 
-  // 添加图片缩放处理函数
-  const handleImageWheel = (e) => {
-    e.preventDefault()
-    const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1
-    setEditorState(prev => ({
-      ...prev,
-      scale: Math.max(0.1, Math.min(10, prev.scale * scaleFactor))
-    }))
-  }
-
   const handleCanvasDragOver = (e) => {
     e.preventDefault()
     e.stopPropagation()
   }
 
-  // 添加检查图片位置的函数
-  const checkImagePosition = (imgElement) => {
-    const rect = imgElement.getBoundingClientRect()
-    const distanceToBottom = window.innerHeight - (rect.top + rect.height)
-    
-    if (distanceToBottom < 100) {
-      imgElement.parentElement.style.overflowY = 'auto'
-    } else {
-      imgElement.parentElement.style.overflowY = 'hidden'
-    }
-  }
-
   // 添加图片拖动相关的处理函数
   const handleImageContextMenu = (e) => {
     e.preventDefault() // 阻止默认的右键菜单
-  }
-
-  const handleImageMouseDown = (e) => {
-    if (e.button === 2) { // 右键点击
-      setEditorState(prev => ({
-        ...prev,
-        dragging: true,
-        lastX: e.clientX,
-        lastY: e.clientY,
-        offsetX: prev.offsetX,
-        offsetY: prev.offsetY
-      }))
-    }
   }
 
   const handleImageMouseMove = (e) => {
