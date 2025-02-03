@@ -657,6 +657,17 @@ export default function App() {
           setShowSettings={setShowSettings}
           setSidebarMode={setSidebarMode}
           setPreviousMode={setPreviousMode}
+          editingFileName={editingFileName}
+          setEditingFileName={setEditingFileName}
+          fileNameInput={fileNameInput}
+          setFileNameInput={setFileNameInput}
+          renameMessageFile={renameMessageFile}
+          openFileLocation={openFileLocation}
+          copyMessageContent={copyMessageContent}
+          deletingMessageId={deletingMessageId}
+          setDeletingMessageId={setDeletingMessageId}
+          cancelDeleteMessage={cancelDeleteMessage}
+          scrollToMessage={scrollToMessage}
         />
 
         {/* Main content area */}

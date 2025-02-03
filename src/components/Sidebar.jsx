@@ -49,7 +49,18 @@ export default function Sidebar({
   window,
   setShowSettings,
   setSidebarMode,
-  setPreviousMode
+  setPreviousMode,
+  editingFileName,
+  setEditingFileName,
+  fileNameInput,
+  setFileNameInput,
+  renameMessageFile,
+  openFileLocation,
+  copyMessageContent,
+  deletingMessageId,
+  setDeletingMessageId,
+  cancelDeleteMessage,
+  scrollToMessage
 }) {
   useEffect(() => {
     if (activeTool === 'chat') {
@@ -248,6 +259,19 @@ export default function Sidebar({
                     isCompact={true}
                     handleImageClick={handleImageClick}
                     fileInputRef={fileInputRef}
+                    editingFileName={editingFileName}
+                    setEditingFileName={setEditingFileName}
+                    fileNameInput={fileNameInput}
+                    setFileNameInput={setFileNameInput}
+                    renameMessageFile={renameMessageFile}
+                    openFileLocation={openFileLocation}
+                    copyMessageContent={copyMessageContent}
+                    deletingMessageId={deletingMessageId}
+                    setDeletingMessageId={setDeletingMessageId}
+                    cancelDeleteMessage={cancelDeleteMessage}
+                    confirmDeleteMessage={confirmDeleteMessage}
+                    scrollToMessage={scrollToMessage}
+                    window={window}
                   />
                 )}
               </div>
@@ -291,6 +315,19 @@ export default function Sidebar({
                     isCompact={true}
                     handleImageClick={handleImageClick}
                     fileInputRef={fileInputRef}
+                    editingFileName={editingFileName}
+                    setEditingFileName={setEditingFileName}
+                    fileNameInput={fileNameInput}
+                    setFileNameInput={setFileNameInput}
+                    renameMessageFile={renameMessageFile}
+                    openFileLocation={openFileLocation}
+                    copyMessageContent={copyMessageContent}
+                    deletingMessageId={deletingMessageId}
+                    setDeletingMessageId={setDeletingMessageId}
+                    cancelDeleteMessage={cancelDeleteMessage}
+                    confirmDeleteMessage={confirmDeleteMessage}
+                    scrollToMessage={scrollToMessage}
+                    window={window}
                   />
                 )}
               </div>
@@ -334,6 +371,19 @@ export default function Sidebar({
                     isCompact={true}
                     handleImageClick={handleImageClick}
                     fileInputRef={fileInputRef}
+                    editingFileName={editingFileName}
+                    setEditingFileName={setEditingFileName}
+                    fileNameInput={fileNameInput}
+                    setFileNameInput={setFileNameInput}
+                    renameMessageFile={renameMessageFile}
+                    openFileLocation={openFileLocation}
+                    copyMessageContent={copyMessageContent}
+                    deletingMessageId={deletingMessageId}
+                    setDeletingMessageId={setDeletingMessageId}
+                    cancelDeleteMessage={cancelDeleteMessage}
+                    confirmDeleteMessage={confirmDeleteMessage}
+                    scrollToMessage={scrollToMessage}
+                    window={window}
                   />
                 )}
               </div>
