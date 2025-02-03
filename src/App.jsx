@@ -53,6 +53,7 @@ import {
 } from './components/stateInitializers'
 import Sidebar from './components/Sidebar'
 import Editor from './components/Editor'
+import { WebMarkdown } from './components/WebMarkdown'
 
 export default function App() {
   // 修改初始工具为 chat
@@ -757,6 +758,13 @@ export default function App() {
             {activeTool === 'markdown' && (
               <div className="flex-1 flex flex-col overflow-hidden">
                 <MarkdownEditor />
+              </div>
+            )}
+
+            {/* WebMarkdown content */}
+            {activeTool === 'webmarkdown' && (
+              <div className="flex-1 overflow-hidden">
+                <WebMarkdown />
               </div>
             )}
         </div>
