@@ -25,66 +25,66 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
   return (
     <div className="h-8 flex items-center bg-base-300 select-none app-drag-region">
       {/* 应用图标和名称 */}
-      <div className="flex items-center px-2 gap-2 app-drag-region">
+      <div className="flex items-center px-2 gap-2 app-drag-region w-[200px]">
         <img src={iconPath} alt="logo" className="w-4 h-4 app-drag-region" />
         <span className="text-sm font-semibold app-drag-region">GoldieRillChat</span>
       </div>
 
-      {/* 浏览器控制栏 - 只在浏览器工具激活时显示 */}
-      {activeTool === 'browser' ? (
-        <div className="flex-1 flex justify-center items-center gap-2 px-4 app-drag-region">
-          <div className="join no-drag">
-            <button 
-              className="join-item btn btn-sm btn-ghost"
-              onClick={() => window.electron.browser.back()}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button 
-              className="join-item btn btn-sm btn-ghost"
-              onClick={() => window.electron.browser.forward()}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-            <button 
-              className="join-item btn btn-sm btn-ghost"
-              onClick={() => window.electron.browser.refresh()}
-            >
-              {isLoading ? (
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      {/* 浏览器控制栏 - 只在浏览器工具激活时显示，固定宽度并居中 */}
+      <div className="flex-1 flex justify-center items-center app-drag-region">
+        {activeTool === 'browser' && (
+          <div className="w-[600px] flex items-center gap-1 no-drag">
+            <div className="join h-6">
+              <button 
+                className="join-item btn btn-xs btn-ghost px-2"
+                onClick={() => window.electron.browser.back()}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </button>
+              <button 
+                className="join-item btn btn-xs btn-ghost px-2"
+                onClick={() => window.electron.browser.forward()}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              )}
-            </button>
+              </button>
+              <button 
+                className="join-item btn btn-xs btn-ghost px-2"
+                onClick={() => window.electron.browser.refresh()}
+              >
+                {isLoading ? (
+                  <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            <input
+              type="text"
+              className="input input-xs input-bordered flex-1 h-6 min-h-[24px] px-2 text-sm"
+              value={currentUrl}
+              onChange={(e) => setCurrentUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  window.electron.browser.navigate(currentUrl)
+                }
+              }}
+              placeholder="输入网址..."
+            />
           </div>
-          <input
-            type="text"
-            className="input input-sm input-bordered flex-1 max-w-lg no-drag"
-            value={currentUrl}
-            onChange={(e) => setCurrentUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                window.electron.browser.navigate(currentUrl)
-              }
-            }}
-            placeholder="输入网址..."
-          />
-        </div>
-      ) : (
-        <div className="flex-1 app-drag-region" />
-      )}
+        )}
+      </div>
 
       {/* 窗口控制按钮 */}
-      <div className="flex h-full no-drag">
+      <div className="flex h-full no-drag w-[200px] justify-end">
         <button
           className="h-full px-4 hover:bg-base-100 flex items-center justify-center"
           onClick={() => window.electron.window.minimize()}

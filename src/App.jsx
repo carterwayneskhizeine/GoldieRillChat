@@ -597,7 +597,12 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col">
       <style>{globalStyles}</style>
-      <TitleBar />
+      <TitleBar 
+        activeTool={activeTool}
+        currentUrl={currentUrl}
+        setCurrentUrl={setCurrentUrl}
+        isLoading={isLoading}
+      />
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar toggle bar */}
         <div
@@ -615,7 +620,7 @@ export default function App() {
           sidebarMode={sidebarMode}
           activeTool={activeTool}
           conversations={conversations}
-          currentConversation={currentConversation}
+                        currentConversation={currentConversation}
           draggedConversation={draggedConversation}
           setDraggedConversation={setDraggedConversation}
           editingFolderName={editingFolderName}
@@ -634,22 +639,22 @@ export default function App() {
           setConversations={setConversations}
           setCurrentConversation={setCurrentConversation}
           messages={messages}
-          editingMessage={editingMessage}
-          setEditingMessage={setEditingMessage}
-          messageInput={messageInput}
-          setMessageInput={setMessageInput}
-          selectedFiles={selectedFiles}
-          setSelectedFiles={setSelectedFiles}
-          sendMessage={sendMessage}
+                        editingMessage={editingMessage}
+                        setEditingMessage={setEditingMessage}
+                        messageInput={messageInput}
+                        setMessageInput={setMessageInput}
+                        selectedFiles={selectedFiles}
+                        setSelectedFiles={setSelectedFiles}
+                        sendMessage={sendMessage}
           confirmDeleteMessage={confirmDeleteMessage}
           updateMessageInApp={updateMessageInApp}
           moveMessageInApp={moveMessageInApp}
-          enterEditMode={enterEditMode}
-          exitEditMode={exitEditMode}
-          collapsedMessages={collapsedMessages}
-          setCollapsedMessages={setCollapsedMessages}
-          handleImageClick={handleImageClick}
-          fileInputRef={fileInputRef}
+                        enterEditMode={enterEditMode}
+                        exitEditMode={exitEditMode}
+                        collapsedMessages={collapsedMessages}
+                        setCollapsedMessages={setCollapsedMessages}
+                        handleImageClick={handleImageClick}
+                        fileInputRef={fileInputRef}
           browserTabs={browserTabs}
           activeTabId={activeTabId}
           previousMode={previousMode}

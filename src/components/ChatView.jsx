@@ -84,6 +84,34 @@ export function ChatView({
             margin-right: -10px;
             padding-right: 20px;
           }
+          .message-container {
+            position: relative;
+            contain: paint;
+            isolation: isolate;
+          }
+          .collapse-button {
+            position: sticky;
+            top: 2px;
+            float: right;
+            margin-left: 8px;
+            margin-right: 0px;
+            z-index: 100;
+            pointer-events: all;
+          }
+          .collapse-button button {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            background-color: var(--b1);
+            border: 1px solid var(--b3);
+          }
+          .collapse-button button:hover {
+            transform: scale(1.1);
+            background-color: var(--b2);
+          }
+          .chat-bubble {
+            position: relative;
+            z-index: 1;
+          }
         `}
       </style>
       {/* 消息列表区域 */}
@@ -102,7 +130,11 @@ export function ChatView({
       >
         <div className={`${isCompact ? 'px-2' : 'max-w-3xl mx-auto py-4 px-6'} ${isCompact ? 'pb-16' : 'pb-32'} relative overflow-visible`}>
           {messages.map(message => (
-            <div key={message.id} className={`chat chat-start mb-8 relative ${isCompact ? 'compact-message -ml-5' : ''}`}>
+            <div 
+              key={message.id} 
+              className={`chat chat-start mb-8 relative message-container ${isCompact ? 'compact-message -ml-5' : ''}`}
+              data-message-id={message.id}
+            >
               <div className="chat-header opacity-70">
                 {message.txtFile ? (
                   editingFileName === message.id ? (
@@ -156,31 +188,29 @@ export function ChatView({
               </div>
               <div className="chat-bubble relative max-w-[800px] break-words">
                 {!isCompact && message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
-                  <div
-                    className="absolute right-0 flex items-center"
-                    style={{
-                      position: 'absolute',
-                      right: '-32px',
-                      top: '2px',
-                      zIndex: 50,
-                      pointerEvents: 'auto',
-                      cursor: 'pointer'
-                    }}
-                  >
+                  <div className="collapse-button">
                     <button 
                       className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
-                      style={{
-                        pointerEvents: 'auto'
-                      }}
                       onClick={() => {
                         const isCollapsed = collapsedMessages.has(message.id);
                         const newSet = new Set([...collapsedMessages]);
+                        const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+                        
                         if (isCollapsed) {
+                          // 展开时，先滚动到消息顶部
                           newSet.delete(message.id);
+                          setCollapsedMessages(newSet);
+                          setTimeout(() => {
+                            messageElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 100);
                         } else {
+                          // 折叠时，滚动到消息中间
                           newSet.add(message.id);
+                          setCollapsedMessages(newSet);
+                          setTimeout(() => {
+                            messageElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }, 100);
                         }
-                        setCollapsedMessages(newSet);
                       }}
                     >
                       {collapsedMessages.has(message.id) ? (
