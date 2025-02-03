@@ -42,61 +42,89 @@ import { tools, getToolDisplayName, createToolSwitcher } from './config/toolsCon
 import { initializeBrowserState, useBrowserEvents, useSidebarEffect } from './components/browserHandlers'
 import { useKeyboardEvents } from './components/keyboardHandlers'
 import { globalStyles } from './styles/globalStyles'
+import {
+  initializeChatState,
+  initializeEditorState,
+  initializeImagePreviewState,
+  initializeUIState,
+  initializeCanvasState,
+  initializeStoragePath,
+  initializeSidebarState
+} from './components/stateInitializers'
 
 export default function App() {
   // 修改初始工具为 chat
   const [activeTool, setActiveTool] = useState('chat')
-  // 设置侧边栏默认打开
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [showSettings, setShowSettings] = useState(false)
-  const [storagePath, setStoragePath] = useState(() => localStorage.getItem('storagePath') || '')
   
-  // Chat related states
-  const [conversations, setConversations] = useState([])
-  const [currentConversation, setCurrentConversation] = useState(null)
-  const [messages, setMessages] = useState([])
-  const [messageInput, setMessageInput] = useState('')
-  const [selectedFiles, setSelectedFiles] = useState([])
-  const [editingMessage, setEditingMessage] = useState(null)
+  // 侧边栏状态
+  const initialSidebarState = initializeSidebarState()
+  const [sidebarOpen, setSidebarOpen] = useState(initialSidebarState.sidebarOpen)
+  const [sidebarMode, setSidebarMode] = useState(initialSidebarState.sidebarMode)
+  const [previousMode, setPreviousMode] = useState(initialSidebarState.previousMode)
+
+  // UI状态
+  const initialUIState = initializeUIState()
+  const [showSettings, setShowSettings] = useState(initialUIState.showSettings)
+  const [isCtrlPressed, setIsCtrlPressed] = useState(initialUIState.isCtrlPressed)
+  const [contextMenu, setContextMenu] = useState(initialUIState.contextMenu)
+  const [selectedText, setSelectedText] = useState(initialUIState.selectedText)
+  const [selectedElement, setSelectedElement] = useState(initialUIState.selectedElement)
+
+  // 存储路径
+  const [storagePath, setStoragePath] = useState(initializeStoragePath)
+
+  // 聊天相关状态
+  const initialChatState = initializeChatState()
+  const [conversations, setConversations] = useState(initialChatState.conversations)
+  const [currentConversation, setCurrentConversation] = useState(initialChatState.currentConversation)
+  const [messages, setMessages] = useState(initialChatState.messages)
+  const [messageInput, setMessageInput] = useState(initialChatState.messageInput)
+  const [selectedFiles, setSelectedFiles] = useState(initialChatState.selectedFiles)
+  const [editingMessage, setEditingMessage] = useState(initialChatState.editingMessage)
+  const [editingFileName, setEditingFileName] = useState(initialChatState.editingFileName)
+  const [fileNameInput, setFileNameInput] = useState(initialChatState.fileNameInput)
+  const [editingFolderName, setEditingFolderName] = useState(initialChatState.editingFolderName)
+  const [folderNameInput, setFolderNameInput] = useState(initialChatState.folderNameInput)
+  const [deletingConversation, setDeletingConversation] = useState(initialChatState.deletingConversation)
+  const [deletingMessageId, setDeletingMessageId] = useState(initialChatState.deletingMessageId)
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(initialChatState.shouldScrollToBottom)
+
+  // 浏览器状态
+  const initialBrowserState = initializeBrowserState()
+  const [browserTabs, setBrowserTabs] = useState(initialBrowserState.browserTabs)
+  const [activeTabId, setActiveTabId] = useState(initialBrowserState.activeTabId)
+  const [currentUrl, setCurrentUrl] = useState(initialBrowserState.currentUrl)
+  const [isLoading, setIsLoading] = useState(initialBrowserState.isLoading)
+  const [pageTitle, setPageTitle] = useState(initialBrowserState.pageTitle)
+
+  // 编辑器状态
+  const [editorState, setEditorState] = useState(initializeEditorState())
+
+  // 画布状态
+  const initialCanvasState = initializeCanvasState()
+  const [canvasSize, setCanvasSize] = useState(initialCanvasState.canvasSize)
+  const [tempCanvasSize, setTempCanvasSize] = useState(initialCanvasState.tempCanvasSize)
+  const [imageSize, setImageSize] = useState(initialCanvasState.imageSize)
+
+  // 图片预览状态
+  const initialPreviewState = initializeImagePreviewState()
+  const [lightboxOpen, setLightboxOpen] = useState(initialPreviewState.lightboxOpen)
+  const [lightboxImages, setLightboxImages] = useState(initialPreviewState.lightboxImages)
+  const [lightboxIndex, setLightboxIndex] = useState(initialPreviewState.lightboxIndex)
+
+  // Refs
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
-
-  // Add new state variables
-  const [editingFileName, setEditingFileName] = useState(null)
-  const [fileNameInput, setFileNameInput] = useState('')
-
-  // Add new state variables for folder renaming
-  const [editingFolderName, setEditingFolderName] = useState(null)
-  const [folderNameInput, setFolderNameInput] = useState('')
-  // 添加删除确认状态
-  const [deletingConversation, setDeletingConversation] = useState(null)
-  // 在其他 state 声明附近添加
-  const [deletingMessageId, setDeletingMessageId] = useState(null)
-
-  // 添加图片编辑器相关的状态
   const canvasRef = useRef(null)
-  const [editorState, setEditorState] = useState({
-    image: null,
-    scale: 1,
-    rotation: 0,
-    flipH: false,
-    flipV: false,
-    dragging: false,
-    lastX: 0,
-    lastY: 0,
-    offsetX: 0,
-    offsetY: 0
-  })
-  const [canvasSize, setCanvasSize] = useState({ width: 1920, height: 1080 })
-  const [tempCanvasSize, setTempCanvasSize] = useState({ width: 1920, height: 1080 })
   const canvasSizeTimeoutRef = useRef(null)
-  const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
 
   // Add new state variable for scroll control
-  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false)
+  // 删除重复声明，因为已经在 initialChatState 中声明过
+  // const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false)
 
   // Add new state variable for Ctrl key press
-  const [isCtrlPressed, setIsCtrlPressed] = useState(false)
+  // 删除重复声明，因为已经在 initialUIState 中声明过
+  // const [isCtrlPressed, setIsCtrlPressed] = useState(false)
 
   // Add new state variables for mouse rotation
   const [startAngle, setStartAngle] = useState(0)
@@ -108,27 +136,6 @@ export default function App() {
 
   // Add new state for collapsed messages
   const [collapsedMessages, setCollapsedMessages] = useState(new Set())
-
-  // 在其他 state 声明附近添加
-  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 })
-  const [selectedText, setSelectedText] = useState('')
-  const [selectedElement, setSelectedElement] = useState(null)
-
-  // 在其他 state 声明附近添加
-  const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [lightboxImages, setLightboxImages] = useState([])
-  const [lightboxIndex, setLightboxIndex] = useState(0)
-
-  // 在state声明部分添加新的状态
-  const [sidebarMode, setSidebarMode] = useState('default')
-  const [previousMode, setPreviousMode] = useState(null)
-
-  // 使用初始化函数替换原有的浏览器状态声明
-  const [browserTabs, setBrowserTabs] = useState(initializeBrowserState().browserTabs)
-  const [activeTabId, setActiveTabId] = useState(initializeBrowserState().activeTabId)
-  const [currentUrl, setCurrentUrl] = useState(initializeBrowserState().currentUrl)
-  const [isLoading, setIsLoading] = useState(initializeBrowserState().isLoading)
-  const [pageTitle, setPageTitle] = useState(initializeBrowserState().pageTitle)
 
   // 使用初始化函数替换原有的主题状态声明
   const [currentTheme, setCurrentTheme] = useState(initializeTheme())
