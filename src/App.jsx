@@ -778,27 +778,29 @@ export default function App() {
                         onNewTab={() => window.electron.browser.newTab()}
                       />
                     ) : (
-                      <ChatView
-                        messages={messages}
-                        currentConversation={currentConversation}
-                        editingMessage={editingMessage}
-                        setEditingMessage={setEditingMessage}
-                        messageInput={messageInput}
-                        setMessageInput={setMessageInput}
-                        selectedFiles={selectedFiles}
-                        setSelectedFiles={setSelectedFiles}
-                        sendMessage={sendMessage}
-                        deleteMessage={confirmDeleteMessage}
-                        updateMessage={updateMessageInApp}
-                        moveMessage={moveMessageInApp}
-                        enterEditMode={enterEditMode}
-                        exitEditMode={exitEditMode}
-                        collapsedMessages={collapsedMessages}
-                        setCollapsedMessages={setCollapsedMessages}
-                        isCompact={true}
-                        handleImageClick={handleImageClick}
-                        fileInputRef={fileInputRef}
-                      />
+                      <div className="h-full flex flex-col">
+                        <ChatView
+                          messages={messages}
+                          currentConversation={currentConversation}
+                          editingMessage={editingMessage}
+                          setEditingMessage={setEditingMessage}
+                          messageInput={messageInput}
+                          setMessageInput={setMessageInput}
+                          selectedFiles={selectedFiles}
+                          setSelectedFiles={setSelectedFiles}
+                          sendMessage={sendMessage}
+                          deleteMessage={confirmDeleteMessage}
+                          updateMessage={updateMessageInApp}
+                          moveMessage={moveMessageInApp}
+                          enterEditMode={enterEditMode}
+                          exitEditMode={exitEditMode}
+                          collapsedMessages={collapsedMessages}
+                          setCollapsedMessages={setCollapsedMessages}
+                          isCompact={true}
+                          handleImageClick={handleImageClick}
+                          fileInputRef={fileInputRef}
+                        />
+                      </div>
                     )}
                   </div>
                   <div className="p-2 border-t border-base-content/10">
@@ -823,27 +825,29 @@ export default function App() {
                         {/* Markdown侧边栏的内容可以在这里添加 */}
                       </div>
                     ) : (
-                      <ChatView
-                        messages={messages}
-                        currentConversation={currentConversation}
-                        editingMessage={editingMessage}
-                        setEditingMessage={setEditingMessage}
-                        messageInput={messageInput}
-                        setMessageInput={setMessageInput}
-                        selectedFiles={selectedFiles}
-                        setSelectedFiles={setSelectedFiles}
-                        sendMessage={sendMessage}
-                        deleteMessage={confirmDeleteMessage}
-                        updateMessage={updateMessageInApp}
-                        moveMessage={moveMessageInApp}
-                        enterEditMode={enterEditMode}
-                        exitEditMode={exitEditMode}
-                        collapsedMessages={collapsedMessages}
-                        setCollapsedMessages={setCollapsedMessages}
-                        isCompact={true}
-                        handleImageClick={handleImageClick}
-                        fileInputRef={fileInputRef}
-                      />
+                      <div className="h-full flex flex-col">
+                        <ChatView
+                          messages={messages}
+                          currentConversation={currentConversation}
+                          editingMessage={editingMessage}
+                          setEditingMessage={setEditingMessage}
+                          messageInput={messageInput}
+                          setMessageInput={setMessageInput}
+                          selectedFiles={selectedFiles}
+                          setSelectedFiles={setSelectedFiles}
+                          sendMessage={sendMessage}
+                          deleteMessage={confirmDeleteMessage}
+                          updateMessage={updateMessageInApp}
+                          moveMessage={moveMessageInApp}
+                          enterEditMode={enterEditMode}
+                          exitEditMode={exitEditMode}
+                          collapsedMessages={collapsedMessages}
+                          setCollapsedMessages={setCollapsedMessages}
+                          isCompact={true}
+                          handleImageClick={handleImageClick}
+                          fileInputRef={fileInputRef}
+                        />
+                      </div>
                     )}
                   </div>
                   <div className="p-2 border-t border-base-content/10">

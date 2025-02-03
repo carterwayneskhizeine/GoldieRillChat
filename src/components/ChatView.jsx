@@ -49,15 +49,21 @@ export const ChatView = ({
             mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
             -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
           }
+          .compact-scroll {
+            margin-right: -10px;
+            padding-right: 20px;
+          }
         `}
       </style>
       {/* 消息列表区域 */}
       <div 
-        className="flex-1 overflow-y-auto overflow-x-visible"
+        className={`flex-1 overflow-y-auto overflow-x-visible ${isCompact ? 'compact-scroll' : ''}`}
         style={{
-          bottom: isCompact ? '60px' : '65px',
-          paddingBottom: isCompact ? '10px' : '0px',
-          position: 'relative'
+          bottom: isCompact ? '50px' : '85px',
+          paddingBottom: isCompact ? '50px' : '20px',
+          paddingTop: isCompact ? '0' : '0',
+          position: 'relative',
+          top: '0'
         }}
         onDragOver={(e) => {
           e.preventDefault();
@@ -65,7 +71,7 @@ export const ChatView = ({
         }}
         onDrop={(e) => handleFileDrop(e, currentConversation, setSelectedFiles, window.electron)}
       >
-        <div className={`${isCompact ? 'px-2 py-2' : 'max-w-3xl mx-auto py-4 px-6'} ${isCompact ? 'pb-16' : 'pb-32'} relative overflow-visible`}>
+        <div className={`${isCompact ? 'px-2' : 'max-w-3xl mx-auto py-4 px-6'} ${isCompact ? 'pb-16' : 'pb-32'} relative overflow-visible`}>
           {messages.map(message => (
             <div key={message.id} className={`chat chat-start mb-8 relative ${isCompact ? 'compact-message -ml-5' : ''}`}>
               <div className="chat-header opacity-70">
@@ -252,8 +258,8 @@ export const ChatView = ({
 
       {/* 输入区域 */}
       {!editingMessage && (
-        <div className={`absolute bottom-0 left-0 right-[20px] bg-base-100 ${isCompact ? 'p-2' : 'p-4'}`}>
-          <div className={isCompact ? 'max-w-[300px] mx-auto' : 'max-w-3xl mx-auto'}>
+        <div className={`absolute bottom-0 left-0 ${isCompact ? 'right-[20px] p-2 pointer-events-none' : 'right-[20px] p-4 bg-base-100'}`}>
+          <div className={`${isCompact ? 'max-w-[300px] mx-auto pointer-events-auto' : 'max-w-3xl mx-auto'}`}>
             {selectedFiles.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
                 {selectedFiles.map((file, index) => (
