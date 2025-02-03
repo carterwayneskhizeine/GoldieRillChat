@@ -38,50 +38,10 @@ import './styles/lightbox.css'
 import { MarkdownEditor } from './components/MarkdownEditor'
 import { ChatView } from './components/ChatView'
 import './styles/chatview.css'
-import { tools, getToolDisplayName, createToolSwitcher } from './components/toolbarHandlers'
+import { tools, getToolDisplayName, createToolSwitcher } from './config/toolsConfig'
 import { initializeBrowserState, useBrowserEvents, useSidebarEffect } from './components/browserHandlers'
 import { useKeyboardEvents } from './components/keyboardHandlers'
-
-// 添加全局样式
-const globalStyles = `
-  .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;     /* Firefox */
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;            /* Chrome, Safari, Opera */
-  }
-  
-  /* 添加窗口拖拽样式 */
-  .app-drag-region {
-    -webkit-app-region: drag;
-    app-region: drag;
-  }
-  
-  button, input, .no-drag {
-    -webkit-app-region: no-drag;
-    app-region: no-drag;
-  }
-
-  .chat-view-compact {
-    height: calc(100vh - 180px); /* 调整高度以留出底部按钮的空间 */
-    overflow-y: auto;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .chat-view-compact .messages-container {
-    flex: 1;
-    overflow-y: auto;
-    margin-bottom: 1rem;
-  }
-
-  .chat-view-compact .input-container {
-    flex-shrink: 0;
-    margin-bottom: 1rem;
-  }
-`
+import { globalStyles } from './styles/globalStyles'
 
 export default function App() {
   // 修改初始工具为 chat
@@ -579,9 +539,6 @@ export default function App() {
 
   // 创建工具切换函数
   const switchTool = createToolSwitcher(setActiveTool)
-
-  // 获取当前工具显示名称
-  // const getToolDisplayName = (tool) => { ... }
 
   // 使用新的浏览器事件处理函数
   useBrowserEvents({
