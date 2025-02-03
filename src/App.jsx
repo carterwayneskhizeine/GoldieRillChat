@@ -566,6 +566,17 @@ export default function App() {
     alert(error.message)
   }
 
+  // 添加滚动到消息中心的函数
+  const scrollToMessage = (messageId, behavior = 'smooth', align = 'center') => {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
+    if (messageElement) {
+      messageElement.scrollIntoView({
+        behavior,
+        block: align,
+      })
+    }
+  }
+
   return (
     <div className="h-screen flex flex-col">
       <style>{globalStyles}</style>
@@ -932,21 +943,39 @@ export default function App() {
                           </span>
                         )}
                       </div>
-                      <div className="chat-bubble relative max-w-[800px] break-words">
-                        {message.content && message.content.split('\n').length > 6 && (
-                            <div
-                              className="absolute right-0 flex items-center"
-                              style={{
-                                position: 'sticky',
-                                top: '50px',  // 向下移动一倍
-                                height: '0',
-                                zIndex: 10,
-                                transform: 'translateX(calc(102% + 1rem))'  // 向右移动两倍
+                      <div className="chat-bubble relative max-w-[680px] break-words">
+                        {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
+                          <div
+                            className="absolute right-0 flex items-center"
+                            style={{
+                              position: 'sticky',
+                              top: '50px',
+                              height: '0',
+                              zIndex: 10,
+                              transform: 'translateX(calc(102% + 1rem))'
+                            }}
+                          >
+                            <button 
+                              className="btn btn-md btn-ghost btn-circle bg-base-100"
+                              onClick={() => {
+                                setCollapsedMessages(prev => {
+                                  const newSet = new Set(prev);
+                                  const isCurrentlyCollapsed = newSet.has(message.id);
+                                  
+                                  if (isCurrentlyCollapsed) {
+                                    newSet.delete(message.id);
+                                    setTimeout(() => {
+                                      scrollToMessage(message.id, 'smooth', 'start');
+                                    }, 100);
+                                  } else {
+                                    newSet.add(message.id);
+                                    setTimeout(() => {
+                                      scrollToMessage(message.id, 'smooth', 'center');
+                                    }, 100);
+                                  }
+                                  return newSet;
+                                });
                               }}
-                            >
-                          <button 
-                                className="btn btn-md btn-ghost btn-circle bg-base-100"
-                              onClick={() => toggleMessageCollapse(message.id)}
                             >
                               {collapsedMessages.has(message.id) ? (
                                 <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
