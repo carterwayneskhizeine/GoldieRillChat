@@ -88,6 +88,7 @@ export function ChatView({
             position: relative;
             contain: paint;
             isolation: isolate;
+            padding-bottom: 32px;
           }
           .collapse-button {
             position: sticky;
@@ -111,6 +112,30 @@ export function ChatView({
           .chat-bubble {
             position: relative;
             z-index: 1;
+          }
+          .message-actions {
+            display: none;
+            position: absolute;
+            bottom: 0;
+            left: 4px;
+            gap: 4px;
+            z-index: 10;
+            background-color: var(--b1);
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .message-container:hover .message-actions {
+            display: flex;
+          }
+          .message-actions button {
+            background-color: var(--b1);
+            border: 1px solid var(--b3);
+            transition: all 0.2s;
+          }
+          .message-actions button:hover {
+            transform: scale(1.05);
+            background-color: var(--b2);
           }
         `}
       </style>
@@ -259,7 +284,7 @@ export function ChatView({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2 group">
+                  <div className="flex flex-col gap-2">
                     {message.content && (
                       <div className="flex justify-between items-start">
                         <div 
@@ -318,45 +343,45 @@ export function ChatView({
                         ))}
                       </div>
                     )}
-                    <div className="absolute -bottom-8 -left-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      {message.content && (
-                        <button
-                          className="btn btn-ghost btn-xs bg-base-100"
-                          onClick={() => enterEditMode(message)}
-                        >
-                          Edit
-                        </button>
-                      )}
-                      <button
-                        className="btn btn-ghost btn-xs bg-base-100"
-                        onClick={() => setDeletingMessageId(message.id)}
-                      >
-                        Delete
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-xs bg-base-100"
-                        onClick={() => copyMessageContent(message)}
-                      >
-                        Copy
-                      </button>
-                      {messages.indexOf(message) > 0 && (
-                        <button
-                          className="btn btn-ghost btn-xs bg-base-100"
-                          onClick={() => moveMessage(message.id, 'up')}
-                        >
-                          Up
-                        </button>
-                      )}
-                      {messages.indexOf(message) < messages.length - 1 && (
-                        <button
-                          className="btn btn-ghost btn-xs bg-base-100"
-                          onClick={() => moveMessage(message.id, 'down')}
-                        >
-                          Down
-                        </button>
-                      )}
-                    </div>
                   </div>
+                )}
+              </div>
+              <div className="message-actions">
+                {message.content && (
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => enterEditMode(message)}
+                  >
+                    Edit
+                  </button>
+                )}
+                <button
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => setDeletingMessageId(message.id)}
+                >
+                  Delete
+                </button>
+                <button
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => copyMessageContent(message)}
+                >
+                  Copy
+                </button>
+                {messages.indexOf(message) > 0 && (
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => moveMessage(message.id, 'up')}
+                  >
+                    Up
+                  </button>
+                )}
+                {messages.indexOf(message) < messages.length - 1 && (
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => moveMessage(message.id, 'down')}
+                  >
+                    Down
+                  </button>
                 )}
               </div>
             </div>
