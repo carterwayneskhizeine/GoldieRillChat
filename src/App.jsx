@@ -51,14 +51,6 @@ import {
   initializeStoragePath,
   initializeSidebarState
 } from './components/stateInitializers'
-import { 
-  createNewConversation as createNewConversationService,
-  loadConversation as loadConversationService,
-  sendMessage as sendMessageService,
-  deleteMessage as deleteMessageService,
-  updateMessage as updateMessageService,
-  renameMessageFile as renameMessageFileService
-} from './components/chatService'
 
 export default function App() {
   // 修改初始工具为 chat
@@ -175,7 +167,8 @@ export default function App() {
 
   const createNewConversation = async () => {
     try {
-      const result = await createNewConversationService(storagePath, conversations, window.electron)
+      const result = await createNewConversationOp(storagePath, conversations, window.electron)
+      
       setConversations(result.updatedConversations)
       setCurrentConversation(result.newConversation)
       setMessages([])
@@ -186,7 +179,7 @@ export default function App() {
 
   const loadConversation = async (conversationId) => {
     try {
-      const result = await loadConversationService(conversationId, conversations, window.electron)
+      const result = await loadConversationOp(conversationId, conversations, window.electron)
       setCurrentConversation(result.conversation)
       setMessages(result.messages)
       setShouldScrollToBottom(true)
@@ -198,7 +191,7 @@ export default function App() {
 
   const sendMessage = async () => {
     try {
-      const result = await sendMessageService(
+      const result = await sendMessageOp(
         messageInput,
         selectedFiles,
         messages,
@@ -228,7 +221,7 @@ export default function App() {
 
   const confirmDeleteMessage = async () => {
     try {
-      const updatedMessages = await deleteMessageService(
+      const updatedMessages = await deleteMessageOp(
         deletingMessageId,
         messages,
         currentConversation,
@@ -258,11 +251,13 @@ export default function App() {
   }
 
   const updateMessageInApp = async (messageId, newContent) => {
+    // Get the message being edited
     const message = messages.find(msg => msg.id === messageId)
     if (!message) return
 
     try {
-      const updatedMessages = await updateMessageService(
+      // 使用提取出的 updateMessage 函数
+      const updatedMessages = await updateMessage(
         messageId,
         newContent,
         message,
@@ -270,6 +265,8 @@ export default function App() {
         currentConversation,
         window.electron
       )
+
+      // Update state after successful file operations
       setMessages(updatedMessages)
     } catch (error) {
       alert(error.message)
@@ -279,17 +276,62 @@ export default function App() {
     exitEditMode()
   }
 
+  // Add renameMessageFile function
   const renameMessageFile = async (message, newFileName) => {
+    if (!currentConversation || !message.txtFile) return
+    
     try {
-      const result = await renameMessageFileService(
-        message,
-        newFileName,
-        messages,
-        currentConversation,
-        window.electron
+      // Find if there's an existing message with the target filename
+      const existingMessage = messages.find(msg => 
+        msg.txtFile && msg.txtFile.displayName === newFileName
       )
-      
-      setMessages(result.updatedMessages)
+
+      const result = await window.electron.renameMessageFile(
+        currentConversation.path,
+        message.txtFile.displayName,
+        newFileName
+      )
+
+      if (result.merged && existingMessage) {
+        // Merge message contents
+        const mergedMessage = {
+          ...existingMessage,
+          content: `${existingMessage.content}\n\n${message.content}`,
+          txtFile: result
+        }
+
+        // Update messages array
+        setMessages(prev => prev.map(msg => 
+          msg.id === existingMessage.id ? mergedMessage : msg
+        ).filter(msg => msg.id !== message.id))
+
+        // Save to storage
+        const updatedMessages = messages
+          .map(msg => msg.id === existingMessage.id ? mergedMessage : msg)
+          .filter(msg => msg.id !== message.id)
+
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          updatedMessages
+        )
+      } else {
+        // Just rename
+        const updatedMessage = {
+          ...message,
+          txtFile: result
+        }
+
+        setMessages(prev => prev.map(msg => 
+          msg.id === message.id ? updatedMessage : msg
+        ))
+
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          messages.map(msg => msg.id === message.id ? updatedMessage : msg)
+        )
+      }
     } catch (error) {
       console.error('Failed to rename file:', error)
       alert('重命名失败')
@@ -657,23 +699,14 @@ export default function App() {
                       >
                         <div className="flex items-center gap-2 flex-1">
                           {editingFolderName === conversation.id ? (
-                            <div 
-                              className="join w-full flex-wrap" 
-                              onClick={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => e.stopPropagation()}
-                              onKeyPress={(e) => e.stopPropagation()}
-                            >
+                            <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
                               <input
                                 type="text"
                                 value={folderNameInput}
-                                onChange={(e) => {
-                                  e.stopPropagation()
-                                  setFolderNameInput(e.target.value)
-                                }}
-                                className="input input-xs input-bordered join-item w-[calc(100%-90px)]"
-                                placeholder="Enter new folder name"
-                                onKeyDown={(e) => {
-                                  e.stopPropagation()
+                                onChange={(e) => setFolderNameInput(e.target.value)}
+                                className="input input-xs input-bordered w-full"
+                                placeholder="输入新的文件夹名称"
+                                onKeyPress={(e) => {
                                   if (e.key === 'Enter') {
                                     renameChatFolder(
                                       conversation, 
@@ -690,34 +723,36 @@ export default function App() {
                                 }}
                                 autoFocus
                               />
-                              <button
-                                className="btn btn-xs join-item w-10"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  renameChatFolder(
-                                    conversation, 
-                                    folderNameInput,
-                                    conversations,
-                                    currentConversation,
-                                    setConversations,
-                                    setCurrentConversation,
-                                    setEditingFolderName,
-                                    setFolderNameInput,
-                                    window
-                                  )
-                                }}
-                              >
-                                Yes
-                              </button>
-                              <button
-                                className="btn btn-xs join-item w-10"
-                                onClick={() => {
-                                  setEditingFolderName(null)
-                                  setFolderNameInput('')
-                                }}
-                              >
-                                No
-                              </button>
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  className="btn btn-xs btn-primary"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    renameChatFolder(
+                                      conversation, 
+                                      folderNameInput,
+                                      conversations,
+                                      currentConversation,
+                                      setConversations,
+                                      setCurrentConversation,
+                                      setEditingFolderName,
+                                      setFolderNameInput,
+                                      window
+                                    )
+                                  }}
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  className="btn btn-xs"
+                                  onClick={() => {
+                                    setEditingFolderName(null)
+                                    setFolderNameInput('')
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <span className="truncate">
