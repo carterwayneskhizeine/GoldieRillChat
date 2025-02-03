@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { formatMessageTime } from '../utils/timeFormat';
 import { ImageLightbox } from './ImageLightbox';
 import { getAllMessageImages, findImageIndex } from './imagePreviewUtils';
@@ -8,8 +8,8 @@ import { toggleMessageCollapse } from './messageCollapse';
 import { handleFileSelect, removeFile, handleFileDrop } from './fileHandlers';
 import { SidebarCollapseButton, shouldShowCollapseButton, getMessageContentStyle } from './sidebarMessageCollapse.jsx';
 
-export const ChatView = ({
-  messages = [],
+export function ChatView({
+  messages,
   currentConversation,
   editingMessage,
   setEditingMessage,
@@ -25,20 +25,28 @@ export const ChatView = ({
   exitEditMode,
   collapsedMessages,
   setCollapsedMessages,
-  isCompact = false,
   handleImageClick,
-  fileInputRef
-}) => {
+  fileInputRef,
+  editingFileName,
+  setEditingFileName,
+  fileNameInput,
+  setFileNameInput,
+  renameMessageFile,
+  openFileLocation,
+  copyMessageContent,
+  deletingMessageId,
+  setDeletingMessageId,
+  cancelDeleteMessage,
+  confirmDeleteMessage,
+  scrollToMessage,
+  window,
+  isCompact = false
+}) {
   const messagesEndRef = useRef(null);
-  const [deletingMessageId, setDeletingMessageId] = useState(null);
 
-  const confirmDeleteMessage = async () => {
-    await deleteMessage(deletingMessageId);
-    setDeletingMessageId(null);
-  };
-
-  const cancelDeleteMessage = () => {
-    setDeletingMessageId(null);
+  // 滚动到底部的函数
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleContextMenu = (e) => {
@@ -93,9 +101,55 @@ export const ChatView = ({
           {messages.map(message => (
             <div key={message.id} className={`chat chat-start mb-8 relative ${isCompact ? 'compact-message -ml-5' : ''}`}>
               <div className="chat-header opacity-70">
-                <span className="text-xs opacity-50">
-                  {formatMessageTime(message.timestamp)}
-                </span>
+                {message.txtFile ? (
+                  editingFileName === message.id ? (
+                    <div className="join">
+                      <input
+                        type="text"
+                        value={fileNameInput}
+                        onChange={(e) => setFileNameInput(e.target.value)}
+                        className="input input-xs input-bordered join-item"
+                        placeholder="Enter new file name"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            renameMessageFile(message, fileNameInput);
+                          }
+                        }}
+                      />
+                      <button
+                        className="btn btn-xs join-item"
+                        onClick={() => renameMessageFile(message, fileNameInput)}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="btn btn-xs join-item"
+                        onClick={() => {
+                          setEditingFileName(null);
+                          setFileNameInput('');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="cursor-pointer hover:underline" onClick={() => {
+                        setEditingFileName(message.id);
+                        setFileNameInput(message.txtFile.displayName);
+                      }}>
+                        {message.txtFile.displayName}
+                      </span>
+                      <span className="text-xs opacity-50">
+                        {formatMessageTime(message.timestamp)}
+                      </span>
+                    </div>
+                  )
+                ) : (
+                  <span className="text-xs opacity-50">
+                    {formatMessageTime(message.timestamp)}
+                  </span>
+                )}
               </div>
               <div className="chat-bubble relative max-w-[800px] break-words">
                 {!isCompact && message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
@@ -371,4 +425,4 @@ export const ChatView = ({
       )}
     </div>
   );
-}; 
+} 
