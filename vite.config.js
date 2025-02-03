@@ -36,7 +36,17 @@ export default defineConfig({
   },
   server: {
     fs: {
-      allow: ['resources', 'src']
+      allow: ['resources', 'src', 'node_modules']
     }
-  }
+  },
+  optimizeDeps: {
+    include: ['cherry-markdown'],
+  },
+  css: {
+    preprocessorOptions: {
+      less: {
+        javascriptEnabled: true,
+      },
+    },
+  },
 }) 
