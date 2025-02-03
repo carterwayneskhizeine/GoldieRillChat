@@ -118,14 +118,6 @@ export default function App() {
   const canvasRef = useRef(null)
   const canvasSizeTimeoutRef = useRef(null)
 
-  // Add new state variable for scroll control
-  // 删除重复声明，因为已经在 initialChatState 中声明过
-  // const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false)
-
-  // Add new state variable for Ctrl key press
-  // 删除重复声明，因为已经在 initialUIState 中声明过
-  // const [isCtrlPressed, setIsCtrlPressed] = useState(false)
-
   // Add new state variables for mouse rotation
   const [startAngle, setStartAngle] = useState(0)
   const [lastRotation, setLastRotation] = useState(0)
@@ -134,7 +126,7 @@ export default function App() {
   // 添加拖动排序相关的状态
   const [draggedConversation, setDraggedConversation] = useState(null)
 
-  // Add new state for collapsed messages
+  // Add state for collapsed messages
   const [collapsedMessages, setCollapsedMessages] = useState(new Set())
 
   // 使用初始化函数替换原有的主题状态声明
@@ -439,7 +431,7 @@ export default function App() {
       const deltaX = e.clientX - editorState.lastX
       const deltaY = e.clientY - editorState.lastY
       
-      // 添加0.25的速度系数来减缓移动速度
+      // Add 0.25 speed factor to slow down movement
       const speedFactor = 0.5
       
       setEditorState(prev => ({
@@ -561,6 +553,17 @@ export default function App() {
       setSidebarMode(previousMode)
       setPreviousMode(null)
     }
+  }
+
+  // 合并 onMouseUp 和 onMouseLeave 处理函数
+  const handleMouseEvent = () => {
+    handleMouseUp(setIsRotating, setEditorState)
+  }
+
+  // 统一的错误处理函数
+  const handleError = (error) => {
+    console.error(error)
+    alert(error.message)
   }
 
   return (
@@ -958,27 +961,31 @@ export default function App() {
                           </div>
                         )}
                         {editingMessage?.id === message.id ? (
-                          <div className="join w-full">
-                            <div className="mockup-code w-[650px] h-[550px] bg-base-300 relative">
-                              <pre data-prefix=""></pre>
-                              <textarea
-                                value={messageInput}
-                                onChange={(e) => setMessageInput(e.target.value)}
-                                className="absolute inset-0 top-[40px] bg-transparent text-current p-4 resize-none focus:outline-none w-full h-[calc(100%-40px)] font-mono"
-                              />
-                            </div>
-                            <div className="absolute -bottom-8 -left-1 flex gap-1">
+                          <div className="edit-mode-container">
+                            <textarea
+                              value={messageInput}
+                              onChange={(e) => {
+                                setMessageInput(e.target.value)
+                                // 自动调整高度
+                                e.target.style.height = 'auto'
+                                e.target.style.height = `${e.target.scrollHeight}px`
+                              }}
+                              className="edit-mode-textarea"
+                              placeholder="编辑消息..."
+                              autoFocus
+                            />
+                            <div className="edit-mode-buttons">
                               <button
-                                className="btn btn-ghost btn-xs bg-base-100"
+                                className="edit-mode-button btn-primary"
                                 onClick={() => updateMessageInApp(message.id, messageInput)}
                               >
-                                Save
+                                保存
                               </button>
                               <button
-                                className="btn btn-ghost btn-xs bg-base-100"
+                                className="edit-mode-button"
                                 onClick={exitEditMode}
                               >
-                                Cancel
+                                取消
                               </button>
                             </div>
                           </div>
@@ -1038,7 +1045,7 @@ export default function App() {
                             <div className="absolute -bottom-8 -left-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:delay-0 delay-[500ms]">
                               {message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ? (
                                 <button
-                                  className="btn btn-ghost btn-xs bg-base-100"
+                                  className="btn btn-common btn-xs bg-base-100"
                                   onClick={() => {
                                     const imageFile = message.files.find(file => 
                                       file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
@@ -1052,14 +1059,14 @@ export default function App() {
                                 </button>
                               ) : message.content ? (
                                 <button
-                                  className="btn btn-ghost btn-xs bg-base-100"
+                                  className="btn btn-common btn-xs bg-base-100"
                                   onClick={() => enterEditMode(message)}
                                 >
                                   Edit
                                 </button>
                               ) : null}
                               <button
-                                className="btn btn-ghost btn-xs bg-base-100"
+                                className="btn btn-common btn-xs bg-base-100"
                                   onClick={() => deleteMessageInApp(message.id)}
                                 >
                                   Delete
@@ -1093,14 +1100,14 @@ export default function App() {
                                     </div>
                                   )}
                               <button
-                                className="btn btn-ghost btn-xs bg-base-100"
+                                className="btn btn-common btn-xs bg-base-100"
                                 onClick={() => copyMessageContent(message)}
                               >
                                 Copy
                               </button>
                               {messages.indexOf(message) > 0 && (
                                 <button
-                                  className="btn btn-ghost btn-xs bg-base-100"
+                                  className="btn btn-common btn-xs bg-base-100"
                                   onClick={() => moveMessageInApp(message.id, 'up')}
                                 >
                                   Up
@@ -1108,7 +1115,7 @@ export default function App() {
                               )}
                               {messages.indexOf(message) < messages.length - 1 && (
                                 <button
-                                  className="btn btn-ghost btn-xs bg-base-100"
+                                  className="btn btn-common btn-xs bg-base-100"
                                   onClick={() => moveMessageInApp(message.id, 'down')}
                                 >
                                   Down
@@ -1134,7 +1141,7 @@ export default function App() {
                           <div key={index} className="badge badge-outline gap-2">
                             {file.name}
                             <button
-                              className="btn btn-ghost btn-xs"
+                              className="btn btn-common btn-xs"
                               onClick={() => removeFile(file, setSelectedFiles)}
                             >
                               ×
@@ -1148,45 +1155,27 @@ export default function App() {
                         value={messageInput}
                         onChange={(e) => {
                           setMessageInput(e.target.value)
-                            // 自动调整高度
-                            e.target.style.height = 'auto'  // 先重置高度
-                            e.target.style.height = `${e.target.scrollHeight}px`  // 设置为实际内容高度
-                            // 如果超过最大高度，显示滚动功能（但滚动条隐藏）
-                            if (e.target.scrollHeight > 480) {
-                              e.target.style.overflowY = 'scroll'
-                            } else {
-                              e.target.style.overflowY = 'hidden'
-                            }
+                          const target = e.target
+                          target.style.height = 'auto'
+                          target.style.height = `${target.scrollHeight}px`
+                          target.style.overflowY = target.scrollHeight > 480 ? 'scroll' : 'hidden'
                         }}
                         onKeyPress={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault()
                             sendMessage()
-                              // 重置高度
                             e.target.style.height = '64px'
                             e.target.style.overflowY = 'hidden'
                           }
                         }}
                         onPaste={(e) => handlePaste(e, currentConversation, setSelectedFiles, window.electron)}
-                        onContextMenu={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleContextMenu(e)
-                        }}
+                        onContextMenu={handleContextMenu}
                         placeholder="Send a message..."
-                        className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide bg-base-100"
-                        style={{
-                          scrollbarWidth: 'none',  // Firefox
-                          msOverflowStyle: 'none',  // IE and Edge
-                          '&::-webkit-scrollbar': {  // Chrome, Safari, Opera
-                            display: 'none'
-                          }
-                        }}
-                        rows="2"
+                        className="message-input"
                       />
                       <div className="absolute bottom-3 right-3 flex items-center gap-2">
                         <button
-                          className="btn btn-ghost btn-sm btn-circle"
+                          className="btn btn-common btn-sm btn-circle"
                           onClick={() => fileInputRef.current?.click()}
                         >
                           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1194,7 +1183,7 @@ export default function App() {
                           </svg>
                         </button>
                         <button
-                          className="btn btn-ghost btn-sm btn-circle"
+                          className="btn btn-common btn-sm btn-circle"
                           onClick={sendMessage}
                         >
                           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1219,8 +1208,8 @@ export default function App() {
             {/* Editor content */}
             {activeTool === 'editor' && (
               <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
-                  {/* 现有的编辑器内容 */}
-                {/* Tools row - 移动到顶部 */}
+                  {/* Existing editor content */}
+                {/* Tools row - Move to top */}
                 <div className="flex flex-wrap gap-2 items-center">
                   <div className="flex-1 flex justify-start items-center">
                     <button
@@ -1363,11 +1352,11 @@ export default function App() {
 
                 {/* Canvas area */}
                 <div 
-                  className="flex-1 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden"
+                  className="canvas-container"
                   onMouseDown={(e) => handleMouseDown(e, editorState, isCtrlPressed, canvasRef.current, setIsRotating, setStartAngle, setLastRotation, setEditorState)}
                   onMouseMove={(e) => handleMouseMove(e, editorState, isRotating, canvasRef.current, startAngle, lastRotation, setEditorState)}
-                  onMouseUp={() => handleMouseUp(setIsRotating, setEditorState)}
-                  onMouseLeave={() => handleMouseUp(setIsRotating, setEditorState)}
+                  onMouseUp={handleMouseEvent}
+                  onMouseLeave={handleMouseEvent}
                   onWheel={(e) => handleWheel(e, editorState, setEditorState)}
                   onDrop={(e) => handleCanvasDrop(e, loadImage, setImageSize, setEditorState)}
                   onDragOver={handleCanvasDragOver}
@@ -1376,14 +1365,7 @@ export default function App() {
                     ref={canvasRef}
                     width={canvasSize.width}
                     height={canvasSize.height}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      width: 'auto',
-                      height: 'auto',
-                      objectFit: 'contain'
-                    }}
-                    className="bg-neutral-content rounded"
+                    className="canvas-element"
                   />
                 </div>
 
@@ -1398,9 +1380,9 @@ export default function App() {
             {/* Browser content */}
             {activeTool === 'browser' && (
               <div className="flex-1 flex flex-col relative">
-                {/* 浏览器视图容器 */}
+                {/* Browser view container */}
                 <div className="flex-1 bg-base-100 overflow-auto">
-                  {/* 浏览器视图由主进程管理 */}
+                  {/* Browser view managed by main process */}
                 </div>
               </div>
             )}
@@ -1502,7 +1484,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 所有组件需要包裹在同一个父元素内 */}
+        {/* All components need to be wrapped in the same parent element */}
         <div className="overlays">
           <ContextMenu
             contextMenu={contextMenu}

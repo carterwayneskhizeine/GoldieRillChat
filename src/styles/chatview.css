@@ -31,10 +31,58 @@
 
 /* 滚动条样式 */
 .scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+/* 通用按钮样式 */
+.btn-common {
+  @apply btn btn-ghost btn-xs bg-base-100;
+}
+
+/* 画布容器样式 */
+.canvas-container {
+  @apply flex-1 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden;
+}
+
+/* 画布样式 */
+.canvas-element {
+  @apply bg-neutral-content rounded max-w-full max-h-full w-auto h-auto object-contain;
+}
+
+/* 消息输入框样式 */
+.message-input {
+  @apply textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide bg-base-100;
+}
+
+/* 代码编辑器样式 */
+.code-editor {
+  @apply absolute inset-0 top-[40px] bg-transparent text-current p-4 resize-none focus:outline-none w-full h-[calc(100%-40px)] font-mono;
+}
+
+/* 编辑模式样式 */
+.edit-mode-container {
+  @apply w-full bg-base-200 rounded-lg p-4;
+}
+
+.edit-mode-textarea {
+  @apply w-full min-h-[100px] bg-transparent text-current p-4 resize-y focus:outline-none font-mono;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+}
+
+.edit-mode-textarea:focus {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.edit-mode-buttons {
+  @apply flex gap-2 mt-2;
+}
+
+.edit-mode-button {
+  @apply btn btn-sm px-4;
 } 
