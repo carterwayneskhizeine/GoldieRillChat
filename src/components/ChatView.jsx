@@ -6,6 +6,7 @@ import { handlePaste } from './pasteHandler';
 import { copyMessageContent } from './messageUtils';
 import { toggleMessageCollapse } from './messageCollapse';
 import { handleFileSelect, removeFile, handleFileDrop } from './fileHandlers';
+import { SidebarCollapseButton, shouldShowCollapseButton, getMessageContentStyle } from './sidebarMessageCollapse.jsx';
 
 export const ChatView = ({
   messages = [],
@@ -73,7 +74,7 @@ export const ChatView = ({
                 </span>
               </div>
               <div className="chat-bubble relative max-w-[800px] break-words">
-                {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
+                {!isCompact && message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
                   <div
                     className="absolute right-0 flex items-center"
                     style={{
@@ -113,6 +114,13 @@ export const ChatView = ({
                     </button>
                   </div>
                 )}
+                {isCompact && shouldShowCollapseButton(message.content) && (
+                  <SidebarCollapseButton
+                    messageId={message.id}
+                    collapsedMessages={collapsedMessages}
+                    setCollapsedMessages={setCollapsedMessages}
+                  />
+                )}
                 
                 {editingMessage?.id === message.id ? (
                   <div className="join w-full">
@@ -144,13 +152,18 @@ export const ChatView = ({
                     {message.content && (
                       <div className="flex justify-between items-start">
                         <div 
-                          className={`prose max-w-none w-full transition-all duration-200 ease-in-out ${
-                            collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
-                          } ${isCompact ? 'whitespace-pre-wrap break-all' : ''}`}
-                          style={{ 
-                            whiteSpace: 'pre-wrap',
-                            maxWidth: isCompact ? '260px' : '800px'
-                          }}
+                          {...(isCompact 
+                            ? getMessageContentStyle(collapsedMessages.has(message.id))
+                            : {
+                                className: `prose max-w-none w-full ${
+                                  collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
+                                }`,
+                                style: { 
+                                  whiteSpace: 'pre-wrap',
+                                  maxWidth: '800px'
+                                }
+                              }
+                          )}
                         >
                           {message.content}
                         </div>

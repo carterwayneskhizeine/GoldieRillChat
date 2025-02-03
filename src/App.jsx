@@ -792,6 +792,7 @@ export default function App() {
                         enterEditMode={enterEditMode}
                         exitEditMode={exitEditMode}
                         collapsedMessages={collapsedMessages}
+                        setCollapsedMessages={setCollapsedMessages}
                         isCompact={true}
                         handleImageClick={handleImageClick}
                         fileInputRef={fileInputRef}
@@ -836,6 +837,7 @@ export default function App() {
                         enterEditMode={enterEditMode}
                         exitEditMode={exitEditMode}
                         collapsedMessages={collapsedMessages}
+                        setCollapsedMessages={setCollapsedMessages}
                         isCompact={true}
                         handleImageClick={handleImageClick}
                         fileInputRef={fileInputRef}
