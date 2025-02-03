@@ -29,8 +29,12 @@ export const WebMarkdown = () => {
           // 主题列表，用于切换主题
           themeList: [
             { className: 'default', label: '默认' },
-            { className: 'dark', label: '暗黑' },
-            { className: 'light', label: '明亮' }
+            { className: 'dark', label: '黑' },
+            { className: 'light', label: '白' },
+            { className: 'green', label: '绿' },
+            { className: 'red', label: '粉' },
+            { className: 'violet', label: '紫' },
+            { className: 'blue', label: '蓝' }
           ],
           // 默认使用暗黑主题
           mainTheme: 'dark',
