@@ -21,9 +21,58 @@ export const WebMarkdown = () => {
         height: '100%',
         forceAppend: true,
         autoScrollByHash: false,
-        value: '# Welcome to Cherry Markdown\n\nStart typing...',
+        value: `# Welcome to Cherry Markdown
+
+[toc]
+
+## Getting Started
+Start typing your content here...
+
+### Features
+- Markdown Support
+- Code Highlighting
+- Table of Contents
+- Theme Switching
+
+### Examples
+#### Code Block
+\`\`\`javascript
+console.log('Hello, Cherry Markdown!');
+\`\`\`
+
+#### Table
+| Feature | Status |
+|---------|--------|
+| TOC     | ✅     |
+| Themes  | ✅     |
+`,
         editor: {
           defaultModel: 'edit&preview'
+        },
+        toc: {
+          enable: true,  // 启用目录功能
+          level: [1, 2, 3, 4, 5, 6],  // 目录层级
+          showOrderNumber: true,  // 显示序号
+          position: 'left',  // 目录位置
+          style: {
+            position: 'fixed',  // 固定定位，实现悬浮
+            top: '60px',        // 距离窗口顶部60px
+            left: '16px',       // 距离窗口左侧16px
+            'z-index': '100',   // 确保目录在最上层
+            'max-height': '80vh',  // 最大高度
+            'overflow-y': 'auto',  // 超出高度时显示滚动条
+            'background-color': 'var(--b1)',  // 使用主题变量
+            'border': '1px solid var(--b3)',  // 使用主题变量
+            'border-radius': '8px',
+            'padding': '16px',
+            'box-shadow': '0 2px 8px rgba(0, 0, 0, 0.15)',  // 添加阴影效果
+            'min-width': '200px',  // 设置最小宽度
+            'max-width': '300px',  // 设置最大宽度
+            'transition': 'all 0.3s ease',  // 添加过渡效果
+            'backdrop-filter': 'blur(8px)',  // 背景模糊效果
+            'opacity': '0.95'  // 略微透明
+          },
+          container: '#toc-container'  // 指定目录容器
         },
         themeSettings: {
           // 主题列表，用于切换主题
@@ -43,7 +92,7 @@ export const WebMarkdown = () => {
         },
         toolbars: {
           theme: 'dark',
-          // 在工具栏中添加主题切换按钮
+          // 在工具栏中添加主题切换按钮和目录按钮
           toolbar: [
             'bold',
             'italic',
@@ -53,10 +102,11 @@ export const WebMarkdown = () => {
             'header',
             'list',
             '|',
-            'theme'
+            'theme',
+            'toc'  // 添加目录按钮
           ],
           // 在侧边栏也添加主题切换按钮
-          sidebar: ['mobilePreview', 'copy', 'theme'],
+          sidebar: ['mobilePreview', 'copy', 'theme', 'toc'],  // 添加目录按钮
           // 禁用图表相关功能
           table: ['table']  // 只保留基础表格功能
         },
@@ -65,6 +115,16 @@ export const WebMarkdown = () => {
           global: {
             tableChart: false,
             echarts: false,
+          },
+          // 禁用代码块的在线运行功能
+          syntax: {
+            codeBlock: {
+              wrap: true,
+              lineNumber: true,
+              copyCode: true,
+              editCode: false,  // 禁用编辑功能
+              runCode: false    // 禁用运行功能
+            }
           }
         },
         callback: {
@@ -117,6 +177,7 @@ export const WebMarkdown = () => {
 
   return (
     <div className="flex-1 flex h-full overflow-hidden">
+      <div id="toc-container" className="fixed top-[60px] left-4 z-50"></div>
       <div className="w-full h-full overflow-hidden bg-base-100">
         <div id="cherry-markdown" ref={editorRef} className="h-full" />
       </div>

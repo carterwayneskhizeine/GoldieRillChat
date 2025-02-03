@@ -371,7 +371,29 @@ export function ChatView({
                   {messages.indexOf(message) > 0 && (
                     <button
                       className="btn btn-ghost btn-xs"
-                      onClick={() => moveMessage(message.id, 'up')}
+                      onClick={() => {
+                        moveMessage(message.id, 'up');
+                        // 获取消息元素
+                        const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+                        // 判断是否是长对话
+                        const isLongMessage = message.content && (
+                          message.content.split('\n').length > 6 || 
+                          message.content.length > 300
+                        );
+                        
+                        // 如果是长对话，先折叠
+                        if (isLongMessage) {
+                          setCollapsedMessages(prev => new Set([...prev, message.id]));
+                        }
+                        
+                        // 滚动到中间
+                        setTimeout(() => {
+                          messageElement?.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                          });
+                        }, 100);
+                      }}
                     >
                       Up
                     </button>
@@ -379,11 +401,42 @@ export function ChatView({
                   {messages.indexOf(message) < messages.length - 1 && (
                     <button
                       className="btn btn-ghost btn-xs"
-                      onClick={() => moveMessage(message.id, 'down')}
+                      onClick={() => {
+                        moveMessage(message.id, 'down');
+                        // 获取消息元素
+                        const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+                        // 判断是否是长对话
+                        const isLongMessage = message.content && (
+                          message.content.split('\n').length > 6 || 
+                          message.content.length > 300
+                        );
+                        
+                        // 如果是长对话，先折叠
+                        if (isLongMessage) {
+                          setCollapsedMessages(prev => new Set([...prev, message.id]));
+                        }
+                        
+                        // 滚动到中间
+                        setTimeout(() => {
+                          messageElement?.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                          });
+                        }, 100);
+                      }}
                     >
                       Down
                     </button>
                   )}
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      // TODO: 实现发送功能
+                      console.log('Send message:', message);
+                    }}
+                  >
+                    Send
+                  </button>
                 </div>
               )}
             </div>
