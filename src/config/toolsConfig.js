@@ -1,12 +1,11 @@
 // 工具列表配置
-export const tools = ['chat', 'browser', 'markdown', 'webmarkdown', 'editor']
+export const tools = ['chat', 'browser', 'webmarkdown', 'editor']
 
 // 工具显示名称映射
 export const toolDisplayNames = {
   chat: 'Chat',
   editor: 'Image Editor',
   browser: 'Browser',
-  markdown: 'Markdown',
   webmarkdown: 'Web Markdown'
 }
 

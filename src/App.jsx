@@ -35,7 +35,6 @@ import { toggleTheme, themes, initializeTheme, useThemeEffect } from './componen
 import { ImageLightbox } from './components/ImageLightbox'
 import { getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
 import './styles/lightbox.css'
-import { MarkdownEditor } from './components/MarkdownEditor'
 import { ChatView } from './components/ChatView'
 import './styles/chatview.css'
 import { tools, getToolDisplayName, createToolSwitcher } from './config/toolsConfig'
@@ -751,13 +750,6 @@ export default function App() {
                 <div className="flex-1 bg-base-100 overflow-auto">
                   {/* Browser view managed by main process */}
                 </div>
-              </div>
-            )}
-
-            {/* Markdown Editor */}
-            {activeTool === 'markdown' && (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <MarkdownEditor />
               </div>
             )}
 
