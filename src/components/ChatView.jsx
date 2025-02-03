@@ -346,44 +346,46 @@ export function ChatView({
                   </div>
                 )}
               </div>
-              <div className="message-actions">
-                {message.content && (
+              {editingMessage?.id !== message.id && (
+                <div className="message-actions">
+                  {message.content && (
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => enterEditMode(message)}
+                    >
+                      Edit
+                    </button>
+                  )}
                   <button
                     className="btn btn-ghost btn-xs"
-                    onClick={() => enterEditMode(message)}
+                    onClick={() => setDeletingMessageId(message.id)}
                   >
-                    Edit
+                    Delete
                   </button>
-                )}
-                <button
-                  className="btn btn-ghost btn-xs"
-                  onClick={() => setDeletingMessageId(message.id)}
-                >
-                  Delete
-                </button>
-                <button
-                  className="btn btn-ghost btn-xs"
-                  onClick={() => copyMessageContent(message)}
-                >
-                  Copy
-                </button>
-                {messages.indexOf(message) > 0 && (
                   <button
                     className="btn btn-ghost btn-xs"
-                    onClick={() => moveMessage(message.id, 'up')}
+                    onClick={() => copyMessageContent(message)}
                   >
-                    Up
+                    Copy
                   </button>
-                )}
-                {messages.indexOf(message) < messages.length - 1 && (
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => moveMessage(message.id, 'down')}
-                  >
-                    Down
-                  </button>
-                )}
-              </div>
+                  {messages.indexOf(message) > 0 && (
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => moveMessage(message.id, 'up')}
+                    >
+                      Up
+                    </button>
+                  )}
+                  {messages.indexOf(message) < messages.length - 1 && (
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => moveMessage(message.id, 'down')}
+                    >
+                      Down
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
           <div ref={messagesEndRef} />
