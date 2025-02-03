@@ -31,7 +31,7 @@ import { renameChatFolder } from './components/conversationRenameHandlers'
 import { deleteConversation } from './components/conversationDeleteHandlers'
 import { handleSelectFolder } from './components/folderHandlers'
 import { handleUpdateFolders } from './components/folderUpdateHandlers'
-import { toggleTheme, themes } from './components/themeHandlers'
+import { toggleTheme, themes, initializeTheme, useThemeEffect } from './components/themeHandlers'
 import { ImageLightbox } from './components/ImageLightbox'
 import { getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
 import './styles/lightbox.css'
@@ -89,7 +89,6 @@ export default function App() {
   // 设置侧边栏默认打开
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
-  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('theme') || 'dark')
   const [storagePath, setStoragePath] = useState(() => localStorage.getItem('storagePath') || '')
   
   // Chat related states
@@ -171,11 +170,11 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(initializeBrowserState().isLoading)
   const [pageTitle, setPageTitle] = useState(initializeBrowserState().pageTitle)
 
-  // Theme effect
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', currentTheme)
-    localStorage.setItem('theme', currentTheme)
-  }, [currentTheme])
+  // 使用初始化函数替换原有的主题状态声明
+  const [currentTheme, setCurrentTheme] = useState(initializeTheme())
+
+  // 使用新的主题持久化Hook
+  useThemeEffect(currentTheme)
 
   // Load conversations on mount
   useEffect(() => {
