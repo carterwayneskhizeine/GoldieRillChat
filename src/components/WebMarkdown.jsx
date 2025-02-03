@@ -17,7 +17,7 @@ export const WebMarkdown = () => {
       // 初始化编辑器
       const config = {
         id: 'cherry-markdown',
-        theme: 'dark',
+        nameSpace: 'cherry-markdown-editor',
         height: '100%',
         forceAppend: true,
         autoScrollByHash: false,
@@ -25,8 +25,34 @@ export const WebMarkdown = () => {
         editor: {
           defaultModel: 'edit&preview'
         },
+        themeSettings: {
+          // 主题列表，用于切换主题
+          themeList: [
+            { className: 'default', label: '默认' },
+            { className: 'dark', label: '暗黑' },
+            { className: 'light', label: '明亮' }
+          ],
+          // 默认使用暗黑主题
+          mainTheme: 'dark',
+          // 代码块主题
+          codeBlockTheme: 'dark',
+        },
         toolbars: {
           theme: 'dark',
+          // 在工具栏中添加主题切换按钮
+          toolbar: [
+            'bold',
+            'italic',
+            'strikethrough',
+            '|',
+            'color',
+            'header',
+            'list',
+            '|',
+            'theme'
+          ],
+          // 在侧边栏也添加主题切换按钮
+          sidebar: ['mobilePreview', 'copy', 'theme'],
           // 禁用图表相关功能
           table: ['table']  // 只保留基础表格功能
         },
@@ -50,8 +76,28 @@ export const WebMarkdown = () => {
             // 可以在这里处理内容变化
             console.log('content changed');
           },
+          // 主题切换的回调
+          onThemeChange: (theme, type) => {
+            // 保存主题设置到localStorage
+            if (type === 'main') {
+              localStorage.setItem('cherry-markdown-theme', theme);
+            } else if (type === 'codeBlock') {
+              localStorage.setItem('cherry-markdown-code-theme', theme);
+            }
+          },
         },
       };
+
+      // 从localStorage读取保存的主题设置
+      const savedTheme = localStorage.getItem('cherry-markdown-theme');
+      const savedCodeTheme = localStorage.getItem('cherry-markdown-code-theme');
+      if (savedTheme) {
+        config.themeSettings.mainTheme = savedTheme;
+      }
+      if (savedCodeTheme) {
+        config.themeSettings.codeBlockTheme = savedCodeTheme;
+      }
+
       const cherryInstance = new Cherry(config);
       setEditor(cherryInstance);
     }
