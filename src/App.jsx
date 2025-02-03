@@ -661,25 +661,25 @@ export default function App() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Chat content */}
           {activeTool === 'chat' && (
-            <ChatView
-              messages={messages}
-              currentConversation={currentConversation}
-              editingMessage={editingMessage}
-              setEditingMessage={setEditingMessage}
-              messageInput={messageInput}
-              setMessageInput={setMessageInput}
-              selectedFiles={selectedFiles}
-              setSelectedFiles={setSelectedFiles}
-              sendMessage={sendMessage}
-              deleteMessage={confirmDeleteMessage}
-              updateMessage={updateMessageInApp}
-              moveMessage={moveMessageInApp}
-              enterEditMode={enterEditMode}
-              exitEditMode={exitEditMode}
-              collapsedMessages={collapsedMessages}
-              setCollapsedMessages={setCollapsedMessages}
-              handleImageClick={handleImageClick}
-              fileInputRef={fileInputRef}
+                      <ChatView
+                        messages={messages}
+                        currentConversation={currentConversation}
+                        editingMessage={editingMessage}
+                        setEditingMessage={setEditingMessage}
+                        messageInput={messageInput}
+                        setMessageInput={setMessageInput}
+                        selectedFiles={selectedFiles}
+                        setSelectedFiles={setSelectedFiles}
+                        sendMessage={sendMessage}
+                        deleteMessage={confirmDeleteMessage}
+                        updateMessage={updateMessageInApp}
+                        moveMessage={moveMessageInApp}
+                        enterEditMode={enterEditMode}
+                        exitEditMode={exitEditMode}
+                        collapsedMessages={collapsedMessages}
+                        setCollapsedMessages={setCollapsedMessages}
+                        handleImageClick={handleImageClick}
+                        fileInputRef={fileInputRef}
               editingFileName={editingFileName}
               setEditingFileName={setEditingFileName}
               fileNameInput={fileNameInput}
@@ -696,8 +696,8 @@ export default function App() {
             />
           )}
 
-          {/* Editor content */}
-          {activeTool === 'editor' && (
+            {/* Editor content */}
+            {activeTool === 'editor' && (
             <Editor
               editorState={editorState}
               setEditorState={setEditorState}
@@ -723,24 +723,24 @@ export default function App() {
               isRotating={isRotating}
               setIsRotating={setIsRotating}
             />
-          )}
+            )}
 
-          {/* Browser content */}
-          {activeTool === 'browser' && (
-            <div className="flex-1 flex flex-col relative">
-              {/* Browser view container */}
-              <div className="flex-1 bg-base-100 overflow-auto">
-                {/* Browser view managed by main process */}
+            {/* Browser content */}
+            {activeTool === 'browser' && (
+              <div className="flex-1 flex flex-col relative">
+                {/* Browser view container */}
+                <div className="flex-1 bg-base-100 overflow-auto">
+                  {/* Browser view managed by main process */}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Markdown Editor */}
-          {activeTool === 'markdown' && (
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <MarkdownEditor />
-            </div>
-          )}
+            {/* Markdown Editor */}
+            {activeTool === 'markdown' && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <MarkdownEditor />
+              </div>
+            )}
         </div>
 
         {/* Modals and overlays */}
