@@ -15,6 +15,7 @@ export default function Editor({
   imageSize,
   setImageSize,
   isCtrlPressed,
+  setIsCtrlPressed,
   canvasRef,
   canvasSizeTimeoutRef,
   currentConversation,

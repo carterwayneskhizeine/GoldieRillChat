@@ -708,6 +708,7 @@ export default function App() {
               imageSize={imageSize}
               setImageSize={setImageSize}
               isCtrlPressed={isCtrlPressed}
+              setIsCtrlPressed={setIsCtrlPressed}
               canvasRef={canvasRef}
               canvasSizeTimeoutRef={canvasSizeTimeoutRef}
               currentConversation={currentConversation}
