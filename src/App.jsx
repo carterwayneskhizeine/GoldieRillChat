@@ -459,6 +459,21 @@ export default function App() {
     }
   }
 
+  // 添加对 showContextMenu 事件的监听
+  useEffect(() => {
+    const handleShowContextMenu = (e) => {
+      const { x, y, text, target } = e.detail;
+      setContextMenu({ visible: true, x, y });
+      setSelectedText(text);
+      setSelectedElement(target);
+    };
+
+    window.addEventListener('showContextMenu', handleShowContextMenu);
+    return () => {
+      window.removeEventListener('showContextMenu', handleShowContextMenu);
+    };
+  }, []);
+
   // 处理右键菜单
   const handleContextMenu = (e) => {
     e.preventDefault()

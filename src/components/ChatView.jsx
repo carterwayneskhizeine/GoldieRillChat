@@ -41,6 +41,24 @@ export const ChatView = ({
     setDeletingMessageId(null);
   };
 
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const selection = window.getSelection();
+    const text = selection.toString();
+    
+    // 创建一个自定义事件并触发
+    const contextMenuEvent = new CustomEvent('showContextMenu', {
+      detail: {
+        x: e.pageX,
+        y: e.pageY,
+        text: text,
+        target: e.target
+      }
+    });
+    window.dispatchEvent(contextMenuEvent);
+  };
+
   return (
     <div className={`flex flex-col relative ${isCompact ? 'chat-view-compact' : ''}`}>
       <style>
@@ -159,7 +177,10 @@ export const ChatView = ({
                       <div className="flex justify-between items-start">
                         <div 
                           {...(isCompact 
-                            ? getMessageContentStyle(collapsedMessages.has(message.id))
+                            ? {
+                                ...getMessageContentStyle(collapsedMessages.has(message.id)),
+                                onContextMenu: handleContextMenu
+                              }
                             : {
                                 className: `prose max-w-none w-full ${
                                   collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
@@ -167,7 +188,8 @@ export const ChatView = ({
                                 style: { 
                                   whiteSpace: 'pre-wrap',
                                   maxWidth: '800px'
-                                }
+                                },
+                                onContextMenu: handleContextMenu
                               }
                           )}
                         >
@@ -297,6 +319,7 @@ export const ChatView = ({
                   }
                 }}
                 onPaste={(e) => handlePaste(e, currentConversation, setSelectedFiles, window.electron)}
+                onContextMenu={handleContextMenu}
                 placeholder="Send a message..."
                 className={`textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide bg-base-100 ${
                   isCompact ? 'text-sm' : ''
