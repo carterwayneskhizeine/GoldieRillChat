@@ -43,24 +43,43 @@ export const SidebarCollapseButton = ({ messageId, collapsedMessages, setCollaps
   
   return (
     <div
-      className="absolute right-0 flex items-center"
+      className="collapse-button"
       style={{
-        position: 'absolute',
-        right: '-32px',
+        position: 'sticky',
         top: '2px',
-        zIndex: 50,
-        pointerEvents: 'auto',
-        cursor: 'pointer'
+        float: 'right',
+        marginLeft: '8px',
+        marginRight: '0px',
+        zIndex: 100,
+        pointerEvents: 'all'
       }}
     >
       <button 
         className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
         style={{
-          pointerEvents: 'auto'
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          transition: 'transform 0.2s',
+          backgroundColor: 'var(--b1)',
+          border: '1px solid var(--b3)'
         }}
         onClick={(e) => {
           e.stopPropagation();
-          toggleSidebarMessageCollapse(messageId, collapsedMessages, setCollapsedMessages);
+          const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+          const isCollapsed = collapsedMessages.has(messageId);
+          
+          if (isCollapsed) {
+            // 展开时，先滚动到消息顶部
+            messageElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => {
+              toggleSidebarMessageCollapse(messageId, collapsedMessages, setCollapsedMessages);
+            }, 100);
+          } else {
+            // 折叠时，滚动到消息中间
+            toggleSidebarMessageCollapse(messageId, collapsedMessages, setCollapsedMessages);
+            setTimeout(() => {
+              messageElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }
         }}
       >
         {collapsedMessages.has(messageId) ? (
