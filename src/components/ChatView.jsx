@@ -68,7 +68,7 @@ export function ChatView({
   };
 
   return (
-    <div className={`flex flex-col relative ${isCompact ? 'chat-view-compact' : ''}`}>
+    <div className={`flex flex-col h-full relative ${isCompact ? 'chat-view-compact' : ''}`}>
       <style>
         {`
           .mask-bottom {
@@ -83,13 +83,11 @@ export function ChatView({
       </style>
       {/* 消息列表区域 */}
       <div 
-        className={`flex-1 overflow-y-auto overflow-x-visible ${isCompact ? 'compact-scroll' : ''}`}
+        className={`flex-1 overflow-y-auto overflow-x-hidden ${isCompact ? 'compact-scroll' : ''}`}
         style={{
-          bottom: isCompact ? '50px' : '85px',
+          height: 'calc(100vh - 200px)',
           paddingBottom: isCompact ? '50px' : '20px',
-          paddingTop: isCompact ? '0' : '0',
-          position: 'relative',
-          top: '0'
+          paddingTop: isCompact ? '0' : '0'
         }}
         onDragOver={(e) => {
           e.preventDefault();
