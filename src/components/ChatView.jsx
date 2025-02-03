@@ -44,15 +44,20 @@ export const ChatView = ({
       {/* 消息列表区域 */}
       <div 
         className="flex-1 overflow-y-auto overflow-x-hidden"
+        style={{
+          bottom: isCompact ? '60px' : '65px',
+          paddingBottom: isCompact ? '10px' : '0px',
+          position: 'relative'
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           e.stopPropagation();
         }}
         onDrop={(e) => handleFileDrop(e, currentConversation, setSelectedFiles, window.electron)}
       >
-        <div className={`${isCompact ? 'px-2' : 'max-w-3xl mx-auto py-4 px-6'} pb-32`}>
+        <div className={`${isCompact ? 'px-2 py-2' : 'max-w-3xl mx-auto py-4 px-6'} ${isCompact ? 'pb-16' : 'pb-32'}`}>
           {messages.map(message => (
-            <div key={message.id} className={`chat chat-start mb-8 relative ${isCompact ? 'compact-message' : ''}`}>
+            <div key={message.id} className={`chat chat-start mb-8 relative ${isCompact ? 'compact-message -ml-10' : ''}`}>
               <div className="chat-header opacity-70">
                 <span className="text-xs opacity-50">
                   {formatMessageTime(message.timestamp)}
@@ -118,8 +123,11 @@ export const ChatView = ({
                         <div 
                           className={`prose max-w-none break-words w-full ${
                             collapsedMessages.has(message.id) ? 'max-h-[144px] overflow-y-auto' : ''
-                          }`}
-                          style={{ whiteSpace: 'pre-wrap' }}
+                          } ${isCompact ? 'whitespace-pre-wrap break-all' : ''}`}
+                          style={{ 
+                            whiteSpace: 'pre-wrap',
+                            maxWidth: isCompact ? '260px' : '800px'
+                          }}
                         >
                           {message.content}
                         </div>
@@ -208,8 +216,8 @@ export const ChatView = ({
 
       {/* 输入区域 */}
       {!editingMessage && (
-        <div className={`absolute bottom-0 left-0 right-0 bg-transparent z-50 ${isCompact ? 'p-2' : 'p-4'}`}>
-          <div className={isCompact ? '' : 'max-w-3xl mx-auto'}>
+        <div className={`absolute bottom-0 left-0 right-[20px] bg-base-100 ${isCompact ? 'p-2' : 'p-4'}`}>
+          <div className={isCompact ? 'max-w-[300px] mx-auto' : 'max-w-3xl mx-auto'}>
             {selectedFiles.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
                 {selectedFiles.map((file, index) => (
