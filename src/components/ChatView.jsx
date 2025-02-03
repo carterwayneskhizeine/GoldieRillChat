@@ -23,6 +23,7 @@ export const ChatView = ({
   enterEditMode,
   exitEditMode,
   collapsedMessages,
+  setCollapsedMessages,
   isCompact = false,
   handleImageClick,
   fileInputRef
@@ -57,7 +58,7 @@ export const ChatView = ({
       >
         <div className={`${isCompact ? 'px-2 py-2' : 'max-w-3xl mx-auto py-4 px-6'} ${isCompact ? 'pb-16' : 'pb-32'}`}>
           {messages.map(message => (
-            <div key={message.id} className={`chat chat-start mb-8 relative ${isCompact ? 'compact-message -ml-10' : ''}`}>
+            <div key={message.id} className={`chat chat-start mb-8 relative ${isCompact ? 'compact-message -ml-5' : ''}`}>
               <div className="chat-header opacity-70">
                 <span className="text-xs opacity-50">
                   {formatMessageTime(message.timestamp)}
@@ -76,7 +77,37 @@ export const ChatView = ({
                   >
                     <button 
                       className="btn btn-md btn-ghost btn-circle bg-base-100"
-                      onClick={() => toggleMessageCollapse(message.id)}
+                      onClick={() => {
+                        setCollapsedMessages(prev => {
+                          const newSet = new Set(prev);
+                          const isCurrentlyCollapsed = newSet.has(message.id);
+                          
+                          if (isCurrentlyCollapsed) {
+                            newSet.delete(message.id);
+                            setTimeout(() => {
+                              const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+                              if (messageElement) {
+                                messageElement.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start'
+                                });
+                              }
+                            }, 100);
+                          } else {
+                            newSet.add(message.id);
+                            setTimeout(() => {
+                              const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+                              if (messageElement) {
+                                messageElement.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'center'
+                                });
+                              }
+                            }, 100);
+                          }
+                          return newSet;
+                        });
+                      }}
                     >
                       {collapsedMessages.has(message.id) ? (
                         <svg className="w-10 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,6 +159,7 @@ export const ChatView = ({
                             whiteSpace: 'pre-wrap',
                             maxWidth: isCompact ? '260px' : '800px'
                           }}
+                          data-message-id={message.id}
                         >
                           {message.content}
                         </div>
