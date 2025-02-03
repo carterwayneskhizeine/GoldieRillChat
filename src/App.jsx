@@ -880,9 +880,13 @@ export default function App() {
           {/* Chat content */}
           {activeTool === 'chat' && (
             <div className="flex-1 flex flex-col relative">
-              {/* 现有的聊天内容 */}
+              {/* Chat content area */}
               <div 
                 className="absolute inset-0 overflow-y-auto overflow-x-hidden"
+                style={{ 
+                  bottom: '80px',  // 给底部留出空间
+                  paddingBottom: '20px'  // 添加一些底部内边距
+                }}
                 onDragOver={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
@@ -1161,7 +1165,7 @@ export default function App() {
               </div>
 
               {/* Bottom input area - fixed */}
-              <div className={`absolute bottom-0 left-0 right-0 bg-transparent z-50 ${editingMessage ? 'hidden' : ''}`}>
+              <div className={`absolute bottom-0 left-0 right-[20px] bg-base-100 ${editingMessage ? 'hidden' : ''}`}>
                 <div className="p-4">
                   <div className="max-w-3xl mx-auto relative">
                     {selectedFiles.length > 0 && (
