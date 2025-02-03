@@ -60,7 +60,8 @@ export default function Sidebar({
   deletingMessageId,
   setDeletingMessageId,
   cancelDeleteMessage,
-  scrollToMessage
+  scrollToMessage,
+  sendToWebMarkdown
 }) {
   useEffect(() => {
     if (activeTool === 'chat') {
@@ -272,6 +273,7 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
+                    sendToWebMarkdown={sendToWebMarkdown}
                   />
                 )}
               </div>
@@ -328,6 +330,7 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
+                    sendToWebMarkdown={sendToWebMarkdown}
                   />
                 )}
               </div>
@@ -384,6 +387,7 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
+                    sendToWebMarkdown={sendToWebMarkdown}
                   />
                 )}
               </div>
@@ -440,6 +444,7 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
+                    sendToWebMarkdown={sendToWebMarkdown}
                   />
                 )}
               </div>
