@@ -40,6 +40,7 @@ import { ChatView } from './components/ChatView'
 import './styles/chatview.css'
 import { tools, getToolDisplayName, createToolSwitcher } from './components/toolbarHandlers'
 import { initializeBrowserState, useBrowserEvents, useSidebarEffect } from './components/browserHandlers'
+import { useKeyboardEvents } from './components/keyboardHandlers'
 
 // 添加全局样式
 const globalStyles = `
@@ -197,28 +198,10 @@ export default function App() {
     }
   }, [messages, shouldScrollToBottom])
 
-  // Add keyboard event listeners
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Control') {
-        setIsCtrlPressed(true)
-      }
-    }
-    
-    const handleKeyUp = (e) => {
-      if (e.key === 'Control') {
-        setIsCtrlPressed(false)
-      }
-    }
-    
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('keyup', handleKeyUp)
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('keyup', handleKeyUp)
-    }
-  }, [])
+  // 使用新的键盘事件Hook
+  useKeyboardEvents({
+    setIsCtrlPressed
+  })
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
