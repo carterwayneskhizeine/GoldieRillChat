@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { getToolDisplayName, tools } from '../config/toolsConfig';
 import { BrowserTabs } from './BrowserTabs';
 import { ChatView } from './ChatView';
@@ -47,8 +47,32 @@ export default function Sidebar({
   activeTabId,
   previousMode,
   window,
-  setShowSettings
+  setShowSettings,
+  setSidebarMode,
+  setPreviousMode
 }) {
+  useEffect(() => {
+    if (activeTool === 'chat') {
+      setSidebarMode('default');
+    } else if (previousMode) {
+      setSidebarMode('chat');
+    }
+  }, [activeTool, previousMode]);
+
+  const handleSidebarModeToggleLocal = () => {
+    if (sidebarMode === 'default') {
+      setPreviousMode('default');
+      setSidebarMode('chat');
+      
+      if (!currentConversation && conversations.length > 0) {
+        loadConversation(conversations[0].id);
+      }
+    } else {
+      setSidebarMode('default');
+      setPreviousMode(null);
+    }
+  };
+
   return (
     <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
       <div className={`${sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]'} flex flex-col h-full`}>
@@ -229,7 +253,7 @@ export default function Sidebar({
               </div>
               <button
                 className="btn btn-ghost btn-sm w-full flex justify-start gap-2 p-2 border-t border-base-content/10"
-                onClick={handleSidebarModeToggle}
+                onClick={handleSidebarModeToggleLocal}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -272,7 +296,7 @@ export default function Sidebar({
               </div>
               <button
                 className="btn btn-ghost btn-sm w-full flex justify-start gap-2 p-2 border-t border-base-content/10"
-                onClick={handleSidebarModeToggle}
+                onClick={handleSidebarModeToggleLocal}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -315,7 +339,7 @@ export default function Sidebar({
               </div>
               <button
                 className="btn btn-ghost btn-sm w-full flex justify-start gap-2 p-2 border-t border-base-content/10"
-                onClick={handleSidebarModeToggle}
+                onClick={handleSidebarModeToggleLocal}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />

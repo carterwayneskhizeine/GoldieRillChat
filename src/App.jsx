@@ -615,7 +615,7 @@ export default function App() {
           sidebarMode={sidebarMode}
           activeTool={activeTool}
           conversations={conversations}
-                        currentConversation={currentConversation}
+          currentConversation={currentConversation}
           draggedConversation={draggedConversation}
           setDraggedConversation={setDraggedConversation}
           editingFolderName={editingFolderName}
@@ -634,27 +634,29 @@ export default function App() {
           setConversations={setConversations}
           setCurrentConversation={setCurrentConversation}
           messages={messages}
-                        editingMessage={editingMessage}
-                        setEditingMessage={setEditingMessage}
-                        messageInput={messageInput}
-                        setMessageInput={setMessageInput}
-                        selectedFiles={selectedFiles}
-                        setSelectedFiles={setSelectedFiles}
-                        sendMessage={sendMessage}
+          editingMessage={editingMessage}
+          setEditingMessage={setEditingMessage}
+          messageInput={messageInput}
+          setMessageInput={setMessageInput}
+          selectedFiles={selectedFiles}
+          setSelectedFiles={setSelectedFiles}
+          sendMessage={sendMessage}
           confirmDeleteMessage={confirmDeleteMessage}
           updateMessageInApp={updateMessageInApp}
           moveMessageInApp={moveMessageInApp}
-                        enterEditMode={enterEditMode}
-                        exitEditMode={exitEditMode}
-                        collapsedMessages={collapsedMessages}
-                        setCollapsedMessages={setCollapsedMessages}
-                        handleImageClick={handleImageClick}
-                        fileInputRef={fileInputRef}
+          enterEditMode={enterEditMode}
+          exitEditMode={exitEditMode}
+          collapsedMessages={collapsedMessages}
+          setCollapsedMessages={setCollapsedMessages}
+          handleImageClick={handleImageClick}
+          fileInputRef={fileInputRef}
           browserTabs={browserTabs}
           activeTabId={activeTabId}
           previousMode={previousMode}
           window={window}
           setShowSettings={setShowSettings}
+          setSidebarMode={setSidebarMode}
+          setPreviousMode={setPreviousMode}
         />
 
         {/* Main content area */}

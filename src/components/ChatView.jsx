@@ -49,6 +49,11 @@ export function ChatView({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // 每次消息列表变化或组件挂载时滚动到底部
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isCompact]);
+
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
