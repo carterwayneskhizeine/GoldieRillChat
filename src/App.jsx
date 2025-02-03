@@ -137,6 +137,27 @@ export default function App() {
   // 使用新的主题持久化Hook
   useThemeEffect(currentTheme)
 
+  // 添加WebMarkdown编辑器内容状态
+  const [webMarkdownContent, setWebMarkdownContent] = useState('');
+
+  // 添加发送到WebMarkdown的处理函数
+  const sendToWebMarkdown = (message) => {
+    // 切换到WebMarkdown工具
+    setActiveTool('webmarkdown');
+    
+    // 构建Markdown格式的内容
+    const markdownContent = `## Chat Message
+
+${message.content}
+
+---
+_Sent from chat at ${formatMessageTime(message.timestamp)}_
+`;
+
+    // 更新WebMarkdown内容
+    setWebMarkdownContent(markdownContent);
+  };
+
   // Load conversations on mount
   useEffect(() => {
     const initializeConversations = async () => {
@@ -711,6 +732,7 @@ export default function App() {
               confirmDeleteMessage={confirmDeleteMessage}
               scrollToMessage={scrollToMessage}
               window={window}
+              sendToWebMarkdown={sendToWebMarkdown}
             />
           )}
 
@@ -756,7 +778,10 @@ export default function App() {
             {/* WebMarkdown content */}
             {activeTool === 'webmarkdown' && (
               <div className="flex-1 overflow-hidden">
-                <WebMarkdown />
+                <WebMarkdown 
+                  initialContent={webMarkdownContent}
+                  setContent={setWebMarkdownContent}
+                />
               </div>
             )}
         </div>

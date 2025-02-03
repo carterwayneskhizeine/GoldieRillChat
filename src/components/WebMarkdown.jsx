@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Cherry from 'cherry-markdown';
 import 'cherry-markdown/dist/cherry-markdown.min.css';
 
-export const WebMarkdown = () => {
+export const WebMarkdown = ({ initialContent = '', setContent }) => {
   const editorRef = useRef(null);
   const [editor, setEditor] = useState(null);
 
@@ -21,31 +21,7 @@ export const WebMarkdown = () => {
         height: '100%',
         forceAppend: true,
         autoScrollByHash: false,
-        value: `# Welcome to Cherry Markdown
-
-[toc]
-
-## Getting Started
-Start typing your content here...
-
-### Features
-- Markdown Support
-- Code Highlighting
-- Table of Contents
-- Theme Switching
-
-### Examples
-#### Code Block
-\`\`\`javascript
-console.log('Hello, Cherry Markdown!');
-\`\`\`
-
-#### Table
-| Feature | Status |
-|---------|--------|
-| TOC     | ✅     |
-| Themes  | ✅     |
-`,
+        value: initialContent || `# Welcome to Cherry Markdown\n\nStart typing...`,
         editor: {
           defaultModel: 'edit&preview'
         },
@@ -137,8 +113,8 @@ console.log('Hello, Cherry Markdown!');
             }, 100);
           },
           afterChange: (md, html) => {
-            // 可以在这里处理内容变化
-            console.log('content changed');
+            // 内容变化时更新父组件的状态
+            setContent?.(md);
           },
           // 主题切换的回调
           onThemeChange: (theme, type) => {
@@ -174,6 +150,13 @@ console.log('Hello, Cherry Markdown!');
       }
     };
   }, []);  // 只在组件挂载时执行一次
+
+  // 当initialContent变化时更新编辑器内容
+  useEffect(() => {
+    if (editor && initialContent) {
+      editor.setValue(initialContent);
+    }
+  }, [initialContent, editor]);
 
   return (
     <div className="flex-1 flex h-full overflow-hidden">

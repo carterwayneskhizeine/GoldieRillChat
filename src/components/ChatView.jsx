@@ -40,7 +40,8 @@ export function ChatView({
   confirmDeleteMessage,
   scrollToMessage,
   window,
-  isCompact = false
+  isCompact = false,
+  sendToWebMarkdown
 }) {
   const messagesEndRef = useRef(null);
 
@@ -431,8 +432,7 @@ export function ChatView({
                   <button
                     className="btn btn-ghost btn-xs"
                     onClick={() => {
-                      // TODO: 实现发送功能
-                      console.log('Send message:', message);
+                      sendToWebMarkdown(message);
                     }}
                   >
                     Send
