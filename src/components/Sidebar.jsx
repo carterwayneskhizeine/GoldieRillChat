@@ -460,6 +460,63 @@ export default function Sidebar({
             </div>
           )}
 
+          {activeTool === 'screen' && (
+            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                {sidebarMode === 'default' ? (
+                  <div className="empty-sidebar">
+                    {/* Screen侧边栏的内容可以在这里添加 */}
+                  </div>
+                ) : (
+                  <ChatView
+                    messages={messages}
+                    currentConversation={currentConversation}
+                    editingMessage={editingMessage}
+                    setEditingMessage={setEditingMessage}
+                    messageInput={messageInput}
+                    setMessageInput={setMessageInput}
+                    selectedFiles={selectedFiles}
+                    setSelectedFiles={setSelectedFiles}
+                    sendMessage={sendMessage}
+                    deleteMessage={confirmDeleteMessage}
+                    updateMessage={updateMessageInApp}
+                    moveMessage={moveMessageInApp}
+                    enterEditMode={enterEditMode}
+                    exitEditMode={exitEditMode}
+                    collapsedMessages={collapsedMessages}
+                    setCollapsedMessages={setCollapsedMessages}
+                    isCompact={true}
+                    handleImageClick={handleImageClick}
+                    fileInputRef={fileInputRef}
+                    editingFileName={editingFileName}
+                    setEditingFileName={setEditingFileName}
+                    fileNameInput={fileNameInput}
+                    setFileNameInput={setFileNameInput}
+                    renameMessageFile={renameMessageFile}
+                    openFileLocation={openFileLocation}
+                    copyMessageContent={copyMessageContent}
+                    deletingMessageId={deletingMessageId}
+                    setDeletingMessageId={setDeletingMessageId}
+                    cancelDeleteMessage={cancelDeleteMessage}
+                    confirmDeleteMessage={confirmDeleteMessage}
+                    scrollToMessage={scrollToMessage}
+                    window={window}
+                    sendToWebMarkdown={sendToWebMarkdown}
+                  />
+                )}
+              </div>
+              <button
+                className="btn btn-ghost btn-sm w-full flex justify-start gap-2 p-2 border-t border-base-content/10"
+                onClick={handleSidebarModeToggleLocal}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span>{sidebarMode === 'default' ? 'Open Chat' : 'Back'}</span>
+              </button>
+            </div>
+          )}
+
           {/* Settings button - 只在 Chat 工具激活时显示 */}
           {activeTool === 'chat' && (
             <div className="p-2 border-t border-base-content/10">
