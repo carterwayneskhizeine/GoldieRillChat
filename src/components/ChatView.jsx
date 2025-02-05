@@ -349,6 +349,14 @@ export function ChatView({
               </div>
               {editingMessage?.id !== message.id && (
                 <div className="message-actions">
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      console.log('AI button clicked', message);
+                    }}
+                  >
+                    AI
+                  </button>
                   {message.content && (
                     <button
                       className="btn btn-ghost btn-xs"
