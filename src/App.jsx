@@ -31,7 +31,7 @@ import { renameChatFolder } from './components/conversationRenameHandlers'
 import { deleteConversation } from './components/conversationDeleteHandlers'
 import { handleSelectFolder } from './components/folderHandlers'
 import { handleUpdateFolders } from './components/folderUpdateHandlers'
-import { toggleTheme, themes, initializeTheme, useThemeEffect } from './components/themeHandlers'
+import { themes, initializeTheme, useThemeEffect } from './components/themeHandlers'
 import { ImageLightbox } from './components/ImageLightbox'
 import { getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
 import './styles/lightbox.css'
@@ -55,11 +55,7 @@ import Editor from './components/Editor'
 import { WebMarkdown } from './components/WebMarkdown'
 import { AIChat } from './components/AIChat'
 import './styles/aichat.css'
-
-const randomTheme = () => {
-  // TODO: 实现随机主题功能
-  console.log('Random theme button clicked');
-};
+import { generateRandomTheme } from './utils/themeGenerator'
 
 export default function App() {
   // 修改初始工具为 chat
@@ -661,6 +657,12 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
     }
   };
 
+  // 将 randomTheme 函数移到组件内部
+  const randomTheme = () => {
+    generateRandomTheme();
+    setCurrentTheme('custom');  // 现在可以访问到 setCurrentTheme
+  };
+
   return (
     <div className="h-screen flex flex-col">
       <style>{globalStyles}</style>
@@ -884,7 +886,7 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
                     <h3 className="text-lg">Theme</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-sm opacity-70">{currentTheme}</span>
-                      <button onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)} className="btn btn-primary">
+                      <button onClick={() => randomTheme()} className="btn btn-primary">
                         Change Theme
                       </button>
                 </div>

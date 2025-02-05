@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 const path = require('path')
+const fs = require('fs')
 
 contextBridge.exposeInMainWorld('electron', {
   selectFolder: () => ipcRenderer.invoke('select-folder'),
@@ -85,4 +86,22 @@ contextBridge.exposeInMainWorld('electron', {
       }
     }
   },
+
+  // 获取配置文件路径
+  getPath: (name) => {
+    if (name === 'tailwindConfig') {
+      return path.join(__dirname, '../tailwind.config.cjs');
+    }
+    return '';
+  },
+  
+  // 读取文件内容
+  readFile: (filePath) => {
+    return fs.promises.readFile(filePath, 'utf8');
+  },
+  
+  // 写入文件内容
+  writeFile: (filePath, content) => {
+    return fs.promises.writeFile(filePath, content, 'utf8');
+  }
 }) 
