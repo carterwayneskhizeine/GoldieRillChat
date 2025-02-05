@@ -1,13 +1,142 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeKatex from 'rehype-katex'
+import remarkMath from 'remark-math'
+import remarkBreaks from 'remark-breaks'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { a11yDark, atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { callModelAPI } from '../services/modelProviders';
+
+// 导入 KaTeX 样式
+import 'katex/dist/katex.min.css'
+
+// 定义本地存储的键名
+const STORAGE_KEYS = {
+  API_KEY: 'aichat_api_key',
+  API_HOST: 'aichat_api_host',
+  PROVIDER: 'aichat_provider',
+  MODEL: 'aichat_model'
+};
+
+// 定义支持的模型提供方
+const MODEL_PROVIDERS = {
+  openai: {
+    name: 'OpenAI API',
+    models: ['gpt-3.5-turbo', 'gpt-4'],
+    needsApiKey: true,
+    apiHost: 'https://api.openai.com'
+  },
+  claude: {
+    name: 'Claude API',
+    models: ['claude-2.1', 'claude-instant-1.2'],
+    needsApiKey: true,
+    apiHost: 'https://api.anthropic.com'
+  },
+  siliconflow: {
+    name: 'SiliconFlow API',
+    models: [
+      'Qwen/Qwen2.5-7B-Instruct',
+      'Qwen/Qwen2.5-14B-Instruct',
+      'Qwen/Qwen2.5-72B-Instruct',
+      'Qwen/Qwen2.5-Coder-32B-Instruct',
+      'ChatGLM/ChatGLM3-6B',
+      'ChatGLM/ChatGLM2-6B',
+      'ChatGLM/ChatGLM-6B'
+    ],
+    needsApiKey: true,
+    apiHost: 'https://api.siliconflow.cn'
+  }
+};
+
+// 代码块组件
+const CodeBlock = ({ node, inline, className, children, ...props }) => {
+  const match = /language-(\w+)/.exec(className || '')
+  const language = match ? match[1] : ''
+  
+  if (inline) {
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    )
+  }
+
+  return (
+    <div className="relative">
+      <div className="flex justify-between items-center bg-base-300 px-4 py-1 rounded-t-lg">
+        <span className="text-sm opacity-50">{language}</span>
+        <button 
+          className="btn btn-ghost btn-xs"
+          onClick={() => {
+            navigator.clipboard.writeText(String(children))
+          }}
+        >
+          复制
+        </button>
+      </div>
+      <SyntaxHighlighter
+        language={language}
+        style={atomDark}
+        customStyle={{
+          margin: 0,
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+        }}
+        {...props}
+      >
+        {String(children).replace(/\n$/, '')}
+      </SyntaxHighlighter>
+    </div>
+  )
+}
 
 export const AIChat = () => {
+  // 从本地存储初始化状态
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('openai');
-  const [apiKey, setApiKey] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState(() => {
+    const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
+    return savedProvider && MODEL_PROVIDERS[savedProvider] ? savedProvider : 'openai';
+  });
+  const [selectedModel, setSelectedModel] = useState(() => {
+    const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
+    const savedModel = localStorage.getItem(STORAGE_KEYS.MODEL);
+    if (savedProvider && MODEL_PROVIDERS[savedProvider] && savedModel) {
+      return MODEL_PROVIDERS[savedProvider].models.includes(savedModel) 
+        ? savedModel 
+        : MODEL_PROVIDERS[savedProvider].models[0];
+    }
+    return MODEL_PROVIDERS.openai.models[0];
+  });
+  const [apiKey, setApiKey] = useState(() => 
+    localStorage.getItem(STORAGE_KEYS.API_KEY) || ''
+  );
+  const [apiHost, setApiHost] = useState(() => {
+    const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
+    const savedHost = localStorage.getItem(STORAGE_KEYS.API_HOST);
+    return savedHost || (MODEL_PROVIDERS[savedProvider]?.apiHost || MODEL_PROVIDERS.openai.apiHost);
+  });
   const [showApiKey, setShowApiKey] = useState(false);
   const apiKeyRef = useRef(null);
+
+  // 当模型提供方改变时更新默认值和保存到本地存储
+  useEffect(() => {
+    const provider = MODEL_PROVIDERS[selectedProvider];
+    if (provider) {
+      const newApiHost = localStorage.getItem(`${STORAGE_KEYS.API_HOST}_${selectedProvider}`) || provider.apiHost;
+      setApiHost(newApiHost);
+      setSelectedModel(prev => {
+        const savedModel = localStorage.getItem(`${STORAGE_KEYS.MODEL}_${selectedProvider}`);
+        return savedModel && provider.models.includes(savedModel) ? savedModel : provider.models[0];
+      });
+      
+      // 保存到本地存储
+      localStorage.setItem(STORAGE_KEYS.PROVIDER, selectedProvider);
+      localStorage.setItem(STORAGE_KEYS.API_HOST, newApiHost);
+    }
+  }, [selectedProvider]);
 
   // 当设置窗口打开时，将当前的 apiKey 值设置到输入框
   useEffect(() => {
@@ -16,34 +145,106 @@ export const AIChat = () => {
     }
   }, [showSettings]);
 
-  // 当设置窗口关闭时，更新 apiKey 状态
+  // 当设置窗口关闭时，更新 apiKey 状态并保存到本地存储
   const handleSettingsClose = () => {
     if (apiKeyRef.current) {
-      setApiKey(apiKeyRef.current.value);
+      const newApiKey = apiKeyRef.current.value;
+      setApiKey(newApiKey);
+      localStorage.setItem(STORAGE_KEYS.API_KEY, newApiKey);
     }
     setShowSettings(false);
   };
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim()) return;
-    
-    // 添加新消息
-    setMessages([
-      ...messages,
-      {
-        id: Date.now(),
-        content: messageInput,
-        type: 'user',
-        timestamp: new Date()
-      }
-    ]);
-    setMessageInput('');
+  // 更新 API Host 时保存到本地存储
+  const handleApiHostChange = (value) => {
+    setApiHost(value);
+    localStorage.setItem(STORAGE_KEYS.API_HOST, value);
+    localStorage.setItem(`${STORAGE_KEYS.API_HOST}_${selectedProvider}`, value);
   };
 
+  // 更新模型时保存到本地存储
+  const handleModelChange = (value) => {
+    setSelectedModel(value);
+    localStorage.setItem(STORAGE_KEYS.MODEL, value);
+    localStorage.setItem(`${STORAGE_KEYS.MODEL}_${selectedProvider}`, value);
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageInput.trim()) return;
+    
+    // 添加用户消息
+    const userMessage = {
+      id: Date.now(),
+      content: messageInput,
+      type: 'user',
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setMessageInput('');
+
+    try {
+      // 添加 AI 正在输入的提示
+      const loadingMessage = {
+        id: Date.now() + 1,
+        content: '正在思考...',
+        type: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, loadingMessage]);
+
+      // 调用 AI API
+      const response = await callModelAPI({
+        provider: selectedProvider,
+        apiKey,
+        apiHost,
+        model: selectedModel,
+        messages: [...messages, userMessage]
+      });
+
+      // 更新 AI 回复
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        {
+          id: Date.now() + 1,
+          content: response.content,
+          type: 'assistant',
+          timestamp: new Date(),
+          usage: response.usage
+        }
+      ]);
+    } catch (error) {
+      console.error('发送消息失败:', error);
+      // 显示错误消息
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        {
+          id: Date.now() + 1,
+          content: `发送消息失败: ${error.message}`,
+          type: 'assistant',
+          timestamp: new Date()
+        }
+      ]);
+    }
+  };
+
+  // 添加粘贴处理函数
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (apiKeyRef.current) {
+        apiKeyRef.current.value = text;
+      }
+    } catch (error) {
+      console.error('粘贴失败:', error);
+    }
+  };
+
+  // 添加键盘快捷键处理函数
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+    // 检查是否是粘贴快捷键 (Ctrl+V 或 Command+V)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+      handlePaste();
     }
   };
 
@@ -72,33 +273,75 @@ export const AIChat = () => {
             <h3 className="text-lg font-medium mb-2">模型提供方</h3>
             <select 
               className="select select-bordered w-full"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
+              value={selectedProvider}
+              onChange={(e) => setSelectedProvider(e.target.value)}
             >
-              <option value="openai">OpenAI API</option>
-              <option value="claude">Claude API</option>
-              <option value="silliconcloud">SilliconCloud API</option>
+              {Object.entries(MODEL_PROVIDERS).map(([key, provider]) => (
+                <option key={key} value={key}>{provider.name}</option>
+              ))}
             </select>
           </div>
 
-          {/* API密钥 */}
-          <div>
-            <h3 className="text-lg font-medium mb-2">API 密钥</h3>
-            <div className="flex w-full gap-0">
+          {/* 具体模型选择 */}
+          <div className="mb-4">
+            <h3 className="text-lg font-medium mb-2">模型</h3>
+            <select 
+              className="select select-bordered w-full"
+              value={selectedModel}
+              onChange={(e) => handleModelChange(e.target.value)}
+            >
+              {MODEL_PROVIDERS[selectedProvider]?.models.map(model => (
+                <option key={model} value={model}>{model}</option>
+              )) || <option value="">请先选择模型提供方</option>}
+            </select>
+          </div>
+
+          {/* API 设置 */}
+          <div className="space-y-4">
+            {/* API Host */}
+            <div>
+              <h3 className="text-lg font-medium mb-2">API 地址</h3>
               <input
-                ref={apiKeyRef}
-                type={showApiKey ? "text" : "password"}
-                className="input input-bordered flex-1 rounded-r-none"
-                defaultValue={apiKey}
-                placeholder="请输入API密钥..."
+                type="text"
+                className="input input-bordered w-full"
+                value={apiHost}
+                onChange={(e) => handleApiHostChange(e.target.value)}
+                placeholder="请输入 API 地址..."
               />
-              <button 
-                type="button"
-                className="btn rounded-l-none"
-                onClick={() => setShowApiKey(!showApiKey)}
-              >
-                {showApiKey ? "👁️" : "👁️‍🗨️"}
-              </button>
+            </div>
+
+            {/* API Key */}
+            <div>
+              <h3 className="text-lg font-medium mb-2">API 密钥</h3>
+              <div className="flex w-full gap-0">
+                <input
+                  ref={apiKeyRef}
+                  type={showApiKey ? "text" : "password"}
+                  className="input input-bordered flex-1 rounded-r-none"
+                  defaultValue={apiKey}
+                  placeholder="请输入API密钥..."
+                  onKeyDown={handleKeyDown}
+                />
+                <button 
+                  type="button"
+                  className="btn rounded-l-none"
+                  onClick={handlePaste}
+                  title="点击粘贴"
+                >
+                  📋
+                </button>
+                <button 
+                  type="button"
+                  className="btn rounded-none border-l-0"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  title={showApiKey ? "隐藏密钥" : "显示密钥"}
+                >
+                  {showApiKey ? "👁️" : "👁️‍🗨️"}
+                </button>
+              </div>
+              <div className="mt-1 text-xs opacity-70">
+                支持快捷键 {navigator.platform.includes('Mac') ? '⌘+V' : 'Ctrl+V'} 粘贴
+              </div>
             </div>
           </div>
         </div>
@@ -153,7 +396,19 @@ export const AIChat = () => {
               <div className={`chat-bubble ${
                 message.type === 'user' ? 'chat-bubble-primary' : 'chat-bubble-secondary'
               }`}>
-                {message.content}
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{
+                    code: CodeBlock,
+                    // 自定义链接在新窗口打开
+                    a: ({node, ...props}) => (
+                      <a target="_blank" rel="noopener noreferrer" {...props} />
+                    )
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
               </div>
             </div>
           ))}

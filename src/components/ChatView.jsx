@@ -269,15 +269,15 @@ export function ChatView({
                         className="absolute inset-0 top-[40px] bg-transparent text-current p-4 resize-none focus:outline-none w-full h-[calc(100%-40px)] font-mono"
                       />
                     </div>
-                    <div className="absolute -bottom-8 -left-1 flex gap-1">
+                    <div className="absolute bottom-4 left-4 flex gap-2">
                       <button
-                        className="btn btn-ghost btn-xs bg-base-100"
+                        className="btn btn-primary btn-sm"
                         onClick={() => updateMessage(message.id, messageInput)}
                       >
                         Save
                       </button>
                       <button
-                        className="btn btn-ghost btn-xs bg-base-100"
+                        className="btn btn-ghost btn-sm"
                         onClick={exitEditMode}
                       >
                         Cancel

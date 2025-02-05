@@ -81,8 +81,8 @@ export const WebMarkdown = ({ initialContent = '', setContent }) => {
             'theme',
             'toc'  // 添加目录按钮
           ],
-          // 在侧边栏也添加主题切换按钮
-          sidebar: ['mobilePreview', 'copy', 'theme', 'toc'],  // 添加目录按钮
+          // 移除侧边栏的主题和目录按钮
+          sidebar: ['mobilePreview', 'copy'],
           // 禁用图表相关功能
           table: ['table']  // 只保留基础表格功能
         },

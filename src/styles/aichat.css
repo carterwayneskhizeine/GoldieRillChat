@@ -23,6 +23,97 @@
   border-top: 1px solid var(--b3);
 }
 
+/* Markdown 样式 */
+.chat-bubble {
+  overflow-x: auto;
+}
+
+.chat-bubble p {
+  margin: 0.6rem 0;
+}
+
+.chat-bubble h1,
+.chat-bubble h2,
+.chat-bubble h3,
+.chat-bubble h4,
+.chat-bubble h5,
+.chat-bubble h6 {
+  margin: 1rem 0 0.5rem 0;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.chat-bubble h1 { font-size: 1.5em; }
+.chat-bubble h2 { font-size: 1.3em; }
+.chat-bubble h3 { font-size: 1.2em; }
+.chat-bubble h4 { font-size: 1.1em; }
+.chat-bubble h5 { font-size: 1em; }
+.chat-bubble h6 { font-size: 0.9em; }
+
+.chat-bubble ul,
+.chat-bubble ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.chat-bubble li {
+  margin: 0.2rem 0;
+}
+
+.chat-bubble blockquote {
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+  border-left: 4px solid hsl(var(--bc) / 0.2);
+  color: hsl(var(--bc) / 0.7);
+}
+
+.chat-bubble pre {
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--b2));
+}
+
+.chat-bubble code:not(pre code) {
+  padding: 0.2em 0.4em;
+  margin: 0 0.2em;
+  border-radius: 0.3em;
+  background-color: hsl(var(--b2));
+  font-size: 0.9em;
+}
+
+.chat-bubble table {
+  margin: 0.5rem 0;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.chat-bubble th,
+.chat-bubble td {
+  padding: 0.5rem;
+  border: 1px solid hsl(var(--b3));
+}
+
+.chat-bubble th {
+  background-color: hsl(var(--b2));
+  font-weight: 600;
+}
+
+.chat-bubble img {
+  max-width: 100%;
+  height: auto;
+  margin: 0.5rem 0;
+  border-radius: 0.3rem;
+}
+
+.chat-bubble a {
+  color: hsl(var(--p));
+  text-decoration: none;
+}
+
+.chat-bubble a:hover {
+  text-decoration: underline;
+}
+
 /* 自定义滚动条样式 */
 ::-webkit-scrollbar {
   width: 6px;
