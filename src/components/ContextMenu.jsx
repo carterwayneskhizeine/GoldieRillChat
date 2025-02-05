@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
 export const ContextMenu = ({
   contextMenu,
@@ -9,6 +9,20 @@ export const ContextMenu = ({
   onPaste,
   selectedElement
 }) => {
+  // 添加全局点击事件监听，当点击页面其它区域时隐藏上下文菜单
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.visible) {
+        onClose();
+      }
+    };
+    
+    window.addEventListener('click', handleClickOutside);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+    };
+  }, [contextMenu.visible, onClose]);
+
   if (!contextMenu.visible) return null
 
   return (
