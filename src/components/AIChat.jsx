@@ -564,8 +564,7 @@ export const AIChat = ({ sendToSidebar }) => {
                     <>
                       {' • '}模型: {selectedModel}
                       {' • '}字数: {countWords(message.content)}
-                      {' • '}Token: ~{estimateTokens(message.content)}
-                      {message.usage && ' • 使用: ' + message.usage.total_tokens}
+                      {' • '}Token: {estimateTokens(message.content)}
                     </>
                   )}
                 </span>
