@@ -56,6 +56,11 @@ import { WebMarkdown } from './components/WebMarkdown'
 import { AIChat } from './components/AIChat'
 import './styles/aichat.css'
 
+const randomTheme = () => {
+  // TODO: 实现随机主题功能
+  console.log('Random theme button clicked');
+};
+
 export default function App() {
   // 修改初始工具为 chat
   const [activeTool, setActiveTool] = useState('chat')
@@ -617,6 +622,45 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
     }
   }
 
+  // 添加处理从 AIChat 发送到侧边栏的函数
+  const handleSendToSidebar = async (message) => {
+    if (!currentConversation) {
+      alert('请先在 Chat 界面创建或选择一个对话');
+      return;
+    }
+
+    try {
+      // 构建新消息对象
+      const newMessage = {
+        id: Date.now(),
+        content: message.content,
+        type: 'assistant',
+        timestamp: new Date(),
+        usage: message.usage || {}
+      };
+
+      // 更新消息列表
+      const updatedMessages = [...messages, newMessage];
+      setMessages(updatedMessages);
+
+      // 保存消息到存储
+      await window.electron.saveMessages(
+        currentConversation.path,
+        currentConversation.id,
+        updatedMessages
+      );
+
+      // 切换到 chat 界面
+      setActiveTool('chat');
+      
+      // 滚动到新消息
+      setShouldScrollToBottom(true);
+    } catch (error) {
+      console.error('发送消息到侧边栏失败:', error);
+      alert('发送消息到侧边栏失败: ' + error.message);
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col">
       <style>{globalStyles}</style>
@@ -625,6 +669,7 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
         currentUrl={currentUrl}
         setCurrentUrl={setCurrentUrl}
         isLoading={isLoading}
+        onRandomTheme={randomTheme}
       />
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar toggle bar */}
@@ -791,7 +836,9 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
             {/* ChatBox content */}
             {activeTool === 'chatbox' && (
               <div className="flex-1 overflow-hidden">
-                <AIChat />
+                <AIChat 
+                  sendToSidebar={handleSendToSidebar}
+                />
               </div>
             )}
         </div>

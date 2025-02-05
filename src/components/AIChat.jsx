@@ -16,7 +16,9 @@ const STORAGE_KEYS = {
   API_KEY: 'aichat_api_key',
   API_HOST: 'aichat_api_host',
   PROVIDER: 'aichat_provider',
-  MODEL: 'aichat_model'
+  MODEL: 'aichat_model',
+  MESSAGES: 'aichat_messages',  // 添加消息存储的键名
+  CURRENT_CONVERSATION: 'aichat_current_conversation'  // 添加当前会话的键名
 };
 
 // 定义支持的模型提供方
@@ -56,7 +58,17 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
   
   if (inline) {
     return (
-      <code className={className} {...props}>
+      <code 
+        className={className}
+        style={{
+          backgroundColor: 'var(--b2)',
+          padding: '2px 4px',
+          margin: '0 4px',
+          borderRadius: '4px',
+          border: '1px solid var(--b3)',
+        }}
+        {...props}
+      >
         {children}
       </code>
     )
@@ -65,7 +77,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
   return (
     <div className="relative">
       <div className="flex justify-between items-center bg-base-300 px-4 py-1 rounded-t-lg">
-        <span className="text-sm opacity-50">{language}</span>
+        <span className="text-sm opacity-50">{'<' + language.toUpperCase() + '>'}</span>
         <button 
           className="btn btn-ghost btn-xs"
           onClick={() => {
@@ -82,6 +94,8 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
           margin: 0,
           borderTopLeftRadius: 0,
           borderTopRightRadius: 0,
+          borderBottomLeftRadius: '0.3rem',
+          borderBottomRightRadius: '0.3rem',
         }}
         {...props}
       >
@@ -91,10 +105,33 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
   )
 }
 
-export const AIChat = () => {
+// 自定义链接组件
+const CustomLink = ({ node, ...props }) => (
+  <a
+    {...props}
+    target="_blank"
+    rel="noopener noreferrer"
+    onClick={(e) => e.stopPropagation()}
+  />
+)
+
+// 计算字数
+const countWords = (text) => {
+  return text.trim().split(/\s+/).length;
+}
+
+// 估算 token 数（简单实现）
+const estimateTokens = (text) => {
+  return Math.ceil(text.length / 4);
+}
+
+export const AIChat = ({ sendToSidebar }) => {
   // 从本地存储初始化状态
   const [messageInput, setMessageInput] = useState('');
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    const savedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+    return savedMessages ? JSON.parse(savedMessages) : [];
+  });
   const [showSettings, setShowSettings] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(() => {
     const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
@@ -124,6 +161,11 @@ export const AIChat = () => {
   // 添加重试相关状态
   const [retryingMessageId, setRetryingMessageId] = useState(null);
   const [failedMessages, setFailedMessages] = useState(new Set());
+
+  // 添加消息持久化的 effect
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+  }, [messages]);
 
   // 当模型提供方改变时更新默认值和保存到本地存储
   useEffect(() => {
@@ -187,7 +229,11 @@ export const AIChat = () => {
       timestamp: new Date()
     };
     
-    setMessages(prev => [...prev, userMessage]);
+    // 更新消息并保存到 localStorage
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(updatedMessages));
+
     if (!isRetry) {
       setMessageInput('');
     }
@@ -198,9 +244,12 @@ export const AIChat = () => {
         id: Date.now() + 1,
         content: '正在思考...',
         type: 'assistant',
-        timestamp: new Date()
+        timestamp: new Date(),
+        generating: true
       };
-      setMessages(prev => [...prev, loadingMessage]);
+      const withLoadingMessages = [...updatedMessages, loadingMessage];
+      setMessages(withLoadingMessages);
+      localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(withLoadingMessages));
 
       // 调用 AI API
       const response = await callModelAPI({
@@ -208,12 +257,12 @@ export const AIChat = () => {
         apiKey,
         apiHost,
         model: selectedModel,
-        messages: [...messages, userMessage]
+        messages: updatedMessages
       });
 
       // 更新 AI 回复
-      setMessages(prev => [
-        ...prev.slice(0, -1),
+      const finalMessages = [
+        ...updatedMessages,
         {
           id: Date.now() + 1,
           content: response.content,
@@ -221,7 +270,9 @@ export const AIChat = () => {
           timestamp: new Date(),
           usage: response.usage
         }
-      ]);
+      ];
+      setMessages(finalMessages);
+      localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(finalMessages));
 
       // 清除失败状态
       if (isRetry) {
@@ -240,8 +291,8 @@ export const AIChat = () => {
       setFailedMessages(prev => new Set([...prev, failedMessageId]));
       
       // 显示错误消息
-      setMessages(prev => [
-        ...prev.slice(0, -1),
+      const errorMessages = [
+        ...updatedMessages,
         {
           id: failedMessageId,
           content: `发送消息失败: ${error.message}`,
@@ -250,7 +301,9 @@ export const AIChat = () => {
           error: true,
           originalContent: content
         }
-      ]);
+      ];
+      setMessages(errorMessages);
+      localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(errorMessages));
     }
 
     // Reset textarea height and scrollbar
@@ -285,6 +338,19 @@ export const AIChat = () => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
       handlePaste();
     }
+  };
+
+  // 修改删除消息的处理函数
+  const handleDeleteMessage = (messageId) => {
+    const newMessages = messages.filter(m => m.id !== messageId);
+    setMessages(newMessages);
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(newMessages));
+  };
+
+  // 添加清空聊天记录的函数
+  const handleClearMessages = () => {
+    setMessages([]);
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, '[]');
   };
 
   // 设置页面组件
@@ -447,6 +513,12 @@ export const AIChat = () => {
       <div className="w-60 bg-base-200 border-r border-base-300">
         {/* 会话列表 */}
         <div className="p-2">
+          <button 
+            className="btn btn-primary w-full mb-2"
+            onClick={handleClearMessages}
+          >
+            清空聊天记录
+          </button>
           <button className="btn btn-primary w-full mb-4">
             + 新建会话
           </button>
@@ -485,22 +557,41 @@ export const AIChat = () => {
               key={message.id}
               className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative ai-chat-group`}
             >
+              <div className="chat-header opacity-70">
+                <span className="text-xs">
+                  {new Date(message.timestamp).toLocaleString()}
+                  {message.type === 'assistant' && (
+                    <>
+                      {' • '}模型: {selectedModel}
+                      {' • '}字数: {countWords(message.content)}
+                      {' • '}Token: ~{estimateTokens(message.content)}
+                      {message.usage && ' • 使用: ' + message.usage.total_tokens}
+                    </>
+                  )}
+                </span>
+              </div>
               <div className={`chat-bubble ${
                 message.type === 'user' ? 'chat-bubble-primary' : 
                 message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
               }`}>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-                  rehypePlugins={[rehypeKatex]}
-                  components={{
-                    code: CodeBlock,
-                    a: ({node, ...props}) => (
-                      <a target="_blank" rel="noopener noreferrer" {...props} />
-                    )
-                  }}
-                >
-                  {message.content}
-                </ReactMarkdown>
+                {message.generating ? (
+                  <div className="flex items-center gap-2">
+                    <span>正在思考</span>
+                    <span className="loading loading-dots loading-xs"></span>
+                  </div>
+                ) : (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={{
+                      code: CodeBlock,
+                      a: CustomLink
+                    }}
+                    className="break-words"
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                )}
                 {message.error && (
                   <div className="mt-2 flex items-center gap-2">
                     <button
@@ -532,10 +623,7 @@ export const AIChat = () => {
                   </button>
                   <button
                     className="btn btn-ghost btn-xs"
-                    onClick={() => {
-                      const newMessages = messages.filter(m => m.id !== message.id);
-                      setMessages(newMessages);
-                    }}
+                    onClick={() => handleDeleteMessage(message.id)}
                   >
                     Delete
                   </button>
@@ -550,8 +638,9 @@ export const AIChat = () => {
                   <button
                     className="btn btn-ghost btn-xs"
                     onClick={() => {
-                      // TODO: 实现发送到侧边栏对话的功能
-                      console.log('Send to sidebar:', message);
+                      if (sendToSidebar) {
+                        sendToSidebar(message);
+                      }
                     }}
                   >
                     Send
