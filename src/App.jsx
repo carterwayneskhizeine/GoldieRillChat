@@ -53,7 +53,8 @@ import {
 import Sidebar from './components/Sidebar'
 import Editor from './components/Editor'
 import { WebMarkdown } from './components/WebMarkdown'
-import { Screen } from './components/Screen'
+import { ChatBox } from './components/ChatBox'
+import './styles/chatbox.css'
 
 export default function App() {
   // 修改初始工具为 chat
@@ -702,25 +703,25 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Chat content */}
           {activeTool === 'chat' && (
-            <ChatView
-              messages={messages}
-              currentConversation={currentConversation}
-              editingMessage={editingMessage}
-              setEditingMessage={setEditingMessage}
-              messageInput={messageInput}
-              setMessageInput={setMessageInput}
-              selectedFiles={selectedFiles}
-              setSelectedFiles={setSelectedFiles}
-              sendMessage={sendMessage}
-              deleteMessage={confirmDeleteMessage}
-              updateMessage={updateMessageInApp}
-              moveMessage={moveMessageInApp}
-              enterEditMode={enterEditMode}
-              exitEditMode={exitEditMode}
-              collapsedMessages={collapsedMessages}
-              setCollapsedMessages={setCollapsedMessages}
-              handleImageClick={handleImageClick}
-              fileInputRef={fileInputRef}
+                      <ChatView
+                        messages={messages}
+                        currentConversation={currentConversation}
+                        editingMessage={editingMessage}
+                        setEditingMessage={setEditingMessage}
+                        messageInput={messageInput}
+                        setMessageInput={setMessageInput}
+                        selectedFiles={selectedFiles}
+                        setSelectedFiles={setSelectedFiles}
+                        sendMessage={sendMessage}
+                        deleteMessage={confirmDeleteMessage}
+                        updateMessage={updateMessageInApp}
+                        moveMessage={moveMessageInApp}
+                        enterEditMode={enterEditMode}
+                        exitEditMode={exitEditMode}
+                        collapsedMessages={collapsedMessages}
+                        setCollapsedMessages={setCollapsedMessages}
+                        handleImageClick={handleImageClick}
+                        fileInputRef={fileInputRef}
               editingFileName={editingFileName}
               setEditingFileName={setEditingFileName}
               fileNameInput={fileNameInput}
@@ -787,10 +788,10 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
               </div>
             )}
 
-            {/* Screen content */}
-            {activeTool === 'screen' && (
+            {/* ChatBox content */}
+            {activeTool === 'chatbox' && (
               <div className="flex-1 overflow-hidden">
-                <Screen />
+                <ChatBox />
               </div>
             )}
         </div>
