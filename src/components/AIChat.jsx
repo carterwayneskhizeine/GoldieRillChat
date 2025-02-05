@@ -121,6 +121,10 @@ export const AIChat = () => {
   const [showApiKey, setShowApiKey] = useState(false);
   const apiKeyRef = useRef(null);
 
+  // 添加重试相关状态
+  const [retryingMessageId, setRetryingMessageId] = useState(null);
+  const [failedMessages, setFailedMessages] = useState(new Set());
+
   // 当模型提供方改变时更新默认值和保存到本地存储
   useEffect(() => {
     const provider = MODEL_PROVIDERS[selectedProvider];
@@ -169,19 +173,24 @@ export const AIChat = () => {
     localStorage.setItem(`${STORAGE_KEYS.MODEL}_${selectedProvider}`, value);
   };
 
-  const handleSendMessage = async () => {
-    if (!messageInput.trim()) return;
+  const handleSendMessage = async (isRetry = false, retryContent = null) => {
+    if (!messageInput.trim() && !isRetry) return;
+    
+    // 获取要发送的内容
+    const content = isRetry ? retryContent : messageInput;
     
     // 添加用户消息
     const userMessage = {
       id: Date.now(),
-      content: messageInput,
+      content: content,
       type: 'user',
       timestamp: new Date()
     };
     
     setMessages(prev => [...prev, userMessage]);
-    setMessageInput('');
+    if (!isRetry) {
+      setMessageInput('');
+    }
 
     try {
       // 添加 AI 正在输入的提示
@@ -213,19 +222,49 @@ export const AIChat = () => {
           usage: response.usage
         }
       ]);
+
+      // 清除失败状态
+      if (isRetry) {
+        setFailedMessages(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(retryingMessageId);
+          return newSet;
+        });
+        setRetryingMessageId(null);
+      }
     } catch (error) {
       console.error('发送消息失败:', error);
+      
+      // 记录失败的消息
+      const failedMessageId = Date.now() + 1;
+      setFailedMessages(prev => new Set([...prev, failedMessageId]));
+      
       // 显示错误消息
       setMessages(prev => [
         ...prev.slice(0, -1),
         {
-          id: Date.now() + 1,
+          id: failedMessageId,
           content: `发送消息失败: ${error.message}`,
           type: 'assistant',
-          timestamp: new Date()
+          timestamp: new Date(),
+          error: true,
+          originalContent: content
         }
       ]);
     }
+
+    // Reset textarea height and scrollbar
+    const textarea = document.querySelector('textarea');
+    if (textarea) {
+      textarea.style.height = '48px';
+      textarea.style.overflowY = 'hidden';
+    }
+  };
+
+  // 添加重试处理函数
+  const handleRetry = (messageId, content) => {
+    setRetryingMessageId(messageId);
+    handleSendMessage(true, content);
   };
 
   // 添加粘贴处理函数
@@ -351,6 +390,59 @@ export const AIChat = () => {
 
   return (
     <div className="flex h-full">
+      <style>
+        {`
+          .ai-chat-message-actions {
+            position: absolute;
+            bottom: -24px;
+            left: 4px;
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background-color: var(--b1);
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 10;
+          }
+          
+          .ai-chat-group {
+            margin-bottom: 32px;
+            position: relative;
+          }
+          
+          .ai-chat-group:hover .ai-chat-message-actions {
+            opacity: 1;
+          }
+          
+          .ai-chat-message-actions button {
+            background-color: var(--b1);
+            border: 1px solid var(--b3);
+            transition: all 0.2s;
+          }
+          
+          .ai-chat-message-actions button:hover {
+            transform: scale(1.05);
+            background-color: var(--b2);
+          }
+
+          /* 调整消息气泡的内边距 */
+          .chat-bubble {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+          }
+
+          /* 调整 Markdown 内容的边距 */
+          .chat-bubble > p:first-child {
+            margin-top: 0;
+          }
+          
+          .chat-bubble > p:last-child {
+            margin-bottom: 0;
+          }
+        `}
+      </style>
       {/* 左侧边栏 */}
       <div className="w-60 bg-base-200 border-r border-base-300">
         {/* 会话列表 */}
@@ -391,17 +483,17 @@ export const AIChat = () => {
           {messages.map(message => (
             <div
               key={message.id}
-              className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'}`}
+              className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative ai-chat-group`}
             >
               <div className={`chat-bubble ${
-                message.type === 'user' ? 'chat-bubble-primary' : 'chat-bubble-secondary'
+                message.type === 'user' ? 'chat-bubble-primary' : 
+                message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
               }`}>
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
                   rehypePlugins={[rehypeKatex]}
                   components={{
                     code: CodeBlock,
-                    // 自定义链接在新窗口打开
                     a: ({node, ...props}) => (
                       <a target="_blank" rel="noopener noreferrer" {...props} />
                     )
@@ -409,7 +501,63 @@ export const AIChat = () => {
                 >
                   {message.content}
                 </ReactMarkdown>
+                {message.error && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      className="btn btn-xs btn-outline"
+                      onClick={() => handleRetry(message.id, message.originalContent)}
+                      disabled={retryingMessageId === message.id}
+                    >
+                      {retryingMessageId === message.id ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      ) : (
+                        'Retry'
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
+              {message.type === 'assistant' && !message.error && (
+                <div className="ai-chat-message-actions">
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => handleRetry(message.id, message.content)}
+                    disabled={retryingMessageId === message.id}
+                  >
+                    {retryingMessageId === message.id ? (
+                      <span className="loading loading-spinner loading-xs"></span>
+                    ) : (
+                      'Retry'
+                    )}
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      const newMessages = messages.filter(m => m.id !== message.id);
+                      setMessages(newMessages);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      navigator.clipboard.writeText(message.content);
+                    }}
+                  >
+                    Copy
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      // TODO: 实现发送到侧边栏对话的功能
+                      console.log('Send to sidebar:', message);
+                    }}
+                  >
+                    Send
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -427,7 +575,7 @@ export const AIChat = () => {
             />
             <button 
               className="btn btn-circle btn-primary"
-              onClick={handleSendMessage}
+              onClick={() => handleSendMessage()}
             >
               ➤
             </button>
