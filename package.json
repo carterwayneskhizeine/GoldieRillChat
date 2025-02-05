@@ -73,10 +73,15 @@
       "dependencies": {
             "@codemirror/lang-markdown": "^6.3.2",
             "@codemirror/view": "^6.36.2",
+            "@emotion/react": "^11.14.0",
+            "@emotion/styled": "^11.14.0",
+            "@mui/icons-material": "^6.4.3",
+            "@mui/material": "^6.4.3",
             "@uiw/react-codemirror": "^4.23.7",
             "cherry-markdown": "^0.8.44",
             "electron-as-browser": "^1.0.0",
             "lightgallery": "^2.8.2",
+            "lucide-react": "^0.474.0",
             "react": "^18.2.0",
             "react-dom": "^18.2.0",
             "yet-another-react-lightbox": "^3.21.7"

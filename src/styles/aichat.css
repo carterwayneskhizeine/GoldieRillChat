@@ -1,0 +1,76 @@
+/* AIChat 基础样式 */
+.aichat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.aichat-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--b3);
+}
+
+.aichat-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.aichat-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--b3);
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--bc) / 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--bc) / 0.3);
+}
+
+/* 消息气泡动画 */
+.chat-bubble {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .aichat-container {
+    padding: 0.5rem;
+  }
+  
+  .sidebar {
+    position: fixed;
+    left: -240px;
+    transition: left 0.3s ease;
+  }
+  
+  .sidebar.open {
+    left: 0;
+  }
+} 

@@ -53,8 +53,8 @@ import {
 import Sidebar from './components/Sidebar'
 import Editor from './components/Editor'
 import { WebMarkdown } from './components/WebMarkdown'
-import { ChatBox } from './components/ChatBox'
-import './styles/chatbox.css'
+import { AIChat } from './components/AIChat'
+import './styles/aichat.css'
 
 export default function App() {
   // 修改初始工具为 chat
@@ -791,7 +791,7 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
             {/* ChatBox content */}
             {activeTool === 'chatbox' && (
               <div className="flex-1 overflow-hidden">
-                <ChatBox />
+                <AIChat />
               </div>
             )}
         </div>

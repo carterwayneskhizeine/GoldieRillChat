@@ -7,7 +7,7 @@ export const toolDisplayNames = {
   editor: 'Image Editor',
   browser: 'Browser',
   webmarkdown: 'Web Markdown',
-  chatbox: 'ChatBox'
+  chatbox: 'AI Chat'
 }
 
 // 获取工具显示名称的函数
