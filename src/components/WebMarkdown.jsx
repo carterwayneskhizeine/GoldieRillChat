@@ -5,6 +5,7 @@ import 'cherry-markdown/dist/cherry-markdown.min.css';
 export const WebMarkdown = ({ initialContent = '', setContent }) => {
   const editorRef = useRef(null);
   const [editor, setEditor] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     // 清理旧的实例
@@ -112,9 +113,11 @@ export const WebMarkdown = ({ initialContent = '', setContent }) => {
               }
             }, 100);
           },
-          afterChange: (md, html) => {
-            // 内容变化时更新父组件的状态
-            setContent?.(md);
+          afterChange: (md) => {
+            // 内容变化时更新父组件的状态，但不重新设置编辑器的值
+            if (setContent && md !== initialContent) {
+              setContent(md);
+            }
           },
           // 主题切换的回调
           onThemeChange: (theme, type) => {
@@ -140,6 +143,7 @@ export const WebMarkdown = ({ initialContent = '', setContent }) => {
 
       const cherryInstance = new Cherry(config);
       setEditor(cherryInstance);
+      setIsInitialized(true);
     }
 
     // 组件卸载时清理
@@ -147,16 +151,26 @@ export const WebMarkdown = ({ initialContent = '', setContent }) => {
       if (editor) {
         editor.destroy();
         setEditor(null);
+        setIsInitialized(false);
       }
     };
   }, []);  // 只在组件挂载时执行一次
 
   // 当initialContent变化时更新编辑器内容
   useEffect(() => {
-    if (editor && initialContent) {
-      editor.setValue(initialContent);
+    // 仅在编辑器已初始化且initialContent发生有效变化时更新
+    if (editor && isInitialized && initialContent && editor.getValue() !== initialContent) {
+      try {
+        const currentCursor = editor.getSelection ? editor.getSelection() : null;
+        editor.setValue(initialContent);
+        if (currentCursor && editor.setSelection) {
+          editor.setSelection(currentCursor.start, currentCursor.end);
+        }
+      } catch (error) {
+        console.error('更新编辑器内容时出错:', error);
+      }
     }
-  }, [initialContent, editor]);
+  }, [initialContent, editor, isInitialized]);
 
   return (
     <div className="flex-1 flex h-full overflow-hidden">

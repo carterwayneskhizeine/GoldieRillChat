@@ -112,7 +112,7 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
 
         {/* 关闭按钮 */}
         <button
-          className="btn btn-ghost btn-sm w-8 h-8 hover:rounded-none text-error hover:bg-error hover:text-error-content"
+          className="btn btn-ghost btn-sm w-8 h-8 hover:rounded-none text-base-content hover:bg-error hover:text-error-content"
           onClick={() => window.electron.window.close()}
         >
           ×

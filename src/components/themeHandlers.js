@@ -1,5 +1,17 @@
 import { useEffect } from 'react'
 
+/**
+ * 切换主题
+ * @param {string} currentTheme - 当前主题
+ * @param {Array<string>} themes - 可用主题列表
+ * @param {Function} setCurrentTheme - 设置当前主题的函数
+ */
+export const toggleTheme = (currentTheme, themes, setCurrentTheme) => {
+  const currentIndex = themes.indexOf(currentTheme)
+  const nextTheme = themes[(currentIndex + 1) % themes.length]
+  setCurrentTheme(nextTheme)
+}
+
 // 主题配置
 export const themes = [
   "rill",
