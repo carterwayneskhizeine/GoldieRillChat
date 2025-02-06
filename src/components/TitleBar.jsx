@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { toggleTheme, themes } from '../components/themeHandlers'
 
-export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoading, onRandomTheme }) {
+export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoading, currentTheme, setCurrentTheme }) {
   const [isMaximized, setIsMaximized] = useState(false)
   const [iconPath, setIconPath] = useState('')
 
@@ -85,11 +86,11 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
 
       {/* 右侧按钮组 */}
       <div className="flex items-center space-x-2 no-drag">
-        {/* 随机主题按钮 */}
+        {/* 主题切换按钮 */}
         <button
           className="btn btn-ghost btn-sm w-8 h-8 hover:rounded-none"
-          onClick={onRandomTheme}
-          title="随机主题"
+          onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)}
+          title="切换主题"
         >
           ∞
         </button>

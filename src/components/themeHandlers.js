@@ -14,7 +14,6 @@ export const toggleTheme = (currentTheme, themes, setCurrentTheme) => {
 
 // 主题配置
 export const themes = [
-  "rill",
   "dark", "synthwave", "halloween", "forest", "pastel", "black", "luxury", "dracula", 
   "business", "coffee", "emerald", "corporate", "retro", "aqua", "wireframe", 
   "night", "dim", "sunset"

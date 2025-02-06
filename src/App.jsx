@@ -671,7 +671,8 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
         currentUrl={currentUrl}
         setCurrentUrl={setCurrentUrl}
         isLoading={isLoading}
-        onRandomTheme={randomTheme}
+        currentTheme={currentTheme}
+        setCurrentTheme={setCurrentTheme}
       />
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar toggle bar */}
