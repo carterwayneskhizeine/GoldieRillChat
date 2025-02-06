@@ -128,7 +128,7 @@ export default function Sidebar({
                 </svg>
               </button>
             )}
-            {activeTool === 'chatbox' && (
+            {activeTool === 'aichat' && (
               <button 
                 className="btn btn-circle btn-ghost btn-sm" 
                 onClick={() => {
@@ -255,6 +255,55 @@ export default function Sidebar({
                     onTabClose={(tabId) => window.electron.browser.closeTab(tabId)}
                     onNewTab={() => window.electron.browser.newTab()}
                   />
+                ) : (
+                  <ChatView
+                    messages={messages}
+                    currentConversation={currentConversation}
+                    editingMessage={editingMessage}
+                    setEditingMessage={setEditingMessage}
+                    messageInput={messageInput}
+                    setMessageInput={setMessageInput}
+                    selectedFiles={selectedFiles}
+                    setSelectedFiles={setSelectedFiles}
+                    sendMessage={sendMessage}
+                    deleteMessage={confirmDeleteMessage}
+                    updateMessage={updateMessageInApp}
+                    moveMessage={moveMessageInApp}
+                    enterEditMode={enterEditMode}
+                    exitEditMode={exitEditMode}
+                    collapsedMessages={collapsedMessages}
+                    setCollapsedMessages={setCollapsedMessages}
+                    isCompact={true}
+                    handleImageClick={handleImageClick}
+                    fileInputRef={fileInputRef}
+                    editingFileName={editingFileName}
+                    setEditingFileName={setEditingFileName}
+                    fileNameInput={fileNameInput}
+                    setFileNameInput={setFileNameInput}
+                    renameMessageFile={renameMessageFile}
+                    openFileLocation={openFileLocation}
+                    copyMessageContent={copyMessageContent}
+                    deletingMessageId={deletingMessageId}
+                    setDeletingMessageId={setDeletingMessageId}
+                    cancelDeleteMessage={cancelDeleteMessage}
+                    confirmDeleteMessage={confirmDeleteMessage}
+                    scrollToMessage={scrollToMessage}
+                    window={window}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTool === 'aichat' && (
+            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                {sidebarMode === 'default' ? (
+                  <div className="empty-sidebar">
+                    {/* AI Chat侧边栏的内容可以在这里添加 */}
+                  </div>
                 ) : (
                   <ChatView
                     messages={messages}
@@ -499,55 +548,6 @@ export default function Sidebar({
                 {sidebarMode === 'default' ? (
                   <div className="empty-sidebar">
                     {/* Screen侧边栏的内容可以在这里添加 */}
-                  </div>
-                ) : (
-                  <ChatView
-                    messages={messages}
-                    currentConversation={currentConversation}
-                    editingMessage={editingMessage}
-                    setEditingMessage={setEditingMessage}
-                    messageInput={messageInput}
-                    setMessageInput={setMessageInput}
-                    selectedFiles={selectedFiles}
-                    setSelectedFiles={setSelectedFiles}
-                    sendMessage={sendMessage}
-                    deleteMessage={confirmDeleteMessage}
-                    updateMessage={updateMessageInApp}
-                    moveMessage={moveMessageInApp}
-                    enterEditMode={enterEditMode}
-                    exitEditMode={exitEditMode}
-                    collapsedMessages={collapsedMessages}
-                    setCollapsedMessages={setCollapsedMessages}
-                    isCompact={true}
-                    handleImageClick={handleImageClick}
-                    fileInputRef={fileInputRef}
-                    editingFileName={editingFileName}
-                    setEditingFileName={setEditingFileName}
-                    fileNameInput={fileNameInput}
-                    setFileNameInput={setFileNameInput}
-                    renameMessageFile={renameMessageFile}
-                    openFileLocation={openFileLocation}
-                    copyMessageContent={copyMessageContent}
-                    deletingMessageId={deletingMessageId}
-                    setDeletingMessageId={setDeletingMessageId}
-                    cancelDeleteMessage={cancelDeleteMessage}
-                    confirmDeleteMessage={confirmDeleteMessage}
-                    scrollToMessage={scrollToMessage}
-                    window={window}
-                    sendToMonaco={sendToMonaco}
-                    sendToEditor={sendToEditor}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTool === 'chatbox' && (
-            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
-              <div className="flex-1 overflow-hidden">
-                {sidebarMode === 'default' ? (
-                  <div className="empty-sidebar">
-                    {/* ChatBox侧边栏的内容可以在这里添加 */}
                   </div>
                 ) : (
                   <ChatView

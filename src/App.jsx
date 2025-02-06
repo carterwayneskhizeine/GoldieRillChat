@@ -841,8 +841,8 @@ export default function App() {
             <MonacoEditor />
           </div>
 
-          {/* ChatBox content */}
-          <div style={{ display: activeTool === 'chatbox' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
+          {/* AI Chat content */}
+          <div style={{ display: activeTool === 'aichat' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
             <AIChat 
               sendToSidebar={handleSendToSidebar}
               createNewConversation={createNewConversation}
