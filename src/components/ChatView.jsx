@@ -47,7 +47,8 @@ export function ChatView({
   window,
   isCompact = false,
   sendToMonaco,
-  sendToEditor
+  sendToEditor,
+  shouldScrollToBottom = false
 }) {
   const messagesEndRef = useRef(null);
 
@@ -58,8 +59,10 @@ export function ChatView({
 
   // 每次消息列表变化或组件挂载时滚动到底部
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isCompact]);
+    if (shouldScrollToBottom) {
+      scrollToBottom();
+    }
+  }, [messages, isCompact, shouldScrollToBottom]);
 
   const handleContextMenu = (e) => {
     e.preventDefault();

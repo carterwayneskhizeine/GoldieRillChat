@@ -393,15 +393,12 @@ export default function App() {
         }
       } else if (message.files) {
         // 处理图片文件重命名
-        console.log('开始重命名图片文件:', { editingFileName, message, newFileName });
-        
         // 检查 editingFileName 是否包含下划线
         if (!editingFileName || !editingFileName.includes('_')) {
           throw new Error('无效的文件标识符格式');
         }
 
         const [msgId, fileIndex] = editingFileName.split('_');
-        console.log('解析的文件信息:', { msgId, fileIndex });
 
         // 验证 fileIndex 的有效性
         if (fileIndex === undefined || isNaN(parseInt(fileIndex))) {
@@ -418,20 +415,14 @@ export default function App() {
           throw new Error('找不到要重命名的文件');
         }
 
-        console.log('找到要重命名的文件:', file);
-
         const fileExt = file.name.split('.').pop();
         const newName = `${newFileName}.${fileExt}`;
-
-        console.log('准备重命名为:', newName);
 
         result = await window.electron.renameFile(
           currentConversation.path,
           file.name,
           newName
         );
-
-        console.log('重命名结果:', result);
 
         // 更新消息中的文件信息
         const updatedFiles = [...message.files];
@@ -455,8 +446,6 @@ export default function App() {
           currentConversation.id,
           messages.map(msg => msg.id === message.id ? updatedMessage : msg)
         );
-
-        console.log('文件重命名完成');
       }
     } catch (error) {
       console.error('重命名文件失败:', error);
@@ -868,6 +857,7 @@ export default function App() {
               window={window}
               sendToMonaco={sendToMonaco}
               sendToEditor={sendToEditor}
+              shouldScrollToBottom={shouldScrollToBottom}
             />
           </div>
 
