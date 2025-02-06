@@ -461,7 +461,9 @@ export const AIChat = ({
         content: response.content,
         type: 'assistant',
         timestamp: new Date(),
-        usage: response.usage
+        usage: response.usage,
+        // 添加推理过程字段
+        ...(response.reasoning_content && { reasoning_content: response.reasoning_content })
       };
 
       // 保存 AI 回复到txt文件
@@ -470,7 +472,9 @@ export const AIChat = ({
         {
           ...aiMessage,
           // 添加文件名格式
-          fileName: `${formatAIChatTime(aiMessage.timestamp)} • 模型: ${selectedModel} • Token: ${estimateTokens(response.content)}`
+          fileName: `${formatAIChatTime(aiMessage.timestamp)} • 模型: ${selectedModel} • Token: ${estimateTokens(response.content)}${
+            response.reasoning_content ? ' • 包含推理过程' : ''
+          }`
         }
       );
       aiMessage.txtFile = aiTxtFile;
@@ -748,6 +752,18 @@ export const AIChat = ({
             line-height: 1.6;
           }
 
+          /* 推理过程气泡的特殊样式 */
+          .chat-bubble.chat-bubble-info {
+            background-color: var(--b2);
+            border: 1px solid var(--b3);
+            font-size: 0.9em;
+          }
+
+          .chat-bubble.chat-bubble-info .prose {
+            font-size: 0.9em;
+            color: var(--bc);
+          }
+
           .chat-bubble .prose {
             overflow: visible;
             margin: 0;
@@ -884,6 +900,23 @@ export const AIChat = ({
                     )}
                   </span>
                 </div>
+                {/* 如果是 assistant 消息且有 reasoning_content，先显示推理过程 */}
+                {message.type === 'assistant' && message.reasoning_content && (
+                  <div className="chat-bubble chat-bubble-info mb-2 opacity-80">
+                    <div className="font-medium mb-1">推理过程：</div>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+                      rehypePlugins={[rehypeKatex]}
+                      components={{
+                        code: CodeBlock,
+                        a: CustomLink
+                      }}
+                      className="break-words text-sm"
+                    >
+                      {message.reasoning_content}
+                    </ReactMarkdown>
+                  </div>
+                )}
                 <div className={`chat-bubble ${
                   message.type === 'user' ? 'chat-bubble-primary' : 
                   message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'

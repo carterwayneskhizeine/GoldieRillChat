@@ -17,6 +17,12 @@ export const MODEL_PROVIDERS = {
     apiHost: 'https://api.openai.com/v1',
     models: ['gpt-3.5-turbo', 'gpt-4']
   },
+  deepseek: {
+    name: 'DeepSeek',
+    apiHost: 'https://api.deepseek.com/v1',
+    models: ['deepseek-chat', 'deepseek-reasoner'],
+    needsApiKey: true
+  },
   openrouter: {
     name: 'OpenRouter',
     apiHost: 'https://openrouter.ai/api/v1',
@@ -66,6 +72,18 @@ export async function fetchModels(provider, apiKey, apiHost) {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         return data.data.filter(model => model.id.includes('gpt')).map(model => model.id);
+      }
+      
+      case 'deepseek': {
+        const response = await fetch(`${apiHost}/models`, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        return data.data.map(model => model.id);
       }
       
       case 'claude': {
