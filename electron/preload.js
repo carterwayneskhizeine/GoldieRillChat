@@ -5,6 +5,7 @@ const fs = require('fs')
 contextBridge.exposeInMainWorld('electron', {
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   createChatFolder: (basePath) => ipcRenderer.invoke('create-chat-folder', basePath),
+  createAIChatFolder: (folderPath) => ipcRenderer.invoke('create-aichat-folder', folderPath),
   saveFile: (folderPath, file) => ipcRenderer.invoke('save-file', folderPath, file),
   saveMessageAsTxt: (folderPath, message) => ipcRenderer.invoke('save-message-as-txt', folderPath, message),
   renameMessageFile: (folderPath, oldFileName, newFileName) => 

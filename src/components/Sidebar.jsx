@@ -86,9 +86,9 @@ export default function Sidebar({
   };
 
   return (
-    <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-hidden transition-all duration-300 flex flex-col`}>
+    <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-auto transition-all duration-300 flex flex-col`}>
       <div className={`${sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]'} flex flex-col h-full`}>
-        <div className="p-2 flex-1 flex flex-col overflow-hidden">
+        <div className="p-2 flex-1 flex flex-col overflow-auto">
           {/* 顶部按钮行：前后工具切换 */}
           <div className="join grid grid-cols-2 mb-2">
             <button className="join-item btn btn-outline btn-sm" onClick={() => switchTool('prev')}>

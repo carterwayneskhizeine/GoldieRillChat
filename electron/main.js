@@ -109,6 +109,26 @@ ipcMain.handle('create-chat-folder', async (event, basePath) => {
   }
 })
 
+// Create new AI chat folder (专门用于 AI Chat 的文件夹创建)
+ipcMain.handle('create-aichat-folder', async (event, folderPath) => {
+  try {
+    // 确保基础目录存在
+    const baseDir = path.dirname(folderPath);
+    await fs.mkdir(baseDir, { recursive: true });
+    
+    // 创建 AI Chat 文件夹
+    await fs.mkdir(folderPath, { recursive: true });
+    
+    return {
+      path: folderPath,
+      name: path.basename(folderPath)
+    };
+  } catch (error) {
+    console.error('创建 AI Chat 文件夹失败:', error);
+    throw error;
+  }
+});
+
 // Save file to chat folder
 ipcMain.handle('save-file', async (event, folderPath, file) => {
   try {
