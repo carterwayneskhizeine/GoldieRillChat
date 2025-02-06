@@ -607,7 +607,7 @@ export function ChatView({
 
       {/* 输入区域 */}
       {!editingMessage && (
-        <div className={`absolute bottom-0 left-0 ${isCompact ? 'right-[20px] p-2 pointer-events-none' : 'right-[20px] p-4 bg-base-100'}`}>
+        <div className={`absolute bottom-0 left-0 ${isCompact ? 'right-[20px] p-2 pointer-events-none bg-base-300' : 'right-[20px] p-4 bg-base-100'}`}>
           <div className={`${isCompact ? 'max-w-[300px] mx-auto pointer-events-auto' : 'max-w-3xl mx-auto'}`}>
             {selectedFiles.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
@@ -649,7 +649,7 @@ export function ChatView({
                 onContextMenu={handleContextMenu}
                 placeholder="Send a message..."
                 className={`textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide bg-base-100 ${
-                  isCompact ? 'text-sm' : ''
+                  isCompact ? 'text-sm shadow-lg' : ''
                 }`}
                 style={{
                   scrollbarWidth: 'none',
