@@ -15,7 +15,7 @@ loader.config({
 });
 
 export const MonacoEditor = () => {
-  const [language, setLanguage] = useState("javascript");
+  const [language, setLanguage] = useState("plaintext");
   const [theme, setTheme] = useState("vs-dark");
   const editorRef = useRef(null);
   const [fontSize, setFontSize] = useState(14);
@@ -88,6 +88,7 @@ export const MonacoEditor = () => {
 
   // 支持的语言列表
   const languages = [
+    "plaintext",
     "javascript",
     "typescript",
     "python",
@@ -287,7 +288,7 @@ export const MonacoEditor = () => {
         }`}>
           <Editor
             height="100%"
-            defaultLanguage="javascript"
+            defaultLanguage="plaintext"
             language={language}
             theme={theme}
             loading={<div className="flex items-center justify-center h-full">加载编辑器中...</div>}
