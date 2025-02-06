@@ -95,7 +95,8 @@ const estimateTokens = (text) => {
 
 export const AIChat = ({ 
   sendToSidebar,
-  createNewConversation 
+  createNewConversation,
+  storagePath 
 }) => {
   // 从本地存储初始化状态
   const [messageInput, setMessageInput] = useState('');
@@ -147,25 +148,6 @@ export const AIChat = ({
   // 添加重试相关状态
   const [retryingMessageId, setRetryingMessageId] = useState(null);
   const [failedMessages, setFailedMessages] = useState(new Set());
-
-  // 添加存储路径状态
-  const [storagePath, setStoragePath] = useState(() => 
-    localStorage.getItem('aichat_storage_path') || ''
-  );
-
-  // 添加选择存储路径的处理函数
-  const handleSelectStoragePath = async () => {
-    try {
-      const result = await window.electron.selectFolder();
-      if (result) {
-        setStoragePath(result);
-        localStorage.setItem('aichat_storage_path', result);
-      }
-    } catch (error) {
-      console.error('选择存储路径失败:', error);
-      alert('选择存储路径失败');
-    }
-  };
 
   // 添加消息持久化的 effect
   useEffect(() => {
@@ -582,26 +564,6 @@ export const AIChat = ({
           >
             ✕
           </button>
-        </div>
-
-        {/* 存储路径设置 */}
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">存储路径</h2>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              className="input input-bordered flex-1"
-              value={storagePath}
-              readOnly
-              placeholder="请选择存储路径..."
-            />
-            <button
-              className="btn"
-              onClick={handleSelectStoragePath}
-            >
-              选择文件夹
-            </button>
-          </div>
         </div>
 
         {/* 模型设置 */}

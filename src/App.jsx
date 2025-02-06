@@ -846,6 +846,7 @@ export default function App() {
             <AIChat 
               sendToSidebar={handleSendToSidebar}
               createNewConversation={createNewConversation}
+              storagePath={storagePath}
             />
           </div>
         </div>
