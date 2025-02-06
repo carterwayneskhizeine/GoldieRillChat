@@ -8,6 +8,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { a11yDark, atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { callModelAPI } from '../services/modelProviders';
 import { formatAIChatTime } from '../utils/AIChatTimeFormat'
+import { MODEL_PROVIDERS, fetchModels } from '../config/modelConfig';
+import { getModelListFromCache, saveModelListToCache, clearModelListCache } from '../utils/modelListCache';
 
 // 导入 KaTeX 样式
 import 'katex/dist/katex.min.css'
@@ -20,36 +22,6 @@ const STORAGE_KEYS = {
   MODEL: 'aichat_model',
   MESSAGES: 'aichat_messages',  // 添加消息存储的键名
   CURRENT_CONVERSATION: 'aichat_current_conversation'  // 添加当前会话的键名
-};
-
-// 定义支持的模型提供方
-const MODEL_PROVIDERS = {
-  openai: {
-    name: 'OpenAI API',
-    models: ['gpt-3.5-turbo', 'gpt-4'],
-    needsApiKey: true,
-    apiHost: 'https://api.openai.com'
-  },
-  claude: {
-    name: 'Claude API',
-    models: ['claude-2.1', 'claude-instant-1.2'],
-    needsApiKey: true,
-    apiHost: 'https://api.anthropic.com'
-  },
-  siliconflow: {
-    name: 'SiliconFlow API',
-    models: [
-      'Qwen/Qwen2.5-7B-Instruct',
-      'Qwen/Qwen2.5-14B-Instruct',
-      'Qwen/Qwen2.5-72B-Instruct',
-      'Qwen/Qwen2.5-Coder-32B-Instruct',
-      'ChatGLM/ChatGLM3-6B',
-      'ChatGLM/ChatGLM2-6B',
-      'ChatGLM/ChatGLM-6B'
-    ],
-    needsApiKey: true,
-    apiHost: 'https://api.siliconflow.cn'
-  }
 };
 
 // 代码块组件
@@ -129,23 +101,38 @@ export const AIChat = ({ sendToSidebar }) => {
     return savedMessages ? JSON.parse(savedMessages) : [];
   });
   const [showSettings, setShowSettings] = useState(false);
+  
+  // 初始化提供商和模型状态
   const [selectedProvider, setSelectedProvider] = useState(() => {
     const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
     return savedProvider && MODEL_PROVIDERS[savedProvider] ? savedProvider : 'openai';
   });
+
+  // 初始化可用模型列表
+  const [availableModels, setAvailableModels] = useState(() => {
+    const provider = localStorage.getItem(STORAGE_KEYS.PROVIDER) || 'openai';
+    const cachedModels = getModelListFromCache(provider);
+    return cachedModels || MODEL_PROVIDERS[provider]?.models || [];
+  });
+
+  // 初始化选中的模型
   const [selectedModel, setSelectedModel] = useState(() => {
     const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
     const savedModel = localStorage.getItem(STORAGE_KEYS.MODEL);
-    if (savedProvider && MODEL_PROVIDERS[savedProvider] && savedModel) {
-      return MODEL_PROVIDERS[savedProvider].models.includes(savedModel) 
-        ? savedModel 
-        : MODEL_PROVIDERS[savedProvider].models[0];
+    const cachedModels = getModelListFromCache(savedProvider);
+    
+    if (savedModel && cachedModels?.includes(savedModel)) {
+      return savedModel;
     }
-    return MODEL_PROVIDERS.openai.models[0];
+    
+    return MODEL_PROVIDERS[savedProvider]?.models[0] || '';
   });
+
+  // 初始化API设置
   const [apiKey, setApiKey] = useState(() => 
     localStorage.getItem(STORAGE_KEYS.API_KEY) || ''
   );
+  
   const [apiHost, setApiHost] = useState(() => {
     const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
     const savedHost = localStorage.getItem(STORAGE_KEYS.API_HOST);
@@ -182,16 +169,54 @@ export const AIChat = ({ sendToSidebar }) => {
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
   }, [messages]);
 
-  // 当模型提供方改变时更新默认值和保存到本地存储
+  // 在组件挂载时获取模型列表
+  useEffect(() => {
+    const loadModels = async () => {
+      if (!apiKey) return;
+      
+      try {
+        const models = await fetchModels(selectedProvider, apiKey, apiHost);
+        if (models && models.length > 0) {
+          setAvailableModels(models);
+          saveModelListToCache(selectedProvider, models);
+          
+          // 如果当前选择的模型不在新的列表中，选择第一个可用的模型
+          if (!models.includes(selectedModel)) {
+            setSelectedModel(models[0]);
+            localStorage.setItem(STORAGE_KEYS.MODEL, models[0]);
+          }
+        }
+      } catch (error) {
+        console.error('加载模型列表失败:', error);
+      }
+    };
+
+    loadModels();
+  }, [selectedProvider, apiKey, apiHost]);
+
+  // 当提供商改变时更新默认值
   useEffect(() => {
     const provider = MODEL_PROVIDERS[selectedProvider];
     if (provider) {
       const newApiHost = localStorage.getItem(`${STORAGE_KEYS.API_HOST}_${selectedProvider}`) || provider.apiHost;
       setApiHost(newApiHost);
-      setSelectedModel(prev => {
-        const savedModel = localStorage.getItem(`${STORAGE_KEYS.MODEL}_${selectedProvider}`);
-        return savedModel && provider.models.includes(savedModel) ? savedModel : provider.models[0];
-      });
+      
+      // 从缓存加载模型列表
+      const cachedModels = getModelListFromCache(selectedProvider);
+      if (cachedModels) {
+        setAvailableModels(cachedModels);
+        
+        // 如果当前选择的模型不在缓存列表中，选择第一个可用的模型
+        if (!cachedModels.includes(selectedModel)) {
+          setSelectedModel(cachedModels[0]);
+          localStorage.setItem(STORAGE_KEYS.MODEL, cachedModels[0]);
+        }
+      } else {
+        // 如果没有缓存，使用默认模型列表
+        setAvailableModels(provider.models);
+        setSelectedModel(provider.models[0]);
+        localStorage.setItem(STORAGE_KEYS.MODEL, provider.models[0]);
+      }
       
       // 保存到本地存储
       localStorage.setItem(STORAGE_KEYS.PROVIDER, selectedProvider);
@@ -634,9 +659,9 @@ export const AIChat = ({ sendToSidebar }) => {
               value={selectedModel}
               onChange={(e) => handleModelChange(e.target.value)}
             >
-              {MODEL_PROVIDERS[selectedProvider]?.models.map(model => (
+              {availableModels.map(model => (
                 <option key={model} value={model}>{model}</option>
-              )) || <option value="">请先选择模型提供方</option>}
+              ))}
             </select>
           </div>
 

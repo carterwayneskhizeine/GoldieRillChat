@@ -751,26 +751,26 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
         {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Chat content */}
-          {activeTool === 'chat' && (
-                      <ChatView
-                        messages={messages}
-                        currentConversation={currentConversation}
-                        editingMessage={editingMessage}
-                        setEditingMessage={setEditingMessage}
-                        messageInput={messageInput}
-                        setMessageInput={setMessageInput}
-                        selectedFiles={selectedFiles}
-                        setSelectedFiles={setSelectedFiles}
-                        sendMessage={sendMessage}
-                        deleteMessage={confirmDeleteMessage}
-                        updateMessage={updateMessageInApp}
-                        moveMessage={moveMessageInApp}
-                        enterEditMode={enterEditMode}
-                        exitEditMode={exitEditMode}
-                        collapsedMessages={collapsedMessages}
-                        setCollapsedMessages={setCollapsedMessages}
-                        handleImageClick={handleImageClick}
-                        fileInputRef={fileInputRef}
+          <div style={{ display: activeTool === 'chat' ? 'flex' : 'none' }} className="flex-1 flex flex-col">
+            <ChatView
+              messages={messages}
+              currentConversation={currentConversation}
+              editingMessage={editingMessage}
+              setEditingMessage={setEditingMessage}
+              messageInput={messageInput}
+              setMessageInput={setMessageInput}
+              selectedFiles={selectedFiles}
+              setSelectedFiles={setSelectedFiles}
+              sendMessage={sendMessage}
+              deleteMessage={confirmDeleteMessage}
+              updateMessage={updateMessageInApp}
+              moveMessage={moveMessageInApp}
+              enterEditMode={enterEditMode}
+              exitEditMode={exitEditMode}
+              collapsedMessages={collapsedMessages}
+              setCollapsedMessages={setCollapsedMessages}
+              handleImageClick={handleImageClick}
+              fileInputRef={fileInputRef}
               editingFileName={editingFileName}
               setEditingFileName={setEditingFileName}
               fileNameInput={fileNameInput}
@@ -786,10 +786,10 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
               window={window}
               sendToWebMarkdown={sendToWebMarkdown}
             />
-          )}
+          </div>
 
-            {/* Editor content */}
-            {activeTool === 'editor' && (
+          {/* Editor content */}
+          <div style={{ display: activeTool === 'editor' ? 'flex' : 'none' }} className="flex-1 flex flex-col">
             <Editor
               editorState={editorState}
               setEditorState={setEditorState}
@@ -815,43 +815,34 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
               isRotating={isRotating}
               setIsRotating={setIsRotating}
             />
-            )}
+          </div>
 
-            {/* Browser content */}
-            {activeTool === 'browser' && (
-              <div className="flex-1 flex flex-col relative">
-                {/* Browser view container */}
-                <div className="flex-1 bg-base-100 overflow-auto">
-                  {/* Browser view managed by main process */}
-                </div>
-              </div>
-            )}
+          {/* Browser content */}
+          <div style={{ display: activeTool === 'browser' ? 'flex' : 'none' }} className="flex-1 flex flex-col relative">
+            <div className="flex-1 bg-base-100 overflow-auto">
+              {/* Browser view managed by main process */}
+            </div>
+          </div>
 
-            {/* WebMarkdown content */}
-            {activeTool === 'webmarkdown' && (
-              <div className="flex-1 overflow-hidden">
-                <WebMarkdown 
-                  initialContent={webMarkdownContent}
-                  setContent={setWebMarkdownContent}
-                />
-              </div>
-            )}
+          {/* WebMarkdown content */}
+          <div style={{ display: activeTool === 'webmarkdown' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
+            <WebMarkdown 
+              initialContent={webMarkdownContent}
+              setContent={setWebMarkdownContent}
+            />
+          </div>
 
-            {/* Monaco Editor content */}
-            {activeTool === 'monaco' && (
-              <div className="flex-1 overflow-hidden">
-                <MonacoEditor />
-              </div>
-            )}
+          {/* Monaco Editor content */}
+          <div style={{ display: activeTool === 'monaco' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
+            <MonacoEditor />
+          </div>
 
-            {/* ChatBox content */}
-            {activeTool === 'chatbox' && (
-              <div className="flex-1 overflow-hidden">
-                <AIChat 
-                  sendToSidebar={handleSendToSidebar}
-                />
-              </div>
-            )}
+          {/* ChatBox content */}
+          <div style={{ display: activeTool === 'chatbox' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
+            <AIChat 
+              sendToSidebar={handleSendToSidebar}
+            />
+          </div>
         </div>
 
         {/* Modals and overlays */}
