@@ -273,31 +273,6 @@ export const AIChat = ({ sendToSidebar }) => {
     setFolderNameInput('');
   };
 
-  // 添加删除处理函数
-  const handleDeleteConversation = async (conversation) => {
-    try {
-      // 移动文件夹到回收站
-      await window.electron.moveFolderToRecycle(conversation.path);
-      
-      // 更新状态
-      const updatedConversations = conversations.filter(c => c.id !== conversation.id);
-      setConversations(updatedConversations);
-      
-      if (currentConversation?.id === conversation.id) {
-        setCurrentConversation(null);
-        setMessages([]);
-      }
-      
-      // 更新存储
-      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
-    } catch (error) {
-      console.error('删除会话失败:', error);
-      alert('删除会话失败: ' + error.message);
-    }
-    
-    setDeletingConversation(null);
-  };
-
   // 添加右键菜单处理函数
   const handleContextMenu = (e, conversation) => {
     e.preventDefault();
@@ -318,9 +293,15 @@ export const AIChat = ({ sendToSidebar }) => {
       }
     ];
     
+    // 移除旧的菜单（如果存在）
+    const oldMenu = document.querySelector('.context-menu');
+    if (oldMenu) {
+      oldMenu.remove();
+    }
+    
     // 显示自定义右键菜单
     const menu = document.createElement('div');
-    menu.className = 'menu bg-base-200 rounded-box shadow-lg absolute z-50';
+    menu.className = 'menu bg-base-200 rounded-box shadow-lg absolute z-50 context-menu';
     menu.style.left = `${rect.right}px`;
     menu.style.top = `${rect.top}px`;
     
@@ -330,7 +311,7 @@ export const AIChat = ({ sendToSidebar }) => {
       button.textContent = item.label;
       button.onclick = () => {
         item.onClick();
-        document.body.removeChild(menu);
+        menu.remove();
       };
       menu.appendChild(button);
     });
@@ -340,11 +321,60 @@ export const AIChat = ({ sendToSidebar }) => {
     // 点击其他地方关闭菜单
     const closeMenu = (e) => {
       if (!menu.contains(e.target)) {
-        document.body.removeChild(menu);
+        menu.remove();
         document.removeEventListener('click', closeMenu);
       }
     };
     document.addEventListener('click', closeMenu);
+  };
+
+  // 修改删除处理函数
+  const handleDeleteConversation = async (conversation) => {
+    try {
+      // 确保 RecycleBin 文件夹存在
+      const recycleBinPath = window.electron.path.join(storagePath, 'RecycleBin');
+      try {
+        await window.electron.createAIChatFolder(recycleBinPath);
+      } catch (error) {
+        // 如果文件夹已存在，忽略错误
+        if (error.message.includes('EEXIST')) {
+          console.log('RecycleBin folder already exists');
+        } else {
+          throw error;
+        }
+      }
+
+      // 更新状态
+      const updatedConversations = conversations.filter(c => c.id !== conversation.id);
+      setConversations(updatedConversations);
+      
+      // 如果删除的是当前对话，清除当前对话和消息
+      if (currentConversation?.id === conversation.id) {
+        setCurrentConversation(null);
+        setMessages([]);
+        localStorage.setItem('aichat_current_conversation', '');
+      }
+      
+      // 更新存储
+      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+
+      // 移动文件夹到回收站 - 移到最后执行
+      await window.electron.moveFolderToRecycle(conversation.path);
+    } catch (error) {
+      console.error('删除会话失败:', error);
+      alert('删除会话失败: ' + error.message);
+      
+      // 如果文件操作失败，恢复状态
+      setConversations(conversations);
+      if (currentConversation?.id === conversation.id) {
+        setCurrentConversation(currentConversation);
+        setMessages(messages);
+        localStorage.setItem('aichat_current_conversation', JSON.stringify(currentConversation));
+      }
+      localStorage.setItem('aichat_conversations', JSON.stringify(conversations));
+    }
+    
+    setDeletingConversation(null);
   };
 
   const createNewConversation = async () => {

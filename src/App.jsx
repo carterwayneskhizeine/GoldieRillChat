@@ -53,6 +53,7 @@ import {
 import Sidebar from './components/Sidebar'
 import Editor from './components/Editor'
 import { WebMarkdown } from './components/WebMarkdown'
+import { MonacoEditor } from './components/MonacoEditor'
 import { AIChat } from './components/AIChat'
 import './styles/aichat.css'
 import { generateRandomTheme } from './utils/themeGenerator'
@@ -833,6 +834,13 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
                   initialContent={webMarkdownContent}
                   setContent={setWebMarkdownContent}
                 />
+              </div>
+            )}
+
+            {/* Monaco Editor content */}
+            {activeTool === 'monaco' && (
+              <div className="flex-1 overflow-hidden">
+                <MonacoEditor />
               </div>
             )}
 
