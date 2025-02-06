@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Editor, { loader } from "@monaco-editor/react";
+import { loadPyodide } from "pyodide";
 
 // 配置 Monaco Editor 加载器
 loader.config({
@@ -14,6 +15,59 @@ export const MonacoEditor = () => {
   const editorRef = useRef(null);
   const [fontSize, setFontSize] = useState(14);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [output, setOutput] = useState("");
+  const [isRunning, setIsRunning] = useState(false);
+  const [pyodide, setPyodide] = useState(null);
+
+  // 初始化 Pyodide
+  useEffect(() => {
+    async function initPyodide() {
+      if (language === "python" && !pyodide) {
+        try {
+          const py = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.27.2/full/",
+            stdout: (text) => {
+              setOutput(prev => prev + text + "\n");
+            },
+            stderr: (text) => {
+              setOutput(prev => prev + "Error: " + text + "\n");
+            }
+          });
+          setPyodide(py);
+          
+          // 预加载一些常用的 Python 包
+          await py.loadPackage(['numpy', 'pandas']);
+          
+          console.log("Pyodide loaded successfully!");
+        } catch (error) {
+          console.error("Failed to load Pyodide:", error);
+          setOutput("Failed to load Python runtime: " + error.message);
+        }
+      }
+    }
+    initPyodide();
+  }, [language]);
+
+  // 运行 Python 代码
+  const runPythonCode = async () => {
+    if (!pyodide || !editorRef.current) return;
+    
+    setIsRunning(true);
+    setOutput("Running...\n");
+    
+    try {
+      const code = editorRef.current.getValue();
+      
+      // 直接运行代码，输出会通过 stdout/stderr 回调处理
+      await pyodide.runPythonAsync(code);
+      
+    } catch (error) {
+      setOutput(prev => prev + `Error: ${error.message}\n`);
+    } finally {
+      setIsRunning(false);
+    }
+  };
 
   // 支持的语言列表
   const languages = [
@@ -130,6 +184,33 @@ export const MonacoEditor = () => {
           </button>
         </div>
 
+        {/* Python 运行按钮 */}
+        {language === "python" && (
+          <>
+            <button 
+              className="btn btn-sm btn-primary"
+              onClick={runPythonCode}
+              disabled={!isEditorReady || isRunning || !pyodide}
+            >
+              {isRunning ? (
+                <>
+                  <span className="loading loading-spinner loading-xs"></span>
+                  运行中...
+                </>
+              ) : (
+                "运行代码"
+              )}
+            </button>
+            <button 
+              className="btn btn-sm"
+              onClick={() => setShowPreview(!showPreview)}
+              disabled={!isEditorReady}
+            >
+              {showPreview ? "隐藏输出" : "显示输出"}
+            </button>
+          </>
+        )}
+
         {/* 其他工具按钮 */}
         <div className="flex-1 flex justify-end gap-2">
           <button 
@@ -165,24 +246,36 @@ export const MonacoEditor = () => {
         </div>
       </div>
 
-      {/* 编辑器区域 */}
-      <div className="flex-1 overflow-hidden bg-base-200 rounded-lg">
-        <Editor
-          height="100%"
-          defaultLanguage="javascript"
-          language={language}
-          theme={theme}
-          loading={<div className="flex items-center justify-center h-full">加载编辑器中...</div>}
-          beforeMount={handleEditorWillMount}
-          onMount={handleEditorDidMount}
-          options={{
-            fontSize: fontSize,
-            minimap: { enabled: true },
-            scrollBeyondLastLine: false,
-            wordWrap: "on",
-            automaticLayout: true
-          }}
-        />
+      {/* 主要内容区域 */}
+      <div className="flex-1 flex gap-4 overflow-hidden">
+        {/* 编辑器区域 */}
+        <div className={`flex-1 overflow-hidden bg-base-200 rounded-lg ${showPreview && language === "python" ? 'w-1/2' : 'w-full'}`}>
+          <Editor
+            height="100%"
+            defaultLanguage="javascript"
+            language={language}
+            theme={theme}
+            loading={<div className="flex items-center justify-center h-full">加载编辑器中...</div>}
+            beforeMount={handleEditorWillMount}
+            onMount={handleEditorDidMount}
+            options={{
+              fontSize: fontSize,
+              minimap: { enabled: true },
+              scrollBeyondLastLine: false,
+              wordWrap: "on",
+              automaticLayout: true
+            }}
+          />
+        </div>
+
+        {/* 预览区域 */}
+        {showPreview && language === "python" && (
+          <div className="w-1/2 bg-base-200 rounded-lg p-4 overflow-auto">
+            <div className="font-mono whitespace-pre-wrap">
+              {output || "运行代码后输出将显示在这里..."}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
