@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Editor, { loader } from "@monaco-editor/react";
 import { loadPyodide } from "pyodide";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import '../styles/markdown-preview.css';
 
 // 配置 Monaco Editor 加载器
 loader.config({
@@ -19,6 +24,7 @@ export const MonacoEditor = () => {
   const [output, setOutput] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [pyodide, setPyodide] = useState(null);
+  const [markdownContent, setMarkdownContent] = useState('');
 
   // 初始化 Pyodide
   useEffect(() => {
@@ -48,6 +54,17 @@ export const MonacoEditor = () => {
     }
     initPyodide();
   }, [language]);
+
+  // 监听编辑器内容变化
+  useEffect(() => {
+    if (isEditorReady && language === "markdown" && editorRef.current) {
+      const model = editorRef.current.getModel();
+      const disposable = model.onDidChangeContent(() => {
+        setMarkdownContent(editorRef.current.getValue());
+      });
+      return () => disposable.dispose();
+    }
+  }, [isEditorReady, language]);
 
   // 运行 Python 代码
   const runPythonCode = async () => {
@@ -97,6 +114,11 @@ export const MonacoEditor = () => {
   function handleEditorDidMount(editor, monaco) {
     editorRef.current = editor;
     setIsEditorReady(true);
+    
+    // 如果是 markdown，立即获取内容
+    if (language === "markdown") {
+      setMarkdownContent(editor.getValue());
+    }
     
     // 设置一些编辑器选项
     editor.updateOptions({
@@ -184,6 +206,17 @@ export const MonacoEditor = () => {
           </button>
         </div>
 
+        {/* Markdown 预览按钮 */}
+        {language === "markdown" && (
+          <button 
+            className="btn btn-sm"
+            onClick={() => setShowPreview(!showPreview)}
+            disabled={!isEditorReady}
+          >
+            {showPreview ? "隐藏预览" : "显示预览"}
+          </button>
+        )}
+
         {/* Python 运行按钮 */}
         {language === "python" && (
           <>
@@ -249,7 +282,9 @@ export const MonacoEditor = () => {
       {/* 主要内容区域 */}
       <div className="flex-1 flex gap-4 overflow-hidden">
         {/* 编辑器区域 */}
-        <div className={`flex-1 overflow-hidden bg-base-200 rounded-lg ${showPreview && language === "python" ? 'w-1/2' : 'w-full'}`}>
+        <div className={`flex-1 overflow-hidden bg-base-200 rounded-lg ${
+          (showPreview && (language === "python" || language === "markdown")) ? 'w-1/2' : 'w-full'
+        }`}>
           <Editor
             height="100%"
             defaultLanguage="javascript"
@@ -268,7 +303,74 @@ export const MonacoEditor = () => {
           />
         </div>
 
-        {/* 预览区域 */}
+        {/* Markdown 预览区域 */}
+        {showPreview && language === "markdown" && (
+          <div className="w-1/2 bg-base-100 rounded-lg p-4 overflow-auto">
+            <div className="prose max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                components={{
+                  // 自定义代码块样式
+                  code({node, inline, className, children, ...props}) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    return !inline && match ? (
+                      <div className="relative">
+                        <div className="absolute right-2 top-2">
+                          <button
+                            className="btn btn-xs btn-ghost"
+                            onClick={() => {
+                              navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+                            }}
+                          >
+                            复制
+                          </button>
+                        </div>
+                        <pre className={`language-${match[1]} rounded-lg`}>
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        </pre>
+                      </div>
+                    ) : (
+                      <code className={`${className} bg-base-200 rounded px-1`} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                  // 自定义链接样式
+                  a({node, children, href, ...props}) {
+                    return (
+                      <a
+                        href={href}
+                        className="text-primary hover:text-primary-focus"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    );
+                  },
+                  // 自定义表格样式
+                  table({node, children, ...props}) {
+                    return (
+                      <div className="overflow-x-auto">
+                        <table className="table table-zebra w-full" {...props}>
+                          {children}
+                        </table>
+                      </div>
+                    );
+                  }
+                }}
+              >
+                {markdownContent}
+              </ReactMarkdown>
+            </div>
+          </div>
+        )}
+
+        {/* Python 输出区域 */}
         {showPreview && language === "python" && (
           <div className="w-1/2 bg-base-200 rounded-lg p-4 overflow-auto">
             <div className="font-mono whitespace-pre-wrap">

@@ -1,0 +1,190 @@
+/* Markdown预览专用样式 */
+.prose {
+  --tw-prose-body: hsl(var(--bc));
+  --tw-prose-headings: hsl(var(--bc));
+  --tw-prose-links: hsl(var(--p));
+  --tw-prose-code: hsl(var(--s));
+  font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  line-height: 1.75;
+  max-width: none;
+  color: hsl(var(--bc));
+}
+
+/* 标题样式 */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  color: hsl(var(--bc));
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.prose h1 {
+  font-size: 2.25em;
+  margin-top: 0;
+  margin-bottom: 0.8888889em;
+}
+
+.prose h2 {
+  font-size: 1.5em;
+  margin-top: 2em;
+  margin-bottom: 1em;
+}
+
+.prose h3 {
+  font-size: 1.25em;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+}
+
+.prose h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.625rem;
+}
+
+.prose h5 {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: 1rem 0 0.5rem;
+}
+
+.prose h6 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: hsl(var(--bc)/0.8);
+  margin: 0.875rem 0 0.4375rem;
+}
+
+/* 链接样式 */
+.prose a {
+  color: hsl(var(--p));
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.prose a:hover {
+  color: hsl(var(--pf));
+}
+
+/* 段落和列表样式 */
+.prose p,
+.prose ul,
+.prose ol {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.625em;
+}
+
+.prose li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose input[type="checkbox"] {
+  margin: 0 0.5rem 0 0;
+  transform: translateY(2px);
+}
+
+/* 引用块样式 */
+.prose blockquote {
+  border-left: 4px solid hsl(var(--p));
+  padding-left: 1em;
+  margin: 1.5em 0;
+  font-style: italic;
+  color: hsl(var(--bc) / 0.8);
+}
+
+/* 代码块样式 */
+.prose pre {
+  background-color: hsl(var(--b2));
+  padding: 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  margin: 1.5em 0;
+}
+
+.prose code {
+  background-color: hsl(var(--b2));
+  padding: 0.2em 0.4em;
+  border-radius: 0.25em;
+  font-size: 0.875em;
+}
+
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 1em;
+}
+
+/* 表格样式 */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2em 0;
+}
+
+.prose th {
+  background-color: hsl(var(--b2));
+  font-weight: 600;
+  text-align: left;
+}
+
+.prose td,
+.prose th {
+  padding: 0.75em;
+  border: 1px solid hsl(var(--b3));
+}
+
+.prose tr:nth-child(even) {
+  background-color: hsl(var(--b1));
+}
+
+/* 水平线样式 */
+.prose hr {
+  border: 0;
+  border-top: 1px solid hsl(var(--b3));
+  margin: 2em 0;
+}
+
+/* 图片样式 */
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5em;
+  margin: 1.5em 0;
+}
+
+/* 自定义代码块容器样式 */
+.prose .code-block-wrapper {
+  position: relative;
+  margin: 1.5em 0;
+}
+
+.prose .code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: hsl(var(--b3));
+  padding: 0.5em 1em;
+  border-top-left-radius: 0.5em;
+  border-top-right-radius: 0.5em;
+  font-family: monospace;
+}
+
+.prose .copy-button {
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.prose .copy-button:hover {
+  opacity: 1;
+} 
