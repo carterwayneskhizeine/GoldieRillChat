@@ -24,6 +24,27 @@ const STORAGE_KEYS = {
   CURRENT_CONVERSATION: 'aichat_current_conversation'  // 添加当前会话的键名
 };
 
+// 新增的 TypingText 组件，逐字显示文本
+const TypingText = ({ text }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  
+  useEffect(() => {
+    setDisplayedText(''); // 每次 text 变化都重置
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      if (currentIndex >= text.length) {
+        clearInterval(interval);
+        return;
+      }
+      currentIndex++;
+      setDisplayedText(text.slice(0, currentIndex));
+    }, 50);
+    return () => clearInterval(interval);
+  }, [text]); // text变化时重新执行
+  
+  return <span>{displayedText}</span>;
+};
+
 // 代码块组件
 const CodeBlock = ({ node, inline, className, children, ...props }) => {
   const match = /language-(\w+)/.exec(className || '')
@@ -455,20 +476,22 @@ export const AIChat = ({
         model: selectedModel,
         messages: messagesWithUser,
         onUpdate: (update) => {
-          setMessages(prevMessages => {
-            const newMessages = [...prevMessages];
+          console.log('Received chunk:', update.content); // 确认分块到达
+          setMessages(prev => {
+            const newMessages = [...prev];
             const loadingMessageIndex = newMessages.findIndex(msg => msg.id === loadingMessage.id);
-            if (loadingMessageIndex === -1) return prevMessages;
+            if (loadingMessageIndex === -1) return prev;
 
             const updatedLoadingMessage = {
               ...newMessages[loadingMessageIndex],
               generating: true
             };
 
+            // 逐步更新内容
             if (update.type === 'reasoning') {
               updatedLoadingMessage.reasoning_content = update.content;
             } else {
-              updatedLoadingMessage.content = update.content;
+              updatedLoadingMessage.content += update.content;
               updatedLoadingMessage.reasoning_content = update.reasoning_content;
             }
 
@@ -940,43 +963,43 @@ export const AIChat = ({
                 </div>
                 {/* 如果是 assistant 消息且有 reasoning_content，先显示推理过程 */}
                 {message.type === 'assistant' && message.reasoning_content && (
-                  <div className="chat-bubble chat-bubble-info mb-2 opacity-80">
+                  <div className="chat-bubble chat-bubble-info reasoning-bubble mb-2">
                     <div className="font-medium mb-1">推理过程：</div>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-                      rehypePlugins={[rehypeKatex]}
-                      components={{
-                        code: CodeBlock,
-                        a: CustomLink
-                      }}
-                      className={`break-words text-sm ${message.generating ? 'typing-effect' : ''}`}
-                    >
-                      {message.reasoning_content}
-                    </ReactMarkdown>
+                    <div className="typing-content">
+                      <TypingText 
+                        text={message.reasoning_content} 
+                        key={message.id + message.reasoning_content.length}
+                      />
+                    </div>
                   </div>
                 )}
                 <div className={`chat-bubble ${
                   message.type === 'user' ? 'chat-bubble-primary' : 
                   message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
                 }`}>
-                  {message.generating && message.content === '' ? (
-                    <div className="flex items-center gap-2">
-                      <span>正在思考</span>
-                      <span className="loading loading-dots loading-xs"></span>
-                    </div>
-                  ) : (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-                      rehypePlugins={[rehypeKatex]}
-                      components={{
-                        code: CodeBlock,
-                        a: CustomLink
-                      }}
-                      className={`break-words ${message.generating ? 'typing-effect' : ''}`}
-                    >
-                      {message.content}
-                    </ReactMarkdown>
-                  )}
+                  {/* 回答内容部分 */}
+                  <div className="response-content">
+                    {message.generating ? (
+                      <div className="typing-effect">
+                        <TypingText 
+                          text={message.content} 
+                          key={message.id + message.content.length}
+                        />
+                      </div>
+                    ) : (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+                        rehypePlugins={[rehypeKatex]}
+                        components={{
+                          code: CodeBlock,
+                          a: CustomLink
+                        }}
+                        className="break-words"
+                      >
+                        {message.content || ''}
+                      </ReactMarkdown>
+                    )}
+                  </div>
                   {message.error && (
                     <div className="mt-2 flex items-center gap-2">
                       <button

@@ -292,7 +292,7 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate 
 };
 
 // 统一的 API 调用函数
-export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages }) => {
+export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages, onUpdate }) => {
   // 验证必要的参数
   if (!apiKey) {
     throw new Error('请先配置 API 密钥');
@@ -317,7 +317,7 @@ export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages 
     case 'openrouter':
       return callOpenRouter({ apiKey, apiHost, model, messages });
     case 'deepseek':
-      return callDeepSeek({ apiKey, apiHost, model, messages });
+      return callDeepSeek({ apiKey, apiHost, model, messages, onUpdate });
     default:
       throw new Error(`不支持的模型提供方: ${provider}`);
   }
