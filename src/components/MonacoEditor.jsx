@@ -25,6 +25,15 @@ export const MonacoEditor = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [pyodide, setPyodide] = useState(null);
   const [markdownContent, setMarkdownContent] = useState('');
+  const [initialContent, setInitialContent] = useState('');
+
+  // 监听外部传入的内容
+  useEffect(() => {
+    if (window.pendingMonacoContent && editorRef.current) {
+      editorRef.current.setValue(window.pendingMonacoContent);
+      window.pendingMonacoContent = null;
+    }
+  }, [isEditorReady]);
 
   // 初始化 Pyodide
   useEffect(() => {
@@ -114,7 +123,14 @@ export const MonacoEditor = () => {
   // 编辑器加载完成时的回调
   function handleEditorDidMount(editor, monaco) {
     editorRef.current = editor;
+    window.monacoEditor = editor;
     setIsEditorReady(true);
+    
+    // 如果有待处理的内容，立即设置
+    if (window.pendingMonacoContent) {
+      editor.setValue(window.pendingMonacoContent);
+      window.pendingMonacoContent = null;
+    }
     
     // 如果是 markdown，立即获取内容
     if (language === "markdown") {

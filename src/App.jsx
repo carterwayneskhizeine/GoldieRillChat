@@ -162,6 +162,23 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
     setWebMarkdownContent(markdownContent);
   };
 
+  // 添加发送到Monaco的处理函数
+  const sendToMonaco = (message) => {
+    // 切换到Monaco编辑器工具
+    setActiveTool('monaco');
+    
+    // 构建格式化的内容
+    const formattedContent = `// Chat Message from ${formatMessageTime(message.timestamp)}\n\n${message.content}`;
+
+    // 如果编辑器已经准备好，直接设置内容
+    if (window.monacoEditor) {
+      window.monacoEditor.setValue(formattedContent);
+    } else {
+      // 如果编辑器还没准备好，将内容存储在全局变量中
+      window.pendingMonacoContent = formattedContent;
+    }
+  };
+
   // Load conversations on mount
   useEffect(() => {
     const initializeConversations = async () => {
@@ -406,33 +423,44 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
   }
 
   // 添加发送图片到编辑器的函数
-  const sendToEditor = async (file) => {
-    const img = new Image()
-    await new Promise((resolve, reject) => {
-      img.onload = resolve
-      img.onerror = reject
-      img.src = `local-file://${file.path}`
-    })
+  const sendToEditor = async (message) => {
+    if (!message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+      return;
+    }
+
+    // 切换到编辑器工具
+    setActiveTool('editor');
     
-    setEditorState(prev => ({
-      ...prev,
-      image: img,
-      scale: 1,
-      rotation: 0,
-      flipH: false,
-      flipV: false,
-      offsetX: 0,
-      offsetY: 0
-    }))
-    
-    setImageSize({
-      width: img.naturalWidth,
-      height: img.naturalHeight
-    })
-    
-    // 切换到编辑器面板
-    setActiveTool('editor')
-  }
+    // 获取第一个图片文件
+    const imageFile = message.files.find(file => 
+      file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+    );
+
+    if (imageFile) {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = `local-file://${imageFile.path}`;
+      });
+      
+      setEditorState(prev => ({
+        ...prev,
+        image: img,
+        scale: 1,
+        rotation: 0,
+        flipH: false,
+        flipV: false,
+        offsetX: 0,
+        offsetY: 0
+      }));
+      
+      setImageSize({
+        width: img.naturalWidth,
+        height: img.naturalHeight
+      });
+    }
+  };
 
   // 在组件卸载时清除定时器
   useEffect(() => {
@@ -746,6 +774,8 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
           cancelDeleteMessage={cancelDeleteMessage}
           scrollToMessage={scrollToMessage}
           sendToWebMarkdown={sendToWebMarkdown}
+          sendToMonaco={sendToMonaco}
+          sendToEditor={sendToEditor}
         />
 
         {/* Main content area */}
@@ -790,6 +820,7 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
               scrollToMessage={scrollToMessage}
               window={window}
               sendToWebMarkdown={sendToWebMarkdown}
+              sendToMonaco={sendToMonaco}
             />
           </div>
 

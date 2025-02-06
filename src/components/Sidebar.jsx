@@ -61,7 +61,9 @@ export default function Sidebar({
   setDeletingMessageId,
   cancelDeleteMessage,
   scrollToMessage,
-  sendToWebMarkdown
+  sendToWebMarkdown,
+  sendToMonaco,
+  sendToEditor
 }) {
   useEffect(() => {
     if (activeTool === 'chat') {
@@ -274,6 +276,8 @@ export default function Sidebar({
                     scrollToMessage={scrollToMessage}
                     window={window}
                     sendToWebMarkdown={sendToWebMarkdown}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
                   />
                 )}
               </div>
@@ -331,6 +335,8 @@ export default function Sidebar({
                     scrollToMessage={scrollToMessage}
                     window={window}
                     sendToWebMarkdown={sendToWebMarkdown}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
                   />
                 )}
               </div>
@@ -388,6 +394,8 @@ export default function Sidebar({
                     scrollToMessage={scrollToMessage}
                     window={window}
                     sendToWebMarkdown={sendToWebMarkdown}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
                   />
                 )}
               </div>
@@ -445,6 +453,8 @@ export default function Sidebar({
                     scrollToMessage={scrollToMessage}
                     window={window}
                     sendToWebMarkdown={sendToWebMarkdown}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
                   />
                 )}
               </div>
@@ -503,6 +513,8 @@ export default function Sidebar({
                     scrollToMessage={scrollToMessage}
                     window={window}
                     sendToWebMarkdown={sendToWebMarkdown}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
                   />
                 )}
               </div>
@@ -560,6 +572,8 @@ export default function Sidebar({
                     scrollToMessage={scrollToMessage}
                     window={window}
                     sendToWebMarkdown={sendToWebMarkdown}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
                   />
                 )}
               </div>
@@ -617,6 +631,8 @@ export default function Sidebar({
                     scrollToMessage={scrollToMessage}
                     window={window}
                     sendToWebMarkdown={sendToWebMarkdown}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
                   />
                 )}
               </div>

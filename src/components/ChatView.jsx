@@ -46,7 +46,9 @@ export function ChatView({
   scrollToMessage,
   window,
   isCompact = false,
-  sendToWebMarkdown
+  sendToWebMarkdown,
+  sendToMonaco,
+  sendToEditor
 }) {
   const messagesEndRef = useRef(null);
 
@@ -527,7 +529,13 @@ export function ChatView({
                   <button
                     className="btn btn-ghost btn-xs"
                     onClick={() => {
-                      sendToWebMarkdown(message);
+                      // 如果消息包含图片，发送到图片编辑器
+                      if (message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+                        sendToEditor(message);
+                      } else {
+                        // 否则发送到 Monaco 编辑器
+                        sendToMonaco(message);
+                      }
                     }}
                   >
                     Send
