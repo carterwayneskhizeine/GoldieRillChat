@@ -719,7 +719,7 @@ export const AIChat = ({ sendToSidebar }) => {
   );
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-full">
       <style>
         {`
           .ai-chat-message-actions {
@@ -852,17 +852,12 @@ export const AIChat = ({ sendToSidebar }) => {
             ))}
           </div>
         </div>
-
-        {/* 底部按钮 */}
-        <div className="absolute bottom-0 w-60 border-t border-base-300">
-          {/* 这里可以添加其他底部按钮 */}
-        </div>
       </div>
 
       {/* 右侧主聊天区域 */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* 顶部标题栏 */}
-        <div className="p-4 border-b border-base-300 flex justify-between items-center">
+        <div className="p-4 border-b border-base-300 flex justify-between items-center bg-base-100">
           <h2 className="text-xl font-semibold">{currentConversation?.name || '当前会话'}</h2>
           <button 
             className="btn btn-ghost btn-sm btn-circle"
@@ -876,56 +871,67 @@ export const AIChat = ({ sendToSidebar }) => {
         </div>
 
         {/* 消息列表容器 */}
-        <div 
-          className="flex-1 overflow-y-auto"
-          style={{ 
-            height: 'calc(100vh - 180px)',
-            padding: '20px'
-          }}
-        >
-          {messages.map(message => (
-            <div
-              key={message.id}
-              className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative ai-chat-group`}
-            >
-              <div className="chat-header opacity-70">
-                <span className="text-xs">
-                  {new Date(message.timestamp).toLocaleString()}
-                  {message.type === 'assistant' && (
-                    <>
-                      {' • '}模型: {selectedModel}
-                      {' • '}Token: {estimateTokens(message.content)}
-                    </>
+        <div className="flex-1 overflow-y-auto p-4 bg-base-100">
+          <div className="space-y-4 max-w-[1200px] mx-auto">
+            {messages.map(message => (
+              <div
+                key={message.id}
+                className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative ai-chat-group`}
+              >
+                <div className="chat-header opacity-70">
+                  <span className="text-xs">
+                    {new Date(message.timestamp).toLocaleString()}
+                    {message.type === 'assistant' && (
+                      <>
+                        {' • '}模型: {selectedModel}
+                        {' • '}Token: {estimateTokens(message.content)}
+                      </>
+                    )}
+                  </span>
+                </div>
+                <div className={`chat-bubble ${
+                  message.type === 'user' ? 'chat-bubble-primary' : 
+                  message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
+                }`}>
+                  {message.generating ? (
+                    <div className="flex items-center gap-2">
+                      <span>正在思考</span>
+                      <span className="loading loading-dots loading-xs"></span>
+                    </div>
+                  ) : (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+                      rehypePlugins={[rehypeKatex]}
+                      components={{
+                        code: CodeBlock,
+                        a: CustomLink
+                      }}
+                      className="break-words"
+                    >
+                      {message.content}
+                    </ReactMarkdown>
                   )}
-                </span>
-              </div>
-              <div className={`chat-bubble ${
-                message.type === 'user' ? 'chat-bubble-primary' : 
-                message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
-              }`}>
-                {message.generating ? (
-                  <div className="flex items-center gap-2">
-                    <span>正在思考</span>
-                    <span className="loading loading-dots loading-xs"></span>
-                  </div>
-                ) : (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-                    rehypePlugins={[rehypeKatex]}
-                    components={{
-                      code: CodeBlock,
-                      a: CustomLink
-                    }}
-                    className="break-words"
-                  >
-                    {message.content}
-                  </ReactMarkdown>
-                )}
-                {message.error && (
-                  <div className="mt-2 flex items-center gap-2">
+                  {message.error && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        className="btn btn-xs btn-outline"
+                        onClick={() => handleRetry(message.id, message.originalContent)}
+                        disabled={retryingMessageId === message.id}
+                      >
+                        {retryingMessageId === message.id ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        ) : (
+                          'Retry'
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {message.type === 'assistant' && !message.error && (
+                  <div className="ai-chat-message-actions">
                     <button
-                      className="btn btn-xs btn-outline"
-                      onClick={() => handleRetry(message.id, message.originalContent)}
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => handleRetry(message.id, message.content)}
                       disabled={retryingMessageId === message.id}
                     >
                       {retryingMessageId === message.id ? (
@@ -934,55 +940,40 @@ export const AIChat = ({ sendToSidebar }) => {
                         'Retry'
                       )}
                     </button>
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => handleDeleteMessage(message.id)}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => {
+                        navigator.clipboard.writeText(message.content);
+                      }}
+                    >
+                      Copy
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => {
+                        if (sendToSidebar) {
+                          sendToSidebar(message);
+                        }
+                      }}
+                    >
+                      Send
+                    </button>
                   </div>
                 )}
               </div>
-              {message.type === 'assistant' && !message.error && (
-                <div className="ai-chat-message-actions">
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => handleRetry(message.id, message.content)}
-                    disabled={retryingMessageId === message.id}
-                  >
-                    {retryingMessageId === message.id ? (
-                      <span className="loading loading-spinner loading-xs"></span>
-                    ) : (
-                      'Retry'
-                    )}
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => handleDeleteMessage(message.id)}
-                  >
-                    Delete
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => {
-                      navigator.clipboard.writeText(message.content);
-                    }}
-                  >
-                    Copy
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => {
-                      if (sendToSidebar) {
-                        sendToSidebar(message);
-                      }
-                    }}
-                  >
-                    Send
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* 底部输入框 */}
         <div className="border-t border-base-300 p-4 bg-base-100">
-          <div className="flex items-center space-x-2">
+          <div className="relative">
             <textarea
               className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-base-100 aichat-input"
               placeholder="输入消息..."
@@ -1008,7 +999,7 @@ export const AIChat = ({ sendToSidebar }) => {
               onKeyDown={handleKeyDown}
               rows="2"
             />
-            <div className="absolute bottom-3 right-3 flex items-center gap-2">
+            <div className="absolute right-4 bottom-3 flex items-center gap-2">
               <button
                 className="btn btn-ghost btn-sm btn-circle"
                 onClick={() => fileInputRef.current?.click()}
