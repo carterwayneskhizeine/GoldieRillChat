@@ -293,6 +293,27 @@ export const MonacoEditor = () => {
           >
             粘贴
           </button>
+          {language === "markdown" && (
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                if (!editorRef.current) return;
+                const content = editorRef.current.getValue();
+                const blob = new Blob([content], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'document.md';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }}
+              disabled={!isEditorReady}
+            >
+              导出 MD
+            </button>
+          )}
         </div>
       </div>
 

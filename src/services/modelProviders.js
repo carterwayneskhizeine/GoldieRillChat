@@ -148,6 +148,43 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages }) => 
   }
 };
 
+// OpenRouter API 调用实现
+export const callOpenRouter = async ({ apiKey, apiHost, model, messages }) => {
+  try {
+    const response = await fetch(`${apiHost}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'GoldieRillChat'
+      },
+      body: JSON.stringify({
+        model,
+        messages: messages.map(msg => ({
+          role: msg.type === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        })),
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || '请求失败');
+    }
+
+    const data = await response.json();
+    return {
+      content: data.choices[0].message.content,
+      usage: data.usage
+    };
+  } catch (error) {
+    console.error('OpenRouter API 调用失败:', error);
+    throw new Error(`OpenRouter API 调用失败: ${error.message}`);
+  }
+};
+
 // 统一的 API 调用函数
 export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages }) => {
   // 验证必要的参数
@@ -171,6 +208,8 @@ export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages 
       return callClaude({ apiKey, apiHost, model, messages });
     case 'siliconflow':
       return callSiliconCloud({ apiKey, apiHost, model, messages });
+    case 'openrouter':
+      return callOpenRouter({ apiKey, apiHost, model, messages });
     default:
       throw new Error(`不支持的模型提供方: ${provider}`);
   }

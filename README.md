@@ -19,6 +19,7 @@
   - OpenAI API
   - Claude API
   - SiliconFlow API
+  - OpenRouter API (新增)
 
 - **功能支持**
   - Cherry Markdown 编辑器
@@ -27,6 +28,13 @@
     - 支持多种代码高亮主题
     - 自定义工具栏配置
   - 内置安全浏览器
+  - Monaco Editor
+    - 支持多种编程语言
+    - 实时语法高亮
+    - 代码格式化
+    - Markdown 实时预览
+    - Markdown 文件导出
+    - Python 代码执行环境
 
 ## ✨ 主要功能
 
@@ -47,10 +55,46 @@
 - 支持会话重命名和删除
 - 会话列表拖拽排序
 - 自动保存聊天记录
-- 一键发送到图片编辑器
+- 一键发送到图片编辑器或代码编辑器
 - 支持紧凑和标准两种显示模式
-- 支持多种 AI 模型接口（OpenAI、Claude、SiliconFlow）
+- 支持多种 AI 模型接口
+  - OpenAI
+  - Claude
+  - SiliconFlow
+  - OpenRouter (新增)
+    - 统一接口访问多个模型提供商
+    - 动态获取可用模型列表
 - API 密钥安全管理
+
+### 📝 Monaco Editor 功能
+- 支持多种编程语言
+  - JavaScript/TypeScript
+  - Python
+  - Java
+  - C++
+  - HTML/CSS
+  - Markdown
+  等
+- 代码编辑功能
+  - 语法高亮
+  - 代码格式化
+  - 自动补全
+  - 错误提示
+- Markdown 支持
+  - 实时预览
+  - 导出 .md 文件
+  - GFM 语法支持
+  - 数学公式渲染
+- Python 环境
+  - 内置 Pyodide 运行时
+  - 支持 numpy、pandas 等科学计算库
+  - 实时代码执行
+  - 输出结果展示
+- 编辑器功能
+  - 字体大小调节
+  - 多主题切换
+  - 复制/粘贴优化
+  - 文件导入导出
 
 ### 🌏 内置浏览器
 - 集成安全浏览器功能
