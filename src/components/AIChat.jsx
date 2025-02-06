@@ -437,10 +437,11 @@ export const AIChat = ({
       // 添加 AI 正在输入的提示
       const loadingMessage = {
         id: Date.now() + 1,
-        content: '正在思考...',
+        content: '',
         type: 'assistant',
         timestamp: new Date(),
-        generating: true
+        generating: true,
+        reasoning_content: ''
       };
       
       const messagesWithLoading = [...messagesWithUser, loadingMessage];
@@ -452,7 +453,29 @@ export const AIChat = ({
         apiKey,
         apiHost,
         model: selectedModel,
-        messages: messagesWithUser
+        messages: messagesWithUser,
+        onUpdate: (update) => {
+          setMessages(prevMessages => {
+            const newMessages = [...prevMessages];
+            const loadingMessageIndex = newMessages.findIndex(msg => msg.id === loadingMessage.id);
+            if (loadingMessageIndex === -1) return prevMessages;
+
+            const updatedLoadingMessage = {
+              ...newMessages[loadingMessageIndex],
+              generating: true
+            };
+
+            if (update.type === 'reasoning') {
+              updatedLoadingMessage.reasoning_content = update.content;
+            } else {
+              updatedLoadingMessage.content = update.content;
+              updatedLoadingMessage.reasoning_content = update.reasoning_content;
+            }
+
+            newMessages[loadingMessageIndex] = updatedLoadingMessage;
+            return newMessages;
+          });
+        }
       });
 
       // 构造 AI 回复消息
@@ -764,6 +787,21 @@ export const AIChat = ({
             color: var(--bc);
           }
 
+          /* 打字机效果 */
+          .typing-effect {
+            border-right: 2px solid var(--bc);
+            animation: cursor-blink 0.8s step-end infinite;
+          }
+
+          @keyframes cursor-blink {
+            from, to {
+              border-color: transparent;
+            }
+            50% {
+              border-color: var(--bc);
+            }
+          }
+
           .chat-bubble .prose {
             overflow: visible;
             margin: 0;
@@ -911,7 +949,7 @@ export const AIChat = ({
                         code: CodeBlock,
                         a: CustomLink
                       }}
-                      className="break-words text-sm"
+                      className={`break-words text-sm ${message.generating ? 'typing-effect' : ''}`}
                     >
                       {message.reasoning_content}
                     </ReactMarkdown>
@@ -921,7 +959,7 @@ export const AIChat = ({
                   message.type === 'user' ? 'chat-bubble-primary' : 
                   message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
                 }`}>
-                  {message.generating ? (
+                  {message.generating && message.content === '' ? (
                     <div className="flex items-center gap-2">
                       <span>正在思考</span>
                       <span className="loading loading-dots loading-xs"></span>
@@ -934,7 +972,7 @@ export const AIChat = ({
                         code: CodeBlock,
                         a: CustomLink
                       }}
-                      className="break-words"
+                      className={`break-words ${message.generating ? 'typing-effect' : ''}`}
                     >
                       {message.content}
                     </ReactMarkdown>

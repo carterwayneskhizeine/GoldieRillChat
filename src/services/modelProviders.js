@@ -186,7 +186,7 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages }) => {
 };
 
 // DeepSeek API 调用实现
-export const callDeepSeek = async ({ apiKey, apiHost, model, messages }) => {
+export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate }) => {
   try {
     const response = await fetch(`${apiHost}/chat/completions`, {
       method: 'POST',
@@ -199,10 +199,9 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages }) => {
         messages: messages.map(msg => ({
           role: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content,
-          // 确保不传递 reasoning_content 字段给 API
           ...(msg.reasoning_content ? {} : {})
         })),
-        stream: false,
+        stream: true,
         temperature: 0.7,
         max_tokens: 2000
       })
@@ -213,11 +212,78 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages }) => {
       throw new Error(error.error?.message || '请求失败');
     }
 
-    const data = await response.json();
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let content = '';
+    let reasoning_content = '';
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      
+      // 将新的数据添加到缓冲区
+      buffer += decoder.decode(value, { stream: true });
+      
+      // 查找完整的数据块（使用实际的换行符）
+      let chunks = buffer.split('\n');
+      
+      // 保留最后一个可能不完整的块
+      buffer = chunks.pop() || '';
+      
+      for (const chunk of chunks) {
+        // 跳过空行
+        if (!chunk.trim()) continue;
+
+        // 处理数据行
+        try {
+          // 移除 "data: " 前缀（如果存在）
+          const jsonStr = chunk.replace(/^data:\s*/, '').trim();
+          
+          // 跳过特殊标记
+          if (jsonStr === '[DONE]') continue;
+          
+          // 尝试解析 JSON
+          const json = JSON.parse(jsonStr);
+          
+          if (json.choices && json.choices[0] && json.choices[0].delta) {
+            const delta = json.choices[0].delta;
+            
+            // 处理推理内容
+            if (delta.reasoning_content !== undefined) {
+              reasoning_content += delta.reasoning_content || '';
+              onUpdate?.({
+                type: 'reasoning',
+                content: reasoning_content
+              });
+            }
+            
+            // 处理主要内容
+            if (delta.content !== undefined) {
+              content += delta.content || '';
+              onUpdate?.({
+                type: 'content',
+                content,
+                reasoning_content
+              });
+            }
+          }
+        } catch (e) {
+          // 如果解析失败，记录详细信息以便调试
+          console.warn('解析数据块失败:', {
+            chunk,
+            error: e.message,
+            bufferState: buffer
+          });
+          continue;
+        }
+      }
+    }
+
     return {
-      content: data.choices[0].message.content,
-      reasoning_content: data.choices[0].message.reasoning_content,
-      usage: data.usage
+      content,
+      reasoning_content,
+      usage: {} // 流式响应可能没有 usage 信息
     };
   } catch (error) {
     console.error('DeepSeek API 调用失败:', error);
