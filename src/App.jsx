@@ -52,7 +52,6 @@ import {
 } from './components/stateInitializers'
 import Sidebar from './components/Sidebar'
 import Editor from './components/Editor'
-import { WebMarkdown } from './components/WebMarkdown'
 import { MonacoEditor } from './components/MonacoEditor'
 import { AIChat } from './components/AIChat'
 import './styles/aichat.css'
@@ -140,27 +139,6 @@ export default function App() {
 
   // 使用新的主题持久化Hook
   useThemeEffect(currentTheme)
-
-  // 添加WebMarkdown编辑器内容状态
-  const [webMarkdownContent, setWebMarkdownContent] = useState('');
-
-  // 添加发送到WebMarkdown的处理函数
-  const sendToWebMarkdown = (message) => {
-    // 切换到WebMarkdown工具
-    setActiveTool('webmarkdown');
-    
-    // 构建Markdown格式的内容
-    const markdownContent = `## Chat Message
-
-${message.content}
-
----
-_Sent from chat at ${formatMessageTime(message.timestamp)}_
-`;
-
-    // 更新WebMarkdown内容
-    setWebMarkdownContent(markdownContent);
-  };
 
   // 添加发送到Monaco的处理函数
   const sendToMonaco = (message) => {
@@ -773,7 +751,6 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
           setDeletingMessageId={setDeletingMessageId}
           cancelDeleteMessage={cancelDeleteMessage}
           scrollToMessage={scrollToMessage}
-          sendToWebMarkdown={sendToWebMarkdown}
           sendToMonaco={sendToMonaco}
           sendToEditor={sendToEditor}
         />
@@ -819,7 +796,6 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
               confirmDeleteMessage={confirmDeleteMessage}
               scrollToMessage={scrollToMessage}
               window={window}
-              sendToWebMarkdown={sendToWebMarkdown}
               sendToMonaco={sendToMonaco}
             />
           </div>
@@ -858,14 +834,6 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
             <div className="flex-1 bg-base-100 overflow-auto">
               {/* Browser view managed by main process */}
             </div>
-          </div>
-
-          {/* WebMarkdown content */}
-          <div style={{ display: activeTool === 'webmarkdown' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
-            <WebMarkdown 
-              initialContent={webMarkdownContent}
-              setContent={setWebMarkdownContent}
-            />
           </div>
 
           {/* Monaco Editor content */}

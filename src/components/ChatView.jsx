@@ -46,7 +46,6 @@ export function ChatView({
   scrollToMessage,
   window,
   isCompact = false,
-  sendToWebMarkdown,
   sendToMonaco,
   sendToEditor
 }) {

@@ -61,7 +61,6 @@ export default function Sidebar({
   setDeletingMessageId,
   cancelDeleteMessage,
   scrollToMessage,
-  sendToWebMarkdown,
   sendToMonaco,
   sendToEditor
 }) {
@@ -275,7 +274,6 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
-                    sendToWebMarkdown={sendToWebMarkdown}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
                   />
@@ -334,7 +332,6 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
-                    sendToWebMarkdown={sendToWebMarkdown}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
                   />
@@ -393,7 +390,6 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
-                    sendToWebMarkdown={sendToWebMarkdown}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
                   />
@@ -452,7 +448,6 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
-                    sendToWebMarkdown={sendToWebMarkdown}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
                   />
@@ -512,7 +507,6 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
-                    sendToWebMarkdown={sendToWebMarkdown}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
                   />
@@ -571,7 +565,6 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
-                    sendToWebMarkdown={sendToWebMarkdown}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
                   />
@@ -630,7 +623,6 @@ export default function Sidebar({
                     confirmDeleteMessage={confirmDeleteMessage}
                     scrollToMessage={scrollToMessage}
                     window={window}
-                    sendToWebMarkdown={sendToWebMarkdown}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
                   />
