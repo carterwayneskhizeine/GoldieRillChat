@@ -757,19 +757,37 @@ export const AIChat = ({ sendToSidebar }) => {
             background-color: var(--b2);
           }
 
-          /* 调整消息气泡的内边距 */
+          /* 调整消息气泡的样式 */
           .chat-bubble {
-            padding-top: 0.5rem !important;
-            padding-bottom: 0.5rem !important;
+            padding: 0.75rem 1rem;
+            overflow: visible;
+            line-height: 1.6;
           }
 
-          /* 调整 Markdown 内容的边距 */
+          .chat-bubble .prose {
+            overflow: visible;
+            margin: 0;
+          }
+
+          .chat-bubble p {
+            margin: 0;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            word-break: break-word;
+          }
+
           .chat-bubble > p:first-child {
             margin-top: 0;
           }
           
           .chat-bubble > p:last-child {
             margin-bottom: 0;
+          }
+
+          .chat-bubble .whitespace-pre-wrap {
+            white-space: pre-wrap;
+            overflow: visible;
+            margin: 0;
           }
         `}
       </style>
