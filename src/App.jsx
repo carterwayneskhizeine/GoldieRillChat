@@ -157,6 +157,46 @@ export default function App() {
     }
   };
 
+  // 添加 sendToEditor 函数
+  const sendToEditor = async (message) => {
+    if (!message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+      return;
+    }
+
+    // 切换到编辑器工具
+    setActiveTool('editor');
+    
+    // 获取第一个图片文件
+    const imageFile = message.files.find(file => 
+      file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+    );
+
+    if (imageFile) {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = `local-file://${imageFile.path}`;
+      });
+      
+      setEditorState(prev => ({
+        ...prev,
+        image: img,
+        scale: 1,
+        rotation: 0,
+        flipH: false,
+        flipV: false,
+        offsetX: 0,
+        offsetY: 0
+      }));
+      
+      setImageSize({
+        width: img.naturalWidth,
+        height: img.naturalHeight
+      });
+    }
+  };
+
   // Load conversations on mount
   useEffect(() => {
     const initializeConversations = async () => {
@@ -300,68 +340,138 @@ export default function App() {
 
   // Add renameMessageFile function
   const renameMessageFile = async (message, newFileName) => {
-    if (!currentConversation || !message.txtFile) return
+    if (!currentConversation) return;
     
     try {
-      // Find if there's an existing message with the target filename
-      const existingMessage = messages.find(msg => 
-        msg.txtFile && msg.txtFile.displayName === newFileName
-      )
+      let result;
+      if (message.txtFile) {
+        // 处理文本文件重命名
+        result = await window.electron.renameMessageFile(
+          currentConversation.path,
+          message.txtFile.displayName,
+          newFileName
+        );
 
-      const result = await window.electron.renameMessageFile(
-        currentConversation.path,
-        message.txtFile.displayName,
-        newFileName
-      )
+        if (result.merged) {
+          // 合并消息内容
+          const existingMessage = messages.find(msg => 
+            msg.txtFile && msg.txtFile.displayName === newFileName
+          );
 
-      if (result.merged && existingMessage) {
-        // Merge message contents
-        const mergedMessage = {
-          ...existingMessage,
-          content: `${existingMessage.content}\n\n${message.content}`,
-          txtFile: result
+          const mergedMessage = {
+            ...existingMessage,
+            content: `${existingMessage.content}\n\n${message.content}`,
+            txtFile: result
+          };
+
+          setMessages(prev => prev.map(msg => 
+            msg.id === existingMessage.id ? mergedMessage : msg
+          ).filter(msg => msg.id !== message.id));
+
+          await window.electron.saveMessages(
+            currentConversation.path,
+            currentConversation.id,
+            messages.map(msg => msg.id === existingMessage.id ? mergedMessage : msg)
+              .filter(msg => msg.id !== message.id)
+          );
+        } else {
+          // 直接重命名
+          const updatedMessage = {
+            ...message,
+            txtFile: result
+          };
+
+          setMessages(prev => prev.map(msg => 
+            msg.id === message.id ? updatedMessage : msg
+          ));
+
+          await window.electron.saveMessages(
+            currentConversation.path,
+            currentConversation.id,
+            messages.map(msg => msg.id === message.id ? updatedMessage : msg)
+          );
+        }
+      } else if (message.files) {
+        // 处理图片文件重命名
+        console.log('开始重命名图片文件:', { editingFileName, message, newFileName });
+        
+        // 检查 editingFileName 是否包含下划线
+        if (!editingFileName || !editingFileName.includes('_')) {
+          throw new Error('无效的文件标识符格式');
         }
 
-        // Update messages array
-        setMessages(prev => prev.map(msg => 
-          msg.id === existingMessage.id ? mergedMessage : msg
-        ).filter(msg => msg.id !== message.id))
+        const [msgId, fileIndex] = editingFileName.split('_');
+        console.log('解析的文件信息:', { msgId, fileIndex });
 
-        // Save to storage
-        const updatedMessages = messages
-          .map(msg => msg.id === existingMessage.id ? mergedMessage : msg)
-          .filter(msg => msg.id !== message.id)
+        // 验证 fileIndex 的有效性
+        if (fileIndex === undefined || isNaN(parseInt(fileIndex))) {
+          throw new Error('无效的文件索引格式');
+        }
 
-        await window.electron.saveMessages(
+        const index = parseInt(fileIndex);
+        if (index < 0 || index >= message.files.length) {
+          throw new Error('文件索引超出范围');
+        }
+
+        const file = message.files[index];
+        if (!file) {
+          throw new Error('找不到要重命名的文件');
+        }
+
+        console.log('找到要重命名的文件:', file);
+
+        const fileExt = file.name.split('.').pop();
+        const newName = `${newFileName}.${fileExt}`;
+
+        console.log('准备重命名为:', newName);
+
+        result = await window.electron.renameFile(
           currentConversation.path,
-          currentConversation.id,
-          updatedMessages
-        )
-      } else {
-        // Just rename
+          file.name,
+          newName
+        );
+
+        console.log('重命名结果:', result);
+
+        // 更新消息中的文件信息
+        const updatedFiles = [...message.files];
+        updatedFiles[index] = {
+          ...file,
+          name: result.name,
+          path: result.path
+        };
+
         const updatedMessage = {
           ...message,
-          txtFile: result
-        }
+          files: updatedFiles
+        };
 
         setMessages(prev => prev.map(msg => 
           msg.id === message.id ? updatedMessage : msg
-        ))
+        ));
 
         await window.electron.saveMessages(
           currentConversation.path,
           currentConversation.id,
           messages.map(msg => msg.id === message.id ? updatedMessage : msg)
-        )
+        );
+
+        console.log('文件重命名完成');
       }
     } catch (error) {
-      console.error('Failed to rename file:', error)
-      alert('重命名失败')
+      console.error('重命名文件失败:', error);
+      console.error('错误详情:', {
+        message,
+        editingFileName,
+        newFileName,
+        currentConversation
+      });
+      alert(`重命名失败: ${error.message}`);
     }
     
-    setEditingFileName(null)
-    setFileNameInput('')
-  }
+    setEditingFileName(null);
+    setFileNameInput('');
+  };
 
   // 当图片或编辑状态改变时重绘
   useEffect(() => {
@@ -399,46 +509,6 @@ export default function App() {
       alert(error.message)
     }
   }
-
-  // 添加发送图片到编辑器的函数
-  const sendToEditor = async (message) => {
-    if (!message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
-      return;
-    }
-
-    // 切换到编辑器工具
-    setActiveTool('editor');
-    
-    // 获取第一个图片文件
-    const imageFile = message.files.find(file => 
-      file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-    );
-
-    if (imageFile) {
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = `local-file://${imageFile.path}`;
-      });
-      
-      setEditorState(prev => ({
-        ...prev,
-        image: img,
-        scale: 1,
-        rotation: 0,
-        flipH: false,
-        flipV: false,
-        offsetX: 0,
-        offsetY: 0
-      }));
-      
-      setImageSize({
-        width: img.naturalWidth,
-        height: img.naturalHeight
-      });
-    }
-  };
 
   // 在组件卸载时清除定时器
   useEffect(() => {
@@ -698,7 +768,7 @@ export default function App() {
           sidebarMode={sidebarMode}
           activeTool={activeTool}
           conversations={conversations}
-                        currentConversation={currentConversation}
+          currentConversation={currentConversation}
           draggedConversation={draggedConversation}
           setDraggedConversation={setDraggedConversation}
           editingFolderName={editingFolderName}
@@ -717,22 +787,22 @@ export default function App() {
           setConversations={setConversations}
           setCurrentConversation={setCurrentConversation}
           messages={messages}
-                        editingMessage={editingMessage}
-                        setEditingMessage={setEditingMessage}
-                        messageInput={messageInput}
-                        setMessageInput={setMessageInput}
-                        selectedFiles={selectedFiles}
-                        setSelectedFiles={setSelectedFiles}
-                        sendMessage={sendMessage}
+          editingMessage={editingMessage}
+          setEditingMessage={setEditingMessage}
+          messageInput={messageInput}
+          setMessageInput={setMessageInput}
+          selectedFiles={selectedFiles}
+          setSelectedFiles={setSelectedFiles}
+          sendMessage={sendMessage}
           confirmDeleteMessage={confirmDeleteMessage}
           updateMessageInApp={updateMessageInApp}
           moveMessageInApp={moveMessageInApp}
-                        enterEditMode={enterEditMode}
-                        exitEditMode={exitEditMode}
-                        collapsedMessages={collapsedMessages}
-                        setCollapsedMessages={setCollapsedMessages}
-                        handleImageClick={handleImageClick}
-                        fileInputRef={fileInputRef}
+          enterEditMode={enterEditMode}
+          exitEditMode={exitEditMode}
+          collapsedMessages={collapsedMessages}
+          setCollapsedMessages={setCollapsedMessages}
+          handleImageClick={handleImageClick}
+          fileInputRef={fileInputRef}
           browserTabs={browserTabs}
           activeTabId={activeTabId}
           previousMode={previousMode}
@@ -797,6 +867,7 @@ export default function App() {
               scrollToMessage={scrollToMessage}
               window={window}
               sendToMonaco={sendToMonaco}
+              sendToEditor={sendToEditor}
             />
           </div>
 

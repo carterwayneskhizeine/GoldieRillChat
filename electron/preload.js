@@ -104,5 +104,31 @@ contextBridge.exposeInMainWorld('electron', {
   // 写入文件内容
   writeFile: (filePath, content) => {
     return fs.promises.writeFile(filePath, content, 'utf8');
+  },
+
+  // 加载图片到编辑器
+  loadImageToEditor: (imagePath) => {
+    const img = new Image();
+    img.onload = () => {
+      if (window.editorState) {
+        window.editorState = {
+          ...window.editorState,
+          image: img,
+          scale: 1,
+          rotation: 0,
+          flipH: false,
+          flipV: false,
+          offsetX: 0,
+          offsetY: 0
+        };
+      }
+      if (window.setImageSize) {
+        window.setImageSize({
+          width: img.naturalWidth,
+          height: img.naturalHeight
+        });
+      }
+    };
+    img.src = `local-file://${imagePath}`;
   }
 }) 

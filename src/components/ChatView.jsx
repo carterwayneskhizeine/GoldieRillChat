@@ -212,6 +212,61 @@ export function ChatView({
                       </span>
                     </div>
                   )
+                ) : message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)) ? (
+                  <div className="flex items-center gap-2">
+                    {editingFileName?.startsWith(message.id) ? (
+                      <div className="join">
+                        <input
+                          type="text"
+                          value={fileNameInput}
+                          onChange={(e) => setFileNameInput(e.target.value)}
+                          className="input input-xs input-bordered join-item"
+                          placeholder="Enter new file name"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              renameMessageFile(message, fileNameInput);
+                            }
+                          }}
+                        />
+                        <button
+                          className="btn btn-xs join-item"
+                          onClick={() => renameMessageFile(message, fileNameInput)}
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="btn btn-xs join-item"
+                          onClick={() => {
+                            setEditingFileName(null);
+                            setFileNameInput('');
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span 
+                          className="text-xs cursor-pointer hover:underline"
+                          onClick={() => {
+                            // 找到第一个图片或视频文件的索引
+                            const firstMediaIndex = message.files.findIndex(file => 
+                              file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                            );
+                            if (firstMediaIndex !== -1) {
+                              setEditingFileName(`${message.id}_${firstMediaIndex}`);
+                              setFileNameInput(message.files[firstMediaIndex].name.replace(/\.[^/.]+$/, ""));
+                            }
+                          }}
+                        >
+                          {message.files.map(file => file.name).join(', ')}
+                        </span>
+                        <span className="text-xs opacity-50">
+                          {formatMessageTime(message.timestamp)}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 ) : (
                   <span className="text-xs opacity-50">
                     {formatMessageTime(message.timestamp)}
