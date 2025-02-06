@@ -7,11 +7,6 @@ import { copyMessageContent } from './messageUtils';
 import { toggleMessageCollapse } from './messageCollapse';
 import { handleFileSelect, removeFile, handleFileDrop } from './fileHandlers';
 import { SidebarCollapseButton, shouldShowCollapseButton, getMessageContentStyle } from './sidebarMessageCollapse.jsx';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import rehypeSanitize from 'rehype-sanitize';
-import '../styles/markdown-preview.css';
 
 export function ChatView({
   messages,
@@ -217,10 +212,7 @@ export function ChatView({
                   </span>
                 )}
               </div>
-              <div className={`chat-bubble ${
-                message.type === 'user' ? 'chat-bubble-primary' : 
-                message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
-              }`}>
+              <div className="chat-bubble relative max-w-[800px] break-words">
                 {!isCompact && message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
                   <div className="collapse-button">
                     <button 
@@ -259,6 +251,13 @@ export function ChatView({
                     </button>
                   </div>
                 )}
+                {isCompact && shouldShowCollapseButton(message.content) && (
+                  <SidebarCollapseButton
+                    messageId={message.id}
+                    collapsedMessages={collapsedMessages}
+                    setCollapsedMessages={setCollapsedMessages}
+                  />
+                )}
                 
                 {editingMessage?.id === message.id ? (
                   <div className="join w-full">
@@ -286,150 +285,64 @@ export function ChatView({
                     </div>
                   </div>
                 ) : (
-                  <div 
-                    className={`prose max-w-none ${
-                      collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
-                    }`}
-                  >
-                    {/* 判断是否是图片/视频消息或包含图片/视频的消息 */}
-                    {message.files?.some(file => 
-                      file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
-                    ) ? (
-                      <div className="flex flex-col gap-2">
-                        {/* 显示文本内容 */}
-                        <div className="whitespace-pre-wrap">
+                  <div className="flex flex-col gap-2">
+                    {message.content && (
+                      <div className="flex justify-between items-start">
+                        <div 
+                          {...(isCompact 
+                            ? {
+                                ...getMessageContentStyle(collapsedMessages.has(message.id)),
+                                onContextMenu: handleContextMenu
+                              }
+                            : {
+                                className: `prose max-w-none w-full ${
+                                  collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
+                                }`,
+                                style: { 
+                                  whiteSpace: 'pre-wrap',
+                                  maxWidth: '800px'
+                                },
+                                onContextMenu: handleContextMenu
+                              }
+                          )}
+                        >
                           {message.content}
                         </div>
-                        
-                        {/* 显示文件 */}
-                        {message.files?.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {message.files.map((file, index) => {
-                              // 图片文件
-                              if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-                                return (
-                                  <div key={index} className="relative">
-                                    <img 
-                                      src={`local-file://${file.path}`} 
-                                      alt={file.name}
-                                      className={`rounded-lg object-cover cursor-pointer ${
-                                        isCompact ? 'max-w-[200px] max-h-[200px]' : 'max-w-[300px] max-h-[300px]'
-                                      }`}
-                                      onClick={(e) => handleImageClick(e, file)}
-                                    />
-                                  </div>
-                                );
-                              }
-                              // 视频文件
-                              else if (file.name.match(/\.mp4$/i)) {
-                                return (
-                                  <div key={index} className="w-full">
-                                    <video controls className={`rounded-lg ${
-                                      isCompact ? 'max-w-[200px]' : 'w-full max-w-[800px]'
-                                    }`}>
-                                      <source src={`local-file://${file.path}`} type="video/mp4" />
-                                      Your browser does not support the video tag.
-                                    </video>
-                                  </div>
-                                );
-                              }
-                              // 其他文件类型
-                              else {
-                                return (
-                                  <div 
-                                    key={index} 
-                                    className="badge badge-lg gap-2 cursor-pointer hover:bg-base-200"
-                                    onClick={() => openFileLocation(file)}
-                                    title="点击打开文件位置"
-                                  >
-                                    {file.name}
-                                  </div>
-                                );
-                              }
-                            })}
-                          </div>
-                        )}
                       </div>
-                    ) : message.files?.some(file => 
-                      !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
-                    ) ? (
-                      <div className="flex flex-col gap-2">
-                        {/* 显示文本内容 */}
-                        <div className="whitespace-pre-wrap">
-                          {message.content}
-                        </div>
-                        
-                        {/* 显示其他类型文件 */}
-                        <div className="flex flex-wrap gap-2">
-                          {message.files.map((file, index) => (
+                    )}
+                    {message.files?.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {message.files.map((file, index) => (
+                          file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <div key={index} className="relative">
+                              <img 
+                                src={`local-file://${file.path}`} 
+                                alt={file.name}
+                                className={`rounded-lg object-cover cursor-pointer ${
+                                  isCompact ? 'max-w-[200px] max-h-[200px]' : 'max-w-[300px] max-h-[300px]'
+                                }`}
+                                onClick={(e) => handleImageClick(e, file)}
+                              />
+                            </div>
+                          ) : file.name.match(/\.mp4$/i) ? (
+                            <div key={index} className="w-full">
+                              <video controls className={`rounded-lg ${
+                                isCompact ? 'max-w-[200px]' : 'w-full max-w-[800px]'
+                              }`}>
+                                <source src={`local-file://${file.path}`} type="video/mp4" />
+                                Your browser does not support the video tag.
+                              </video>
+                            </div>
+                          ) : (
                             <div 
                               key={index} 
-                              className="badge badge-lg gap-2 cursor-pointer hover:bg-base-200"
-                              onClick={() => openFileLocation(file)}
-                              title="点击打开文件位置"
+                              className="badge badge-outline cursor-pointer hover:bg-base-200"
                             >
                               {file.name}
                             </div>
-                          ))}
-                        </div>
+                          )
+                        ))}
                       </div>
-                    ) : (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw, rehypeSanitize]}
-                        components={{
-                          code({node, inline, className, children, ...props}) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            return !inline && match ? (
-                              <div className="relative">
-                                <div className="absolute right-2 top-2">
-                                  <button
-                                    className="btn btn-xs btn-ghost"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
-                                    }}
-                                  >
-                                    复制
-                                  </button>
-                                </div>
-                                <pre className={`language-${match[1]} rounded-lg`}>
-                                  <code className={className} {...props}>
-                                    {children}
-                                  </code>
-                                </pre>
-                              </div>
-                            ) : (
-                              <code className={`${className} bg-base-200 rounded px-1`} {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                          a({node, children, href, ...props}) {
-                            return (
-                              <a
-                                href={href}
-                                className="text-primary hover:text-primary-focus"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                {...props}
-                              >
-                                {children}
-                              </a>
-                            );
-                          },
-                          table({node, children, ...props}) {
-                            return (
-                              <div className="overflow-x-auto">
-                                <table className="table table-zebra w-full" {...props}>
-                                  {children}
-                                </table>
-                              </div>
-                            );
-                          }
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
                     )}
                   </div>
                 )}
