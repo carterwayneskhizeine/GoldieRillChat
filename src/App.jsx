@@ -751,7 +751,12 @@ _Sent from chat at ${formatMessageTime(message.timestamp)}_
         {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Chat content */}
-          <div style={{ display: activeTool === 'chat' ? 'flex' : 'none' }} className="flex-1 flex flex-col">
+          <div 
+            style={{ 
+              display: activeTool === 'chat' ? 'flex' : 'none',
+              height: 'calc(100vh - 40px)'
+            }} 
+            className="flex-1 flex flex-col overflow-hidden">
             <ChatView
               messages={messages}
               currentConversation={currentConversation}

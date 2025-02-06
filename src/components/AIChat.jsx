@@ -860,7 +860,7 @@ export const AIChat = ({ sendToSidebar }) => {
       </div>
 
       {/* 右侧主聊天区域 */}
-      <div className="flex-1 flex flex-col h-full">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* 顶部标题栏 */}
         <div className="p-4 border-b border-base-300 flex justify-between items-center">
           <h2 className="text-xl font-semibold">{currentConversation?.name || '当前会话'}</h2>
@@ -875,8 +875,14 @@ export const AIChat = ({ sendToSidebar }) => {
           </button>
         </div>
 
-        {/* 消息列表 */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 messages-container">
+        {/* 消息列表容器 */}
+        <div 
+          className="flex-1 overflow-y-auto"
+          style={{ 
+            height: 'calc(100vh - 180px)',
+            padding: '20px'
+          }}
+        >
           {messages.map(message => (
             <div
               key={message.id}
@@ -975,7 +981,7 @@ export const AIChat = ({ sendToSidebar }) => {
         </div>
 
         {/* 底部输入框 */}
-        <div className="border-t border-base-300 p-4">
+        <div className="border-t border-base-300 p-4 bg-base-100">
           <div className="flex items-center space-x-2">
             <textarea
               className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-base-100 aichat-input"
