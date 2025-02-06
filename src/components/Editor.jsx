@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { handleMouseDown, handleMouseMove, handleMouseUp, handleWheel } from './mouseEventHandlers';
 import { handleCanvasDrop, handleCanvasDragOver } from './canvasDropHandlers';
 import { handleResolutionChange } from './resolutionHandlers';
@@ -30,6 +30,21 @@ export default function Editor({
   isRotating,
   setIsRotating
 }) {
+  const containerRef = useRef(null);
+
+  // 添加滚轮事件监听器
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const wheelHandler = (e) => handleWheel(e, editorState, setEditorState);
+    container.addEventListener('wheel', wheelHandler, { passive: false });
+
+    return () => {
+      container.removeEventListener('wheel', wheelHandler);
+    };
+  }, [editorState]);
+
   // 合并 onMouseUp 和 onMouseLeave 处理函数
   const handleMouseEvent = () => {
     handleMouseUp(setIsRotating, setEditorState);
@@ -181,12 +196,12 @@ export default function Editor({
       {/* Canvas area */}
       <div className="flex-1 flex items-center justify-center overflow-hidden">
         <div 
+          ref={containerRef}
           className="canvas-container max-w-[1200px] w-full mx-auto"
           onMouseDown={(e) => handleMouseDown(e, editorState, isCtrlPressed, canvasRef.current, setIsRotating, setStartAngle, setLastRotation, setEditorState)}
           onMouseMove={(e) => handleMouseMove(e, editorState, isRotating, canvasRef.current, startAngle, lastRotation, setEditorState)}
           onMouseUp={handleMouseEvent}
           onMouseLeave={handleMouseEvent}
-          onWheel={(e) => handleWheel(e, editorState, setEditorState)}
           onDrop={(e) => handleCanvasDrop(e, loadImage, setImageSize, setEditorState)}
           onDragOver={handleCanvasDragOver}
         >

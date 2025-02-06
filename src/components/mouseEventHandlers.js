@@ -103,10 +103,15 @@ export const handleMouseUp = (setIsRotating, setEditorState) => {
 export const handleWheel = (e, editorState, setEditorState) => {
   if (!editorState.image) return
   e.preventDefault()
-  
-  const scaleFactor = e.deltaY > 0 ? 0.99 : 1.01
+
+  const delta = e.deltaY
+  const scaleFactor = 0.1
+  const newScale = delta > 0 
+    ? Math.max(0.1, editorState.scale - scaleFactor)
+    : Math.min(100, editorState.scale + scaleFactor)
+
   setEditorState(prev => ({
     ...prev,
-    scale: Math.max(0.1, Math.min(10, prev.scale * scaleFactor))
+    scale: newScale
   }))
 } 
