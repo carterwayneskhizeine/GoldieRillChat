@@ -476,7 +476,7 @@ export const AIChat = ({
         model: selectedModel,
         messages: messagesWithUser,
         onUpdate: (update) => {
-          console.log('Received chunk:', update.content); // 确认分块到达
+          // console.log('Received chunk:', update.content); // 注释掉调试日志
           setMessages(prev => {
             const newMessages = [...prev];
             const loadingMessageIndex = newMessages.findIndex(msg => msg.id === loadingMessage.id);
@@ -963,13 +963,19 @@ export const AIChat = ({
                 </div>
                 {/* 如果是 assistant 消息且有 reasoning_content，先显示推理过程 */}
                 {message.type === 'assistant' && message.reasoning_content && (
-                  <div className="chat-bubble chat-bubble-info reasoning-bubble mb-2">
+                  <div className={`chat-bubble chat-bubble-info reasoning-bubble mb-2 ${message.generating ? 'generating' : ''}`}>
                     <div className="font-medium mb-1">推理过程：</div>
                     <div className="typing-content">
-                      <TypingText 
-                        text={message.reasoning_content} 
-                        key={message.id + message.reasoning_content.length}
-                      />
+                      {message.generating ? (
+                        <TypingText 
+                          text={message.reasoning_content} 
+                          key={message.id + message.reasoning_content.length}
+                        />
+                      ) : (
+                        <div className="prose">
+                          {message.reasoning_content}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

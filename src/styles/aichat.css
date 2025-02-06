@@ -304,7 +304,7 @@
   background: var(--b2);
 }
 
-/* 打字机效果和推理过程样式 */
+/* 修改打字机效果样式 */
 .typing-content {
   white-space: pre-wrap;
   font-family: monospace;
@@ -318,6 +318,22 @@
   animation: blink 1s step-end infinite;
   margin-left: 2px;
   color: var(--bc);
+  opacity: 0; /* 默认隐藏 */
+}
+
+/* 只在生成中的元素内显示光标 */
+.generating .typing-content::after {
+  opacity: 1;
+}
+
+/* 确保非生成状态时不显示光标 */
+.reasoning-bubble:not(.generating) .typing-content::after {
+  display: none;
+}
+
+/* 删除之前可能冲突的样式 */
+.response-content:not(.typing-effect)::after {
+  display: none;
 }
 
 .reasoning-bubble {
@@ -351,20 +367,21 @@
 .chat-bubble.chat-bubble-info {
   background-color: var(--b2);
   border: 1px solid var(--b3);
-  font-size: 0.9em;
+  font-size: 1rem;
   margin-bottom: 0.5rem;
 }
 
 .chat-bubble.chat-bubble-info .prose {
-  font-size: 0.9em;
+  font-size: 1rem;
   color: var(--bc);
 }
 
-/* 添加打字效果样式 */
+/* 移除之前的临时动画 */
 .typing-effect {
-  animation: typing 3s steps(40) infinite; /* 添加临时可见动画 */
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  position: relative;
 }
-@keyframes typing { from { width: 0 } to { width: 100% } }
 
 /* 区分生成中和完成后的样式 */
 .response-content .typing-effect {
@@ -380,13 +397,15 @@
 /* 调整推理过程样式 */
 .reasoning-bubble .typing-content {
   font-family: var(--font-mono);
-  font-size: 0.9em;
+  font-size: 1rem;
   color: var(--bc);
-  line-height: 1.5;
+  line-height: 1.6;
   white-space: pre-wrap;
 }
 
-/* 确保生成完成后隐藏光标 */
-.response-content:not(.typing-effect)::after {
-  content: none;
+/* 调整推理过程标题样式 */
+.reasoning-bubble .font-medium {
+  font-size: 1.1rem; /* 增加标题字体大小 */
+  margin-bottom: 0.75rem; /* 增加底部间距 */
+  color: var(--bc);
 } 
