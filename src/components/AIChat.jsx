@@ -560,8 +560,16 @@ export const AIChat = ({ sendToSidebar }) => {
 
   // 添加重试处理函数
   const handleRetry = (messageId, content) => {
+    // 找到要重试的 AI 消息
+    const aiMessageIndex = messages.findIndex(msg => msg.id === messageId);
+    if (aiMessageIndex <= 0) return; // 确保不是第一条消息
+    
+    // 获取 AI 消息之前的用户消息
+    const userMessage = messages[aiMessageIndex - 1];
+    if (!userMessage || userMessage.type !== 'user') return;
+    
     setRetryingMessageId(messageId);
-    handleSendMessage(true, content);
+    handleSendMessage(true, userMessage.content);
   };
 
   // 添加粘贴处理函数
@@ -795,13 +803,6 @@ export const AIChat = ({ sendToSidebar }) => {
       <div className="w-60 bg-base-200 border-r border-base-300 flex flex-col h-full">
         {/* 会话列表 */}
         <div className="flex-1 overflow-y-auto p-2">
-          <button 
-            className="btn btn-primary w-full mb-2"
-            onClick={createNewConversation}
-          >
-            + 新建会话
-          </button>
-          
           <div className="space-y-2">
             {conversations.map(conversation => (
               <div 

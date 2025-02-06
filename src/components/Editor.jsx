@@ -38,7 +38,7 @@ export default function Editor({
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
       {/* Tools row */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="max-w-[1200px] w-full mx-auto flex flex-wrap gap-2 items-center">
         <div className="flex-1 flex justify-start items-center">
           <button
             className="btn btn-sm"
@@ -179,26 +179,28 @@ export default function Editor({
       </div>
 
       {/* Canvas area */}
-      <div 
-        className="canvas-container"
-        onMouseDown={(e) => handleMouseDown(e, editorState, isCtrlPressed, canvasRef.current, setIsRotating, setStartAngle, setLastRotation, setEditorState)}
-        onMouseMove={(e) => handleMouseMove(e, editorState, isRotating, canvasRef.current, startAngle, lastRotation, setEditorState)}
-        onMouseUp={handleMouseEvent}
-        onMouseLeave={handleMouseEvent}
-        onWheel={(e) => handleWheel(e, editorState, setEditorState)}
-        onDrop={(e) => handleCanvasDrop(e, loadImage, setImageSize, setEditorState)}
-        onDragOver={handleCanvasDragOver}
-      >
-        <canvas
-          ref={canvasRef}
-          width={canvasSize.width}
-          height={canvasSize.height}
-          className="canvas-element"
-        />
+      <div className="flex-1 flex items-center justify-center overflow-hidden">
+        <div 
+          className="canvas-container max-w-[1200px] w-full mx-auto"
+          onMouseDown={(e) => handleMouseDown(e, editorState, isCtrlPressed, canvasRef.current, setIsRotating, setStartAngle, setLastRotation, setEditorState)}
+          onMouseMove={(e) => handleMouseMove(e, editorState, isRotating, canvasRef.current, startAngle, lastRotation, setEditorState)}
+          onMouseUp={handleMouseEvent}
+          onMouseLeave={handleMouseEvent}
+          onWheel={(e) => handleWheel(e, editorState, setEditorState)}
+          onDrop={(e) => handleCanvasDrop(e, loadImage, setImageSize, setEditorState)}
+          onDragOver={handleCanvasDragOver}
+        >
+          <canvas
+            ref={canvasRef}
+            width={canvasSize.width}
+            height={canvasSize.height}
+            className="canvas-element"
+          />
+        </div>
       </div>
 
       {/* Resolution info */}
-      <div className="flex gap-4 text-sm justify-center">
+      <div className="max-w-[1200px] w-full mx-auto flex gap-4 text-sm justify-center">
         <span className="opacity-70">Canvas: {canvasSize.width} × {canvasSize.height}</span>
         <span className="opacity-70">Image: {imageSize.width} × {imageSize.height}</span>
       </div>
