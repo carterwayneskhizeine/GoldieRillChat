@@ -945,7 +945,7 @@ export const AIChat = ({
 
         {/* 底部输入框 */}
         <div className="border-t border-base-300 p-4 bg-base-100">
-          <div className="relative">
+          <div className="relative max-w-[750px] mx-auto">
             <textarea
               className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-base-100 aichat-input"
               placeholder="输入消息..."
