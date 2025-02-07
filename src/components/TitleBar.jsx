@@ -4,6 +4,7 @@ import { toggleTheme, themes } from '../components/themeHandlers'
 export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoading, currentTheme, setCurrentTheme }) {
   const [isMaximized, setIsMaximized] = useState(false)
   const [iconPath, setIconPath] = useState('')
+  const [currentChatName, setCurrentChatName] = useState('')
 
   useEffect(() => {
     // 初始化窗口状态
@@ -18,8 +19,24 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
       setIsMaximized(state)
     })
 
+    // 监听当前会话变化
+    const handleStorageChange = () => {
+      const savedConversation = localStorage.getItem('aichat_current_conversation');
+      if (savedConversation) {
+        const conversation = JSON.parse(savedConversation);
+        setCurrentChatName(conversation?.name || '');
+      }
+    };
+
+    // 初始化当前会话名称
+    handleStorageChange();
+
+    // 添加 storage 事件监听器
+    window.addEventListener('storage', handleStorageChange);
+
     return () => {
-      unsubscribe()
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
     }
   }, [])
 
@@ -31,9 +48,9 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
         <span className="text-sm font-semibold app-drag-region">GoldieRillChat</span>
       </div>
 
-      {/* 浏览器控制栏 - 只在浏览器工具激活时显示，固定宽度并居中 */}
+      {/* 中间区域：浏览器控制栏或AI Chat标题 */}
       <div className="flex-1 flex justify-center items-center app-drag-region">
-        {activeTool === 'browser' && (
+        {activeTool === 'browser' ? (
           <div className="w-[600px] flex items-center gap-1 no-drag">
             <div className="join h-6">
               <button 
@@ -81,7 +98,11 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
               placeholder="输入网址..."
             />
           </div>
-        )}
+        ) : activeTool === 'aichat' && currentChatName ? (
+          <div className="text-sm font-semibold opacity-80 app-drag-region">
+            {currentChatName}
+          </div>
+        ) : null}
       </div>
 
       {/* 右侧按钮组 */}
