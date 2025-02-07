@@ -5,6 +5,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import '../styles/markdown-preview.css';
 
 // 配置 Monaco Editor 加载器
@@ -174,6 +176,12 @@ export const MonacoEditor = () => {
     if (editorRef.current) {
       editorRef.current.updateOptions({ fontSize: newSize });
     }
+  };
+
+  // 添加内容预处理函数
+  const processContent = (text) => {
+    // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
+    return text.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
   };
 
   return (
@@ -346,8 +354,8 @@ export const MonacoEditor = () => {
           <div className="w-1/2 bg-base-100 rounded-lg p-4 overflow-auto">
             <div className="prose max-w-none">
               <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex, rehypeRaw, rehypeSanitize]}
                 components={{
                   // 自定义代码块样式
                   code({node, inline, className, children, ...props}) {
@@ -399,10 +407,22 @@ export const MonacoEditor = () => {
                         </table>
                       </div>
                     );
-                  }
+                  },
+                  // 添加列表项组件
+                  li: ({node, ordered, ...props}) => (
+                    <li className="my-1" {...props} />
+                  ),
+                  // 添加有序列表组件
+                  ol: ({node, ...props}) => (
+                    <ol className="list-decimal pl-6 my-4" {...props} />
+                  ),
+                  // 添加无序列表组件
+                  ul: ({node, ...props}) => (
+                    <ul className="list-disc pl-6 my-4" {...props} />
+                  ),
                 }}
               >
-                {markdownContent}
+                {processContent(markdownContent)}
               </ReactMarkdown>
             </div>
           </div>
