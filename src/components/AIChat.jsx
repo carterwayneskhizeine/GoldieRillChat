@@ -5,7 +5,7 @@ import rehypeKatex from 'rehype-katex'
 import remarkMath from 'remark-math'
 import remarkBreaks from 'remark-breaks'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { a11yDark, atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { callModelAPI } from '../services/modelProviders';
 import { formatAIChatTime } from '../utils/AIChatTimeFormat'
 import { MODEL_PROVIDERS, fetchModels } from '../config/modelConfig';
