@@ -240,19 +240,22 @@ export default function App() {
       // 生成新会话ID和名称
       const newId = Date.now().toString();
       const conversationCount = conversations.length;
-      const newName = `AIChat${(conversationCount + 1).toString().padStart(2, '0')}`;
+      const newName = `Chat${(conversationCount + 1).toString().padStart(2, '0')}`;
 
       // 在选定的存储路径下创建新的会话文件夹
       const folderPath = window.electron.path.join(storagePath, newName);
       const result = await window.electron.createAIChatFolder(folderPath);
+      
+      if (!result || !result.path) {
+        throw new Error('创建文件夹失败');
+      }
       
       // 构造新会话对象
       const newConversation = {
         id: newId,
         name: newName,
         timestamp: new Date().toISOString(),
-        path: result.path,
-        messages: []
+        path: result.path
       };
       
       // 更新状态
@@ -262,7 +265,14 @@ export default function App() {
       setMessages([]);
       
       // 保存到本地存储
-      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+      localStorage.setItem('aichat_conversations', JSON.stringify(
+        updatedConversations.map(conv => ({
+          id: conv.id,
+          name: conv.name,
+          path: conv.path,
+          timestamp: conv.timestamp
+        }))
+      ));
       localStorage.setItem('aichat_current_conversation', JSON.stringify(newConversation));
     } catch (error) {
       console.error('创建新会话失败:', error);
@@ -767,26 +777,59 @@ export default function App() {
   const handleConversationSelect = async (conversationId) => {
     const conversation = conversations.find(c => c.id === conversationId);
     if (!conversation) return;
-
+    
     try {
+      if (!conversation.path) {
+        throw new Error('会话路径无效');
+      }
       const messages = await window.electron.loadMessages(conversation.path, conversation.id);
       setMessages(messages || []);
       setCurrentConversation(conversation);
-      localStorage.setItem('aichat_current_conversation', JSON.stringify(conversation));
+      localStorage.setItem('aichat_current_conversation', JSON.stringify({
+        id: conversation.id,
+        name: conversation.name,
+        path: conversation.path,
+        timestamp: conversation.timestamp
+      }));
     } catch (error) {
       console.error('加载会话消息失败:', error);
       alert('加载会话消息失败: ' + error.message);
     }
   };
 
-  const handleConversationCreate = async (newConversation) => {
-    const updatedConversations = [...conversations, newConversation];
-    setConversations(updatedConversations);
-    setCurrentConversation(newConversation);
-    setMessages([]);
-    
-    localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
-    localStorage.setItem('aichat_current_conversation', JSON.stringify(newConversation));
+  // 修改 handleConversationCreate 函数为内部使用的辅助函数
+  const handleConversationCreate = async (conversation) => {
+    if (!conversation || !conversation.id) {
+      console.error('无效的会话对象');
+      return;
+    }
+
+    try {
+      const conversationToSave = {
+        id: conversation.id,
+        name: conversation.name,
+        path: conversation.path,
+        timestamp: conversation.timestamp
+      };
+      
+      const updatedConversations = [...conversations, conversationToSave];
+      setConversations(updatedConversations);
+      setCurrentConversation(conversationToSave);
+      setMessages([]);
+      
+      localStorage.setItem('aichat_conversations', JSON.stringify(
+        updatedConversations.map(conv => ({
+          id: conv.id,
+          name: conv.name,
+          path: conv.path,
+          timestamp: conv.timestamp
+        }))
+      ));
+      localStorage.setItem('aichat_current_conversation', JSON.stringify(conversationToSave));
+    } catch (error) {
+      console.error('创建会话失败:', error);
+      throw error;
+    }
   };
 
   const handleConversationDelete = async (conversation) => {
@@ -854,12 +897,24 @@ export default function App() {
 
   // 添加本地存储同步
   useEffect(() => {
-    localStorage.setItem('aichat_conversations', JSON.stringify(conversations));
+    const conversationsToSave = conversations.map(conv => ({
+      id: conv.id,
+      name: conv.name,
+      path: conv.path,
+      timestamp: conv.timestamp
+    }));
+    localStorage.setItem('aichat_conversations', JSON.stringify(conversationsToSave));
   }, [conversations]);
 
   useEffect(() => {
     if (currentConversation) {
-      localStorage.setItem('aichat_current_conversation', JSON.stringify(currentConversation));
+      const convToSave = {
+        id: currentConversation.id,
+        name: currentConversation.name,
+        path: currentConversation.path,
+        timestamp: currentConversation.timestamp
+      };
+      localStorage.setItem('aichat_current_conversation', JSON.stringify(convToSave));
     }
   }, [currentConversation]);
 
@@ -900,7 +955,7 @@ export default function App() {
           setFolderNameInput={setFolderNameInput}
           setContextMenu={setContextMenu}
           loadConversation={handleConversationSelect}
-          createNewConversation={handleConversationCreate}
+          createNewConversation={createNewConversation}
           switchTool={switchTool}
           handleSidebarModeToggle={handleSidebarModeToggle}
           handleDragStart={handleDragStart}
@@ -1041,7 +1096,7 @@ export default function App() {
           <div style={{ display: activeTool === 'aichat' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
             <AIChat 
               sendToSidebar={handleSendToSidebar}
-              createNewConversation={handleConversationCreate}
+              createNewConversation={createNewConversation}
               storagePath={storagePath}
               currentConversation={currentConversation}
               conversations={conversations}
