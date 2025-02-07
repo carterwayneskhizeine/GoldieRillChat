@@ -287,13 +287,22 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
     let content = '';
     let buffer = '';
 
+    // 发送初始状态
+    onUpdate?.({
+      type: 'reasoning',
+      content: '',
+      reasoning_content: '思考中...'
+    });
+
     while (true) {
       const { value, done } = await reader.read();
       if (done) {
+        // 发送完成信号，但不设置为完成状态
         onUpdate?.({
-          type: 'complete',
+          type: 'content',
           content: content,
-          reasoning_content: null
+          reasoning_content: null,
+          done: true
         });
         break;
       }
@@ -303,7 +312,6 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
       buffer = chunks.pop() || '';
 
       for (const chunk of chunks) {
-        // 忽略心跳消息
         if (!chunk.trim() || chunk.includes('OPENROUTER PROCESSING')) continue;
 
         try {
@@ -316,11 +324,12 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
             if (delta.content) {
               content += delta.content;
               
-              // 发送实时更新，使用 TYPING_RESULT 类型
+              // 发送实时更新
               onUpdate?.({
-                type: 'TYPING_RESULT',
+                type: 'content',
                 content: content,
-                reasoning_content: null
+                reasoning_content: null,
+                done: false
               });
             }
           }

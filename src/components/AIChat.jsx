@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
@@ -10,6 +10,9 @@ import { callModelAPI } from '../services/modelProviders';
 import { formatAIChatTime } from '../utils/AIChatTimeFormat'
 import { MODEL_PROVIDERS, fetchModels } from '../config/modelConfig';
 import { getModelListFromCache, saveModelListToCache, clearModelListCache } from '../utils/modelListCache';
+import TypingText from './TypingText';
+import '../styles/message.css';
+import '../styles/typing.css';
 
 // 导入 KaTeX 样式
 import 'katex/dist/katex.min.css'
@@ -32,26 +35,20 @@ const DISPLAY_STAGES = {
   COMPLETED: 'completed'      // 显示最终的Markdown格式
 };
 
-// 修改 TypingText 组件，添加完成回调
-const TypingText = ({ text, onComplete }) => {
-  const [displayedText, setDisplayedText] = useState('');
-  
-  useEffect(() => {
-    setDisplayedText(''); // 每次 text 变化都重置
-    let currentIndex = 0;
-    const interval = setInterval(() => {
-      if (currentIndex >= text.length) {
-        clearInterval(interval);
-        onComplete?.(); // 添加完成回调
-        return;
-      }
-      currentIndex++;
-      setDisplayedText(text.slice(0, currentIndex));
-    }, 50);
-    return () => clearInterval(interval);
-  }, [text, onComplete]);
-  
-  return <span>{displayedText}</span>;
+// 在文件顶部添加新的状态常量
+const MESSAGE_STATES = {
+  IDLE: 'idle',
+  THINKING: 'thinking',
+  TYPING_REASONING: 'typing_reasoning',
+  TYPING_RESPONSE: 'typing_response',
+  COMPLETED: 'completed',
+  ERROR: 'error'
+};
+
+const ANIMATION_STATES = {
+  FADE_IN: 'fade_in',
+  FADE_OUT: 'fade_out',
+  NONE: 'none'
 };
 
 // 代码块组件
@@ -78,7 +75,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
   }
 
   return (
-    <div className="relative">
+    <div style={{ margin: '1rem 0' }}>
       <div className="flex justify-between items-center bg-base-300 px-4 py-1 rounded-t-lg">
         <span className="text-sm opacity-50">{'<' + language.toUpperCase() + '>'}</span>
         <button 
@@ -90,20 +87,23 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
           复制
         </button>
       </div>
-      <SyntaxHighlighter
-        language={language}
-        style={atomDark}
-        customStyle={{
-          margin: 0,
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
-          borderBottomLeftRadius: '0.3rem',
-          borderBottomRightRadius: '0.3rem',
-        }}
-        {...props}
-      >
-        {String(children).replace(/\n$/, '')}
-      </SyntaxHighlighter>
+      <div className="relative">
+        <SyntaxHighlighter
+          language={language}
+          style={atomDark}
+          customStyle={{
+            margin: 0,
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+            borderBottomLeftRadius: '0.3rem',
+            borderBottomRightRadius: '0.3rem',
+          }}
+          PreTag="div"
+          {...props}
+        >
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      </div>
     </div>
   )
 }
@@ -464,18 +464,29 @@ export const AIChat = ({
         }
       }
 
-      // 添加 AI 正在输入的提示
-      const loadingMessage = {
+      // 添加 AI 消息
+      const aiMessage = {
         id: Date.now() + 1,
         content: '',
         type: 'assistant',
         timestamp: new Date(),
-        generating: true,
-        reasoning_content: ''
+        generating: true
       };
       
-      const messagesWithLoading = [...messagesWithUser, loadingMessage];
-      setMessages(messagesWithLoading);
+      // 设置初始状态
+      setMessageStates(prev => ({
+        ...prev,
+        [aiMessage.id]: MESSAGE_STATES.THINKING
+      }));
+      
+      setAnimationStates(prev => ({
+        ...prev,
+        [aiMessage.id]: ANIMATION_STATES.FADE_IN
+      }));
+
+      // 更新消息列表
+      const messagesWithAI = [...messagesWithUser, aiMessage];
+      setMessages(messagesWithAI);
 
       // 调用 AI API
       const response = await callModelAPI({
@@ -485,73 +496,55 @@ export const AIChat = ({
         model: selectedModel,
         messages: messagesWithUser,
         onUpdate: (update) => {
-          setMessages(prev => {
-            const newMessages = [...prev];
-            const loadingMessageIndex = newMessages.findIndex(msg => msg.id === loadingMessage.id);
-            if (loadingMessageIndex === -1) return prev;
+          if (update.type === 'content') {
+            setMessages(prev => {
+              const newMessages = [...prev];
+              const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
+              if (aiMessageIndex === -1) return prev;
 
-            const updatedLoadingMessage = {
-              ...newMessages[loadingMessageIndex],
-              generating: true
-            };
+              const updatedAiMessage = {
+                ...newMessages[aiMessageIndex],
+                content: update.content,
+                generating: !update.done
+              };
 
-            if (update.type === 'reasoning') {
-              // 正在接收推理过程
-              updatedLoadingMessage.reasoning_content = update.content;
-              setMessageStages(prev => ({
-                ...prev,
-                [loadingMessage.id]: DISPLAY_STAGES.REASONING
-              }));
-            } else if (update.type === 'complete') {
-              // 推理过程接收完成，准备开始打印
-              updatedLoadingMessage.content = update.content;
-              updatedLoadingMessage.reasoning_content = update.reasoning_content || '思考完成';
-              updatedLoadingMessage.generating = false;
-              setMessageStages(prev => ({
-                ...prev,
-                [loadingMessage.id]: DISPLAY_STAGES.TYPING_REASONING
-              }));
-            }
+              if (update.done) {
+                // 完成时切换到打字效果状态
+                setMessageStates(prev => ({
+                  ...prev,
+                  [aiMessage.id]: MESSAGE_STATES.TYPING_RESPONSE
+                }));
+              }
 
-            newMessages[loadingMessageIndex] = updatedLoadingMessage;
-            return newMessages;
-          });
+              newMessages[aiMessageIndex] = updatedAiMessage;
+              return newMessages;
+            });
+          }
         }
       });
-
-      // 修改构造AI回复消息的部分
-      const aiMessage = {
-        id: loadingMessage.id,
-        content: response.content,
-        type: 'assistant',
-        timestamp: new Date(),
-        usage: response.usage,
-        generating: false,
-        ...(response.reasoning_content && { reasoning_content: response.reasoning_content })
-      };
-
-      // 设置消息的初始阶段为TYPING_REASONING
-      setMessageStages(prev => ({
-        ...prev,
-        [aiMessage.id]: DISPLAY_STAGES.TYPING_REASONING
-      }));
 
       // 保存 AI 回复到txt文件
       const aiTxtFile = await window.electron.saveMessageAsTxt(
         currentConversation.path,
         {
           ...aiMessage,
-          // 添加文件名格式
-          fileName: `${formatAIChatTime(aiMessage.timestamp)} • 模型: ${selectedModel} • Token: ${estimateTokens(response.content)}${
-            response.reasoning_content ? ' • 包含推理过程' : ''
-          }`
+          content: response.content,
+          fileName: `${formatAIChatTime(aiMessage.timestamp)} • 模型: ${selectedModel} • Token: ${response.usage?.total_tokens || 0}`
         }
       );
-      aiMessage.txtFile = aiTxtFile;
 
-      // 更新最终消息列表，替换loading消息
-      const finalMessages = messagesWithLoading.map(msg => 
-        msg.id === loadingMessage.id ? aiMessage : msg
+      // 更新最终消息
+      const finalAiMessage = {
+        ...aiMessage,
+        content: response.content,
+        generating: false,
+        usage: response.usage,
+        txtFile: aiTxtFile
+      };
+
+      // 更新消息列表
+      const finalMessages = messagesWithAI.map(msg => 
+        msg.id === aiMessage.id ? finalAiMessage : msg
       );
       setMessages(finalMessages);
       
@@ -573,6 +566,10 @@ export const AIChat = ({
       }
     } catch (error) {
       console.error('发送消息失败:', error);
+      setMessageStates(prev => ({
+        ...prev,
+        [aiMessage.id]: MESSAGE_STATES.ERROR
+      }));
       alert('发送消息失败: ' + error.message);
     }
   };
@@ -777,10 +774,30 @@ export const AIChat = ({
   }, [storagePath, conversations]);
 
   // 在AIChat组件中添加消息状态
-  const [messageStages, setMessageStages] = useState({}); // 跟踪每条消息的显示阶段
+  const [messageStates, setMessageStates] = useState({}); // 跟踪每条消息的显示阶段
+  const [collapsedMessages, setCollapsedMessages] = useState(new Set()); // 跟踪消息折叠状态
 
   // 添加折叠状态管理
   const [collapsedReasoning, setCollapsedReasoning] = useState({});
+
+  // 添加动画状态管理
+  const [animationStates, setAnimationStates] = useState({});
+
+  // 在组件加载时为现有消息设置状态
+  useEffect(() => {
+    const initialStates = {};
+    messages.forEach(message => {
+      if (message.type === 'assistant' && !messageStates[message.id]) {
+        initialStates[message.id] = MESSAGE_STATES.COMPLETED;
+      }
+    });
+    if (Object.keys(initialStates).length > 0) {
+      setMessageStates(prev => ({
+        ...prev,
+        ...initialStates
+      }));
+    }
+  }, [messages]);
 
   return (
     <div className="flex h-full w-full">
@@ -1001,7 +1018,7 @@ export const AIChat = ({
             {messages.map(message => (
               <div
                 key={message.id}
-                className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative ai-chat-group`}
+                className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container`}
               >
                 {/* 用户消息 */}
                 {message.type === 'user' && (
@@ -1021,157 +1038,87 @@ export const AIChat = ({
 
                 {/* AI助手消息 */}
                 {message.type === 'assistant' && (
-                  <div className="chat-group">
-                    {/* 推理过程部分 */}
-                    {message.reasoning_content && (
-                      <>
-                        <div className="chat-header opacity-70 mb-1 flex items-center justify-between">
-                          <span className="text-xs">
-                            {new Date(message.timestamp).toLocaleString()}
-                            {' • '}模型: {selectedModel}
-                            {' • '}Token: {estimateTokens(message.content)}
-                          </span>
-                          <button
-                            className="btn btn-ghost btn-xs"
-                            onClick={() => setCollapsedReasoning(prev => ({
-                              ...prev,
-                              [message.id]: !prev[message.id]
-                            }))}
-                          >
-                            {collapsedReasoning[message.id] ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                              </svg>
-                            )}
-                          </button>
-                        </div>
-                        {!collapsedReasoning[message.id] && (
-                          <div className={`chat-bubble chat-bubble-info reasoning-bubble mb-2 ${
-                            messageStages[message.id] === DISPLAY_STAGES.REASONING ? 'generating' : ''
-                          }`}>
-                            <div className="typing-content">
-                              {messageStages[message.id] === DISPLAY_STAGES.REASONING ? (
-                                <div className="flex items-center gap-2">
-                                  <span>思考中</span>
-                                  <span className="loading loading-dots loading-sm"></span>
-                                </div>
-                              ) : messageStages[message.id] === DISPLAY_STAGES.TYPING_REASONING ? (
-                                <TypingText 
-                                  text={message.reasoning_content} 
-                                  key={message.id + "-reasoning"}
-                                  onComplete={() => {
-                                    setMessageStages(prev => ({
-                                      ...prev,
-                                      [message.id]: DISPLAY_STAGES.TYPING_RESULT
-                                    }));
-                                  }}
-                                />
-                              ) : (
-                                <div className="prose">
-                                  {message.reasoning_content}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
+                  <div className={`chat-group ${
+                    animationStates[message.id] || ANIMATION_STATES.NONE
+                  }`}>
+                    {/* 消息头部 */}
+                    <div className="chat-header opacity-70 mb-1">
+                      <span className="text-xs">
+                        {new Date(message.timestamp).toLocaleString()}
+                        {' • '}模型: {selectedModel}
+                        {message.usage && ` • Token: ${message.usage.total_tokens}`}
+                      </span>
+                    </div>
 
-                    {/* 结果内容部分 */}
-                    {messageStages[message.id] !== DISPLAY_STAGES.REASONING && (
-                      <div className={`chat-bubble ${message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'}`}>
-                        <div className="response-content">
-                          {messageStages[message.id] === DISPLAY_STAGES.TYPING_RESULT ? (
-                            <div className="typing-effect">
-                              <TypingText 
-                                text={message.content} 
-                                key={message.id + "-content"}
-                                onComplete={() => {
-                                  setMessageStages(prev => ({
-                                    ...prev,
-                                    [message.id]: DISPLAY_STAGES.COMPLETED
-                                  }));
-                                }}
-                              />
-                            </div>
-                          ) : (
+                    {/* 消息内容 */}
+                    <div className={`chat-bubble ${
+                      messageStates[message.id] === MESSAGE_STATES.ERROR ? 'chat-bubble-error' : 'chat-bubble-secondary'
+                    }`}>
+                      <div className="response-content">
+                        {messageStates[message.id] === MESSAGE_STATES.THINKING ? (
+                          <div className="flex items-center gap-2">
+                            <span>思考中</span>
+                            <span className="loading loading-dots loading-sm"></span>
+                          </div>
+                        ) : messageStates[message.id] === MESSAGE_STATES.TYPING_RESPONSE ? (
+                          <div className="typing-effect">
+                            <TypingText 
+                              text={message.content} 
+                              key={message.id + "-content"}
+                              onComplete={() => {
+                                setMessageStates(prev => ({
+                                  ...prev,
+                                  [message.id]: MESSAGE_STATES.COMPLETED
+                                }));
+                              }}
+                            />
+                          </div>
+                        ) : messageStates[message.id] === MESSAGE_STATES.COMPLETED ? (
+                          <div className="markdown-content">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
                               rehypePlugins={[rehypeKatex]}
                               components={{
                                 code: CodeBlock,
-                                a: CustomLink
+                                a: CustomLink,
+                                p: ({ children }) => <div className="mb-4">{children}</div>,
+                                pre: ({ children }) => <div className="mb-4">{children}</div>,
+                                ul: ({ children }) => <div className="mb-4 ml-4">{children}</div>,
+                                ol: ({ children }) => <div className="mb-4 ml-4">{children}</div>,
                               }}
-                              className="break-words"
                             >
                               {message.content || ''}
                             </ReactMarkdown>
-                          )}
-                        </div>
-
-                        {/* 错误状态处理 */}
-                        {message.error && (
-                          <div className="mt-2 flex items-center gap-2">
-                            <button
-                              className="btn btn-xs btn-outline"
-                              onClick={() => handleRetry(message.id, message.originalContent)}
-                              disabled={retryingMessageId === message.id}
-                            >
-                              {retryingMessageId === message.id ? (
-                                <span className="loading loading-spinner loading-xs"></span>
-                              ) : (
-                                'Retry'
-                              )}
-                            </button>
                           </div>
-                        )}
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* 消息操作按钮 */}
+                    {messageStates[message.id] === MESSAGE_STATES.COMPLETED && (
+                      <div className="message-actions">
+                        <button
+                          className="btn btn-ghost btn-xs"
+                          onClick={() => handleRetry(message.id, message.content)}
+                        >
+                          重试
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-xs"
+                          onClick={() => handleDeleteMessage(message.id)}
+                        >
+                          删除
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-xs"
+                          onClick={() => {
+                            navigator.clipboard.writeText(message.content);
+                          }}
+                        >
+                          复制
+                        </button>
                       </div>
                     )}
-                  </div>
-                )}
-
-                {/* 消息操作按钮 */}
-                {!message.error && messageStages[message.id] === DISPLAY_STAGES.COMPLETED && (
-                  <div className="ai-chat-message-actions">
-                    <button
-                      className="btn btn-ghost btn-xs"
-                      onClick={() => handleRetry(message.id, message.content)}
-                      disabled={retryingMessageId === message.id}
-                    >
-                      {retryingMessageId === message.id ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      ) : (
-                        'Retry'
-                      )}
-                    </button>
-                    <button
-                      className="btn btn-ghost btn-xs"
-                      onClick={() => handleDeleteMessage(message.id)}
-                    >
-                      Delete
-                    </button>
-                    <button
-                      className="btn btn-ghost btn-xs"
-                      onClick={() => {
-                        navigator.clipboard.writeText(message.content);
-                      }}
-                    >
-                      Copy
-                    </button>
-                    <button
-                      className="btn btn-ghost btn-xs"
-                      onClick={() => {
-                        if (sendToSidebar) {
-                          sendToSidebar(message);
-                        }
-                      }}
-                    >
-                      Send
-                    </button>
                   </div>
                 )}
               </div>

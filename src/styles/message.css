@@ -1,0 +1,118 @@
+/* 消息容器样式 */
+.message-container {
+  position: relative;
+  contain: paint;
+  isolation: isolate;
+  padding-bottom: 32px;
+}
+
+/* 消息气泡基础样式 */
+.chat-bubble {
+  position: relative;
+  padding: 0.75rem 1rem;
+  overflow: visible;
+  line-height: 1.6;
+  transition: all 0.3s ease-out;
+}
+
+/* 消息气泡动画 */
+.chat-bubble {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 推理过程气泡样式 */
+.chat-bubble.chat-bubble-info {
+  background-color: var(--b2);
+  border: 1px solid var(--b3);
+  font-size: 0.9em;
+  margin-bottom: 0.5rem;
+}
+
+/* 消息操作按钮 */
+.message-actions {
+  position: absolute;
+  bottom: -24px;
+  left: 4px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background-color: var(--b1);
+  padding: 4px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+.message-container:hover .message-actions {
+  opacity: 1;
+}
+
+.message-actions button {
+  background-color: var(--b1);
+  border: 1px solid var(--b3);
+  transition: all 0.2s;
+}
+
+.message-actions button:hover {
+  transform: scale(1.05);
+  background-color: var(--b2);
+}
+
+/* 折叠/展开按钮 */
+.collapse-button {
+  position: sticky;
+  top: 2px;
+  float: right;
+  margin-left: 8px;
+  z-index: 100;
+}
+
+/* Markdown 内容样式 */
+.chat-bubble .prose {
+  overflow: visible;
+  margin: 0;
+}
+
+.chat-bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 代码块样式 */
+.chat-bubble pre {
+  margin: 0.5rem 0;
+  border-radius: 0.3rem;
+  background-color: var(--b2);
+}
+
+.chat-bubble code {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .chat-bubble {
+    max-width: 90vw;
+  }
+  
+  .chat-bubble pre {
+    max-width: 85vw;
+    overflow-x: auto;
+  }
+} 
