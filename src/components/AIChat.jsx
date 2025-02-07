@@ -118,7 +118,35 @@ export const AIChat = ({
             currentConversation.path,
             currentConversation.id
           );
-          setMessages(loadedMessages || []);
+          
+          // 确保每个 AI 消息都有必要的历史记录字段
+          const processedMessages = loadedMessages?.map(msg => {
+            if (msg.type === 'assistant') {
+              return {
+                ...msg,
+                history: msg.history || [],
+                currentHistoryIndex: msg.currentHistoryIndex || 0,
+                currentContent: msg.currentContent || msg.content
+              };
+            }
+            return msg;
+          }) || [];
+          
+          setMessages(processedMessages);
+          
+          // 初始化消息状态
+          const initialStates = {};
+          processedMessages.forEach(message => {
+            if (message.type === 'assistant') {
+              initialStates[message.id] = message.error ? 
+                MESSAGE_STATES.ERROR : 
+                MESSAGE_STATES.COMPLETED;
+            }
+          });
+          setMessageStates(prev => ({
+            ...prev,
+            ...initialStates
+          }));
         } catch (error) {
           console.error('加载消息失败:', error);
           setMessages([]);
@@ -434,18 +462,133 @@ export const AIChat = ({
     }
   };
 
-  // 添加重试处理函数
-  const handleRetry = (messageId, content) => {
-    // 找到要重试的 AI 消息
-    const aiMessageIndex = messages.findIndex(msg => msg.id === messageId);
-    if (aiMessageIndex <= 0) return; // 确保不是第一条消息
-    
-    // 获取 AI 消息之前的用户消息
-    const userMessage = messages[aiMessageIndex - 1];
-    if (!userMessage || userMessage.type !== 'user') return;
-    
-    setRetryingMessageId(messageId);
-    handleSendMessage(true, userMessage.content);
+  // 修改 handleRetry 函数，确保保存历史记录
+  const handleRetry = async (messageId) => {
+    const aiMessage = messages.find(msg => msg.id === messageId);
+    if (!aiMessage || aiMessage.type !== 'assistant') return;
+
+    // 保存当前回复到历史记录
+    setMessages(prev => {
+      const newMessages = [...prev];
+      const index = newMessages.findIndex(msg => msg.id === messageId);
+      if (index === -1) return prev;
+
+      const currentMessage = newMessages[index];
+      const history = currentMessage.history || [];
+      
+      // 只有当当前内容不为空且不是错误消息时才保存到历史记录
+      if (currentMessage.content && !currentMessage.error) {
+        history.push({
+          content: currentMessage.content,
+          timestamp: new Date(),
+          model: currentMessage.model,
+          tokens: currentMessage.tokens
+        });
+      }
+
+      newMessages[index] = {
+        ...currentMessage,
+        history: history,
+        currentHistoryIndex: history.length // 设置为最新的索引
+      };
+      return newMessages;
+    });
+
+    // 设置消息状态为思考中
+    setMessageStates(prev => ({
+      ...prev,
+      [messageId]: MESSAGE_STATES.THINKING
+    }));
+
+    try {
+      // 获取用户消息
+      const userMessageIndex = messages.findIndex(msg => msg.id === messageId) - 1;
+      if (userMessageIndex < 0) return;
+      const userMessage = messages[userMessageIndex];
+
+      // 调用 AI API
+      const response = await callModelAPI({
+        provider: selectedProvider,
+        apiKey,
+        apiHost,
+        model: selectedModel,
+        messages: messages.slice(0, userMessageIndex + 1),
+        onUpdate: (update) => {
+          if (update.type === 'content') {
+            setMessages(prev => {
+              const newMessages = [...prev];
+              const index = newMessages.findIndex(msg => msg.id === messageId);
+              if (index === -1) return prev;
+
+              // 更新消息内容
+              newMessages[index] = {
+                ...newMessages[index],
+                content: update.content,
+                generating: !update.done
+              };
+
+              return newMessages;
+            });
+          }
+        }
+      });
+
+      // 更新最终消息
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const index = newMessages.findIndex(msg => msg.id === messageId);
+        if (index === -1) return prev;
+
+        const currentMessage = newMessages[index];
+        newMessages[index] = {
+          ...currentMessage,
+          content: response.content,
+          generating: false,
+          usage: response.usage,
+          model: selectedModel,
+          tokens: response.usage?.total_tokens || 0
+        };
+
+        return newMessages;
+      });
+
+      // 更新消息状态
+      setMessageStates(prev => ({
+        ...prev,
+        [messageId]: MESSAGE_STATES.COMPLETED
+      }));
+
+      // 保存到 messages.json
+      await window.electron.saveMessages(
+        currentConversation.path,
+        currentConversation.id,
+        messages
+      );
+
+    } catch (error) {
+      console.error('重试失败:', error);
+      
+      // 更新消息列表，将错误信息添加到 AI 回复中
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const index = newMessages.findIndex(msg => msg.id === messageId);
+        if (index === -1) return prev;
+
+        newMessages[index] = {
+          ...newMessages[index],
+          content: `**错误信息**:\n\`\`\`\n${error.message}\n\`\`\``,
+          generating: false,
+          error: true
+        };
+        return newMessages;
+      });
+
+      // 更新消息状态
+      setMessageStates(prev => ({
+        ...prev,
+        [messageId]: MESSAGE_STATES.ERROR
+      }));
+    }
   };
 
   // 添加粘贴处理函数
@@ -651,6 +794,57 @@ export const AIChat = ({
       }));
     }
   }, [messages]);
+
+  // 修改历史导航函数
+  const handleHistoryNavigation = (messageId, direction) => {
+    setMessages(prev => {
+      const newMessages = [...prev];
+      const index = newMessages.findIndex(msg => msg.id === messageId);
+      if (index === -1) return prev;
+
+      const message = newMessages[index];
+      if (!message.history?.length) return prev;
+
+      let newIndex;
+      if (direction === 'prev') {
+        // 如果当前是最新回复，先保存它
+        if (message.currentHistoryIndex === message.history.length) {
+          message.currentContent = message.content;
+        }
+        newIndex = Math.max(0, (message.currentHistoryIndex || message.history.length) - 1);
+      } else {
+        newIndex = Math.min(message.history.length, (message.currentHistoryIndex || 0) + 1);
+      }
+
+      // 如果是最后一个索引，显示当前回复
+      if (newIndex === message.history.length) {
+        newMessages[index] = {
+          ...message,
+          content: message.currentContent || message.content,
+          currentHistoryIndex: newIndex
+        };
+      } else {
+        // 显示历史回复
+        const historyItem = message.history[newIndex];
+        newMessages[index] = {
+          ...message,
+          content: historyItem.content,
+          currentHistoryIndex: newIndex
+        };
+      }
+
+      return newMessages;
+    });
+
+    // 保存到 messages.json
+    window.electron.saveMessages(
+      currentConversation.path,
+      currentConversation.id,
+      messages
+    ).catch(error => {
+      console.error('保存消息失败:', error);
+    });
+  };
 
   return (
     <div className="flex h-full w-full">
@@ -861,7 +1055,7 @@ export const AIChat = ({
                       <div className="message-actions">
                         <button
                           className="btn btn-ghost btn-xs"
-                          onClick={() => handleRetry(message.id, message.content)}
+                          onClick={() => handleRetry(message.id)}
                         >
                           重试
                         </button>
@@ -879,6 +1073,29 @@ export const AIChat = ({
                         >
                           复制
                         </button>
+                        {message.history?.length > 0 && (
+                          <>
+                            <button
+                              className="btn btn-ghost btn-xs"
+                              onClick={() => handleHistoryNavigation(message.id, 'prev')}
+                              disabled={!message.currentHistoryIndex}
+                            >
+                              上一个
+                            </button>
+                            <button
+                              className="btn btn-ghost btn-xs"
+                              onClick={() => handleHistoryNavigation(message.id, 'next')}
+                              disabled={message.currentHistoryIndex === message.history.length}
+                            >
+                              下一个
+                            </button>
+                            <span className="text-xs opacity-70">
+                              {message.currentHistoryIndex === message.history.length ? 
+                                '当前' : 
+                                `${message.currentHistoryIndex + 1}/${message.history.length + 1}`}
+                            </span>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
