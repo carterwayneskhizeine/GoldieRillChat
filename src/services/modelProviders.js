@@ -220,36 +220,39 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate 
 
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) {
+        // 发送完成信号
+        onUpdate?.({
+          type: 'complete',
+          content,
+          reasoning_content
+        });
+        break;
+      }
       
-      // 将新的数据添加到缓冲区
       buffer += decoder.decode(value, { stream: true });
-      
-      // 查找完整的数据块（使用实际的换行符）
-      let chunks = buffer.split('\n');
-      
-      // 保留最后一个可能不完整的块
+      const chunks = buffer.split('\n');
       buffer = chunks.pop() || '';
       
       for (const chunk of chunks) {
-        // 跳过空行
-        if (!chunk.trim()) continue;
-
-        // 处理数据行
+        if (!chunk.trim() || chunk.includes('keep-alive')) continue;
+        
         try {
-          // 移除 "data: " 前缀（如果存在）
           const jsonStr = chunk.replace(/^data:\s*/, '').trim();
-          
-          // 跳过特殊标记
           if (jsonStr === '[DONE]') continue;
           
-          // 尝试解析 JSON
-          const json = JSON.parse(jsonStr);
+          // 尝试解析 JSON，如果失败则跳过这个块
+          let json;
+          try {
+            json = JSON.parse(jsonStr);
+          } catch (e) {
+            console.warn('跳过无效的 JSON 数据块:', jsonStr);
+            continue;
+          }
           
           if (json.choices && json.choices[0] && json.choices[0].delta) {
             const delta = json.choices[0].delta;
             
-            // 处理推理内容
             if (delta.reasoning_content !== undefined) {
               reasoning_content += delta.reasoning_content || '';
               onUpdate?.({
@@ -258,23 +261,13 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate 
               });
             }
             
-            // 处理主要内容
             if (delta.content !== undefined) {
               content += delta.content || '';
-              onUpdate?.({
-                type: 'content',
-                content,
-                reasoning_content
-              });
+              // 不要在这里发送content更新
             }
           }
         } catch (e) {
-          // 如果解析失败，记录详细信息以便调试
-          console.warn('解析数据块失败:', {
-            chunk,
-            error: e.message,
-            bufferState: buffer
-          });
+          console.warn('解析数据块失败:', e, '数据块:', chunk);
           continue;
         }
       }
@@ -283,7 +276,7 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate 
     return {
       content,
       reasoning_content,
-      usage: {} // 流式响应可能没有 usage 信息
+      usage: {}
     };
   } catch (error) {
     console.error('DeepSeek API 调用失败:', error);
