@@ -505,7 +505,7 @@ export const AIChat = ({
             } else if (update.type === 'complete') {
               // 推理过程接收完成，准备开始打印
               updatedLoadingMessage.content = update.content;
-              updatedLoadingMessage.reasoning_content = update.reasoning_content;
+              updatedLoadingMessage.reasoning_content = update.reasoning_content || '思考完成';
               updatedLoadingMessage.generating = false;
               setMessageStages(prev => ({
                 ...prev,
@@ -526,7 +526,7 @@ export const AIChat = ({
         type: 'assistant',
         timestamp: new Date(),
         usage: response.usage,
-        generating: false, // 添加generating状态
+        generating: false,
         ...(response.reasoning_content && { reasoning_content: response.reasoning_content })
       };
 
