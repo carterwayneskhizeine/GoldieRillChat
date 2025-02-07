@@ -10,9 +10,7 @@ import { callModelAPI } from '../services/modelProviders';
 import { formatAIChatTime } from '../utils/AIChatTimeFormat'
 import { MODEL_PROVIDERS, fetchModels } from '../config/modelConfig';
 import { getModelListFromCache, saveModelListToCache, clearModelListCache } from '../utils/modelListCache';
-import TypingText from './TypingText';
 import '../styles/message.css';
-import '../styles/typing.css';
 
 // 导入 KaTeX 样式
 import 'katex/dist/katex.min.css'
@@ -39,8 +37,6 @@ const DISPLAY_STAGES = {
 const MESSAGE_STATES = {
   IDLE: 'idle',
   THINKING: 'thinking',
-  TYPING_REASONING: 'typing_reasoning',
-  TYPING_RESPONSE: 'typing_response',
   COMPLETED: 'completed',
   ERROR: 'error'
 };
@@ -136,6 +132,17 @@ export const AIChat = ({
   });
   const [showSettings, setShowSettings] = useState(false);
   
+  // 添加会话相关状态
+  const [conversations, setConversations] = useState(() => {
+    const savedConversations = localStorage.getItem('aichat_conversations');
+    return savedConversations ? JSON.parse(savedConversations) : [];
+  });
+  
+  const [currentConversation, setCurrentConversation] = useState(() => {
+    const savedConversation = localStorage.getItem('aichat_current_conversation');
+    return savedConversation ? JSON.parse(savedConversation) : null;
+  });
+
   // 初始化提供商和模型状态
   const [selectedProvider, setSelectedProvider] = useState(() => {
     const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
@@ -270,68 +277,15 @@ export const AIChat = ({
     localStorage.setItem(`${STORAGE_KEYS.MODEL}_${selectedProvider}`, value);
   };
 
-  const [conversations, setConversations] = useState(() => {
-    const savedConversations = localStorage.getItem('aichat_conversations');
-    return savedConversations ? JSON.parse(savedConversations) : [];
-  });
-
-  const [currentConversation, setCurrentConversation] = useState(() => {
-    const savedCurrentConversation = localStorage.getItem('aichat_current_conversation');
-    return savedCurrentConversation ? JSON.parse(savedCurrentConversation) : null;
-  });
-
   // 添加重命名和删除相关状态
   const [editingFolderName, setEditingFolderName] = useState(null);
   const [folderNameInput, setFolderNameInput] = useState('');
   const [deletingConversation, setDeletingConversation] = useState(null);
 
-  // 添加重命名处理函数
-  const handleRenameConversation = async (conversation, newName) => {
-    try {
-      const result = await window.electron.renameChatFolder(conversation.path, newName);
-      
-      // 更新会话列表
-      const updatedConversations = conversations.map(conv => 
-        conv.id === conversation.id 
-          ? { ...conv, name: result.name, path: result.path }
-          : conv
-      );
-      
-      setConversations(updatedConversations);
-      if (currentConversation?.id === conversation.id) {
-        setCurrentConversation({ ...currentConversation, name: result.name, path: result.path });
-      }
-      
-      // 更新存储
-      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
-    } catch (error) {
-      console.error('重命名失败:', error);
-      alert('重命名失败: ' + error.message);
-    }
-    
-    setEditingFolderName(null);
-    setFolderNameInput('');
-  };
-
   // 添加右键菜单处理函数
-  const handleContextMenu = (e, conversation) => {
+  const handleContextMenu = (e, items) => {
     e.preventDefault();
-    e.stopPropagation();
-    
     const rect = e.currentTarget.getBoundingClientRect();
-    const items = [
-      {
-        label: '重命名',
-        onClick: () => {
-          setEditingFolderName(conversation.id);
-          setFolderNameInput(conversation.name);
-        }
-      },
-      {
-        label: '删除',
-        onClick: () => setDeletingConversation(conversation)
-      }
-    ];
     
     // 移除旧的菜单（如果存在）
     const oldMenu = document.querySelector('.context-menu');
@@ -366,55 +320,6 @@ export const AIChat = ({
       }
     };
     document.addEventListener('click', closeMenu);
-  };
-
-  // 修改删除处理函数
-  const handleDeleteConversation = async (conversation) => {
-    try {
-      // 确保 RecycleBin 文件夹存在
-      const recycleBinPath = window.electron.path.join(storagePath, 'RecycleBin');
-      try {
-        await window.electron.createAIChatFolder(recycleBinPath);
-      } catch (error) {
-        // 如果文件夹已存在，忽略错误
-        if (error.message.includes('EEXIST')) {
-          console.log('RecycleBin folder already exists');
-        } else {
-          throw error;
-        }
-      }
-
-      // 更新状态
-      const updatedConversations = conversations.filter(c => c.id !== conversation.id);
-      setConversations(updatedConversations);
-      
-      // 如果删除的是当前对话，清除当前对话和消息
-      if (currentConversation?.id === conversation.id) {
-        setCurrentConversation(null);
-        setMessages([]);
-        localStorage.setItem('aichat_current_conversation', '');
-      }
-      
-      // 更新存储
-      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
-
-      // 移动文件夹到回收站 - 移到最后执行
-      await window.electron.moveFolderToRecycle(conversation.path);
-    } catch (error) {
-      console.error('删除会话失败:', error);
-      alert('删除会话失败: ' + error.message);
-      
-      // 如果文件操作失败，恢复状态
-      setConversations(conversations);
-      if (currentConversation?.id === conversation.id) {
-        setCurrentConversation(currentConversation);
-        setMessages(messages);
-        localStorage.setItem('aichat_current_conversation', JSON.stringify(currentConversation));
-      }
-      localStorage.setItem('aichat_conversations', JSON.stringify(conversations));
-    }
-    
-    setDeletingConversation(null);
   };
 
   const handleSendMessage = async (isRetry = false, retryContent = null) => {
@@ -508,13 +413,11 @@ export const AIChat = ({
                 generating: !update.done
               };
 
-              if (update.done) {
-                // 完成时切换到打字效果状态
-                setMessageStates(prev => ({
-                  ...prev,
-                  [aiMessage.id]: MESSAGE_STATES.TYPING_RESPONSE
-                }));
-              }
+              // 根据 update.done 直接更新状态
+              setMessageStates(prev => ({
+                ...prev,
+                [aiMessage.id]: update.done ? MESSAGE_STATES.COMPLETED : MESSAGE_STATES.THINKING
+              }));
 
               newMessages[aiMessageIndex] = updatedAiMessage;
               return newMessages;
@@ -922,79 +825,6 @@ export const AIChat = ({
           }
         `}
       </style>
-      {/* 左侧边栏 */}
-      <div className="w-60 bg-base-200 border-r border-base-300 flex flex-col h-full">
-        {/* 会话列表 */}
-        <div className="flex-1 overflow-y-auto p-2">
-          <div className="space-y-2">
-            {conversations.map(conversation => (
-              <div 
-                key={conversation.id}
-                className={`bg-base-100 rounded-lg p-3 cursor-pointer hover:bg-base-300 ${
-                  currentConversation?.id === conversation.id ? 'bg-base-300' : ''
-                }`}
-                onClick={() => {
-                  if (editingFolderName === conversation.id) return;
-                  setCurrentConversation(conversation);
-                  localStorage.setItem('aichat_current_conversation', JSON.stringify(conversation));
-                  // 加载会话消息
-                  window.electron.loadMessages(conversation.path, conversation.id)
-                    .then(loadedMessages => {
-                      setMessages(loadedMessages || []);
-                    })
-                    .catch(error => {
-                      console.error('加载消息失败:', error);
-                      setMessages([]);
-                    });
-                }}
-                onContextMenu={(e) => handleContextMenu(e, conversation)}
-              >
-                {editingFolderName === conversation.id ? (
-                  <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="text"
-                      value={folderNameInput}
-                      onChange={(e) => setFolderNameInput(e.target.value)}
-                      className="input input-xs input-bordered w-full"
-                      placeholder="输入新的文件夹名称"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleRenameConversation(conversation, folderNameInput);
-                        }
-                      }}
-                      autoFocus
-                    />
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        className="btn btn-xs btn-primary"
-                        onClick={() => handleRenameConversation(conversation, folderNameInput)}
-                      >
-                        确认
-                      </button>
-                      <button
-                        className="btn btn-xs"
-                        onClick={() => {
-                          setEditingFolderName(null);
-                          setFolderNameInput('');
-                        }}
-                      >
-                        取消
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <h3 className="font-medium">{conversation.name}</h3>
-                    <p className="text-sm opacity-70 truncate">
-                      {conversation.messages[conversation.messages.length - 1]?.content || '新的会话'}
-                    </p>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* 右侧主聊天区域 */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -1059,19 +889,6 @@ export const AIChat = ({
                           <div className="flex items-center gap-2">
                             <span>思考中</span>
                             <span className="loading loading-dots loading-sm"></span>
-                          </div>
-                        ) : messageStates[message.id] === MESSAGE_STATES.TYPING_RESPONSE ? (
-                          <div className="typing-effect">
-                            <TypingText 
-                              text={message.content} 
-                              key={message.id + "-content"}
-                              onComplete={() => {
-                                setMessageStates(prev => ({
-                                  ...prev,
-                                  [message.id]: MESSAGE_STATES.COMPLETED
-                                }));
-                              }}
-                            />
                           </div>
                         ) : messageStates[message.id] === MESSAGE_STATES.COMPLETED ? (
                           <div className="markdown-content">
@@ -1179,30 +996,6 @@ export const AIChat = ({
       {/* 设置弹窗 */}
       {showSettings && <SettingsModal />}
 
-      {/* 删除确认对话框 */}
-      {deletingConversation && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">删除会话</h3>
-            <p className="py-4">确定要删除这个会话吗？</p>
-            <div className="modal-action">
-              <button 
-                className="btn btn-ghost"
-                onClick={() => setDeletingConversation(null)}
-              >
-                取消
-              </button>
-              <button 
-                className="btn btn-error"
-                onClick={() => handleDeleteConversation(deletingConversation)}
-              >
-                删除
-              </button>
-            </div>
-          </div>
-          <div className="modal-backdrop" onClick={() => setDeletingConversation(null)}></div>
-        </div>
-      )}
     </div>
   );
-}; 
+} 

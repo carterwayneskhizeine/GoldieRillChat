@@ -301,8 +301,100 @@ export default function Sidebar({
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
                 {sidebarMode === 'default' ? (
-                  <div className="empty-sidebar">
-                    {/* AI Chat侧边栏的内容可以在这里添加 */}
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="flex flex-col gap-2">
+                      {conversations.map(conversation => (
+                        <div
+                          key={conversation.id}
+                          className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''} ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                          draggable={editingFolderName === null}
+                          onDragStart={() => {
+                            if (editingFolderName !== null) return;
+                            handleDragStart(conversation, setDraggedConversation);
+                          }}
+                          onDragOver={(e) => {
+                            if (editingFolderName !== null) return;
+                            handleDragOver(e);
+                          }}
+                          onDrop={(e) => {
+                            if (editingFolderName !== null) return;
+                            handleDrop(conversation, draggedConversation, conversations, setConversations, setDraggedConversation);
+                          }}
+                          onContextMenu={(e) => {
+                            if (editingFolderName !== null) return;
+                            e.preventDefault();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setContextMenu({ visible: true, x: rect.right, y: rect.top, type: 'aichat', data: conversation });
+                          }}
+                          onClick={() => {
+                            if (editingFolderName === conversation.id) return;
+                            loadConversation(conversation.id);
+                          }}
+                        >
+                          <div className="flex items-center gap-2 flex-1">
+                            {editingFolderName === conversation.id ? (
+                              <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="text"
+                                  value={folderNameInput}
+                                  onChange={(e) => setFolderNameInput(e.target.value)}
+                                  className="input input-xs input-bordered w-full"
+                                  placeholder="输入新的文件夹名称"
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      renameChatFolder(
+                                        conversation,
+                                        folderNameInput,
+                                        conversations,
+                                        currentConversation,
+                                        setConversations,
+                                        setCurrentConversation,
+                                        setEditingFolderName,
+                                        setFolderNameInput,
+                                        window
+                                      );
+                                    }
+                                  }}
+                                  autoFocus
+                                />
+                                <div className="flex gap-2 justify-end">
+                                  <button
+                                    className="btn btn-xs btn-primary"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      renameChatFolder(
+                                        conversation,
+                                        folderNameInput,
+                                        conversations,
+                                        currentConversation,
+                                        setConversations,
+                                        setCurrentConversation,
+                                        setEditingFolderName,
+                                        setFolderNameInput,
+                                        window
+                                      );
+                                    }}
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button
+                                    className="btn btn-xs"
+                                    onClick={() => {
+                                      setEditingFolderName(null);
+                                      setFolderNameInput('');
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="truncate">{conversation.name}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <ChatView

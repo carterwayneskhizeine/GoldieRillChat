@@ -56,6 +56,11 @@ import { MonacoEditor } from './components/MonacoEditor'
 import { AIChat } from './components/AIChat'
 import './styles/aichat.css'
 import { generateRandomTheme } from './utils/themeGenerator'
+import { 
+  handleDeleteConversation, 
+  handleRenameConversation,
+  handleContextMenu
+} from './components/conversationHandlers'
 
 export default function App() {
   // 修改初始工具为 chat
@@ -93,6 +98,7 @@ export default function App() {
   const [deletingConversation, setDeletingConversation] = useState(initialChatState.deletingConversation)
   const [deletingMessageId, setDeletingMessageId] = useState(initialChatState.deletingMessageId)
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(initialChatState.shouldScrollToBottom)
+  const [draggedConversation, setDraggedConversation] = useState(initialChatState.draggedConversation)
 
   // 浏览器状态
   const initialBrowserState = initializeBrowserState()
@@ -127,9 +133,6 @@ export default function App() {
   const [startAngle, setStartAngle] = useState(0)
   const [lastRotation, setLastRotation] = useState(0)
   const [isRotating, setIsRotating] = useState(false)
-
-  // 添加拖动排序相关的状态
-  const [draggedConversation, setDraggedConversation] = useState(null)
 
   // Add state for collapsed messages
   const [collapsedMessages, setCollapsedMessages] = useState(new Set())
@@ -228,28 +231,59 @@ export default function App() {
   }
 
   const createNewConversation = async () => {
-    try {
-      const result = await createNewConversationOp(storagePath, conversations, window.electron)
-      
-      setConversations(result.updatedConversations)
-      setCurrentConversation(result.newConversation)
-      setMessages([])
-    } catch (error) {
-      alert(error.message)
+    if (!storagePath) {
+      alert('请先在设置中选择存储文件夹');
+      return;
     }
-  }
+
+    try {
+      // 生成新会话ID和名称
+      const newId = Date.now().toString();
+      const conversationCount = conversations.length;
+      const newName = `AIChat${(conversationCount + 1).toString().padStart(2, '0')}`;
+
+      // 在选定的存储路径下创建新的会话文件夹
+      const folderPath = window.electron.path.join(storagePath, newName);
+      const result = await window.electron.createAIChatFolder(folderPath);
+      
+      // 构造新会话对象
+      const newConversation = {
+        id: newId,
+        name: newName,
+        timestamp: new Date().toISOString(),
+        path: result.path,
+        messages: []
+      };
+      
+      // 更新状态
+      const updatedConversations = [...conversations, newConversation];
+      setConversations(updatedConversations);
+      setCurrentConversation(newConversation);
+      setMessages([]);
+      
+      // 保存到本地存储
+      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+      localStorage.setItem('aichat_current_conversation', JSON.stringify(newConversation));
+    } catch (error) {
+      console.error('创建新会话失败:', error);
+      alert('创建新会话失败: ' + error.message);
+    }
+  };
 
   const loadConversation = async (conversationId) => {
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation) return;
+
     try {
-      const result = await loadConversationOp(conversationId, conversations, window.electron)
-      setCurrentConversation(result.conversation)
-      setMessages(result.messages)
-      setShouldScrollToBottom(true)
+      const messages = await window.electron.loadMessages(conversation.path, conversation.id);
+      setMessages(messages || []);
+      setCurrentConversation(conversation);
+      localStorage.setItem('aichat_current_conversation', JSON.stringify(conversation));
     } catch (error) {
-      alert(error.message)
-      setMessages([])
+      console.error('加载会话消息失败:', error);
+      alert('加载会话消息失败: ' + error.message);
     }
-  }
+  };
 
   const sendMessage = async () => {
     try {
@@ -729,6 +763,112 @@ export default function App() {
     setCurrentTheme('custom');  // 现在可以访问到 setCurrentTheme
   };
 
+  // 会话管理相关函数
+  const handleConversationSelect = async (conversationId) => {
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation) return;
+
+    try {
+      const messages = await window.electron.loadMessages(conversation.path, conversation.id);
+      setMessages(messages || []);
+      setCurrentConversation(conversation);
+      localStorage.setItem('aichat_current_conversation', JSON.stringify(conversation));
+    } catch (error) {
+      console.error('加载会话消息失败:', error);
+      alert('加载会话消息失败: ' + error.message);
+    }
+  };
+
+  const handleConversationCreate = async () => {
+    if (!storagePath) {
+      alert('请先在设置中选择存储文件夹');
+      return;
+    }
+
+    try {
+      const newId = Date.now().toString();
+      const conversationCount = conversations.length;
+      const newName = `AIChat${(conversationCount + 1).toString().padStart(2, '0')}`;
+      const folderPath = window.electron.path.join(storagePath, newName);
+      const result = await window.electron.createAIChatFolder(folderPath);
+      
+      const newConversation = {
+        id: newId,
+        name: newName,
+        timestamp: new Date().toISOString(),
+        path: result.path,
+        messages: []
+      };
+      
+      const updatedConversations = [...conversations, newConversation];
+      setConversations(updatedConversations);
+      setCurrentConversation(newConversation);
+      setMessages([]);
+      
+      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+      localStorage.setItem('aichat_current_conversation', JSON.stringify(newConversation));
+    } catch (error) {
+      console.error('创建新会话失败:', error);
+      alert('创建新会话失败: ' + error.message);
+    }
+  };
+
+  const handleConversationDelete = async (conversation) => {
+    try {
+      await window.electron.deleteChatFolder(conversation.path);
+      
+      const updatedConversations = conversations.filter(c => c.id !== conversation.id);
+      setConversations(updatedConversations);
+      
+      if (currentConversation?.id === conversation.id) {
+        const nextConversation = updatedConversations[0] || null;
+        setCurrentConversation(nextConversation);
+        setMessages(nextConversation ? await window.electron.loadMessages(nextConversation.path, nextConversation.id) : []);
+      }
+      
+      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+      if (!currentConversation || currentConversation.id === conversation.id) {
+        localStorage.removeItem('aichat_current_conversation');
+      }
+    } catch (error) {
+      console.error('删除会话失败:', error);
+      alert('删除会话失败: ' + error.message);
+    }
+  };
+
+  const handleConversationRename = async (conversation, newName) => {
+    try {
+      const result = await window.electron.renameChatFolder(conversation.path, newName);
+      
+      const updatedConversations = conversations.map(conv => 
+        conv.id === conversation.id 
+          ? { ...conv, name: result.name, path: result.path }
+          : conv
+      );
+      
+      setConversations(updatedConversations);
+      if (currentConversation?.id === conversation.id) {
+        setCurrentConversation({ ...currentConversation, name: result.name, path: result.path });
+      }
+      
+      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+    } catch (error) {
+      console.error('重命名失败:', error);
+      alert('重命名失败: ' + error.message);
+    }
+  };
+
+  // 添加本地存储同步
+  useEffect(() => {
+    localStorage.setItem('aichat_conversations', JSON.stringify(conversations));
+  }, [conversations]);
+
+  useEffect(() => {
+    if (currentConversation) {
+      localStorage.setItem('aichat_current_conversation', JSON.stringify(currentConversation));
+    }
+  }, [currentConversation]);
+
   return (
     <div className="h-screen flex flex-col">
       <style>{globalStyles}</style>
@@ -765,16 +905,16 @@ export default function App() {
           setEditingFolderName={setEditingFolderName}
           setFolderNameInput={setFolderNameInput}
           setContextMenu={setContextMenu}
-          loadConversation={loadConversation}
-          createNewConversation={createNewConversation}
+          loadConversation={handleConversationSelect}
+          createNewConversation={handleConversationCreate}
           switchTool={switchTool}
           handleSidebarModeToggle={handleSidebarModeToggle}
           handleDragStart={handleDragStart}
           handleDragOver={handleDragOver}
           handleDrop={handleDrop}
-          renameChatFolder={renameChatFolder}
-          setConversations={setConversations}
-          setCurrentConversation={setCurrentConversation}
+          handleContextMenu={handleContextMenu}
+          handleConversationDelete={handleConversationDelete}
+          handleConversationRename={handleConversationRename}
           messages={messages}
           editingMessage={editingMessage}
           setEditingMessage={setEditingMessage}
@@ -906,8 +1046,13 @@ export default function App() {
           <div style={{ display: activeTool === 'aichat' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
             <AIChat 
               sendToSidebar={handleSendToSidebar}
-              createNewConversation={createNewConversation}
+              createNewConversation={handleConversationCreate}
               storagePath={storagePath}
+              currentConversation={currentConversation}
+              conversations={conversations}
+              onConversationSelect={handleConversationSelect}
+              onConversationDelete={handleConversationDelete}
+              onConversationRename={handleConversationRename}
             />
           </div>
         </div>

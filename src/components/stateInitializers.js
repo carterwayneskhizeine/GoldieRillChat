@@ -1,4 +1,4 @@
- // 浏览器状态初始化
+// 浏览器状态初始化
 export const initializeBrowserState = () => ({
     browserTabs: [],
     activeTabId: null,
@@ -8,21 +8,30 @@ export const initializeBrowserState = () => ({
   })
   
   // 聊天状态初始化
-  export const initializeChatState = () => ({
-    conversations: [],
-    currentConversation: null,
-    messages: [],
-    messageInput: '',
-    selectedFiles: [],
-    editingMessage: null,
-    editingFileName: null,
-    fileNameInput: '',
-    editingFolderName: null,
-    folderNameInput: '',
-    deletingConversation: null,
-    deletingMessageId: null,
-    shouldScrollToBottom: false
-  })
+  export const initializeChatState = () => {
+    return {
+      conversations: (() => {
+        const savedConversations = localStorage.getItem('aichat_conversations');
+        return savedConversations ? JSON.parse(savedConversations) : [];
+      })(),
+      currentConversation: (() => {
+        const savedConversation = localStorage.getItem('aichat_current_conversation');
+        return savedConversation ? JSON.parse(savedConversation) : null;
+      })(),
+      messages: [],
+      messageInput: '',
+      selectedFiles: [],
+      editingMessage: null,
+      editingFileName: null,
+      fileNameInput: '',
+      editingFolderName: null,
+      folderNameInput: '',
+      deletingConversation: null,
+      deletingMessageId: null,
+      shouldScrollToBottom: false,
+      draggedConversation: null
+    };
+  }
   
   // 编辑器状态初始化
   export const initializeEditorState = () => ({

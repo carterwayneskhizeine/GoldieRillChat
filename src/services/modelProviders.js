@@ -289,19 +289,18 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
 
     // 发送初始状态
     onUpdate?.({
-      type: 'reasoning',
+      type: 'content',
       content: '',
-      reasoning_content: '思考中...'
+      done: false
     });
 
     while (true) {
       const { value, done } = await reader.read();
       if (done) {
-        // 发送完成信号，但不设置为完成状态
+        // 发送完成信号
         onUpdate?.({
           type: 'content',
           content: content,
-          reasoning_content: null,
           done: true
         });
         break;
@@ -328,7 +327,6 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
               onUpdate?.({
                 type: 'content',
                 content: content,
-                reasoning_content: null,
                 done: false
               });
             }
@@ -339,6 +337,13 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
         }
       }
     }
+
+    // 发送最终完成状态
+    onUpdate?.({
+      type: 'content',
+      content: content,
+      done: true
+    });
 
     return {
       content: content,
