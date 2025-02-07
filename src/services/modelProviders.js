@@ -275,7 +275,14 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
       let errorMessage;
       try {
         const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.error?.message || errorJson.message || '请求失败';
+        // 构建详细的错误信息
+        errorMessage = `(OpenRouter) ${errorJson.error?.message || errorJson.message || '请求失败'}\n`;
+        if (errorJson.error?.code) {
+          errorMessage += `错误代码: ${errorJson.error.code}\n`;
+        }
+        if (errorJson.error?.type) {
+          errorMessage += `错误类型: ${errorJson.error.type}`;
+        }
       } catch (e) {
         errorMessage = `请求失败 (${response.status}): ${errorText}`;
       }

@@ -381,7 +381,9 @@ export const AIChat = ({
         content: response.content,
         generating: false,
         usage: response.usage,
-        txtFile: aiTxtFile
+        txtFile: aiTxtFile,
+        model: selectedModel,
+        tokens: response.usage?.total_tokens || 0
       };
 
       // 更新消息列表
@@ -408,11 +410,27 @@ export const AIChat = ({
       }
     } catch (error) {
       console.error('发送消息失败:', error);
+      
+      // 更新消息列表，将错误信息添加到 AI 回复中
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const aiMessageIndex = newMessages.findIndex(msg => msg.generating);
+        if (aiMessageIndex !== -1) {
+          newMessages[aiMessageIndex] = {
+            ...newMessages[aiMessageIndex],
+            content: `**错误信息**:\n\`\`\`\n${error.message}\n\`\`\``,
+            generating: false,
+            error: true
+          };
+        }
+        return newMessages;
+      });
+
+      // 更新消息状态
       setMessageStates(prev => ({
         ...prev,
         [aiMessage.id]: MESSAGE_STATES.ERROR
       }));
-      alert('发送消息失败: ' + error.message);
     }
   };
 
@@ -807,14 +825,15 @@ export const AIChat = ({
                     <div className="chat-header opacity-70 mb-1">
                       <span className="text-xs">
                         {new Date(message.timestamp).toLocaleString()}
-                        {' • '}模型: {selectedModel}
-                        {message.usage && ` • Token: ${message.usage.total_tokens}`}
+                        {' • '}模型: {message.model || selectedModel}
+                        {message.tokens ? ` • Token: ${message.tokens}` : message.usage?.total_tokens ? ` • Token: ${message.usage.total_tokens}` : ''}
+                        {message.error && ' • 错误'}
                       </span>
                     </div>
 
                     {/* 消息内容 */}
                     <div className={`chat-bubble ${
-                      messageStates[message.id] === MESSAGE_STATES.ERROR ? 'chat-bubble-error' : 'chat-bubble-secondary'
+                      messageStates[message.id] === MESSAGE_STATES.ERROR || message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
                     }`}>
                       <div className="response-content">
                         {messageStates[message.id] === MESSAGE_STATES.THINKING ? (
@@ -822,7 +841,7 @@ export const AIChat = ({
                             <span>思考中</span>
                             <span className="loading loading-dots loading-sm"></span>
                           </div>
-                        ) : messageStates[message.id] === MESSAGE_STATES.COMPLETED ? (
+                        ) : messageStates[message.id] === MESSAGE_STATES.COMPLETED || message.error ? (
                           <MarkdownRenderer
                             content={message.content || ''}
                             isCompact={false}
