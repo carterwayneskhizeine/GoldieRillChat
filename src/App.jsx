@@ -779,79 +779,73 @@ export default function App() {
     }
   };
 
-  const handleConversationCreate = async () => {
-    if (!storagePath) {
-      alert('请先在设置中选择存储文件夹');
-      return;
-    }
-
-    try {
-      const newId = Date.now().toString();
-      const conversationCount = conversations.length;
-      const newName = `AIChat${(conversationCount + 1).toString().padStart(2, '0')}`;
-      const folderPath = window.electron.path.join(storagePath, newName);
-      const result = await window.electron.createAIChatFolder(folderPath);
-      
-      const newConversation = {
-        id: newId,
-        name: newName,
-        timestamp: new Date().toISOString(),
-        path: result.path,
-        messages: []
-      };
-      
-      const updatedConversations = [...conversations, newConversation];
-      setConversations(updatedConversations);
-      setCurrentConversation(newConversation);
-      setMessages([]);
-      
-      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
-      localStorage.setItem('aichat_current_conversation', JSON.stringify(newConversation));
-    } catch (error) {
-      console.error('创建新会话失败:', error);
-      alert('创建新会话失败: ' + error.message);
-    }
+  const handleConversationCreate = async (newConversation) => {
+    const updatedConversations = [...conversations, newConversation];
+    setConversations(updatedConversations);
+    setCurrentConversation(newConversation);
+    setMessages([]);
+    
+    localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+    localStorage.setItem('aichat_current_conversation', JSON.stringify(newConversation));
   };
 
   const handleConversationDelete = async (conversation) => {
     try {
-      await window.electron.deleteChatFolder(conversation.path);
-      
-      const updatedConversations = conversations.filter(c => c.id !== conversation.id);
-      setConversations(updatedConversations);
-      
-      if (currentConversation?.id === conversation.id) {
-        const nextConversation = updatedConversations[0] || null;
-        setCurrentConversation(nextConversation);
-        setMessages(nextConversation ? await window.electron.loadMessages(nextConversation.path, nextConversation.id) : []);
-      }
-      
-      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
-      if (!currentConversation || currentConversation.id === conversation.id) {
-        localStorage.removeItem('aichat_current_conversation');
-      }
+      await deleteConversation(
+        conversation.id,
+        conversations,
+        currentConversation,
+        setConversations,
+        setCurrentConversation,
+        setMessages,
+        window
+      );
     } catch (error) {
       console.error('删除会话失败:', error);
       alert('删除会话失败: ' + error.message);
     }
   };
 
-  const handleConversationRename = async (conversation, newName) => {
+  const handleConversationRename = async (conversation) => {
     try {
+      // 确保 conversation.path 存在
+      if (!conversation || !conversation.path) {
+        throw new Error('无效的会话路径');
+      }
+
+      // 设置重命名状态
+      setEditingFolderName(conversation.id);
+      setFolderNameInput(conversation.name);
+    } catch (error) {
+      console.error('重命名失败:', error);
+      alert('重命名失败: ' + error.message);
+    }
+  };
+
+  // 添加实际执行重命名的函数
+  const handleRenameConfirm = async (conversation, newName) => {
+    try {
+      // 重命名文件夹
       const result = await window.electron.renameChatFolder(conversation.path, newName);
       
+      // 更新状态
       const updatedConversations = conversations.map(conv => 
         conv.id === conversation.id 
-          ? { ...conv, name: result.name, path: result.path }
+          ? { ...conv, name: newName, path: result.path }
           : conv
       );
       
       setConversations(updatedConversations);
       if (currentConversation?.id === conversation.id) {
-        setCurrentConversation({ ...currentConversation, name: result.name, path: result.path });
+        setCurrentConversation({ ...currentConversation, name: newName, path: result.path });
       }
       
+      // 更新本地存储
       localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+
+      // 清除编辑状态
+      setEditingFolderName(null);
+      setFolderNameInput('');
     } catch (error) {
       console.error('重命名失败:', error);
       alert('重命名失败: ' + error.message);
@@ -915,6 +909,7 @@ export default function App() {
           handleContextMenu={handleContextMenu}
           handleConversationDelete={handleConversationDelete}
           handleConversationRename={handleConversationRename}
+          handleRenameConfirm={handleRenameConfirm}
           messages={messages}
           editingMessage={editingMessage}
           setEditingMessage={setEditingMessage}

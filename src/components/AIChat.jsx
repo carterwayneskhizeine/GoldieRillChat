@@ -122,7 +122,12 @@ const estimateTokens = (text) => {
 export const AIChat = ({ 
   sendToSidebar,
   createNewConversation,
-  storagePath 
+  storagePath,
+  currentConversation,
+  conversations,
+  onConversationSelect,
+  onConversationDelete,
+  onConversationRename
 }) => {
   // 从本地存储初始化状态
   const [messageInput, setMessageInput] = useState('');
@@ -132,17 +137,6 @@ export const AIChat = ({
   });
   const [showSettings, setShowSettings] = useState(false);
   
-  // 添加会话相关状态
-  const [conversations, setConversations] = useState(() => {
-    const savedConversations = localStorage.getItem('aichat_conversations');
-    return savedConversations ? JSON.parse(savedConversations) : [];
-  });
-  
-  const [currentConversation, setCurrentConversation] = useState(() => {
-    const savedConversation = localStorage.getItem('aichat_current_conversation');
-    return savedConversation ? JSON.parse(savedConversation) : null;
-  });
-
   // 初始化提供商和模型状态
   const [selectedProvider, setSelectedProvider] = useState(() => {
     const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
@@ -190,6 +184,27 @@ export const AIChat = ({
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
   }, [messages]);
+
+  // 当 currentConversation 改变时加载对应的消息
+  useEffect(() => {
+    if (currentConversation) {
+      const loadMessages = async () => {
+        try {
+          const loadedMessages = await window.electron.loadMessages(
+            currentConversation.path,
+            currentConversation.id
+          );
+          setMessages(loadedMessages || []);
+        } catch (error) {
+          console.error('加载消息失败:', error);
+          setMessages([]);
+        }
+      };
+      loadMessages();
+    } else {
+      setMessages([]);
+    }
+  }, [currentConversation]);
 
   // 在组件挂载时获取模型列表
   useEffect(() => {
@@ -651,15 +666,8 @@ export const AIChat = ({
         messages: []
       };
       
-      // 更新状态
-      const updatedConversations = [...conversations, newConversation];
-      setConversations(updatedConversations);
-      setCurrentConversation(newConversation);
-      setMessages([]);
-      
-      // 保存到本地存储
-      localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
-      localStorage.setItem('aichat_current_conversation', JSON.stringify(newConversation));
+      // 调用父组件的处理函数
+      createNewConversation(newConversation);
     } catch (error) {
       console.error('创建新会话失败:', error);
       alert('创建新会话失败: ' + error.message);

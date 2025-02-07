@@ -23,6 +23,8 @@ export default function Sidebar({
   handleDragStart,
   handleDragOver,
   handleDrop,
+  handleConversationDelete,
+  handleConversationRename,
   renameChatFolder,
   setConversations,
   setCurrentConversation,
@@ -62,7 +64,8 @@ export default function Sidebar({
   cancelDeleteMessage,
   scrollToMessage,
   sendToMonaco,
-  sendToEditor
+  sendToEditor,
+  handleRenameConfirm
 }) {
   useEffect(() => {
     if (activeTool === 'chat') {
@@ -170,7 +173,23 @@ export default function Sidebar({
                       if (editingFolderName !== null) return;
                       e.preventDefault();
                       const rect = e.currentTarget.getBoundingClientRect();
-                      setContextMenu({ visible: true, x: rect.right, y: rect.top, type: 'chat', data: conversation });
+                      setContextMenu({
+                        visible: true,
+                        x: rect.right,
+                        y: rect.top,
+                        type: 'chat',
+                        data: conversation,
+                        options: [
+                          {
+                            label: 'Delete',
+                            onClick: () => handleConversationDelete(conversation)
+                          },
+                          {
+                            label: 'Rename',
+                            onClick: () => handleConversationRename(conversation)
+                          }
+                        ]
+                      });
                     }}
                     onClick={() => {
                       if (editingFolderName === conversation.id) return;
@@ -188,16 +207,9 @@ export default function Sidebar({
                             placeholder="输入新的文件夹名称"
                             onKeyPress={(e) => {
                               if (e.key === 'Enter') {
-                                renameChatFolder(
+                                handleRenameConfirm(
                                   conversation,
-                                  folderNameInput,
-                                  conversations,
-                                  currentConversation,
-                                  setConversations,
-                                  setCurrentConversation,
-                                  setEditingFolderName,
-                                  setFolderNameInput,
-                                  window
+                                  folderNameInput
                                 );
                               }
                             }}
@@ -208,16 +220,9 @@ export default function Sidebar({
                               className="btn btn-xs btn-primary"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                renameChatFolder(
+                                handleRenameConfirm(
                                   conversation,
-                                  folderNameInput,
-                                  conversations,
-                                  currentConversation,
-                                  setConversations,
-                                  setCurrentConversation,
-                                  setEditingFolderName,
-                                  setFolderNameInput,
-                                  window
+                                  folderNameInput
                                 );
                               }}
                             >
@@ -324,7 +329,23 @@ export default function Sidebar({
                             if (editingFolderName !== null) return;
                             e.preventDefault();
                             const rect = e.currentTarget.getBoundingClientRect();
-                            setContextMenu({ visible: true, x: rect.right, y: rect.top, type: 'aichat', data: conversation });
+                            setContextMenu({
+                              visible: true,
+                              x: rect.right,
+                              y: rect.top,
+                              type: 'chat',
+                              data: conversation,
+                              options: [
+                                {
+                                  label: 'Delete',
+                                  onClick: () => handleConversationDelete(conversation)
+                                },
+                                {
+                                  label: 'Rename',
+                                  onClick: () => handleConversationRename(conversation)
+                                }
+                              ]
+                            });
                           }}
                           onClick={() => {
                             if (editingFolderName === conversation.id) return;
@@ -342,16 +363,9 @@ export default function Sidebar({
                                   placeholder="输入新的文件夹名称"
                                   onKeyPress={(e) => {
                                     if (e.key === 'Enter') {
-                                      renameChatFolder(
+                                      handleRenameConfirm(
                                         conversation,
-                                        folderNameInput,
-                                        conversations,
-                                        currentConversation,
-                                        setConversations,
-                                        setCurrentConversation,
-                                        setEditingFolderName,
-                                        setFolderNameInput,
-                                        window
+                                        folderNameInput
                                       );
                                     }
                                   }}
@@ -362,16 +376,9 @@ export default function Sidebar({
                                     className="btn btn-xs btn-primary"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      renameChatFolder(
+                                      handleRenameConfirm(
                                         conversation,
-                                        folderNameInput,
-                                        conversations,
-                                        currentConversation,
-                                        setConversations,
-                                        setCurrentConversation,
-                                        setEditingFolderName,
-                                        setFolderNameInput,
-                                        window
+                                        folderNameInput
                                       );
                                     }}
                                   >

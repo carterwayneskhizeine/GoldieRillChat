@@ -1,14 +1,6 @@
 import React, { useEffect } from 'react'
 
-export const ContextMenu = ({
-  contextMenu,
-  onClose,
-  onDelete,
-  onRename,
-  onCopy,
-  onPaste,
-  selectedElement
-}) => {
+export function ContextMenu({ contextMenu, onClose, onDelete, onRename, onCopy, onPaste, selectedElement }) {
   // 添加全局点击事件监听，当点击页面其它区域时隐藏上下文菜单
   useEffect(() => {
     const handleClickOutside = () => {
@@ -23,69 +15,60 @@ export const ContextMenu = ({
     };
   }, [contextMenu.visible, onClose]);
 
-  if (!contextMenu.visible) return null
+  if (!contextMenu.visible) return null;
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    onClose();
+  };
+
+  const renderMenuItems = () => {
+    if (contextMenu.options) {
+      return contextMenu.options.map((option, index) => (
+        <li key={index}>
+          <a onClick={() => {
+            option.onClick();
+            onClose();
+          }}>
+            {option.label}
+          </a>
+        </li>
+      ));
+    }
+
+    // 默认菜单项
+    switch (contextMenu.type) {
+      case 'chat':
+        return (
+          <>
+            <li><a onClick={() => { onDelete(contextMenu.data); onClose(); }}>Delete</a></li>
+            <li><a onClick={() => { onRename(contextMenu.data); onClose(); }}>Rename</a></li>
+          </>
+        );
+      case 'code':
+        return (
+          <>
+            <li><a onClick={() => { onCopy(); onClose(); }}>Copy</a></li>
+            <li><a onClick={() => { onPaste(); onClose(); }}>Paste</a></li>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div
-      className="fixed z-[100]"
+      className="fixed z-50"
       style={{
-        top: `${contextMenu.y}px`,
-        left: `${contextMenu.x}px`
+        left: contextMenu.x,
+        top: contextMenu.y
       }}
-      onContextMenu={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
+      onClick={handleClick}
     >
-      {contextMenu.type === 'chat' ? (
-        <ul className="menu menu-horizontal bg-base-200 rounded-box shadow-lg">
-          <li>
-            <button
-              className="text-left px-4 py-2 hover:bg-base-300"
-              onClick={() => {
-                onDelete(contextMenu.data)
-                onClose()
-              }}
-            >
-              Delete
-            </button>
-          </li>
-          <li>
-            <button
-              className="text-left px-4 py-2 hover:bg-base-300"
-              onClick={() => {
-                onRename(contextMenu.data)
-                onClose()
-              }}
-            >
-              Rename
-            </button>
-          </li>
-        </ul>
-      ) : (
-        <ul className={`menu ${selectedElement?.closest('textarea') ? 'menu-horizontal' : ''} bg-base-200 ${selectedElement?.closest('textarea') ? '' : 'w-56'} rounded-box shadow-lg`}>
-          <li>
-            <button
-              className="w-full text-left px-4 py-2 hover:bg-base-300"
-              onClick={(e) => {
-                e.stopPropagation()
-                onCopy()
-              }}
-            >
-              Copy
-            </button>
-          </li>
-          <li>
-            <button
-              className="w-full text-left px-4 py-2 hover:bg-base-300"
-              onClick={(e) => {
-                e.stopPropagation()
-                onPaste()
-              }}
-            >
-              Paste
-            </button>
-          </li>
-        </ul>
-      )}
+      <ul className="menu bg-base-200 w-56 rounded-box shadow-lg">
+        {renderMenuItems()}
+      </ul>
     </div>
-  )
+  );
 } 
