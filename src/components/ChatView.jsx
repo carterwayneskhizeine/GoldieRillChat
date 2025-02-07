@@ -7,10 +7,7 @@ import { copyMessageContent } from './messageUtils';
 import { toggleMessageCollapse } from './messageCollapse';
 import { handleFileSelect, removeFile, handleFileDrop } from './fileHandlers';
 import { SidebarCollapseButton, shouldShowCollapseButton, getMessageContentStyle } from './sidebarMessageCollapse.jsx';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import rehypeSanitize from 'rehype-sanitize';
+import { MarkdownRenderer } from './shared/MarkdownRenderer';
 import '../styles/markdown-preview.css';
 
 export function ChatView({
@@ -433,62 +430,16 @@ export function ChatView({
                         </div>
                       </div>
                     ) : (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw, rehypeSanitize]}
-                        components={{
-                          code({node, inline, className, children, ...props}) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            return !inline && match ? (
-                              <div className="relative">
-                                <div className="absolute right-2 top-2">
-                                  <button
-                                    className="btn btn-xs btn-ghost"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
-                                    }}
-                                  >
-                                    复制
-                                  </button>
-                                </div>
-                                <pre className={`language-${match[1]} rounded-lg`}>
-                                  <code className={className} {...props}>
-                                    {children}
-                                  </code>
-                                </pre>
-                              </div>
-                            ) : (
-                              <code className={`${className} bg-base-200 rounded px-1`} {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                          a({node, children, href, ...props}) {
-                            return (
-                              <a
-                                href={href}
-                                className="text-primary hover:text-primary-focus"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                {...props}
-                              >
-                                {children}
-                              </a>
-                            );
-                          },
-                          table({node, children, ...props}) {
-                            return (
-                              <div className="overflow-x-auto">
-                                <table className="table table-zebra w-full" {...props}>
-                                  {children}
-                                </table>
-                              </div>
-                            );
-                          }
+                      <MarkdownRenderer
+                        content={message.content}
+                        isCompact={isCompact}
+                        onCopyCode={(code) => {
+                          navigator.clipboard.writeText(code);
                         }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
+                        onLinkClick={(href) => {
+                          window.electron.openExternal(href);
+                        }}
+                      />
                     )}
                   </div>
                 )}

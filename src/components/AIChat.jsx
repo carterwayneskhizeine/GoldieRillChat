@@ -1,19 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import rehypeKatex from 'rehype-katex'
-import remarkMath from 'remark-math'
-import remarkBreaks from 'remark-breaks'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { callModelAPI } from '../services/modelProviders';
-import { formatAIChatTime } from '../utils/AIChatTimeFormat'
+import { formatAIChatTime } from '../utils/AIChatTimeFormat';
 import { MODEL_PROVIDERS, fetchModels } from '../config/modelConfig';
-import { getModelListFromCache, saveModelListToCache, clearModelListCache } from '../utils/modelListCache';
+import { getModelListFromCache, saveModelListToCache } from '../utils/modelListCache';
 import '../styles/message.css';
-
-// 导入 KaTeX 样式
-import 'katex/dist/katex.min.css'
+import { MarkdownRenderer } from './shared/MarkdownRenderer';
 
 // 定义本地存储的键名
 const STORAGE_KEYS = {
@@ -46,73 +37,6 @@ const ANIMATION_STATES = {
   FADE_OUT: 'fade_out',
   NONE: 'none'
 };
-
-// 代码块组件
-const CodeBlock = ({ node, inline, className, children, ...props }) => {
-  const match = /language-(\w+)/.exec(className || '')
-  const language = match ? match[1] : ''
-  
-  if (inline) {
-    return (
-      <code 
-        className={className}
-        style={{
-          backgroundColor: 'var(--b2)',
-          padding: '2px 4px',
-          margin: '0 4px',
-          borderRadius: '4px',
-          border: '1px solid var(--b3)',
-        }}
-        {...props}
-      >
-        {children}
-      </code>
-    )
-  }
-
-  return (
-    <div style={{ margin: '1rem 0' }}>
-      <div className="flex justify-between items-center bg-base-300 px-4 py-1 rounded-t-lg">
-        <span className="text-sm opacity-50">{'<' + language.toUpperCase() + '>'}</span>
-        <button 
-          className="btn btn-ghost btn-xs"
-          onClick={() => {
-            navigator.clipboard.writeText(String(children))
-          }}
-        >
-          复制
-        </button>
-      </div>
-      <div className="relative">
-        <SyntaxHighlighter
-          language={language}
-          style={atomDark}
-          customStyle={{
-            margin: 0,
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
-            borderBottomLeftRadius: '0.3rem',
-            borderBottomRightRadius: '0.3rem',
-          }}
-          PreTag="div"
-          {...props}
-        >
-          {String(children).replace(/\n$/, '')}
-        </SyntaxHighlighter>
-      </div>
-    </div>
-  )
-}
-
-// 自定义链接组件
-const CustomLink = ({ node, ...props }) => (
-  <a
-    {...props}
-    target="_blank"
-    rel="noopener noreferrer"
-    onClick={(e) => e.stopPropagation()}
-  />
-)
 
 // 估算 token 数（简单实现）
 const estimateTokens = (text) => {
@@ -899,22 +823,16 @@ export const AIChat = ({
                             <span className="loading loading-dots loading-sm"></span>
                           </div>
                         ) : messageStates[message.id] === MESSAGE_STATES.COMPLETED ? (
-                          <div className="markdown-content">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-                              rehypePlugins={[rehypeKatex]}
-                              components={{
-                                code: CodeBlock,
-                                a: CustomLink,
-                                p: ({ children }) => <div className="mb-4">{children}</div>,
-                                pre: ({ children }) => <div className="mb-4">{children}</div>,
-                                ul: ({ children }) => <div className="mb-4 ml-4">{children}</div>,
-                                ol: ({ children }) => <div className="mb-4 ml-4">{children}</div>,
-                              }}
-                            >
-                              {message.content || ''}
-                            </ReactMarkdown>
-                          </div>
+                          <MarkdownRenderer
+                            content={message.content || ''}
+                            isCompact={false}
+                            onCopyCode={(code) => {
+                              console.log('Code copied:', code);
+                            }}
+                            onLinkClick={(href) => {
+                              window.electron.openExternal(href);
+                            }}
+                          />
                         ) : null}
                       </div>
                     </div>

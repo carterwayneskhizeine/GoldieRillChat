@@ -285,10 +285,26 @@ export default function App() {
     if (!conversation) return;
 
     try {
-      const messages = await window.electron.loadMessages(conversation.path, conversation.id);
-      setMessages(messages || []);
+      if (!conversation.path) {
+        throw new Error('会话路径无效');
+      }
+      // 如果点击的是当前选中会话，则先清空当前会话和消息，以实现刷新
+      if (currentConversation && conversation.id === currentConversation.id) {
+        setCurrentConversation(null);
+        setMessages([]);
+        // 等待短暂的时间，让 UI 能看到状态变化
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      const msgs = await window.electron.loadMessages(conversation.path, conversation.id);
+      setMessages(msgs || []);
       setCurrentConversation(conversation);
-      localStorage.setItem('aichat_current_conversation', JSON.stringify(conversation));
+      localStorage.setItem('aichat_current_conversation', JSON.stringify({
+        id: conversation.id,
+        name: conversation.name,
+        path: conversation.path,
+        timestamp: conversation.timestamp
+      }));
     } catch (error) {
       console.error('加载会话消息失败:', error);
       alert('加载会话消息失败: ' + error.message);
@@ -523,8 +539,12 @@ export default function App() {
       setTimeout(() => {
         scrollToBottom()
       }, 0)
+    } else if (activeTool === 'aichat') {
+      // 切换到 AI Chat 界面时清空选中的会话和消息
+      setCurrentConversation(null);
+      setMessages([]);
     }
-  }, [activeTool])
+  }, [activeTool]);
 
   // 添加移动消息的函数
   const moveMessageInApp = async (messageId, direction) => {
