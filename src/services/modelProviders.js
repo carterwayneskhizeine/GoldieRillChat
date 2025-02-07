@@ -148,115 +148,6 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages }) => 
   }
 };
 
-// OpenRouter API 调用实现
-export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdate }) => {
-  try {
-    // 发送初始状态
-    onUpdate?.({
-      type: 'reasoning',
-      content: '',
-      reasoning_content: '思考中...'
-    });
-
-    // 确保 apiHost 末尾没有斜杠
-    const baseUrl = apiHost.endsWith('/') ? apiHost.slice(0, -1) : apiHost;
-
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'GoldieRillChat'
-      },
-      body: JSON.stringify({
-        model,
-        messages: messages.map(msg => ({
-          role: msg.type === 'user' ? 'user' : 'assistant',
-          content: msg.content
-        })),
-        stream: true,
-        temperature: 0.7,
-        max_tokens: 2000
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage;
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.error?.message || errorJson.message || '请求失败';
-      } catch (e) {
-        errorMessage = `请求失败 (${response.status}): ${errorText}`;
-      }
-      throw new Error(errorMessage);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let content = '';
-    let buffer = '';
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        // 发送完成信号
-        onUpdate?.({
-          type: 'complete',
-          content: content,
-          reasoning_content: '思考完成'  // 推理过程完成时的显示
-        });
-        break;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-      const chunks = buffer.split('\n');
-      buffer = chunks.pop() || '';
-
-      for (const chunk of chunks) {
-        // 忽略心跳消息
-        if (!chunk.trim() || chunk.includes('OPENROUTER PROCESSING')) continue;
-
-        try {
-          const jsonStr = chunk.replace(/^data:\s*/, '').trim();
-          if (jsonStr === '[DONE]') continue;
-
-          const json = JSON.parse(jsonStr);
-          if (json.choices && json.choices[0] && json.choices[0].delta) {
-            const delta = json.choices[0].delta;
-            if (delta.content) {
-              content += delta.content;
-              
-              // 发送实时更新，只更新推理过程
-              onUpdate?.({
-                type: 'reasoning',
-                content: '',  // 不设置 content，避免显示重复内容
-                reasoning_content: '正在思考...'  // 保持固定的推理过程提示
-              });
-            }
-          }
-        } catch (e) {
-          console.warn('解析数据块失败:', e, '数据块:', chunk);
-          continue;
-        }
-      }
-    }
-
-    // 返回最终结果
-    return {
-      content: content,
-      reasoning_content: '思考完成',  // 推理过程完成时的显示
-      usage: {
-        total_tokens: Math.ceil(content.length / 4)  // 简单估算token数
-      }
-    };
-  } catch (error) {
-    console.error('OpenRouter API 调用失败:', error);
-    throw new Error(`OpenRouter API 调用失败: ${error.message}`);
-  }
-};
-
 // DeepSeek API 调用实现
 export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate }) => {
   try {
@@ -353,6 +244,102 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate 
   } catch (error) {
     console.error('DeepSeek API 调用失败:', error);
     throw new Error(`DeepSeek API 调用失败: ${error.message}`);
+  }
+};
+
+// OpenRouter API 调用实现
+export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdate }) => {
+  try {
+    const response = await fetch(`${apiHost}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'GoldieRillChat'
+      },
+      body: JSON.stringify({
+        model,
+        messages: messages.map(msg => ({
+          role: msg.type === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        })),
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error?.message || errorJson.message || '请求失败';
+      } catch (e) {
+        errorMessage = `请求失败 (${response.status}): ${errorText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let content = '';
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        onUpdate?.({
+          type: 'complete',
+          content: content,
+          reasoning_content: null
+        });
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split('\n');
+      buffer = chunks.pop() || '';
+
+      for (const chunk of chunks) {
+        // 忽略心跳消息
+        if (!chunk.trim() || chunk.includes('OPENROUTER PROCESSING')) continue;
+
+        try {
+          const jsonStr = chunk.replace(/^data:\s*/, '').trim();
+          if (jsonStr === '[DONE]') continue;
+
+          const json = JSON.parse(jsonStr);
+          if (json.choices && json.choices[0] && json.choices[0].delta) {
+            const delta = json.choices[0].delta;
+            if (delta.content) {
+              content += delta.content;
+              
+              // 发送实时更新，使用 TYPING_RESULT 类型
+              onUpdate?.({
+                type: 'TYPING_RESULT',
+                content: content,
+                reasoning_content: null
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('解析数据块失败:', e, '数据块:', chunk);
+          continue;
+        }
+      }
+    }
+
+    return {
+      content: content,
+      usage: {
+        total_tokens: Math.ceil(content.length / 4)  // 简单估算token数
+      }
+    };
+  } catch (error) {
+    console.error('OpenRouter API 调用失败:', error);
+    throw new Error(`OpenRouter API 调用失败: ${error.message}`);
   }
 };
 

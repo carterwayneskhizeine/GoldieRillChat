@@ -15,13 +15,44 @@ export const MODEL_PROVIDERS = {
   openai: {
     name: 'OpenAI',
     apiHost: 'https://api.openai.com/v1',
-    models: ['gpt-3.5-turbo', 'gpt-4']
+    models: [
+      'gpt-4',
+      'gpt-3.5-turbo'
+    ]
+  },
+  claude: {
+    name: 'Claude',
+    apiHost: 'https://api.anthropic.com',
+    models: [
+      'claude-3-opus-20240229',
+      'claude-3-sonnet-20240229',
+      'claude-2.1',
+      'claude-2.0',
+      'claude-instant-1.2'
+    ]
+  },
+  siliconflow: {
+    name: 'SiliconFlow API',
+    apiHost: 'https://api.siliconflow.cn',
+    needsApiKey: true,
+    models: [
+      'Qwen/Qwen2.5-7B-Instruct',
+      'Qwen/Qwen2.5-14B-Instruct',
+      'Qwen/Qwen2.5-72B-Instruct',
+      'Qwen/Qwen2.5-Coder-32B-Instruct',
+      'ChatGLM/ChatGLM3-6B',
+      'ChatGLM/ChatGLM2-6B',
+      'ChatGLM/ChatGLM-6B'
+    ]
   },
   deepseek: {
     name: 'DeepSeek',
     apiHost: 'https://api.deepseek.com/v1',
-    models: ['deepseek-chat', 'deepseek-reasoner'],
-    needsApiKey: true
+    needsApiKey: true,
+    models: [
+      'deepseek-chat',
+      'deepseek-reasoner'
+    ]
   },
   openrouter: {
     name: 'OpenRouter',
@@ -35,26 +66,6 @@ export const MODEL_PROVIDERS = {
       'meta-llama/llama-2-13b-chat',
       'mistral-ai/mistral-7b-instruct'
     ]
-  },
-  claude: {
-    name: 'Claude API',
-    models: ['claude-2.1', 'claude-instant-1.2'],
-    needsApiKey: true,
-    apiHost: 'https://api.anthropic.com'
-  },
-  siliconflow: {
-    name: 'SiliconFlow API',
-    models: [
-      'Qwen/Qwen2.5-7B-Instruct',
-      'Qwen/Qwen2.5-14B-Instruct',
-      'Qwen/Qwen2.5-72B-Instruct',
-      'Qwen/Qwen2.5-Coder-32B-Instruct',
-      'ChatGLM/ChatGLM3-6B',
-      'ChatGLM/ChatGLM2-6B',
-      'ChatGLM/ChatGLM-6B'
-    ],
-    needsApiKey: true,
-    apiHost: 'https://api.siliconflow.cn'
   }
 };
 
