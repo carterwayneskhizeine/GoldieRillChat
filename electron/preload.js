@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 const path = require('path')
-const fs = require('fs')
+const fs = require('fs').promises
 
 contextBridge.exposeInMainWorld('electron', {
   selectFolder: () => ipcRenderer.invoke('select-folder'),
@@ -98,12 +98,12 @@ contextBridge.exposeInMainWorld('electron', {
   
   // 读取文件内容
   readFile: (filePath) => {
-    return fs.promises.readFile(filePath, 'utf8');
+    return fs.readFile(filePath, 'utf8');
   },
   
   // 写入文件内容
   writeFile: (filePath, content) => {
-    return fs.promises.writeFile(filePath, content, 'utf8');
+    return fs.writeFile(filePath, content, 'utf8');
   },
 
   // 加载图片到编辑器
@@ -130,5 +130,16 @@ contextBridge.exposeInMainWorld('electron', {
       }
     };
     img.src = `local-file://${imagePath}`;
+  },
+
+  // 删除文件
+  removeFile: async (filePath) => {
+    try {
+      await fs.unlink(filePath);
+      return true;
+    } catch (error) {
+      console.error('删除文件失败:', error);
+      throw error;
+    }
   }
 }) 

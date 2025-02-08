@@ -18,7 +18,9 @@ export const MODEL_PROVIDERS = {
     models: [
       'gpt-4',
       'gpt-3.5-turbo'
-    ]
+    ],
+    needsApiKey: true,
+    apiKeyHelp: '在 OpenAI 官网获取 API 密钥: https://platform.openai.com/api-keys'
   },
   claude: {
     name: 'Claude',
@@ -29,12 +31,15 @@ export const MODEL_PROVIDERS = {
       'claude-2.1',
       'claude-2.0',
       'claude-instant-1.2'
-    ]
+    ],
+    needsApiKey: true,
+    apiKeyHelp: '在 Anthropic 官网获取 API 密钥: https://console.anthropic.com/account/keys'
   },
   siliconflow: {
     name: 'SiliconFlow API',
     apiHost: 'https://api.siliconflow.cn',
     needsApiKey: true,
+    apiKeyHelp: '在 SiliconFlow 官网获取 API 密钥: https://api.siliconflow.cn',
     models: [
       'Qwen/Qwen2.5-7B-Instruct',
       'Qwen/Qwen2.5-14B-Instruct',
@@ -49,6 +54,7 @@ export const MODEL_PROVIDERS = {
     name: 'DeepSeek',
     apiHost: 'https://api.deepseek.com/v1',
     needsApiKey: true,
+    apiKeyHelp: '在 DeepSeek 官网获取 API 密钥: https://platform.deepseek.ai/settings',
     models: [
       'deepseek-chat',
       'deepseek-reasoner'
@@ -57,6 +63,8 @@ export const MODEL_PROVIDERS = {
   openrouter: {
     name: 'OpenRouter',
     apiHost: 'https://openrouter.ai/api/v1',
+    needsApiKey: true,
+    apiKeyHelp: '在 OpenRouter 官网获取 API 密钥: https://openrouter.ai/keys',
     models: [
       'openai/gpt-3.5-turbo',
       'openai/gpt-4',

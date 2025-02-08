@@ -43,6 +43,16 @@ const estimateTokens = (text) => {
   return Math.ceil(text.length / 4);
 }
 
+// 添加 API 密钥存储函数
+const saveApiKey = (provider, key) => {
+  localStorage.setItem(`${STORAGE_KEYS.API_KEY}_${provider}`, key);
+};
+
+// 添加 API 密钥获取函数
+const getApiKey = (provider) => {
+  return localStorage.getItem(`${STORAGE_KEYS.API_KEY}_${provider}`) || '';
+};
+
 export const AIChat = ({ 
   sendToSidebar,
   createNewConversation,
@@ -88,9 +98,10 @@ export const AIChat = ({
   });
 
   // 初始化API设置
-  const [apiKey, setApiKey] = useState(() => 
-    localStorage.getItem(STORAGE_KEYS.API_KEY) || ''
-  );
+  const [apiKey, setApiKey] = useState(() => {
+    const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER) || 'openai';
+    return getApiKey(savedProvider);
+  });
   
   const [apiHost, setApiHost] = useState(() => {
     const savedProvider = localStorage.getItem(STORAGE_KEYS.PROVIDER);
@@ -190,24 +201,27 @@ export const AIChat = ({
       const newApiHost = localStorage.getItem(`${STORAGE_KEYS.API_HOST}_${selectedProvider}`) || provider.apiHost;
       setApiHost(newApiHost);
       
+      // 加载对应提供商的 API 密钥
+      const savedApiKey = getApiKey(selectedProvider);
+      setApiKey(savedApiKey);
+      if (apiKeyRef.current) {
+        apiKeyRef.current.value = savedApiKey;
+      }
+      
       // 从缓存加载模型列表
       const cachedModels = getModelListFromCache(selectedProvider);
       if (cachedModels) {
         setAvailableModels(cachedModels);
-        
-        // 如果当前选择的模型不在缓存列表中，选择第一个可用的模型
         if (!cachedModels.includes(selectedModel)) {
           setSelectedModel(cachedModels[0]);
           localStorage.setItem(STORAGE_KEYS.MODEL, cachedModels[0]);
         }
       } else {
-        // 如果没有缓存，使用默认模型列表
         setAvailableModels(provider.models);
         setSelectedModel(provider.models[0]);
         localStorage.setItem(STORAGE_KEYS.MODEL, provider.models[0]);
       }
       
-      // 保存到本地存储
       localStorage.setItem(STORAGE_KEYS.PROVIDER, selectedProvider);
       localStorage.setItem(STORAGE_KEYS.API_HOST, newApiHost);
     }
@@ -225,7 +239,8 @@ export const AIChat = ({
     if (apiKeyRef.current) {
       const newApiKey = apiKeyRef.current.value;
       setApiKey(newApiKey);
-      localStorage.setItem(STORAGE_KEYS.API_KEY, newApiKey);
+      // 保存到对应提供商的存储中
+      saveApiKey(selectedProvider, newApiKey);
     }
     setShowSettings(false);
   };
@@ -306,6 +321,15 @@ export const AIChat = ({
       type: 'user',
       timestamp: new Date()
     };
+
+    // 创建 AI 消息对象（移到 try 块外面）
+    const aiMessage = {
+      id: Date.now() + 1,
+      content: '',
+      type: 'assistant',
+      timestamp: new Date(),
+      generating: true
+    };
     
     try {
       // 保存用户消息到txt文件
@@ -335,15 +359,6 @@ export const AIChat = ({
           textarea.style.overflowY = 'hidden';
         }
       }
-
-      // 添加 AI 消息
-      const aiMessage = {
-        id: Date.now() + 1,
-        content: '',
-        type: 'assistant',
-        timestamp: new Date(),
-        generating: true
-      };
       
       // 设置初始状态
       setMessageStates(prev => ({
@@ -450,6 +465,14 @@ export const AIChat = ({
             generating: false,
             error: true
           };
+        } else {
+          // 如果找不到正在生成的消息，添加一个新的错误消息
+          newMessages.push({
+            ...aiMessage,
+            content: `**错误信息**:\n\`\`\`\n${error.message}\n\`\`\``,
+            generating: false,
+            error: true
+          });
         }
         return newMessages;
       });
@@ -462,7 +485,7 @@ export const AIChat = ({
     }
   };
 
-  // 修改 handleRetry 函数，确保保存历史记录
+  // 修改 handleRetry 函数
   const handleRetry = async (messageId) => {
     const aiMessage = messages.find(msg => msg.id === messageId);
     if (!aiMessage || aiMessage.type !== 'assistant') return;
@@ -476,8 +499,10 @@ export const AIChat = ({
       const currentMessage = newMessages[index];
       const history = currentMessage.history || [];
       
-      // 只有当当前内容不为空且不是错误消息时才保存到历史记录
-      if (currentMessage.content && !currentMessage.error) {
+      // 只有当当前内容不为空且不是错误消息，且与最后一条历史记录不同时才保存
+      if (currentMessage.content && 
+          !currentMessage.error && 
+          (!history.length || history[history.length - 1].content !== currentMessage.content)) {
         history.push({
           content: currentMessage.content,
           timestamp: new Date(),
@@ -489,7 +514,8 @@ export const AIChat = ({
       newMessages[index] = {
         ...currentMessage,
         history: history,
-        currentHistoryIndex: history.length // 设置为最新的索引
+        currentHistoryIndex: history.length, // 设置为最新的索引
+        currentContent: null // 重置当前内容
       };
       return newMessages;
     });
@@ -546,7 +572,8 @@ export const AIChat = ({
           generating: false,
           usage: response.usage,
           model: selectedModel,
-          tokens: response.usage?.total_tokens || 0
+          tokens: response.usage?.total_tokens || 0,
+          currentHistoryIndex: currentMessage.history.length // 设置为最新的索引
         };
 
         return newMessages;
@@ -578,7 +605,8 @@ export const AIChat = ({
           ...newMessages[index],
           content: `**错误信息**:\n\`\`\`\n${error.message}\n\`\`\``,
           generating: false,
-          error: true
+          error: true,
+          currentHistoryIndex: newMessages[index].history.length // 保持在最新的索引
         };
         return newMessages;
       });
@@ -612,10 +640,38 @@ export const AIChat = ({
   };
 
   // 修改删除消息的处理函数
-  const handleDeleteMessage = (messageId) => {
-    const newMessages = messages.filter(m => m.id !== messageId);
-    setMessages(newMessages);
-    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(newMessages));
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      // 找到要删除的消息
+      const message = messages.find(msg => msg.id === messageId);
+      if (!message) return;
+
+      // 如果消息有关联的文件，删除它们
+      if (message.txtFile) {
+        await window.electron.removeFile(message.txtFile.path);
+      }
+      if (message.files?.length) {
+        for (const file of message.files) {
+          await window.electron.removeFile(file.path);
+        }
+      }
+
+      // 从消息列表中移除消息
+      const newMessages = messages.filter(m => m.id !== messageId);
+      setMessages(newMessages);
+
+      // 保存更新后的消息列表到 messages.json
+      if (currentConversation) {
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          newMessages
+        );
+      }
+    } catch (error) {
+      console.error('删除消息失败:', error);
+      alert('删除消息失败: ' + error.message);
+    }
   };
 
   // 添加清空聊天记录的函数
@@ -689,34 +745,79 @@ export const AIChat = ({
             {/* API Key */}
             <div>
               <h3 className="text-lg font-medium mb-2">API 密钥</h3>
-              <div className="flex w-full gap-0">
-                <input
-                  ref={apiKeyRef}
-                  type={showApiKey ? "text" : "password"}
-                  className="input input-bordered flex-1 rounded-r-none"
-                  defaultValue={apiKey}
-                  placeholder="请输入API密钥..."
-                  onKeyDown={handleKeyDown}
-                />
-                <button 
-                  type="button"
-                  className="btn rounded-l-none"
-                  onClick={handlePaste}
-                  title="点击粘贴"
-                >
-                  📋
-                </button>
-                <button 
-                  type="button"
-                  className="btn rounded-none border-l-0"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  title={showApiKey ? "隐藏密钥" : "显示密钥"}
-                >
-                  {showApiKey ? "👁️" : "👁️‍🗨️"}
-                </button>
-              </div>
-              <div className="mt-1 text-xs opacity-70">
-                支持快捷键 {navigator.platform.includes('Mac') ? '⌘+V' : 'Ctrl+V'} 粘贴
+              <div className="flex flex-col gap-2">
+                <div className="flex w-full gap-0">
+                  <input
+                    ref={apiKeyRef}
+                    type={showApiKey ? "text" : "password"}
+                    className="input input-bordered flex-1 rounded-r-none"
+                    defaultValue={apiKey}
+                    placeholder={`请输入 ${MODEL_PROVIDERS[selectedProvider].name} API 密钥...`}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <button 
+                    type="button"
+                    className="btn rounded-l-none"
+                    onClick={handlePaste}
+                    title="点击粘贴"
+                  >
+                    📋
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn rounded-none border-l-0"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    title={showApiKey ? "隐藏密钥" : "显示密钥"}
+                  >
+                    {showApiKey ? "👁️" : "👁️‍🗨️"}
+                  </button>
+                </div>
+                <div className="flex flex-col gap-1 text-xs opacity-70">
+                  <div className="settings-text">
+                    支持快捷键 {navigator.platform.includes('Mac') ? '⌘+V' : 'Ctrl+V'} 粘贴
+                  </div>
+                  <div className="settings-help-text">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      API 密钥已为每个提供商单独保存，切换提供商时会自动加载对应的密钥
+                    </span>
+                  </div>
+                  {MODEL_PROVIDERS[selectedProvider].needsApiKey && (
+                    <div className="settings-help-text text-warning">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span>
+                        此提供商需要 API 密钥才能使用
+                      </span>
+                    </div>
+                  )}
+                  {MODEL_PROVIDERS[selectedProvider].apiKeyHelp && (
+                    <div className="settings-help-text mt-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>
+                        {MODEL_PROVIDERS[selectedProvider].apiKeyHelp.split(': ').map((part, index, array) => {
+                          if (index === array.length - 1) {
+                            return (
+                              <a
+                                key={index}
+                                className="text-primary hover:text-primary-focus"
+                                onClick={() => window.electron.openExternal(part.trim())}
+                              >
+                                {part.trim()}
+                              </a>
+                            );
+                          }
+                          return part + ': ';
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -966,6 +1067,35 @@ export const AIChat = ({
             50% { content: '..'; }
             75% { content: '...'; }
             100% { content: ''; }
+          }
+
+          /* 设置面板文字样式 */
+          .settings-text {
+            user-select: text;
+            cursor: text;
+          }
+          
+          .settings-text a {
+            color: var(--p);
+            text-decoration: underline;
+            cursor: pointer;
+          }
+
+          .settings-help-text {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            user-select: text;
+            cursor: text;
+          }
+
+          .settings-help-text svg {
+            flex-shrink: 0;
+            margin-top: 2px;
+          }
+
+          .settings-help-text span {
+            flex: 1;
           }
         `}
       </style>

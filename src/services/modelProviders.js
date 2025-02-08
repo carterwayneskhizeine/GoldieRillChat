@@ -171,8 +171,24 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate 
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || '请求失败');
+      const errorText = await response.text();
+      let errorMessage;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = `DeepSeek API 错误: ${errorJson.error?.message || errorJson.message || '未知错误'}\n`;
+        if (errorJson.error?.code) {
+          errorMessage += `错误代码: ${errorJson.error.code}\n`;
+        }
+        if (errorJson.error?.type) {
+          errorMessage += `错误类型: ${errorJson.error.type}`;
+        }
+        if (response.status === 402) {
+          errorMessage = 'DeepSeek API 余额不足，请充值后再试。';
+        }
+      } catch (e) {
+        errorMessage = `请求失败 (${response.status}): ${errorText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const reader = response.body.getReader();
