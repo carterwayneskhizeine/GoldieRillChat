@@ -585,7 +585,7 @@ function createWindow() {
         mainWindow.setBrowserView(view)
         updateBrowserViewBounds()
       }
-      // 不在这里创建新标签页，让渲染进程处理
+      // 不再自动创建新标签页
     } else {
       mainWindow.setBrowserView(null)
     }
@@ -608,7 +608,7 @@ function createWindow() {
     const id = view.webContents.id
     tabs.set(id, {
       id,
-      url,
+      url: url || 'about:blank',
       title: '新标签页',
       isLoading: false,
       canGoBack: false,
@@ -726,9 +726,24 @@ function createWindow() {
     return id
   }
 
-  // 修改新建标签页处理
-  ipcMain.handle('browser-new-tab', async (event, url = 'https://www.google.com', options = {}) => {
-    return createNewTab(url, options)
+  // 处理新标签页请求
+  ipcMain.handle('browser-new-tab', async (event, url = 'about:blank') => {
+    const view = await createNewTab(url)
+    if (view) {
+      // 设置为活动标签页
+      activeTabId = view.webContents.id
+      mainWindow.setBrowserView(view)
+      updateBrowserViewBounds()
+      mainWindow.webContents.send('browser-active-tab-update', activeTabId)
+      
+      // 如果提供了 URL，加载它
+      if (url && url !== 'about:blank') {
+        view.webContents.loadURL(url)
+      }
+      
+      return view.webContents.id
+    }
+    return null
   })
 
   // 修改新窗口处理函数

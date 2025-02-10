@@ -28,14 +28,10 @@ export const useBrowserEvents = ({
     if (activeTool === 'browser') {
       // 显示浏览器视图
       window.electron.browser.setVisibility(true)
+      
       // 更新浏览器视图位置（考虑当前侧边栏状态和模式）
       const sidebarWidth = sidebarOpen ? (sidebarMode === 'chat' ? 400 : 200) : 0
       window.electron.browser.updateSidebarWidth(sidebarWidth)
-
-      // 只在没有任何标签页时创建新标签页
-      if (browserTabs.length === 0 && !activeTabId) {
-        window.electron.browser.newTab('https://www.google.com')
-      }
 
       // 监听标签页更新
       const tabsUnsubscribe = window.electron.browser.onTabsUpdate((tabs) => {
@@ -76,6 +72,9 @@ export const useBrowserEvents = ({
         loadingUnsubscribe()
         titleUnsubscribe()
       }
+    } else {
+      // 通知主进程浏览器视图不可见
+      window.electron.browser.setVisibility(false)
     }
   }, [activeTool, sidebarOpen, browserTabs.length, activeTabId, sidebarMode])
 }

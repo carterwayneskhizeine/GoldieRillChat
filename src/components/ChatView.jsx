@@ -147,7 +147,10 @@ export function ChatView({
         `}
       </style>
       {/* 消息列表容器 */}
-      <div className={`flex-1 overflow-y-auto p-4 ${isCompact ? 'compact-scroll' : ''} chat-view-messages`}>
+      <div 
+        id="ai-chat-messages"
+        className={`flex-1 overflow-y-auto p-4 ${isCompact ? 'compact-scroll' : ''} chat-view-messages`}
+      >
         <div className="space-y-4 max-w-[1200px] mx-auto">
           {messages.map(message => (
             <div
@@ -275,31 +278,28 @@ export function ChatView({
                           const isCollapsed = collapsedMessages.has(message.id);
                           const newSet = new Set([...collapsedMessages]);
                           const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-                          const messagesContainer = document.querySelector('.chat-view-messages');
                           
                           if (isCollapsed) {
-                            // 展开时，先滚动到消息顶部
+                            // 展开消息
                             newSet.delete(message.id);
                             setCollapsedMessages(newSet);
+                            // 等待状态更新后滚动
                             setTimeout(() => {
-                              if (messageElement && messagesContainer) {
-                                const elementRect = messageElement.getBoundingClientRect();
-                                const containerRect = messagesContainer.getBoundingClientRect();
-                                const scrollTop = elementRect.top - containerRect.top + messagesContainer.scrollTop - 20;
-                                messagesContainer.scrollTo({ top: scrollTop, behavior: 'smooth' });
-                              }
+                              messageElement?.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                              });
                             }, 100);
                           } else {
-                            // 折叠时，滚动到消息中间
+                            // 折叠消息
                             newSet.add(message.id);
                             setCollapsedMessages(newSet);
+                            // 等待状态更新后滚动
                             setTimeout(() => {
-                              if (messageElement && messagesContainer) {
-                                const elementRect = messageElement.getBoundingClientRect();
-                                const containerRect = messagesContainer.getBoundingClientRect();
-                                const scrollTop = elementRect.top - containerRect.top + messagesContainer.scrollTop - containerRect.height / 2 + elementRect.height / 2;
-                                messagesContainer.scrollTo({ top: scrollTop, behavior: 'smooth' });
-                              }
+                              messageElement?.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                              });
                             }, 100);
                           }
                         }}
@@ -319,27 +319,38 @@ export function ChatView({
 
                   <div className={`response-content ${collapsedMessages.has(message.id) ? 'message-collapsed' : ''}`}>
                     {editingMessage?.id === message.id ? (
-                      <div className="join w-full">
-                        <div className={`mockup-code ${isCompact ? 'w-full' : 'w-[650px]'} h-[550px] bg-base-300 relative`}>
-                          <pre data-prefix=""></pre>
+                      <div className="flex flex-col gap-2 w-full max-w-[1200px] mx-auto">
+                        <div className="mockup-code min-w-[800px] bg-base-300 relative">
                           <textarea
                             value={messageInput}
-                            onChange={(e) => setMessageInput(e.target.value)}
-                            className="absolute inset-0 top-[40px] bg-transparent text-current p-4 resize-none focus:outline-none w-full h-[calc(100%-40px)] font-mono"
+                            onChange={(e) => {
+                              setMessageInput(e.target.value);
+                              // 自动调整高度
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${Math.min(e.target.scrollHeight, 800)}px`;
+                            }}
+                            className="w-full min-h-[300px] max-h-[800px] p-4 bg-transparent text-current font-mono text-sm leading-relaxed resize-none focus:outline-none"
+                            placeholder="编辑消息..."
+                            style={{
+                              overflowY: 'auto',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              minWidth: '800px'
+                            }}
                           />
                         </div>
-                        <div className="absolute bottom-4 left-4 flex gap-2">
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => updateMessage(message.id, messageInput)}
-                          >
-                            Save
-                          </button>
+                        <div className="flex justify-end gap-2">
                           <button
                             className="btn btn-ghost btn-sm"
                             onClick={exitEditMode}
                           >
-                            Cancel
+                            取消
+                          </button>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => updateMessage(message.id, messageInput)}
+                          >
+                            保存
                           </button>
                         </div>
                       </div>

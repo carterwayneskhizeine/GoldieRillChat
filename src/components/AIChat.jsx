@@ -53,6 +53,16 @@ const getApiKey = (provider) => {
   return localStorage.getItem(`${STORAGE_KEYS.API_KEY}_${provider}`) || '';
 };
 
+// 在文件顶部添加辅助函数
+const getRelativeOffsetTop = (child, parent) => {
+  let offset = 0;
+  while (child && child !== parent) {
+    offset += child.offsetTop;
+    child = child.offsetParent;
+  }
+  return offset;
+};
+
 export const AIChat = ({ 
   sendToSidebar,
   createNewConversation,
@@ -63,6 +73,9 @@ export const AIChat = ({
   onConversationDelete,
   onConversationRename
 }) => {
+  // 添加折叠消息状态
+  const [collapsedMessages, setCollapsedMessages] = useState(new Set());
+  
   // 从本地存储初始化状态
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState(() => {
@@ -882,12 +895,6 @@ export const AIChat = ({
 
   // 在AIChat组件中添加消息状态
   const [messageStates, setMessageStates] = useState({}); // 跟踪每条消息的显示阶段
-  const [collapsedMessages, setCollapsedMessages] = useState(new Set()); // 跟踪消息折叠状态
-
-  // 添加折叠状态管理
-  const [collapsedReasoning, setCollapsedReasoning] = useState({});
-
-  // 添加动画状态管理
   const [animationStates, setAnimationStates] = useState({});
 
   // 在组件加载时为现有消息设置状态
@@ -1153,6 +1160,15 @@ export const AIChat = ({
             padding-bottom: 32px;
           }
 
+          .message-content {
+            position: relative;
+          }
+
+          /* 消息内容样式 */
+          .chat-bubble .prose {
+            color: inherit;
+          }
+
           /* 消息操作按钮基础样式 */
           .message-actions {
             position: absolute;
@@ -1208,11 +1224,6 @@ export const AIChat = ({
             margin-left: auto;
           }
 
-          /* 消息内容样式 */
-          .chat-bubble .prose {
-            color: inherit;
-          }
-
           /* 操作按钮样式 */
           .message-actions button {
             background-color: var(--b1);
@@ -1227,6 +1238,54 @@ export const AIChat = ({
           .message-actions button:hover {
             transform: scale(1.05);
             background-color: var(--b2);
+          }
+
+          #ai-chat-messages-main {
+            position: relative;
+            overflow-y: auto;
+            height: 100%;
+            scroll-behavior: smooth;
+          }
+          
+          .message-container {
+            position: relative;
+            scroll-margin-top: 20px;
+          }
+          
+          .message-collapsed {
+            max-height: 100px !important;
+            overflow: hidden;
+          }
+          
+          .response-content {
+            transition: max-height 0.3s ease-out;
+          }
+
+          .collapse-button {
+            position: sticky;
+            top: 2px;
+            float: right;
+            margin-left: 8px;
+            margin-right: 0px;
+            z-index: 100;
+            pointer-events: all;
+          }
+          
+          .collapse-button button {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            background-color: var(--b1);
+            border: 1px solid var(--b3);
+          }
+          
+          .collapse-button button:hover {
+            transform: scale(1.1);
+            background-color: var(--b2);
+          }
+          
+          .mask-bottom {
+            mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
           }
         `}
       </style>
@@ -1248,142 +1307,167 @@ export const AIChat = ({
         </div>
 
         {/* 消息列表容器 */}
-        <div className="flex-1 overflow-y-auto p-4 bg-base-100" id="ai-chat-messages">
-          <div className="space-y-4 max-w-[1200px] mx-auto">
+        <div className="flex-1 overflow-hidden bg-base-100">
+          <div 
+            id="ai-chat-messages-main"
+            className="h-full overflow-y-auto" 
+            style={{ 
+              paddingBottom: '145px',
+              isolation: 'isolate',
+              position: 'relative',
+              scrollBehavior: 'smooth'  // 添加平滑滚动
+            }}
+          >
+            <div className="space-y-4 max-w-[1200px] mx-auto p-4">
             {messages.map(message => (
               <div
                 key={message.id}
-                className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container`}
-                data-message-id={message.id}
+                  className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container`}
+                  data-message-id={message.id}
               >
-                {/* 消息头部 */}
+                  {/* 消息头部 */}
                 <div className="chat-header opacity-70">
                   <span className="text-xs">
                     {new Date(message.timestamp).toLocaleString()}
                     {message.type === 'assistant' && (
                       <>
-                        {' • '}模型: {message.model || selectedModel}
-                        {message.tokens ? ` • Token: ${message.tokens}` : message.usage?.total_tokens ? ` • Token: ${message.usage.total_tokens}` : ''}
-                        {message.error && ' • 错误'}
+                          {' • '}模型: {message.model || selectedModel}
+                          {message.tokens ? ` • Token: ${message.tokens}` : message.usage?.total_tokens ? ` • Token: ${message.usage.total_tokens}` : ''}
+                          {message.error && ' • 错误'}
                       </>
                     )}
                   </span>
                 </div>
 
-                {/* 消息内容 */}
-                <div className={`chat-bubble ${
-                  message.type === 'user' ? 'chat-bubble-primary' : 
-                  message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
-                }`}>
-                  <div className="message-content">
-                    {editingMessageId === message.id ? (
-                      <div className="flex flex-col gap-2">
-                        <textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className="textarea textarea-bordered w-full min-h-[100px]"
-                          placeholder="编辑消息内容..."
-                        />
-                        <div className="flex justify-end gap-2">
-                          <button
-                            className="btn btn-sm"
-                            onClick={() => handleEditCancel()}
+                  {/* 消息内容 */}
+                  <div className={`chat-bubble ${
+                    message.type === 'user' ? 'chat-bubble-primary' : 
+                    message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
+                  }`}>
+                    <div className="message-content">
+                      {/* 折叠按钮 */}
+                      {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
+                        <div className="collapse-button">
+                          <button 
+                            className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const isCollapsed = collapsedMessages.has(message.id);
+                              const newSet = new Set([...collapsedMessages]);
+                              // 获取 AIChat 消息容器
+                              const messageElement = document.querySelector('#ai-chat-messages-main')?.querySelector(`[data-message-id="${message.id}"]`);
+                              
+                              if (isCollapsed) {
+                                // 展开消息
+                                newSet.delete(message.id);
+                                setCollapsedMessages(newSet);
+                                // 等待状态更新后滚动到顶部
+                                setTimeout(() => {
+                                  if (messageElement) {
+                                    const container = document.querySelector('#ai-chat-messages-main');
+                                    if (container) {
+                                      const elementTop = messageElement.offsetTop;
+                                      container.scrollTo({
+                                        top: elementTop,
+                                        behavior: 'smooth'
+                                      });
+                                    }
+                                  }
+                                }, 100);
+                              } else {
+                                // 折叠消息
+                                newSet.add(message.id);
+                                setCollapsedMessages(newSet);
+                                // 等待状态更新后滚动到中间
+                                setTimeout(() => {
+                                  if (messageElement) {
+                                    const container = document.querySelector('#ai-chat-messages-main');
+                                    if (container) {
+                                      const elementTop = messageElement.offsetTop;
+                                      const elementHeight = messageElement.offsetHeight;
+                                      const containerHeight = container.clientHeight;
+                                      const scrollTop = elementTop - (containerHeight - elementHeight) / 2;
+                                      container.scrollTo({
+                                        top: scrollTop,
+                                        behavior: 'smooth'
+                                      });
+                                    }
+                                  }
+                                }, 100);
+                              }
+                            }}
                           >
-                            取消
-                          </button>
-                          <button
-                            className="btn btn-sm btn-primary"
-                            onClick={() => handleEditSave(message.id)}
-                          >
-                            保存
+                            {collapsedMessages.has(message.id) ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                              </svg>
+                            )}
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        {/* 折叠按钮 */}
-                        {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
-                          <div className="collapse-button">
-                            <button 
-                              className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const isCollapsed = collapsedMessages.has(message.id);
-                                const newSet = new Set([...collapsedMessages]);
-                                const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-                                const messagesContainer = document.getElementById('ai-chat-messages');
-                                
-                                if (isCollapsed) {
-                                  // 展开消息
-                                  newSet.delete(message.id);
-                                  setCollapsedMessages(newSet);
-                                  
-                                  // 等待DOM更新后滚动
-                                  setTimeout(() => {
-                                    if (messageElement && messagesContainer) {
-                                      // 让消息顶部与容器顶部对齐
-                                      messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                    }
-                                  }, 100);
-                                } else {
-                                  // 折叠消息
-                                  newSet.add(message.id);
-                                  setCollapsedMessages(newSet);
-                                  
-                                  // 等待DOM更新后滚动
-                                  setTimeout(() => {
-                                    if (messageElement && messagesContainer) {
-                                      // 让消息在屏幕中间显示
-                                      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    }
-                                  }, 100);
-                                }
+                      )}
+
+                      <div className={`response-content ${collapsedMessages.has(message.id) ? 'message-collapsed' : ''}`}>
+                        {editingMessageId === message.id ? (
+                          <div className="flex flex-col gap-2">
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              className="textarea textarea-bordered w-full min-h-[100px]"
+                              placeholder="编辑消息内容..."
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button
+                                className="btn btn-sm"
+                                onClick={() => handleEditCancel()}
+                              >
+                                取消
+                              </button>
+                              <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => handleEditSave(message.id)}
+                              >
+                                保存
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={`prose max-w-none ${
+                            collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
+                          }`}>
+                            <MarkdownRenderer
+                              content={message.content || ''}
+                              isCompact={false}
+                              onCopyCode={(code) => {
+                                console.log('Code copied:', code);
                               }}
-                            >
-                              {collapsedMessages.has(message.id) ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                </svg>
-                              )}
-                            </button>
+                              onLinkClick={(href) => {
+                                window.electron.openExternal(href);
+                              }}
+                            />
                           </div>
                         )}
-
-                        <div className={`response-content ${collapsedMessages.has(message.id) ? 'message-collapsed' : ''}`}>
-                          <MarkdownRenderer
-                            content={message.content || ''}
-                            isCompact={false}
-                            onCopyCode={(code) => {
-                              console.log('Code copied:', code);
-                            }}
-                            onLinkClick={(href) => {
-                              window.electron.openExternal(href);
-                            }}
-                          />
-                        </div>
-                      </>
-                    )}
+                      </div>
+                    </div>
                   </div>
-                </div>
 
                 {/* 消息操作按钮 */}
-                {!editingMessageId && (
-                  <div className="message-actions">
+                  {!editingMessageId && (
+                    <div className="message-actions">
                     <button
                       className="btn btn-ghost btn-xs"
-                      onClick={() => handleEditStart(message)}
-                    >
-                      编辑
+                        onClick={() => handleEditStart(message)}
+                      >
+                        编辑
                     </button>
                     <button
                       className="btn btn-ghost btn-xs"
                       onClick={() => handleDeleteMessage(message.id)}
                     >
-                      删除
+                        删除
                     </button>
                     <button
                       className="btn btn-ghost btn-xs"
@@ -1391,43 +1475,44 @@ export const AIChat = ({
                         navigator.clipboard.writeText(message.content);
                       }}
                     >
-                      复制
+                        复制
                     </button>
-                    {message.type === 'assistant' && (
-                      <button
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => handleRetry(message.id)}
-                      >
-                        重试
-                      </button>
-                    )}
-                    {message.history?.length > 0 && (
-                      <>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => handleHistoryNavigation(message.id, 'prev')}
-                          disabled={!message.currentHistoryIndex}
+                      {message.type === 'assistant' && (
+                    <button
+                      className="btn btn-ghost btn-xs"
+                          onClick={() => handleRetry(message.id)}
                         >
-                          上一个
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => handleHistoryNavigation(message.id, 'next')}
-                          disabled={message.currentHistoryIndex === message.history.length}
-                        >
-                          下一个
-                        </button>
-                        <span className="text-xs opacity-70">
-                          {message.currentHistoryIndex === message.history.length ? 
-                            '当前' : 
-                            `${message.currentHistoryIndex + 1}/${message.history.length + 1}`}
-                        </span>
-                      </>
-                    )}
+                          重试
+                    </button>
+                      )}
+                      {message.history?.length > 0 && (
+                        <>
+                          <button
+                            className="btn btn-ghost btn-xs"
+                            onClick={() => handleHistoryNavigation(message.id, 'prev')}
+                            disabled={!message.currentHistoryIndex}
+                          >
+                            上一个
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-xs"
+                            onClick={() => handleHistoryNavigation(message.id, 'next')}
+                            disabled={message.currentHistoryIndex === message.history.length}
+                          >
+                            下一个
+                          </button>
+                          <span className="text-xs opacity-70">
+                            {message.currentHistoryIndex === message.history.length ? 
+                              '当前' : 
+                              `${message.currentHistoryIndex + 1}/${message.history.length + 1}`}
+                          </span>
+                        </>
+                      )}
                   </div>
                 )}
               </div>
             ))}
+            </div>
           </div>
         </div>
 

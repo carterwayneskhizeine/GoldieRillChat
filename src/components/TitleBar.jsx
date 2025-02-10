@@ -48,7 +48,7 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
         <span className="text-sm font-semibold app-drag-region">GoldieRillChat</span>
       </div>
 
-      {/* 中间区域：浏览器控制栏或AI Chat标题 */}
+      {/* 中间区域：浏览器控制栏或聊天标题 */}
       <div className="flex-1 flex justify-center items-center app-drag-region">
         {activeTool === 'browser' ? (
           <div className="w-[600px] flex items-center gap-1 no-drag">
@@ -98,11 +98,7 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
               placeholder="输入网址..."
             />
           </div>
-        ) : activeTool === 'aichat' && currentChatName ? (
-          <div className="text-sm font-semibold opacity-80 app-drag-region">
-            {currentChatName}
-          </div>
-        ) : null}
+        ) : activeTool === 'browser' ? null : null}
       </div>
 
       {/* 右侧按钮组 */}

@@ -7,6 +7,12 @@
   width: 100%; /* 确保容器占满宽度 */
 }
 
+/* 消息列表容器样式 */
+.chat-view-messages {
+  padding: 1rem;
+  padding-bottom: 145px !important; /* 添加足够的底部padding，避免被输入框遮挡 */
+}
+
 /* 用户消息容器样式 */
 .chat-end {
   display: flex;
