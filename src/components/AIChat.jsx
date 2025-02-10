@@ -1294,9 +1294,30 @@ export const AIChat = ({
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* 顶部标题栏 */}
         <div className="p-4 border-b border-base-300 flex justify-between items-center bg-base-100">
-          <h2 className="text-xl font-semibold">{currentConversation?.name || '当前会话'}</h2>
+          {/* 左侧模型选择 */}
+          <div className="flex-none">
+            <select 
+              className="select select-bordered select-xs w-[300px]"
+              value={selectedModel}
+              onChange={(e) => {
+                setSelectedModel(e.target.value);
+                localStorage.setItem(STORAGE_KEYS.MODEL, e.target.value);
+              }}
+            >
+              {availableModels.map(model => (
+                <option key={model} value={model}>{model}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 中间对话名称 */}
+          <h2 className="text-xs opacity-70 flex-1 text-center">
+            {currentConversation?.name || '当前会话'}
+          </h2>
+
+          {/* 右侧设置按钮 */}
           <button 
-            className="btn btn-ghost btn-sm btn-circle"
+            className="btn btn-ghost btn-sm btn-circle flex-none"
             onClick={() => setShowSettings(true)}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
