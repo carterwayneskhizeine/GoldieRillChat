@@ -1174,12 +1174,13 @@ export const AIChat = ({
         </div>
 
         {/* 消息列表容器 */}
-        <div className="flex-1 overflow-y-auto p-4 bg-base-100">
+        <div className="flex-1 overflow-y-auto p-4 bg-base-100" id="ai-chat-messages">
           <div className="space-y-4 max-w-[1200px] mx-auto">
             {messages.map(message => (
               <div
                 key={message.id}
                 className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container`}
+                data-message-id={message.id}
               >
                 {/* 用户消息 */}
                 {message.type === 'user' && (
@@ -1232,26 +1233,79 @@ export const AIChat = ({
                     <div className={`chat-bubble ${
                       messageStates[message.id] === MESSAGE_STATES.ERROR || message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
                     }`}>
-                        <div className="response-content">
-                        {messageStates[message.id] === MESSAGE_STATES.THINKING ? (
-                          <div className="flex items-center gap-2">
-                            <span>思考中</span>
-                            <span className="loading loading-dots loading-sm"></span>
-                          </div>
-                        ) : messageStates[message.id] === MESSAGE_STATES.COMPLETED || message.error ? (
-                          <MarkdownRenderer
-                            content={message.content || ''}
-                            isCompact={false}
-                            onCopyCode={(code) => {
-                              console.log('Code copied:', code);
-                            }}
-                            onLinkClick={(href) => {
-                              window.electron.openExternal(href);
-                            }}
-                          />
-                        ) : null}
+                      <div className="message-content">
+                        {/* 折叠按钮 */}
+                        {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
+                          <div className="collapse-button">
+                            <button 
+                              className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
+                              onClick={() => {
+                                const isCollapsed = collapsedMessages.has(message.id);
+                                const newSet = new Set([...collapsedMessages]);
+                                const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+                                const messagesContainer = document.getElementById('ai-chat-messages');
+                                
+                                if (isCollapsed) {
+                                  // 展开消息
+                                  newSet.delete(message.id);
+                                  setCollapsedMessages(newSet);
+                                  
+                                  // 等待DOM更新后滚动
+                                  setTimeout(() => {
+                                    if (messageElement && messagesContainer) {
+                                      // 让消息顶部与容器顶部对齐
+                                      messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }
+                                  }, 100);
+                                } else {
+                                  // 折叠消息
+                                  newSet.add(message.id);
+                                  setCollapsedMessages(newSet);
+                                  
+                                  // 等待DOM更新后滚动
+                                  setTimeout(() => {
+                                    if (messageElement && messagesContainer) {
+                                      // 让消息在屏幕中间显示
+                                      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                  }, 100);
+                                }
+                              }}
+                            >
+                              {collapsedMessages.has(message.id) ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                              )}
+                            </button>
+                      </div>
+                    )}
+
+                        <div className={`response-content ${collapsedMessages.has(message.id) ? 'message-collapsed' : ''}`}>
+                          {messageStates[message.id] === MESSAGE_STATES.THINKING ? (
+                            <div className="flex items-center gap-2">
+                              <span>思考中</span>
+                              <span className="loading loading-dots loading-sm"></span>
+                            </div>
+                          ) : messageStates[message.id] === MESSAGE_STATES.COMPLETED || message.error ? (
+                            <MarkdownRenderer
+                              content={message.content || ''}
+                              isCompact={false}
+                              onCopyCode={(code) => {
+                                console.log('Code copied:', code);
+                              }}
+                              onLinkClick={(href) => {
+                                window.electron.openExternal(href);
+                              }}
+                            />
+                          ) : null}
                             </div>
                         </div>
+                          </div>
 
                 {/* 消息操作按钮 */}
                     {messageStates[message.id] === MESSAGE_STATES.COMPLETED && (

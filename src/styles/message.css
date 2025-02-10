@@ -18,6 +18,8 @@
 .chat-end .chat-bubble {
   margin-right: 0; /* 移除右边距 */
   margin-left: auto; /* 让消息靠右 */
+  background-color: transparent !important; /* 设置背景透明 */
+  color: var(--bc) !important; /* 统一文字颜色 */
 }
 
 /* 用户消息时间样式 */
@@ -34,6 +36,8 @@
   overflow: visible;
   line-height: 1.6;
   transition: all 0.3s ease-out;
+  background-color: transparent !important; /* 设置背景透明 */
+  color: var(--bc) !important; /* 统一文字颜色 */
 }
 
 /* 消息气泡动画 */
@@ -54,7 +58,7 @@
 
 /* 推理过程气泡样式 */
 .chat-bubble.chat-bubble-info {
-  background-color: var(--b2);
+  background-color: transparent !important; /* 设置背景透明 */
   border: 1px solid var(--b3);
   font-size: 0.9em;
   margin-bottom: 0.5rem;
@@ -112,6 +116,26 @@
   z-index: 100;
 }
 
+.collapse-button button {
+  background-color: var(--b1);
+  border: 1px solid var(--b3);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+
+.collapse-button button:hover {
+  transform: scale(1.1);
+  background-color: var(--b2);
+}
+
+/* 折叠状态的消息样式 */
+.message-collapsed {
+  max-height: 100px;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
 /* Markdown 内容样式 */
 .chat-bubble .prose {
   overflow: visible;
@@ -148,4 +172,16 @@
     max-width: 85vw;
     overflow-x: auto;
   }
+}
+
+/* AI消息气泡样式 */
+.chat-start .chat-bubble {
+  background-color: transparent !important; /* 设置背景透明 */
+  color: var(--bc) !important; /* 统一文字颜色 */
+}
+
+/* 消息内容容器 */
+.message-content {
+  position: relative;
+  transition: max-height 0.3s ease-out;
 } 

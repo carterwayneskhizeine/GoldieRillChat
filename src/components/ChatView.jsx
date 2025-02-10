@@ -146,25 +146,13 @@ export function ChatView({
           }
         `}
       </style>
-      {/* 消息列表区域 */}
-      <div 
-        className={`flex-1 overflow-y-auto overflow-x-hidden ${isCompact ? 'compact-scroll' : ''}`}
-        style={{
-          height: 'calc(100vh - 200px)',
-          paddingBottom: isCompact ? '50px' : '20px',
-          paddingTop: isCompact ? '0' : '0'
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        onDrop={(e) => handleFileDrop(e, currentConversation, setSelectedFiles, window.electron)}
-      >
-        <div className={`${isCompact ? 'px-2' : 'max-w-3xl mx-auto py-4 px-6'} ${isCompact ? 'pb-16' : 'pb-32'} relative overflow-visible`}>
+      {/* 消息列表容器 */}
+      <div className={`flex-1 overflow-y-auto p-4 ${isCompact ? 'compact-scroll' : ''} chat-view-messages`}>
+        <div className="space-y-4 max-w-[1200px] mx-auto">
           {messages.map(message => (
-            <div 
-              key={message.id} 
-              className={`chat chat-start mb-8 relative message-container ${isCompact ? 'compact-message -ml-5' : ''}`}
+            <div
+              key={message.id}
+              className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container`}
               data-message-id={message.id}
             >
               <div className="chat-header opacity-70">
@@ -277,172 +265,188 @@ export function ChatView({
                 message.type === 'user' ? 'chat-bubble-primary' : 
                 message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
               }`}>
-                {!isCompact && message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
-                  <div className="collapse-button">
-                    <button 
-                      className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
-                      onClick={() => {
-                        const isCollapsed = collapsedMessages.has(message.id);
-                        const newSet = new Set([...collapsedMessages]);
-                        const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-                        
-                        if (isCollapsed) {
-                          // 展开时，先滚动到消息顶部
-                          newSet.delete(message.id);
-                          setCollapsedMessages(newSet);
-                          setTimeout(() => {
-                            messageElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }, 100);
-                        } else {
-                          // 折叠时，滚动到消息中间
-                          newSet.add(message.id);
-                          setCollapsedMessages(newSet);
-                          setTimeout(() => {
-                            messageElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }, 100);
-                        }
-                      }}
-                    >
-                      {collapsedMessages.has(message.id) ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                )}
-                
-                {editingMessage?.id === message.id ? (
-                  <div className="join w-full">
-                    <div className={`mockup-code ${isCompact ? 'w-full' : 'w-[650px]'} h-[550px] bg-base-300 relative`}>
-                      <pre data-prefix=""></pre>
-                      <textarea
-                        value={messageInput}
-                        onChange={(e) => setMessageInput(e.target.value)}
-                        className="absolute inset-0 top-[40px] bg-transparent text-current p-4 resize-none focus:outline-none w-full h-[calc(100%-40px)] font-mono"
-                      />
-                    </div>
-                    <div className="absolute bottom-4 left-4 flex gap-2">
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => updateMessage(message.id, messageInput)}
+                <div className="message-content">
+                  {/* 折叠按钮 */}
+                  {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
+                    <div className="collapse-button">
+                      <button 
+                        className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
+                        onClick={() => {
+                          const isCollapsed = collapsedMessages.has(message.id);
+                          const newSet = new Set([...collapsedMessages]);
+                          const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+                          const messagesContainer = document.querySelector('.chat-view-messages');
+                          
+                          if (isCollapsed) {
+                            // 展开时，先滚动到消息顶部
+                            newSet.delete(message.id);
+                            setCollapsedMessages(newSet);
+                            setTimeout(() => {
+                              if (messageElement && messagesContainer) {
+                                const elementRect = messageElement.getBoundingClientRect();
+                                const containerRect = messagesContainer.getBoundingClientRect();
+                                const scrollTop = elementRect.top - containerRect.top + messagesContainer.scrollTop - 20;
+                                messagesContainer.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                              }
+                            }, 100);
+                          } else {
+                            // 折叠时，滚动到消息中间
+                            newSet.add(message.id);
+                            setCollapsedMessages(newSet);
+                            setTimeout(() => {
+                              if (messageElement && messagesContainer) {
+                                const elementRect = messageElement.getBoundingClientRect();
+                                const containerRect = messagesContainer.getBoundingClientRect();
+                                const scrollTop = elementRect.top - containerRect.top + messagesContainer.scrollTop - containerRect.height / 2 + elementRect.height / 2;
+                                messagesContainer.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                              }
+                            }, 100);
+                          }
+                        }}
                       >
-                        Save
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={exitEditMode}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div 
-                    className={`prose max-w-none ${
-                      collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
-                    }`}
-                  >
-                    {/* 判断是否是图片/视频消息或包含图片/视频的消息 */}
-                    {message.files?.some(file => 
-                      file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
-                    ) ? (
-                      <div className="flex flex-col gap-2">
-                        {/* 显示文本内容 */}
-                        <div className="whitespace-pre-wrap">
-                          {message.content}
-                        </div>
-                        
-                        {/* 显示文件 */}
-                        {message.files?.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {message.files.map((file, index) => {
-                              // 图片文件
-                              if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-                                return (
-                                  <div key={index} className="relative">
-                                    <img 
-                                      src={`local-file://${file.path}`} 
-                                      alt={file.name}
-                                      className={`rounded-lg object-cover cursor-pointer ${
-                                        isCompact ? 'max-w-[200px] max-h-[200px]' : 'max-w-[300px] max-h-[300px]'
-                                      }`}
-                                      onClick={(e) => handleImageClick(e, file)}
-                                    />
-                                  </div>
-                                );
-                              }
-                              // 视频文件
-                              else if (file.name.match(/\.mp4$/i)) {
-                                return (
-                                  <div key={index} className="w-full">
-                                    <video controls className={`rounded-lg ${
-                                      isCompact ? 'max-w-[200px]' : 'w-full max-w-[800px]'
-                                    }`}>
-                                      <source src={`local-file://${file.path}`} type="video/mp4" />
-                                      Your browser does not support the video tag.
-                                    </video>
-                                  </div>
-                                );
-                              }
-                              // 其他文件类型
-                              else {
-                                return (
-                                  <div 
-                                    key={index} 
-                                    className="badge badge-lg gap-2 cursor-pointer hover:bg-base-200"
-                                    onClick={() => openFileLocation(file)}
-                                    title="点击打开文件位置"
-                                  >
-                                    {file.name}
-                                  </div>
-                                );
-                              }
-                            })}
-                          </div>
+                        {collapsedMessages.has(message.id) ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
                         )}
-                      </div>
-                    ) : message.files?.some(file => 
-                      !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
-                    ) ? (
-                      <div className="flex flex-col gap-2">
-                        {/* 显示文本内容 */}
-                        <div className="whitespace-pre-wrap">
-                          {message.content}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className={`response-content ${collapsedMessages.has(message.id) ? 'message-collapsed' : ''}`}>
+                    {editingMessage?.id === message.id ? (
+                      <div className="join w-full">
+                        <div className={`mockup-code ${isCompact ? 'w-full' : 'w-[650px]'} h-[550px] bg-base-300 relative`}>
+                          <pre data-prefix=""></pre>
+                          <textarea
+                            value={messageInput}
+                            onChange={(e) => setMessageInput(e.target.value)}
+                            className="absolute inset-0 top-[40px] bg-transparent text-current p-4 resize-none focus:outline-none w-full h-[calc(100%-40px)] font-mono"
+                          />
                         </div>
-                        
-                        {/* 显示其他类型文件 */}
-                        <div className="flex flex-wrap gap-2">
-                          {message.files.map((file, index) => (
-                            <div 
-                              key={index} 
-                              className="badge badge-lg gap-2 cursor-pointer hover:bg-base-200"
-                              onClick={() => openFileLocation(file)}
-                              title="点击打开文件位置"
-                            >
-                              {file.name}
-                            </div>
-                          ))}
+                        <div className="absolute bottom-4 left-4 flex gap-2">
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => updateMessage(message.id, messageInput)}
+                          >
+                            Save
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={exitEditMode}
+                          >
+                            Cancel
+                          </button>
                         </div>
                       </div>
                     ) : (
-                      <MarkdownRenderer
-                        content={message.content}
-                        isCompact={isCompact}
-                        onCopyCode={(code) => {
-                          navigator.clipboard.writeText(code);
-                        }}
-                        onLinkClick={(href) => {
-                          window.electron.openExternal(href);
-                        }}
-                      />
+                      <div 
+                        className={`prose max-w-none ${
+                          collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
+                        }`}
+                      >
+                        {/* 判断是否是图片/视频消息或包含图片/视频的消息 */}
+                        {message.files?.some(file => 
+                          file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                        ) ? (
+                          <div className="flex flex-col gap-2">
+                            {/* 显示文本内容 */}
+                            <div className="whitespace-pre-wrap">
+                              {message.content}
+                            </div>
+                            
+                            {/* 显示文件 */}
+                            {message.files?.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {message.files.map((file, index) => {
+                                  // 图片文件
+                                  if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                                    return (
+                                      <div key={index} className="relative">
+                                        <img 
+                                          src={`local-file://${file.path}`} 
+                                          alt={file.name}
+                                          className={`rounded-lg object-cover cursor-pointer ${
+                                            isCompact ? 'max-w-[200px] max-h-[200px]' : 'max-w-[300px] max-h-[300px]'
+                                          }`}
+                                          onClick={(e) => handleImageClick(e, file)}
+                                        />
+                                      </div>
+                                    );
+                                  }
+                                  // 视频文件
+                                  else if (file.name.match(/\.mp4$/i)) {
+                                    return (
+                                      <div key={index} className="w-full">
+                                        <video controls className={`rounded-lg ${
+                                          isCompact ? 'max-w-[200px]' : 'w-full max-w-[800px]'
+                                        }`}>
+                                          <source src={`local-file://${file.path}`} type="video/mp4" />
+                                          Your browser does not support the video tag.
+                                        </video>
+                                      </div>
+                                    );
+                                  }
+                                  // 其他文件类型
+                                  else {
+                                    return (
+                                      <div 
+                                        key={index} 
+                                        className="badge badge-lg gap-2 cursor-pointer hover:bg-base-200"
+                                        onClick={() => openFileLocation(file)}
+                                        title="点击打开文件位置"
+                                      >
+                                        {file.name}
+                                      </div>
+                                    );
+                                  }
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ) : message.files?.some(file => 
+                          !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                        ) ? (
+                          <div className="flex flex-col gap-2">
+                            {/* 显示文本内容 */}
+                            <div className="whitespace-pre-wrap">
+                              {message.content}
+                            </div>
+                            
+                            {/* 显示其他类型文件 */}
+                            <div className="flex flex-wrap gap-2">
+                              {message.files.map((file, index) => (
+                                <div 
+                                  key={index} 
+                                  className="badge badge-lg gap-2 cursor-pointer hover:bg-base-200"
+                                  onClick={() => openFileLocation(file)}
+                                  title="点击打开文件位置"
+                                >
+                                  {file.name}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <MarkdownRenderer
+                            content={message.content}
+                            isCompact={isCompact}
+                            onCopyCode={(code) => {
+                              navigator.clipboard.writeText(code);
+                            }}
+                            onLinkClick={(href) => {
+                              window.electron.openExternal(href);
+                            }}
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
+                </div>
               </div>
               {editingMessage?.id !== message.id && (
                 <div className="message-actions">
