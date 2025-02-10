@@ -1,13 +1,13 @@
 // 工具列表配置
-export const tools = ['chat', 'browser', 'monaco', 'aichat', 'editor']
+export const tools = ['browser', 'aichat', 'chat', 'monaco', 'editor']
 
 // 工具显示名称映射
 export const toolDisplayNames = {
-  chat: 'Chat',
-  editor: 'Image Editor',
   browser: 'Browser',
+  aichat: 'AI Chat',
+  chat: 'Chat',
   monaco: 'Monaco Editor',
-  aichat: 'AI Chat'
+  editor: 'Image Editor'
 }
 
 // 获取工具显示名称的函数

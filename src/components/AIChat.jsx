@@ -115,6 +115,10 @@ export const AIChat = ({
   const [retryingMessageId, setRetryingMessageId] = useState(null);
   const [failedMessages, setFailedMessages] = useState(new Set());
 
+  // 添加编辑相关状态
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editContent, setEditContent] = useState('');
+
   // 添加消息持久化的 effect
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
@@ -953,6 +957,45 @@ export const AIChat = ({
     });
   };
 
+  // 添加编辑处理函数
+  const handleEditStart = (message) => {
+    setEditingMessageId(message.id);
+    setEditContent(message.content);
+  };
+
+  const handleEditCancel = () => {
+    setEditingMessageId(null);
+    setEditContent('');
+  };
+
+  const handleEditSave = async (messageId) => {
+    try {
+      // 找到要编辑的消息
+      const updatedMessages = messages.map(msg => 
+        msg.id === messageId ? { ...msg, content: editContent } : msg
+      );
+
+      // 更新消息列表
+      setMessages(updatedMessages);
+
+      // 保存到文件
+      if (currentConversation) {
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          updatedMessages
+        );
+      }
+
+      // 重置编辑状态
+      setEditingMessageId(null);
+      setEditContent('');
+    } catch (error) {
+      console.error('保存编辑失败:', error);
+      alert('保存编辑失败: ' + error.message);
+    }
+  };
+
   return (
     <div className="flex h-full w-full">
       <style>
@@ -1140,6 +1183,37 @@ export const AIChat = ({
             opacity: 1;
           }
 
+          /* 消息气泡基础样式 */
+          .chat-bubble {
+            position: relative;
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin: 0.5rem;
+          }
+
+          /* AI消息气泡样式 */
+          .chat-start .chat-bubble {
+            background-color: var(--b2) !important;
+            color: var(--bc) !important;
+            border-bottom-left-radius: 0.25rem;
+            margin-right: auto;
+          }
+
+          /* 用户消息气泡样式 */
+          .chat-end .chat-bubble {
+            background-color: var(--primary) !important;
+            color: var(--primary-content) !important;
+            border-bottom-right-radius: 0.25rem;
+            margin-left: auto;
+          }
+
+          /* 消息内容样式 */
+          .chat-bubble .prose {
+            color: inherit;
+          }
+
+          /* 操作按钮样式 */
           .message-actions button {
             background-color: var(--b1);
             border: 1px solid var(--b3);
@@ -1182,64 +1256,58 @@ export const AIChat = ({
                 className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container`}
                 data-message-id={message.id}
               >
-                {/* 用户消息 */}
-                {message.type === 'user' && (
-                  <>
+                {/* 消息头部 */}
                 <div className="chat-header opacity-70">
                   <span className="text-xs">
                     {new Date(message.timestamp).toLocaleString()}
-                  </span>
-                </div>
-                  <div className="chat-bubble chat-bubble-primary">
-                    <div className="prose">
-                      {message.content}
-                    </div>
-                  </div>
-                    <div className="message-actions">
-                      <button
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => handleDeleteMessage(message.id)}
-                      >
-                        删除
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => {
-                          navigator.clipboard.writeText(message.content);
-                        }}
-                      >
-                        复制
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {/* AI助手消息 */}
-                {message.type === 'assistant' && (
-                  <div className={`chat-group ${
-                    animationStates[message.id] || ANIMATION_STATES.NONE
-                  }`}>
-                    {/* 消息头部 */}
-                    <div className="chat-header opacity-70 mb-1">
-                      <span className="text-xs">
-                        {new Date(message.timestamp).toLocaleString()}
+                    {message.type === 'assistant' && (
+                      <>
                         {' • '}模型: {message.model || selectedModel}
                         {message.tokens ? ` • Token: ${message.tokens}` : message.usage?.total_tokens ? ` • Token: ${message.usage.total_tokens}` : ''}
                         {message.error && ' • 错误'}
-                      </span>
-                            </div>
+                      </>
+                    )}
+                  </span>
+                </div>
 
-                    {/* 消息内容 */}
-                    <div className={`chat-bubble ${
-                      messageStates[message.id] === MESSAGE_STATES.ERROR || message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
-                    }`}>
-                      <div className="message-content">
+                {/* 消息内容 */}
+                <div className={`chat-bubble ${
+                  message.type === 'user' ? 'chat-bubble-primary' : 
+                  message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
+                }`}>
+                  <div className="message-content">
+                    {editingMessageId === message.id ? (
+                      <div className="flex flex-col gap-2">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="textarea textarea-bordered w-full min-h-[100px]"
+                          placeholder="编辑消息内容..."
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => handleEditCancel()}
+                          >
+                            取消
+                          </button>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => handleEditSave(message.id)}
+                          >
+                            保存
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
                         {/* 折叠按钮 */}
                         {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
                           <div className="collapse-button">
                             <button 
                               className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const isCollapsed = collapsedMessages.has(message.id);
                                 const newSet = new Set([...collapsedMessages]);
                                 const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
@@ -1282,45 +1350,40 @@ export const AIChat = ({
                                 </svg>
                               )}
                             </button>
-                      </div>
-                    )}
+                          </div>
+                        )}
 
                         <div className={`response-content ${collapsedMessages.has(message.id) ? 'message-collapsed' : ''}`}>
-                          {messageStates[message.id] === MESSAGE_STATES.THINKING ? (
-                            <div className="flex items-center gap-2">
-                              <span>思考中</span>
-                              <span className="loading loading-dots loading-sm"></span>
-                            </div>
-                          ) : messageStates[message.id] === MESSAGE_STATES.COMPLETED || message.error ? (
-                            <MarkdownRenderer
-                              content={message.content || ''}
-                              isCompact={false}
-                              onCopyCode={(code) => {
-                                console.log('Code copied:', code);
-                              }}
-                              onLinkClick={(href) => {
-                                window.electron.openExternal(href);
-                              }}
-                            />
-                          ) : null}
-                            </div>
+                          <MarkdownRenderer
+                            content={message.content || ''}
+                            isCompact={false}
+                            onCopyCode={(code) => {
+                              console.log('Code copied:', code);
+                            }}
+                            onLinkClick={(href) => {
+                              window.electron.openExternal(href);
+                            }}
+                          />
                         </div>
-                          </div>
+                      </>
+                    )}
+                  </div>
+                </div>
 
                 {/* 消息操作按钮 */}
-                    {messageStates[message.id] === MESSAGE_STATES.COMPLETED && (
-                      <div className="message-actions">
+                {!editingMessageId && (
+                  <div className="message-actions">
                     <button
                       className="btn btn-ghost btn-xs"
-                          onClick={() => handleRetry(message.id)}
-                        >
-                          重试
+                      onClick={() => handleEditStart(message)}
+                    >
+                      编辑
                     </button>
                     <button
                       className="btn btn-ghost btn-xs"
                       onClick={() => handleDeleteMessage(message.id)}
                     >
-                          删除
+                      删除
                     </button>
                     <button
                       className="btn btn-ghost btn-xs"
@@ -1328,32 +1391,38 @@ export const AIChat = ({
                         navigator.clipboard.writeText(message.content);
                       }}
                     >
-                          复制
+                      复制
                     </button>
-                        {message.history?.length > 0 && (
-                          <>
-                    <button
-                      className="btn btn-ghost btn-xs"
-                              onClick={() => handleHistoryNavigation(message.id, 'prev')}
-                              disabled={!message.currentHistoryIndex}
-                            >
-                              上一个
-                    </button>
-                            <button
-                              className="btn btn-ghost btn-xs"
-                              onClick={() => handleHistoryNavigation(message.id, 'next')}
-                              disabled={message.currentHistoryIndex === message.history.length}
-                            >
-                              下一个
-                            </button>
-                            <span className="text-xs opacity-70">
-                              {message.currentHistoryIndex === message.history.length ? 
-                                '当前' : 
-                                `${message.currentHistoryIndex + 1}/${message.history.length + 1}`}
-                            </span>
-                          </>
-                        )}
-                      </div>
+                    {message.type === 'assistant' && (
+                      <button
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => handleRetry(message.id)}
+                      >
+                        重试
+                      </button>
+                    )}
+                    {message.history?.length > 0 && (
+                      <>
+                        <button
+                          className="btn btn-ghost btn-xs"
+                          onClick={() => handleHistoryNavigation(message.id, 'prev')}
+                          disabled={!message.currentHistoryIndex}
+                        >
+                          上一个
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-xs"
+                          onClick={() => handleHistoryNavigation(message.id, 'next')}
+                          disabled={message.currentHistoryIndex === message.history.length}
+                        >
+                          下一个
+                        </button>
+                        <span className="text-xs opacity-70">
+                          {message.currentHistoryIndex === message.history.length ? 
+                            '当前' : 
+                            `${message.currentHistoryIndex + 1}/${message.history.length + 1}`}
+                        </span>
+                      </>
                     )}
                   </div>
                 )}
