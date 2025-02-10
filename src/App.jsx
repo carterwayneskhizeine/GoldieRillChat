@@ -239,8 +239,14 @@ export default function App() {
     try {
       // 生成新会话ID和名称
       const newId = Date.now().toString();
-      const conversationCount = conversations.length;
-      const newName = `Chat${(conversationCount + 1).toString().padStart(2, '0')}`;
+      const now = new Date();
+      const year = now.getFullYear().toString().slice(-2); // 获取年份后两位
+      const month = now.toLocaleString('en-US', { month: 'short' }); // 获取月份英文缩写
+      const day = now.getDate().toString().padStart(2, '0'); // 获取日期，补零
+      const hours = now.getHours().toString().padStart(2, '0'); // 获取小时，补零
+      const minutes = now.getMinutes().toString().padStart(2, '0'); // 获取分钟，补零
+      const seconds = now.getSeconds().toString().padStart(2, '0'); // 获取秒数，补零
+      const newName = `${day}${month}${year}_${hours}${minutes}${seconds}`;
 
       // 在选定的存储路径下创建新的会话文件夹
       const folderPath = window.electron.path.join(storagePath, newName);

@@ -49,7 +49,7 @@ export const callClaude = async ({ apiKey, apiHost, model, messages }) => {
           role: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content
         })),
-        max_tokens: 1000
+        max_tokens: 2000
       })
     });
 
@@ -70,13 +70,20 @@ export const callClaude = async ({ apiKey, apiHost, model, messages }) => {
 };
 
 // SiliconFlow API 调用实现
-export const callSiliconCloud = async ({ apiKey, apiHost, model, messages }) => {
+export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpdate }) => {
   const maxRetries = 3;  // 最大重试次数
   const baseDelay = 1000;  // 基础延迟时间（毫秒）
   let retryCount = 0;
 
   while (retryCount <= maxRetries) {
     try {
+      // 发送初始状态
+      onUpdate?.({
+        type: 'content',
+        content: '',
+        done: false
+      });
+
       const response = await fetch(`${apiHost}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -128,8 +135,17 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages }) => 
         throw new Error('API 响应格式错误');
       }
 
+      const content = data.choices[0].message.content;
+      
+      // 发送完成状态
+      onUpdate?.({
+        type: 'content',
+        content: content,
+        done: true
+      });
+
       return {
-        content: data.choices[0].message.content,
+        content: content,
         usage: data.usage || {}
       };
     } catch (error) {
@@ -402,7 +418,7 @@ export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages,
     case 'claude':
       return callClaude({ apiKey, apiHost, model, messages });
     case 'siliconflow':
-      return callSiliconCloud({ apiKey, apiHost, model, messages });
+      return callSiliconCloud({ apiKey, apiHost, model, messages, onUpdate });
     case 'openrouter':
       return callOpenRouter({ apiKey, apiHost, model, messages, onUpdate });
     case 'deepseek':

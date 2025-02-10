@@ -359,7 +359,7 @@ export const AIChat = ({
           textarea.style.overflowY = 'hidden';
         }
       }
-      
+
       // 设置初始状态
       setMessageStates(prev => ({
         ...prev,
@@ -384,8 +384,8 @@ export const AIChat = ({
         messages: messagesWithUser,
         onUpdate: (update) => {
           if (update.type === 'content') {
-            setMessages(prev => {
-              const newMessages = [...prev];
+          setMessages(prev => {
+            const newMessages = [...prev];
               const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
               if (aiMessageIndex === -1) return prev;
 
@@ -402,8 +402,8 @@ export const AIChat = ({
               }));
 
               newMessages[aiMessageIndex] = updatedAiMessage;
-              return newMessages;
-            });
+            return newMessages;
+          });
           }
         }
       });
@@ -657,8 +657,8 @@ export const AIChat = ({
       }
 
       // 从消息列表中移除消息
-      const newMessages = messages.filter(m => m.id !== messageId);
-      setMessages(newMessages);
+    const newMessages = messages.filter(m => m.id !== messageId);
+    setMessages(newMessages);
 
       // 保存更新后的消息列表到 messages.json
       if (currentConversation) {
@@ -746,36 +746,36 @@ export const AIChat = ({
             <div>
               <h3 className="text-lg font-medium mb-2">API 密钥</h3>
               <div className="flex flex-col gap-2">
-                <div className="flex w-full gap-0">
-                  <input
-                    ref={apiKeyRef}
-                    type={showApiKey ? "text" : "password"}
-                    className="input input-bordered flex-1 rounded-r-none"
-                    defaultValue={apiKey}
+              <div className="flex w-full gap-0">
+                <input
+                  ref={apiKeyRef}
+                  type={showApiKey ? "text" : "password"}
+                  className="input input-bordered flex-1 rounded-r-none"
+                  defaultValue={apiKey}
                     placeholder={`请输入 ${MODEL_PROVIDERS[selectedProvider].name} API 密钥...`}
-                    onKeyDown={handleKeyDown}
-                  />
-                  <button 
-                    type="button"
-                    className="btn rounded-l-none"
-                    onClick={handlePaste}
-                    title="点击粘贴"
-                  >
-                    📋
-                  </button>
-                  <button 
-                    type="button"
-                    className="btn rounded-none border-l-0"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    title={showApiKey ? "隐藏密钥" : "显示密钥"}
-                  >
-                    {showApiKey ? "👁️" : "👁️‍🗨️"}
-                  </button>
-                </div>
+                  onKeyDown={handleKeyDown}
+                />
+                <button 
+                  type="button"
+                  className="btn rounded-l-none"
+                  onClick={handlePaste}
+                  title="点击粘贴"
+                >
+                  📋
+                </button>
+                <button 
+                  type="button"
+                  className="btn rounded-none border-l-0"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  title={showApiKey ? "隐藏密钥" : "显示密钥"}
+                >
+                  {showApiKey ? "👁️" : "👁️‍🗨️"}
+                </button>
+              </div>
                 <div className="flex flex-col gap-1 text-xs opacity-70">
                   <div className="settings-text">
-                    支持快捷键 {navigator.platform.includes('Mac') ? '⌘+V' : 'Ctrl+V'} 粘贴
-                  </div>
+                支持快捷键 {navigator.platform.includes('Mac') ? '⌘+V' : 'Ctrl+V'} 粘贴
+              </div>
                   <div className="settings-help-text">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -783,7 +783,7 @@ export const AIChat = ({
                     <span>
                       API 密钥已为每个提供商单独保存，切换提供商时会自动加载对应的密钥
                     </span>
-                  </div>
+            </div>
                   {MODEL_PROVIDERS[selectedProvider].needsApiKey && (
                     <div className="settings-help-text text-warning">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -792,7 +792,7 @@ export const AIChat = ({
                       <span>
                         此提供商需要 API 密钥才能使用
                       </span>
-                    </div>
+          </div>
                   )}
                   {MODEL_PROVIDERS[selectedProvider].apiKeyHelp && (
                     <div className="settings-help-text mt-1">
@@ -836,8 +836,14 @@ export const AIChat = ({
     try {
       // 生成新会话ID和名称
       const newId = Date.now().toString();
-      const conversationCount = conversations.length;
-      const newName = `AIChat${(conversationCount + 1).toString().padStart(2, '0')}`;
+      const now = new Date();
+      const year = now.getFullYear().toString().slice(-2); // 获取年份后两位
+      const month = now.toLocaleString('en-US', { month: 'short' }); // 获取月份英文缩写
+      const day = now.getDate().toString().padStart(2, '0'); // 获取日期，补零
+      const hours = now.getHours().toString().padStart(2, '0'); // 获取小时，补零
+      const minutes = now.getMinutes().toString().padStart(2, '0'); // 获取分钟，补零
+      const seconds = now.getSeconds().toString().padStart(2, '0'); // 获取秒数，补零
+      const newName = `${day}${month}${year}_${hours}${minutes}${seconds}`;
 
       // 在选定的存储路径下创建新的会话文件夹
       const folderPath = window.electron.path.join(storagePath, newName);
@@ -1097,6 +1103,57 @@ export const AIChat = ({
           .settings-help-text span {
             flex: 1;
           }
+
+          /* 消息容器基础样式 */
+          .message-container {
+            position: relative;
+            padding-bottom: 32px;
+          }
+
+          /* 消息操作按钮基础样式 */
+          .message-actions {
+            position: absolute;
+            bottom: 8px;
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background-color: var(--b1);
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 10;
+          }
+
+          /* AI消息操作按钮位置 */
+          .chat-start .message-actions {
+            left: 4px;
+          }
+
+          /* 用户消息操作按钮位置 */
+          .chat-end .message-actions {
+            right: 4px;
+            flex-direction: row-reverse;
+          }
+
+          .message-container:hover .message-actions {
+            opacity: 1;
+          }
+
+          .message-actions button {
+            background-color: var(--b1);
+            border: 1px solid var(--b3);
+            transition: all 0.2s;
+            padding: 0 8px;
+            height: 24px;
+            min-height: 24px;
+            font-size: 12px;
+          }
+
+          .message-actions button:hover {
+            transform: scale(1.05);
+            background-color: var(--b2);
+          }
         `}
       </style>
 
@@ -1127,15 +1184,31 @@ export const AIChat = ({
                 {/* 用户消息 */}
                 {message.type === 'user' && (
                   <>
-                    <div className="chat-header opacity-70">
-                      <span className="text-xs">
-                        {new Date(message.timestamp).toLocaleString()}
-                      </span>
+                <div className="chat-header opacity-70">
+                  <span className="text-xs">
+                    {new Date(message.timestamp).toLocaleString()}
+                  </span>
+                </div>
+                  <div className="chat-bubble chat-bubble-primary">
+                    <div className="prose">
+                      {message.content}
                     </div>
-                    <div className="chat-bubble chat-bubble-primary">
-                      <div className="prose">
-                        {message.content}
-                      </div>
+                  </div>
+                    <div className="message-actions">
+                      <button
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        删除
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => {
+                          navigator.clipboard.writeText(message.content);
+                        }}
+                      >
+                        复制
+                      </button>
                     </div>
                   </>
                 )}
@@ -1153,13 +1226,13 @@ export const AIChat = ({
                         {message.tokens ? ` • Token: ${message.tokens}` : message.usage?.total_tokens ? ` • Token: ${message.usage.total_tokens}` : ''}
                         {message.error && ' • 错误'}
                       </span>
-                    </div>
+                            </div>
 
                     {/* 消息内容 */}
                     <div className={`chat-bubble ${
                       messageStates[message.id] === MESSAGE_STATES.ERROR || message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
                     }`}>
-                      <div className="response-content">
+                        <div className="response-content">
                         {messageStates[message.id] === MESSAGE_STATES.THINKING ? (
                           <div className="flex items-center gap-2">
                             <span>思考中</span>
@@ -1177,41 +1250,41 @@ export const AIChat = ({
                             }}
                           />
                         ) : null}
-                      </div>
-                    </div>
+                            </div>
+                        </div>
 
-                    {/* 消息操作按钮 */}
+                {/* 消息操作按钮 */}
                     {messageStates[message.id] === MESSAGE_STATES.COMPLETED && (
                       <div className="message-actions">
-                        <button
-                          className="btn btn-ghost btn-xs"
+                    <button
+                      className="btn btn-ghost btn-xs"
                           onClick={() => handleRetry(message.id)}
                         >
                           重试
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => handleDeleteMessage(message.id)}
-                        >
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => handleDeleteMessage(message.id)}
+                    >
                           删除
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => {
-                            navigator.clipboard.writeText(message.content);
-                          }}
-                        >
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => {
+                        navigator.clipboard.writeText(message.content);
+                      }}
+                    >
                           复制
-                        </button>
+                    </button>
                         {message.history?.length > 0 && (
                           <>
-                            <button
-                              className="btn btn-ghost btn-xs"
+                    <button
+                      className="btn btn-ghost btn-xs"
                               onClick={() => handleHistoryNavigation(message.id, 'prev')}
                               disabled={!message.currentHistoryIndex}
                             >
                               上一个
-                            </button>
+                    </button>
                             <button
                               className="btn btn-ghost btn-xs"
                               onClick={() => handleHistoryNavigation(message.id, 'next')}

@@ -4,6 +4,27 @@
   contain: paint;
   isolation: isolate;
   padding-bottom: 32px;
+  width: 100%; /* 确保容器占满宽度 */
+}
+
+/* 用户消息容器样式 */
+.chat-end {
+  display: flex;
+  justify-content: flex-end; /* 让消息靠右显示 */
+  text-align: right; /* 确保所有内容右对齐 */
+}
+
+/* 用户消息气泡样式 */
+.chat-end .chat-bubble {
+  margin-right: 0; /* 移除右边距 */
+  margin-left: auto; /* 让消息靠右 */
+}
+
+/* 用户消息时间样式 */
+.chat-end .chat-header {
+  text-align: right; /* 时间靠右对齐 */
+  margin-right: 0; /* 移除右边距 */
+  margin-left: auto; /* 让时间靠右 */
 }
 
 /* 消息气泡基础样式 */
@@ -43,7 +64,6 @@
 .message-actions {
   position: absolute;
   bottom: -24px;
-  left: 4px;
   display: flex;
   gap: 2px;
   opacity: 0;
@@ -53,6 +73,19 @@
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   z-index: 10;
+}
+
+/* AI消息操作按钮位置（左侧） */
+.chat-start .message-actions {
+  left: 4px;
+  flex-direction: row; /* 按钮从左向右排列 */
+}
+
+/* 用户消息操作按钮位置（右侧） */
+.chat-end .message-actions {
+  right: 4px !important; /* 强制右对齐 */
+  left: auto !important; /* 移除左对齐 */
+  flex-direction: row-reverse; /* 按钮从右向左排列 */
 }
 
 .message-container:hover .message-actions {

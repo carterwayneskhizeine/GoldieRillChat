@@ -116,7 +116,14 @@ export default function Sidebar({
               <span className="font-semibold">{getToolDisplayName(activeTool)}</span>
             </div>
             {activeTool === 'chat' && (
-              <button className="btn btn-circle btn-ghost btn-sm" onClick={() => window.electron.browser.newTab()}>
+              <button 
+                className="btn btn-circle btn-ghost btn-sm" 
+                onClick={() => {
+                  if (typeof createNewConversation === 'function') {
+                    createNewConversation();
+                  }
+                }}
+              >
                 <svg className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -152,16 +159,6 @@ export default function Sidebar({
           {activeTool === 'chat' && (
             <div className="flex-1 mt-2 overflow-y-auto">
               <div className="flex flex-col gap-2">
-                <button
-                  className="btn btn-primary btn-sm mb-2"
-                  onClick={() => {
-                    if (typeof createNewConversation === 'function') {
-                      createNewConversation();
-                    }
-                  }}
-                >
-                  新建对话
-                </button>
                 {conversations.map(conversation => (
                   <div
                     key={conversation.id}
@@ -316,7 +313,7 @@ export default function Sidebar({
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
                 {sidebarMode === 'default' ? (
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="h-full overflow-y-auto">
                     <div className="flex flex-col gap-2">
                       {conversations.map(conversation => (
                         <div
