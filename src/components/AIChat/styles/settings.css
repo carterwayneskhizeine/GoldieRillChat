@@ -1,0 +1,46 @@
+/* 设置面板文字样式 */
+.settings-text {
+  user-select: text;
+  cursor: text;
+}
+
+.settings-text a {
+  color: var(--p);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.settings-help-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  user-select: text;
+  cursor: text;
+}
+
+.settings-help-text svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.settings-help-text span {
+  flex: 1;
+}
+
+/* 设置面板滚动条样式 */
+.settings-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-panel::-webkit-scrollbar-track {
+  background: var(--b1);
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+  background: var(--b3);
+  border-radius: 4px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--b4);
+} 
