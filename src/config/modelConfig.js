@@ -47,7 +47,9 @@ export const MODEL_PROVIDERS = {
       'Qwen/Qwen2.5-Coder-32B-Instruct',
       'ChatGLM/ChatGLM3-6B',
       'ChatGLM/ChatGLM2-6B',
-      'ChatGLM/ChatGLM-6B'
+      'ChatGLM/ChatGLM-6B',
+      'deepseek-ai/deepseek-r1-chat',
+      'deepseek-ai/deepseek-r1-coder'
     ]
   },
   deepseek: {

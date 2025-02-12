@@ -78,6 +78,11 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
   const baseDelay = 1000;  // 基础延迟时间（毫秒）
   let retryCount = 0;
 
+  // 检查是否是 DeepSeek-R1 系列模型
+  const isDeepseekR1Model = model.toLowerCase().includes('deepseek-r1') || 
+                           model.toLowerCase().includes('deepseek-ai/deepseek-r1');
+  console.log('是否为 DeepSeek-R1 模型:', isDeepseekR1Model);
+
   while (retryCount <= maxRetries) {
     try {
       // 发送初始状态
@@ -100,7 +105,7 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
             role: msg.type === 'user' ? 'user' : 'assistant',
             content: msg.content
           })),
-          stream: false,
+          stream: true,  // 启用流式输出
           temperature: temperature,
           max_tokens: maxTokens,
           top_p: 0.95,
@@ -130,26 +135,76 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
         throw new Error(error.error?.message || error.message || '请求失败');
       }
 
-      const data = await response.json();
-      
-      // 检查响应格式
-      if (!data.choices?.[0]?.message?.content) {
-        console.error('API 响应格式错误:', data);
-        throw new Error('API 响应格式错误');
-      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let content = '';
+      let reasoning_content = '';
+      let buffer = '';
 
-      const content = data.choices[0].message.content;
-      
-      // 发送完成状态
-      onUpdate?.({
-        type: 'content',
-        content: content,
-        done: true
-      });
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          // 发送完成信号
+          onUpdate?.({
+            type: 'content',
+            content: content,
+            done: true,
+            reasoning_content: reasoning_content
+          });
+          break;
+        }
+        
+        buffer += decoder.decode(value, { stream: true });
+        const chunks = buffer.split('\n');
+        buffer = chunks.pop() || '';
+        
+        for (const chunk of chunks) {
+          if (!chunk.trim() || chunk.includes('keep-alive')) continue;
+          
+          try {
+            const jsonStr = chunk.replace(/^data:\s*/, '').trim();
+            if (jsonStr === '[DONE]') continue;
+            
+            const json = JSON.parse(jsonStr);
+            console.log('收到的数据块:', json); // 添加日志
+            
+            if (json.choices && json.choices[0] && json.choices[0].delta) {
+              const delta = json.choices[0].delta;
+              
+              // 处理推理过程
+              if (delta.reasoning_content !== undefined) {
+                reasoning_content += delta.reasoning_content || '';
+                console.log('收到推理内容:', delta.reasoning_content);
+                console.log('当前推理内容:', reasoning_content);
+                onUpdate?.({
+                  type: 'reasoning',
+                  content: reasoning_content
+                });
+              }
+              
+              // 处理普通内容
+              if (delta.content !== undefined) {
+                content += delta.content || '';
+                onUpdate?.({
+                  type: 'content',
+                  content: content,
+                  done: false
+                });
+              }
+            }
+          } catch (e) {
+            console.warn('解析数据块失败:', e, '数据块:', chunk);
+            continue;
+          }
+        }
+      }
 
       return {
         content: content,
-        usage: data.usage || {}
+        reasoning_content: reasoning_content,
+        usage: {
+          total_tokens: Math.ceil((content.length + reasoning_content.length) / 4)
+        }
       };
     } catch (error) {
       if (error.message.includes('速率限制') && retryCount < maxRetries) {
