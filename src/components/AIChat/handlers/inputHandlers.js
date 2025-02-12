@@ -21,7 +21,9 @@ export const createInputHandlers = ({
   setMessageStates,
   setAnimationStates,
   setFailedMessages,
-  setRetryingMessageId
+  setRetryingMessageId,
+  maxTokens,
+  temperature
 }) => {
   // 处理发送消息
   const handleSendMessage = async (isRetry = false, retryContent = null) => {

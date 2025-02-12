@@ -285,9 +285,9 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate,
 // OpenRouter API 调用实现
 export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7 }) => {
   try {
-    // 检查是否是 deepseek-r1 系列模型
-    const isDeepseekR1 = model.includes('deepseek-r1');
-    console.log('是否为 deepseek-r1 模型:', isDeepseekR1); // 添加日志
+    // 检查是否是 deepseek 系列模型
+    const isDeepseekModel = model.toLowerCase().includes('deepseek');
+    console.log('是否为 Deepseek 模型:', isDeepseekModel); // 添加日志
 
     const response = await fetch(`${apiHost}/chat/completions`, {
       method: 'POST',
@@ -306,7 +306,7 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
         stream: true,
         temperature: temperature,
         max_tokens: maxTokens,
-        include_reasoning: isDeepseekR1  // 添加这个参数
+        include_reasoning: isDeepseekModel  // 对 Deepseek 模型启用推理
       })
     });
 
@@ -355,12 +355,12 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
           if (json.choices && json.choices[0]) {
             const delta = json.choices[0].delta;
             
-            // 处理推理过程
-            if (isDeepseekR1 && delta.reasoning !== undefined) {
-              console.log('检测到推理字段:', delta.reasoning);
-              if (delta.reasoning !== null) {
-                reasoning_content += delta.reasoning;
-                console.log('收到推理内容:', delta.reasoning);
+            // 处理推理过程 - 同时检查 reasoning 和 reasoning_content 字段
+            if (delta.reasoning !== undefined || delta.reasoning_content !== undefined) {
+              const reasoningUpdate = delta.reasoning || delta.reasoning_content;
+              if (reasoningUpdate !== null) {
+                reasoning_content += reasoningUpdate;
+                console.log('收到推理内容:', reasoningUpdate);
                 console.log('当前推理内容:', reasoning_content);
                 onUpdate?.({
                   type: 'reasoning',

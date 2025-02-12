@@ -87,7 +87,9 @@ export const AIChat = ({
     setMessageStates: messageState.setMessageStates,
     setAnimationStates: messageState.setAnimationStates,
     setFailedMessages: messageState.setFailedMessages,
-    setRetryingMessageId: messageState.setRetryingMessageId
+    setRetryingMessageId: messageState.setRetryingMessageId,
+    maxTokens,
+    temperature
   });
 
   return (
