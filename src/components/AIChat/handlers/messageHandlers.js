@@ -75,15 +75,6 @@ export const createMessageHandlers = ({
       // 从消息列表中移除消息
       const newMessages = messages.filter(m => m.id !== id);
       setMessages(newMessages);
-
-      // 保存更新后的消息列表到 messages.json
-      if (currentConversation) {
-        await window.electron.saveMessages(
-          currentConversation.path,
-          currentConversation.id,
-          newMessages
-        );
-      }
     } catch (error) {
       console.error('删除消息失败:', error);
       alert('删除消息失败: ' + error.message);
@@ -242,15 +233,6 @@ export const createMessageHandlers = ({
         [messageId]: MESSAGE_STATES.COMPLETED
       }));
 
-      // 保存到 messages.json
-      if (currentConversation) {
-        await window.electron.saveMessages(
-          currentConversation.path,
-          currentConversation.id,
-          messages
-        );
-      }
-
     } catch (error) {
       console.error('重试失败:', error);
       
@@ -317,17 +299,6 @@ export const createMessageHandlers = ({
           reasoning_content: historyItem.reasoning_content || '',  // 显示历史推理内容
           currentHistoryIndex: newIndex
         };
-      }
-
-      // 保存到 messages.json
-      if (currentConversation) {
-        window.electron.saveMessages(
-          currentConversation.path,
-          currentConversation.id,
-          newMessages
-        ).catch(error => {
-          console.error('保存消息失败:', error);
-        });
       }
 
       return newMessages;

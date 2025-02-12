@@ -30,8 +30,15 @@ export const useMessageState = (currentConversation) => {
             currentConversation.id
           );
           
+          // 确保 loadedMessages 是数组
+          if (!Array.isArray(loadedMessages)) {
+            console.error('加载的消息不是数组:', loadedMessages);
+            setMessages([]);
+            return;
+          }
+          
           // 确保每个 AI 消息都有必要的历史记录字段
-          const processedMessages = loadedMessages?.map(msg => {
+          const processedMessages = loadedMessages.map(msg => {
             if (msg.type === 'assistant') {
               return {
                 ...msg,
@@ -41,7 +48,7 @@ export const useMessageState = (currentConversation) => {
               };
             }
             return msg;
-          }) || [];
+          });
           
           setMessages(processedMessages);
         } catch (error) {
@@ -57,15 +64,23 @@ export const useMessageState = (currentConversation) => {
 
   // 消息持久化
   useEffect(() => {
-    if (currentConversation && messages.length > 0) {
-      window.electron.saveMessages(
-        currentConversation.path,
-        currentConversation.id,
-        messages
-      ).catch(error => {
-        console.error('保存消息失败:', error);
-      });
-    }
+    const saveMessages = async () => {
+      if (currentConversation && messages.length > 0) {
+        try {
+          await window.electron.saveMessages(
+            currentConversation.path,
+            currentConversation.id,
+            messages
+          );
+        } catch (error) {
+          console.error('保存消息失败:', error);
+        }
+      }
+    };
+
+    // 使用防抖来避免频繁保存
+    const timeoutId = setTimeout(saveMessages, 1000);
+    return () => clearTimeout(timeoutId);
   }, [messages, currentConversation]);
 
   return {

@@ -11,7 +11,7 @@ import { MarkdownRenderer } from './shared/MarkdownRenderer';
 import '../styles/markdown-preview.css';
 
 export function ChatView({
-  messages,
+  messages = [],
   currentConversation,
   editingMessage,
   setEditingMessage,
@@ -78,6 +78,9 @@ export function ChatView({
     });
     window.dispatchEvent(contextMenuEvent);
   };
+
+  // 确保 messages 是数组
+  const messageList = Array.isArray(messages) ? messages : [];
 
   return (
     <div className={`flex flex-col h-full relative ${isCompact ? 'chat-view-compact' : ''}`}>
@@ -155,7 +158,7 @@ export function ChatView({
         }}
       >
         <div className="space-y-4 max-w-[1200px] mx-auto">
-          {messages.map(message => (
+          {messageList.map(message => (
             <div
               key={message.id}
               className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container`}

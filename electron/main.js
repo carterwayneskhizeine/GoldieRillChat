@@ -168,57 +168,6 @@ ipcMain.handle('save-file', async (event, folderPath, file) => {
   }
 })
 
-// Save messages to file
-ipcMain.handle('save-messages', async (event, folderPath, conversationId, messages) => {
-  try {
-    const filePath = path.join(folderPath, `messages.json`)
-    await fs.writeFile(filePath, JSON.stringify(messages, null, 2), 'utf8')
-    return true
-  } catch (error) {
-    console.error('Failed to save messages:', error)
-    throw error
-  }
-})
-
-// Load messages from file
-ipcMain.handle('load-messages', async (event, folderPath, conversationId) => {
-  try {
-    const filePath = path.join(folderPath, `messages.json`);
-    
-    // 检查文件是否存在
-    try {
-      await fs.access(filePath);
-    } catch (error) {
-      // 如果文件不存在，创建一个新的空文件
-      await fs.writeFile(filePath, '[]', 'utf8');
-      return [];
-    }
-
-    // 读取文件内容
-    const data = await fs.readFile(filePath, 'utf8');
-    
-    // 检查文件内容是否为空
-    if (!data.trim()) {
-      // 如果文件为空，写入空数组并返回
-      await fs.writeFile(filePath, '[]', 'utf8');
-      return [];
-    }
-
-    try {
-      // 尝试解析 JSON
-      return JSON.parse(data);
-    } catch (parseError) {
-      console.error('JSON 解析失败，重置文件:', parseError);
-      // JSON 解析失败，重置文件为空数组
-      await fs.writeFile(filePath, '[]', 'utf8');
-      return [];
-    }
-  } catch (error) {
-    console.error('Failed to load messages:', error);
-    throw error;
-  }
-})
-
 // Save message as txt file
 ipcMain.handle('save-message-as-txt', async (event, folderPath, message) => {
   try {
@@ -1070,6 +1019,66 @@ ipcMain.handle('access', async (event, filePath) => {
     await fs.access(filePath);
     return true;
   } catch (error) {
+    throw error;
+  }
+});
+
+// 修改消息存储相关的 IPC 处理程序
+ipcMain.handle('save-messages', async (event, conversationPath, conversationId, messages) => {
+  try {
+    // 确保 messages 是数组
+    if (!Array.isArray(messages)) {
+      throw new Error('消息必须是数组');
+    }
+
+    const messagesPath = path.join(conversationPath, 'messages.json');
+    await fs.writeFile(messagesPath, JSON.stringify(messages, null, 2), 'utf8');
+    return true;
+  } catch (error) {
+    console.error('保存消息失败:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('load-messages', async (event, conversationPath) => {
+  try {
+    const messagesPath = path.join(conversationPath, 'messages.json');
+    
+    // 检查文件是否存在
+    try {
+      await fs.access(messagesPath);
+    } catch (error) {
+      // 如果文件不存在，创建一个空的消息数组文件
+      await fs.writeFile(messagesPath, '[]', 'utf8');
+      return [];
+    }
+
+    // 读取消息文件
+    const content = await fs.readFile(messagesPath, 'utf8');
+    
+    // 检查文件内容是否为空
+    if (!content.trim()) {
+      await fs.writeFile(messagesPath, '[]', 'utf8');
+      return [];
+    }
+
+    try {
+      // 尝试解析 JSON
+      const messages = JSON.parse(content);
+      // 确保返回的是数组
+      if (!Array.isArray(messages)) {
+        console.error('消息文件格式错误，重置文件');
+        await fs.writeFile(messagesPath, '[]', 'utf8');
+        return [];
+      }
+      return messages;
+    } catch (parseError) {
+      console.error('JSON 解析失败，重置文件:', parseError);
+      await fs.writeFile(messagesPath, '[]', 'utf8');
+      return [];
+    }
+  } catch (error) {
+    console.error('加载消息失败:', error);
     throw error;
   }
 }); 

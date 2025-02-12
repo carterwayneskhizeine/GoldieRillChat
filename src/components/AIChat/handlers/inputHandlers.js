@@ -67,13 +67,6 @@ export const createInputHandlers = ({
       // 更新消息列表
       const messagesWithUser = [...messages, userMessage];
       setMessages(messagesWithUser);
-      
-      // 保存到messages.json
-      await window.electron.saveMessages(
-        currentConversation.path,
-        currentConversation.id,
-        messagesWithUser
-      );
 
       if (!isRetry) {
         setMessageInput('');
@@ -173,13 +166,6 @@ export const createInputHandlers = ({
         msg.id === aiMessage.id ? finalAiMessage : msg
       );
       setMessages(finalMessages);
-      
-      // 保存到messages.json
-      await window.electron.saveMessages(
-        currentConversation.path,
-        currentConversation.id,
-        finalMessages
-      );
 
       // 清除失败状态
       if (isRetry) {

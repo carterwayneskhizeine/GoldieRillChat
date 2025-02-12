@@ -251,10 +251,8 @@ export default function App() {
       // 在选定的存储路径下创建新的会话文件夹
       const folderPath = window.electron.path.join(storagePath, newName);
       
-      // 创建文件夹并初始化 messages.json
+      // 创建文件夹
       await window.electron.mkdir(folderPath);
-      const messagesPath = window.electron.path.join(folderPath, 'messages.json');
-      await window.electron.writeFile(messagesPath, '[]');
       
       // 构造新会话对象
       const newConversation = {
@@ -295,31 +293,12 @@ export default function App() {
         throw new Error('会话路径无效');
       }
 
-      // 如果有当前对话，先检查消息是否需要保存
-      if (currentConversation && messages.length > 0) {
-        try {
-          // 读取当前对话的 messages.json 文件
-          const currentMessages = await window.electron.loadMessages(
-            currentConversation.path,
-            currentConversation.id
-          );
-          
-          // 比较当前内存中的消息和文件中的消息是否相同
-          const messagesChanged = JSON.stringify(messages) !== JSON.stringify(currentMessages);
-          
-          // 只有当消息发生变化时才保存
-          if (messagesChanged) {
-            await window.electron.saveMessages(
-              currentConversation.path,
-              currentConversation.id,
-              messages
-            );
-          }
-        } catch (error) {
-          console.error('保存当前对话消息失败:', error);
-        }
-      }
+      // 先设置当前会话，这样用户界面可以立即响应
+      setCurrentConversation(conversation);
       
+      // 加载消息前先清空当前消息列表，避免显示旧消息
+      setMessages([]);
+
       // 加载新对话的消息
       try {
         // 先检查 messages.json 文件是否存在
@@ -334,16 +313,10 @@ export default function App() {
         // 加载消息
         const msgs = await window.electron.loadMessages(conversation.path, conversation.id);
         
-        // 如果是当前对话，先清空状态再设置
-        if (currentConversation && conversation.id === currentConversation.id) {
-          setCurrentConversation(null);
-          setMessages([]);
-          // 等待短暂的时间，让 UI 能看到状态变化
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
+        // 设置新的消息列表
         setMessages(msgs || []);
-        setCurrentConversation(conversation);
+        
+        // 保存到本地存储
         localStorage.setItem('aichat_current_conversation', JSON.stringify({
           id: conversation.id,
           name: conversation.name,
@@ -352,6 +325,8 @@ export default function App() {
         }));
       } catch (error) {
         console.error('加载新对话消息失败:', error);
+        // 如果加载失败，至少保持空消息列表
+        setMessages([]);
         throw error;
       }
     } catch (error) {

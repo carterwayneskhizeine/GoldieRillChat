@@ -15,10 +15,10 @@ contextBridge.exposeInMainWorld('electron', {
   renameChatFolder: (folderPath, newName) =>
     ipcRenderer.invoke('rename-chat-folder', folderPath, newName),
   loadMessageTxt: (filePath) => ipcRenderer.invoke('load-message-txt', filePath),
-  saveMessages: (folderPath, conversationId, messages) => 
-    ipcRenderer.invoke('save-messages', folderPath, conversationId, messages),
-  loadMessages: (folderPath, conversationId) => 
-    ipcRenderer.invoke('load-messages', folderPath, conversationId),
+  saveMessages: (conversationPath, conversationId, messages) => 
+    ipcRenderer.invoke('save-messages', conversationPath, conversationId, messages),
+  loadMessages: (conversationPath) => 
+    ipcRenderer.invoke('load-messages', conversationPath),
   moveToRecycle: (folderPath, fileName) =>
     ipcRenderer.invoke('move-to-recycle', folderPath, fileName),
   moveFolderToRecycle: (folderPath) =>
@@ -28,7 +28,6 @@ contextBridge.exposeInMainWorld('electron', {
   openFileLocation: (filePath) => ipcRenderer.invoke('openFileLocation', filePath),
   scanFolders: (basePath) => ipcRenderer.invoke('scanFolders', basePath),
   mkdir: (dirPath) => ipcRenderer.invoke('mkdir', dirPath),
-  writeFile: (filePath, content) => ipcRenderer.invoke('writeFile', filePath, content),
   access: (filePath) => ipcRenderer.invoke('access', filePath),
   path: {
     basename: (filePath) => path.basename(filePath),
@@ -100,13 +99,25 @@ contextBridge.exposeInMainWorld('electron', {
   },
   
   // 读取文件内容
-  readFile: (filePath) => {
-    return fs.readFile(filePath, 'utf8');
+  readFile: async (filePath) => {
+    try {
+      const content = await fs.readFile(filePath, 'utf8');
+      return content;
+    } catch (error) {
+      console.error('读取文件失败:', error);
+      throw error;
+    }
   },
   
   // 写入文件内容
-  writeFile: (filePath, content) => {
-    return fs.writeFile(filePath, content, 'utf8');
+  writeFile: async (filePath, content) => {
+    try {
+      await fs.writeFile(filePath, content, 'utf8');
+      return true;
+    } catch (error) {
+      console.error('写入文件失败:', error);
+      throw error;
+    }
   },
 
   // 加载图片到编辑器
