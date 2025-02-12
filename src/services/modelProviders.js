@@ -410,18 +410,15 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
           if (json.choices && json.choices[0]) {
             const delta = json.choices[0].delta;
             
-            // 处理推理过程 - 同时检查 reasoning 和 reasoning_content 字段
-            if (delta.reasoning !== undefined || delta.reasoning_content !== undefined) {
-              const reasoningUpdate = delta.reasoning || delta.reasoning_content;
-              if (reasoningUpdate !== null) {
-                reasoning_content += reasoningUpdate;
-                console.log('收到推理内容:', reasoningUpdate);
-                console.log('当前推理内容:', reasoning_content);
-                onUpdate?.({
-                  type: 'reasoning',
-                  content: reasoning_content
-                });
-              }
+            // 处理推理过程 - 检查 reasoning 字段
+            if (delta.reasoning !== undefined) {
+              reasoning_content += delta.reasoning || '';
+              console.log('收到推理内容:', delta.reasoning);
+              console.log('当前推理内容:', reasoning_content);
+              onUpdate?.({
+                type: 'reasoning',
+                content: reasoning_content
+              });
             }
             
             // 处理普通内容
