@@ -143,16 +143,40 @@ export const MessageItem = ({
                     </div>
                   </div>
                 ) : (
-                  <MarkdownRenderer
-                    content={message.content || ''}
-                    isCompact={false}
-                    onCopyCode={(code) => {
-                      console.log('Code copied:', code);
-                    }}
-                    onLinkClick={(href) => {
-                      window.electron.openExternal(href);
-                    }}
-                  />
+                  <>
+                    {/* 显示推理过程 */}
+                    {message.type === 'assistant' && message.reasoning_content && (
+                      <div className="mb-4 p-4 bg-base-200 rounded-lg border border-base-300">
+                        <div className="text-xs font-medium mb-2 opacity-70">推理过程:</div>
+                        <MarkdownRenderer
+                          content={message.reasoning_content}
+                          isCompact={true}
+                          onCopyCode={(code) => {
+                            console.log('Code copied:', code);
+                          }}
+                          onLinkClick={(href) => {
+                            window.electron.openExternal(href);
+                          }}
+                        />
+                      </div>
+                    )}
+                    {/* 显示最终内容 */}
+                    <div className={message.type === 'assistant' && message.reasoning_content ? 'mt-4' : ''}>
+                      {message.type === 'assistant' && message.reasoning_content && (
+                        <div className="text-xs font-medium mb-2 opacity-70">回答:</div>
+                      )}
+                      <MarkdownRenderer
+                        content={message.content || ''}
+                        isCompact={false}
+                        onCopyCode={(code) => {
+                          console.log('Code copied:', code);
+                        }}
+                        onLinkClick={(href) => {
+                          window.electron.openExternal(href);
+                        }}
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             )}

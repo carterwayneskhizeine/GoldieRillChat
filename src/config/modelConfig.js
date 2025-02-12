@@ -72,7 +72,9 @@ export const MODEL_PROVIDERS = {
       'google/palm-2-chat-bison',
       'meta-llama/llama-2-70b-chat',
       'meta-llama/llama-2-13b-chat',
-      'mistral-ai/mistral-7b-instruct'
+      'mistral-ai/mistral-7b-instruct',
+      'deepseek-ai/deepseek-r1-chat',
+      'deepseek-ai/deepseek-r1-coder'
     ]
   }
 };

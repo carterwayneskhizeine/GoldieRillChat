@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { InputArea } from './components/InputArea';
@@ -31,6 +31,15 @@ export const AIChat = ({
   const modelState = useModelState();
   const inputState = useInputState();
 
+  // 添加新的状态
+  const [maxTokens, setMaxTokens] = useState(() => {
+    return parseInt(localStorage.getItem('aichat_max_tokens')) || 2000;
+  });
+
+  const [temperature, setTemperature] = useState(() => {
+    return parseFloat(localStorage.getItem('aichat_temperature')) || 0.7;
+  });
+
   // 创建消息处理函数
   const messageHandlers = createMessageHandlers({
     messages: messageState.messages,
@@ -45,7 +54,9 @@ export const AIChat = ({
     apiHost: modelState.apiHost,
     setMessageStates: messageState.setMessageStates,
     currentConversation,
-    window: window
+    window,
+    maxTokens,
+    temperature
   });
 
   // 创建设置处理函数
@@ -89,6 +100,10 @@ export const AIChat = ({
           availableModels={modelState.availableModels}
           currentConversation={currentConversation}
           setShowSettings={modelState.setShowSettings}
+          maxTokens={maxTokens}
+          setMaxTokens={setMaxTokens}
+          temperature={temperature}
+          setTemperature={setTemperature}
         />
       </div>
 

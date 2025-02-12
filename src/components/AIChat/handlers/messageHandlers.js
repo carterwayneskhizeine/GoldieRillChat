@@ -27,7 +27,9 @@ export const createMessageHandlers = ({
   apiHost,
   setMessageStates,
   currentConversation,
-  window
+  window,
+  maxTokens,
+  temperature
 }) => {
   // 添加新消息
   const addMessage = (content, type = 'user') => {
@@ -38,7 +40,8 @@ export const createMessageHandlers = ({
       timestamp: Date.now(),
       model: type === 'assistant' ? selectedModel : undefined,
       history: [],
-      currentHistoryIndex: 0
+      currentHistoryIndex: 0,
+      reasoning_content: ''  // 添加推理内容字段
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -127,7 +130,8 @@ export const createMessageHandlers = ({
           content: currentMessage.content,
           timestamp: new Date(),
           model: currentMessage.model,
-          tokens: currentMessage.tokens
+          tokens: currentMessage.tokens,
+          reasoning_content: currentMessage.reasoning_content  // 保存推理内容到历史记录
         });
       }
 
@@ -135,7 +139,8 @@ export const createMessageHandlers = ({
         ...currentMessage,
         history: history,
         currentHistoryIndex: history.length, // 设置为最新的索引
-        currentContent: null // 重置当前内容
+        currentContent: null, // 重置当前内容
+        reasoning_content: '' // 重置推理内容
       };
       return newMessages;
     });
@@ -159,6 +164,8 @@ export const createMessageHandlers = ({
         apiHost,
         model: selectedModel,
         messages: messages.slice(0, userMessageIndex + 1),
+        maxTokens,
+        temperature,
         onUpdate: (update) => {
           if (update.type === 'content') {
             setMessages(prev => {
@@ -175,6 +182,20 @@ export const createMessageHandlers = ({
 
               return newMessages;
             });
+          } else if (update.type === 'reasoning') {
+            // 更新推理内容
+            setMessages(prev => {
+              const newMessages = [...prev];
+              const index = newMessages.findIndex(msg => msg.id === messageId);
+              if (index === -1) return prev;
+
+              newMessages[index] = {
+                ...newMessages[index],
+                reasoning_content: update.content
+              };
+
+              return newMessages;
+            });
           }
         }
       });
@@ -186,6 +207,21 @@ export const createMessageHandlers = ({
         if (index === -1) return prev;
 
         const currentMessage = newMessages[index];
+        
+        // 更新 txt 文件内容
+        if (currentMessage.txtFile) {
+          window.electron.saveMessageAsTxt(
+            currentConversation.path,
+            {
+              ...currentMessage,
+              content: `${response.reasoning_content ? `推理过程:\n${response.reasoning_content}\n\n回答:\n` : ''}${response.content}`,
+              fileName: `${currentMessage.txtFile.displayName}`
+            }
+          ).catch(error => {
+            console.error('保存消息到txt文件失败:', error);
+          });
+        }
+
         newMessages[index] = {
           ...currentMessage,
           content: response.content,
@@ -193,7 +229,8 @@ export const createMessageHandlers = ({
           usage: response.usage,
           model: selectedModel,
           tokens: response.usage?.total_tokens || 0,
-          currentHistoryIndex: currentMessage.history.length // 设置为最新的索引
+          currentHistoryIndex: currentMessage.history.length, // 设置为最新的索引
+          reasoning_content: response.reasoning_content || currentMessage.reasoning_content // 保留推理内容
         };
 
         return newMessages;
@@ -256,6 +293,7 @@ export const createMessageHandlers = ({
         // 如果当前是最新回复，先保存它
         if (message.currentHistoryIndex === message.history.length) {
           message.currentContent = message.content;
+          message.currentReasoningContent = message.reasoning_content;  // 保存当前推理内容
         }
         newIndex = Math.max(0, (message.currentHistoryIndex || message.history.length) - 1);
       } else {
@@ -267,6 +305,7 @@ export const createMessageHandlers = ({
         newMessages[index] = {
           ...message,
           content: message.currentContent || message.content,
+          reasoning_content: message.currentReasoningContent || message.reasoning_content,  // 恢复当前推理内容
           currentHistoryIndex: newIndex
         };
       } else {
@@ -275,6 +314,7 @@ export const createMessageHandlers = ({
         newMessages[index] = {
           ...message,
           content: historyItem.content,
+          reasoning_content: historyItem.reasoning_content || '',  // 显示历史推理内容
           currentHistoryIndex: newIndex
         };
       }

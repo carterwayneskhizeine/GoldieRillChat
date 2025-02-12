@@ -48,7 +48,10 @@ export const createInputHandlers = ({
       content: '',
       type: 'assistant',
       timestamp: new Date(),
-      generating: true
+      generating: true,
+      reasoning_content: '',  // 初始化推理内容字段
+      history: [],
+      currentHistoryIndex: 0
     };
     
     try {
@@ -102,6 +105,8 @@ export const createInputHandlers = ({
         apiHost,
         model: selectedModel,
         messages: messagesWithUser,
+        maxTokens,
+        temperature,
         onUpdate: (update) => {
           if (update.type === 'content') {
             setMessages(prev => {
@@ -115,11 +120,22 @@ export const createInputHandlers = ({
                 generating: !update.done
               };
 
-              // 根据 update.done 直接更新状态
-              setMessageStates(prev => ({
-                ...prev,
-                [aiMessage.id]: update.done ? MESSAGE_STATES.COMPLETED : MESSAGE_STATES.THINKING
-              }));
+              newMessages[aiMessageIndex] = updatedAiMessage;
+              return newMessages;
+            });
+          } else if (update.type === 'reasoning') {
+            // 更新推理内容
+            setMessages(prev => {
+              const newMessages = [...prev];
+              const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
+              if (aiMessageIndex === -1) return prev;
+
+              console.log('更新推理内容:', update.content); // 添加日志
+
+              const updatedAiMessage = {
+                ...newMessages[aiMessageIndex],
+                reasoning_content: update.content || ''
+              };
 
               newMessages[aiMessageIndex] = updatedAiMessage;
               return newMessages;
@@ -133,7 +149,7 @@ export const createInputHandlers = ({
         currentConversation.path,
         {
           ...aiMessage,
-          content: response.content,
+          content: `${response.reasoning_content ? `推理过程:\n${response.reasoning_content}\n\n回答:\n` : ''}${response.content}`,
           fileName: `${formatAIChatTime(aiMessage.timestamp)} • 模型: ${selectedModel} • Token: ${response.usage?.total_tokens || 0}`
         }
       );
@@ -146,7 +162,8 @@ export const createInputHandlers = ({
         usage: response.usage,
         txtFile: aiTxtFile,
         model: selectedModel,
-        tokens: response.usage?.total_tokens || 0
+        tokens: response.usage?.total_tokens || 0,
+        reasoning_content: response.reasoning_content || ''  // 添加推理内容
       };
 
       // 更新消息列表

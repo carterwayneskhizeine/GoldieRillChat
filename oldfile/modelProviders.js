@@ -1,5 +1,5 @@
 // OpenAI API 调用实现
-export const callOpenAI = async ({ apiKey, apiHost, model, messages, maxTokens = 2000, temperature = 0.7 }) => {
+export const callOpenAI = async ({ apiKey, apiHost, model, messages }) => {
   try {
     const response = await fetch(`${apiHost}/v1/chat/completions`, {
       method: 'POST',
@@ -13,9 +13,7 @@ export const callOpenAI = async ({ apiKey, apiHost, model, messages, maxTokens =
           role: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content
         })),
-        stream: false,
-        max_tokens: maxTokens,
-        temperature: temperature
+        stream: false
       })
     });
 
@@ -36,7 +34,7 @@ export const callOpenAI = async ({ apiKey, apiHost, model, messages, maxTokens =
 };
 
 // Claude API 调用实现
-export const callClaude = async ({ apiKey, apiHost, model, messages, maxTokens = 2000, temperature = 0.7 }) => {
+export const callClaude = async ({ apiKey, apiHost, model, messages }) => {
   try {
     const response = await fetch(`${apiHost}/v1/messages`, {
       method: 'POST',
@@ -51,8 +49,7 @@ export const callClaude = async ({ apiKey, apiHost, model, messages, maxTokens =
           role: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content
         })),
-        max_tokens: maxTokens,
-        temperature: temperature
+        max_tokens: 2000
       })
     });
 
@@ -73,7 +70,7 @@ export const callClaude = async ({ apiKey, apiHost, model, messages, maxTokens =
 };
 
 // SiliconFlow API 调用实现
-export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7 }) => {
+export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpdate }) => {
   const maxRetries = 3;  // 最大重试次数
   const baseDelay = 1000;  // 基础延迟时间（毫秒）
   let retryCount = 0;
@@ -101,8 +98,8 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
             content: msg.content
           })),
           stream: false,
-          temperature: temperature,
-          max_tokens: maxTokens,
+          temperature: 0.7,
+          max_tokens: 2000,
           top_p: 0.95,
           stop: null,
           presence_penalty: 0,
@@ -168,7 +165,7 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
 };
 
 // DeepSeek API 调用实现
-export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7 }) => {
+export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate }) => {
   try {
     const response = await fetch(`${apiHost}/chat/completions`, {
       method: 'POST',
@@ -184,8 +181,8 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate,
           ...(msg.reasoning_content ? {} : {})
         })),
         stream: true,
-        temperature: temperature,
-        max_tokens: maxTokens
+        temperature: 0.7,
+        max_tokens: 2000
       })
     });
 
@@ -283,12 +280,8 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate,
 };
 
 // OpenRouter API 调用实现
-export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7 }) => {
+export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdate }) => {
   try {
-    // 检查是否是 deepseek-r1 系列模型
-    const isDeepseekR1 = model.includes('deepseek-r1');
-    console.log('是否为 deepseek-r1 模型:', isDeepseekR1); // 添加日志
-
     const response = await fetch(`${apiHost}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -304,9 +297,8 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
           content: msg.content
         })),
         stream: true,
-        temperature: temperature,
-        max_tokens: maxTokens,
-        include_reasoning: isDeepseekR1  // 添加这个参数
+        temperature: 0.7,
+        max_tokens: 2000
       })
     });
 
@@ -315,6 +307,7 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
       let errorMessage;
       try {
         const errorJson = JSON.parse(errorText);
+        // 构建详细的错误信息
         errorMessage = `(OpenRouter) ${errorJson.error?.message || errorJson.message || '请求失败'}\n`;
         if (errorJson.error?.code) {
           errorMessage += `错误代码: ${errorJson.error.code}\n`;
@@ -331,12 +324,26 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let content = '';
-    let reasoning_content = '';
     let buffer = '';
+
+    // 发送初始状态
+    onUpdate?.({
+      type: 'content',
+      content: '',
+      done: false
+    });
 
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) {
+        // 发送完成信号
+        onUpdate?.({
+          type: 'content',
+          content: content,
+          done: true
+        });
+        break;
+      }
 
       buffer += decoder.decode(value, { stream: true });
       const chunks = buffer.split('\n');
@@ -350,28 +357,12 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
           if (jsonStr === '[DONE]') continue;
 
           const json = JSON.parse(jsonStr);
-          console.log('收到的数据块:', json); // 添加日志
-          
-          if (json.choices && json.choices[0]) {
+          if (json.choices && json.choices[0] && json.choices[0].delta) {
             const delta = json.choices[0].delta;
-            
-            // 处理推理过程
-            if (isDeepseekR1 && delta.reasoning !== undefined) {
-              console.log('检测到推理字段:', delta.reasoning);
-              if (delta.reasoning !== null) {
-                reasoning_content += delta.reasoning;
-                console.log('收到推理内容:', delta.reasoning);
-                console.log('当前推理内容:', reasoning_content);
-                onUpdate?.({
-                  type: 'reasoning',
-                  content: reasoning_content
-                });
-              }
-            }
-            
-            // 处理普通内容
             if (delta.content) {
               content += delta.content;
+              
+              // 发送实时更新
               onUpdate?.({
                 type: 'content',
                 content: content,
@@ -386,19 +377,17 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
       }
     }
 
-    // 发送最终完成信号
+    // 发送最终完成状态
     onUpdate?.({
       type: 'content',
       content: content,
-      done: true,
-      reasoning_content: reasoning_content
+      done: true
     });
 
     return {
       content: content,
-      reasoning_content: reasoning_content,
       usage: {
-        total_tokens: Math.ceil((content.length + reasoning_content.length) / 4)
+        total_tokens: Math.ceil(content.length / 4)  // 简单估算token数
       }
     };
   } catch (error) {
@@ -408,7 +397,7 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
 };
 
 // 统一的 API 调用函数
-export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7 }) => {
+export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages, onUpdate }) => {
   // 验证必要的参数
   if (!apiKey) {
     throw new Error('请先配置 API 密钥');
@@ -425,15 +414,15 @@ export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages,
   // 根据提供方调用对应的 API
   switch (provider) {
     case 'openai':
-      return callOpenAI({ apiKey, apiHost, model, messages, maxTokens, temperature });
+      return callOpenAI({ apiKey, apiHost, model, messages });
     case 'claude':
-      return callClaude({ apiKey, apiHost, model, messages, maxTokens, temperature });
+      return callClaude({ apiKey, apiHost, model, messages });
     case 'siliconflow':
-      return callSiliconCloud({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature });
+      return callSiliconCloud({ apiKey, apiHost, model, messages, onUpdate });
     case 'openrouter':
-      return callOpenRouter({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature });
+      return callOpenRouter({ apiKey, apiHost, model, messages, onUpdate });
     case 'deepseek':
-      return callDeepSeek({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature });
+      return callDeepSeek({ apiKey, apiHost, model, messages, onUpdate });
     default:
       throw new Error(`不支持的模型提供方: ${provider}`);
   }

@@ -116,8 +116,31 @@ ipcMain.handle('create-aichat-folder', async (event, folderPath) => {
     const baseDir = path.dirname(folderPath);
     await fs.mkdir(baseDir, { recursive: true });
     
+    // 检查目标文件夹是否已存在
+    try {
+      await fs.access(folderPath);
+      // 如果文件夹已存在，先删除它
+      await fs.rm(folderPath, { recursive: true, force: true });
+    } catch (error) {
+      // 文件夹不存在，这是正常的，继续创建
+    }
+    
     // 创建 AI Chat 文件夹
     await fs.mkdir(folderPath, { recursive: true });
+    
+    // 创建空的 messages.json 文件
+    const messagesPath = path.join(folderPath, 'messages.json');
+    try {
+      // 检查文件是否已存在
+      await fs.access(messagesPath);
+      // 如果存在，先删除它
+      await fs.unlink(messagesPath);
+    } catch (error) {
+      // 文件不存在，这是正常的，继续创建
+    }
+    
+    // 写入新的空数组
+    await fs.writeFile(messagesPath, '[]', 'utf8');
     
     return {
       path: folderPath,
@@ -160,15 +183,39 @@ ipcMain.handle('save-messages', async (event, folderPath, conversationId, messag
 // Load messages from file
 ipcMain.handle('load-messages', async (event, folderPath, conversationId) => {
   try {
-    const filePath = path.join(folderPath, `messages.json`)
-    const data = await fs.readFile(filePath, 'utf8')
-    return JSON.parse(data)
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return []
+    const filePath = path.join(folderPath, `messages.json`);
+    
+    // 检查文件是否存在
+    try {
+      await fs.access(filePath);
+    } catch (error) {
+      // 如果文件不存在，创建一个新的空文件
+      await fs.writeFile(filePath, '[]', 'utf8');
+      return [];
     }
-    console.error('Failed to load messages:', error)
-    throw error
+
+    // 读取文件内容
+    const data = await fs.readFile(filePath, 'utf8');
+    
+    // 检查文件内容是否为空
+    if (!data.trim()) {
+      // 如果文件为空，写入空数组并返回
+      await fs.writeFile(filePath, '[]', 'utf8');
+      return [];
+    }
+
+    try {
+      // 尝试解析 JSON
+      return JSON.parse(data);
+    } catch (parseError) {
+      console.error('JSON 解析失败，重置文件:', parseError);
+      // JSON 解析失败，重置文件为空数组
+      await fs.writeFile(filePath, '[]', 'utf8');
+      return [];
+    }
+  } catch (error) {
+    console.error('Failed to load messages:', error);
+    throw error;
   }
 })
 
@@ -995,4 +1042,34 @@ ipcMain.handle('getResourcePath', (event, fileName) => {
     // 在开发环境中，使用项目根目录下的 resources
     return path.join(__dirname, '..', 'resources', fileName)
   }
-}) 
+})
+
+// Add file system operations
+ipcMain.handle('mkdir', async (event, dirPath) => {
+  try {
+    await fs.mkdir(dirPath, { recursive: true });
+    return true;
+  } catch (error) {
+    console.error('Failed to create directory:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('writeFile', async (event, filePath, content) => {
+  try {
+    await fs.writeFile(filePath, content, 'utf8');
+    return true;
+  } catch (error) {
+    console.error('Failed to write file:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('access', async (event, filePath) => {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch (error) {
+    throw error;
+  }
+}); 

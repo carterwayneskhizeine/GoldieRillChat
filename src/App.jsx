@@ -240,28 +240,28 @@ export default function App() {
       // 生成新会话ID和名称
       const newId = Date.now().toString();
       const now = new Date();
-      const year = now.getFullYear().toString().slice(-2); // 获取年份后两位
-      const month = now.toLocaleString('en-US', { month: 'short' }); // 获取月份英文缩写
-      const day = now.getDate().toString().padStart(2, '0'); // 获取日期，补零
-      const hours = now.getHours().toString().padStart(2, '0'); // 获取小时，补零
-      const minutes = now.getMinutes().toString().padStart(2, '0'); // 获取分钟，补零
-      const seconds = now.getSeconds().toString().padStart(2, '0'); // 获取秒数，补零
+      const year = now.getFullYear().toString().slice(-2);
+      const month = now.toLocaleString('en-US', { month: 'short' });
+      const day = now.getDate().toString().padStart(2, '0');
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const seconds = now.getSeconds().toString().padStart(2, '0');
       const newName = `${day}${month}${year}_${hours}${minutes}${seconds}`;
 
       // 在选定的存储路径下创建新的会话文件夹
       const folderPath = window.electron.path.join(storagePath, newName);
-      const result = await window.electron.createAIChatFolder(folderPath);
       
-      if (!result || !result.path) {
-        throw new Error('创建文件夹失败');
-      }
+      // 创建文件夹并初始化 messages.json
+      await window.electron.mkdir(folderPath);
+      const messagesPath = window.electron.path.join(folderPath, 'messages.json');
+      await window.electron.writeFile(messagesPath, '[]');
       
       // 构造新会话对象
       const newConversation = {
         id: newId,
         name: newName,
         timestamp: new Date().toISOString(),
-        path: result.path
+        path: folderPath
       };
       
       // 更新状态
@@ -294,23 +294,66 @@ export default function App() {
       if (!conversation.path) {
         throw new Error('会话路径无效');
       }
-      // 如果点击的是当前选中会话，则先清空当前会话和消息，以实现刷新
-      if (currentConversation && conversation.id === currentConversation.id) {
-        setCurrentConversation(null);
-        setMessages([]);
-        // 等待短暂的时间，让 UI 能看到状态变化
-        await new Promise(resolve => setTimeout(resolve, 100));
+
+      // 如果有当前对话，先检查消息是否需要保存
+      if (currentConversation && messages.length > 0) {
+        try {
+          // 读取当前对话的 messages.json 文件
+          const currentMessages = await window.electron.loadMessages(
+            currentConversation.path,
+            currentConversation.id
+          );
+          
+          // 比较当前内存中的消息和文件中的消息是否相同
+          const messagesChanged = JSON.stringify(messages) !== JSON.stringify(currentMessages);
+          
+          // 只有当消息发生变化时才保存
+          if (messagesChanged) {
+            await window.electron.saveMessages(
+              currentConversation.path,
+              currentConversation.id,
+              messages
+            );
+          }
+        } catch (error) {
+          console.error('保存当前对话消息失败:', error);
+        }
       }
       
-      const msgs = await window.electron.loadMessages(conversation.path, conversation.id);
-      setMessages(msgs || []);
-      setCurrentConversation(conversation);
-      localStorage.setItem('aichat_current_conversation', JSON.stringify({
-        id: conversation.id,
-        name: conversation.name,
-        path: conversation.path,
-        timestamp: conversation.timestamp
-      }));
+      // 加载新对话的消息
+      try {
+        // 先检查 messages.json 文件是否存在
+        const messagesPath = window.electron.path.join(conversation.path, 'messages.json');
+        try {
+          await window.electron.access(messagesPath);
+        } catch (error) {
+          // 如果文件不存在，创建一个空的 messages.json
+          await window.electron.writeFile(messagesPath, '[]');
+        }
+
+        // 加载消息
+        const msgs = await window.electron.loadMessages(conversation.path, conversation.id);
+        
+        // 如果是当前对话，先清空状态再设置
+        if (currentConversation && conversation.id === currentConversation.id) {
+          setCurrentConversation(null);
+          setMessages([]);
+          // 等待短暂的时间，让 UI 能看到状态变化
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        setMessages(msgs || []);
+        setCurrentConversation(conversation);
+        localStorage.setItem('aichat_current_conversation', JSON.stringify({
+          id: conversation.id,
+          name: conversation.name,
+          path: conversation.path,
+          timestamp: conversation.timestamp
+        }));
+      } catch (error) {
+        console.error('加载新对话消息失败:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('加载会话消息失败:', error);
       alert('加载会话消息失败: ' + error.message);

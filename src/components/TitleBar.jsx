@@ -106,7 +106,13 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
         {/* 主题切换按钮 */}
         <button
           className="btn btn-ghost btn-sm w-8 h-8 hover:rounded-none"
-          onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)}
+          onClick={async () => {
+            try {
+              await toggleTheme(currentTheme, themes, setCurrentTheme);
+            } catch (error) {
+              console.error('切换主题失败:', error);
+            }
+          }}
           title="切换主题"
         >
           ∞

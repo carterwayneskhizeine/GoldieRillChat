@@ -27,6 +27,9 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('delete-message', folderPath, message),
   openFileLocation: (filePath) => ipcRenderer.invoke('openFileLocation', filePath),
   scanFolders: (basePath) => ipcRenderer.invoke('scanFolders', basePath),
+  mkdir: (dirPath) => ipcRenderer.invoke('mkdir', dirPath),
+  writeFile: (filePath, content) => ipcRenderer.invoke('writeFile', filePath, content),
+  access: (filePath) => ipcRenderer.invoke('access', filePath),
   path: {
     basename: (filePath) => path.basename(filePath),
     dirname: (filePath) => path.dirname(filePath),

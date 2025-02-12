@@ -219,4 +219,37 @@
   50% {
     border-color: var(--bc);
   }
+}
+
+/* 推理过程气泡样式 */
+.reasoning-bubble {
+  background-color: var(--b2) !important;
+  border: 1px solid var(--b3);
+  opacity: 0.9;
+  font-family: monospace;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.reasoning-bubble .typing-content {
+  font-size: 0.9em;
+  color: var(--bc);
+}
+
+/* 推理过程标题样式 */
+.reasoning-bubble .font-medium {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: var(--bc);
+}
+
+/* 区分生成中和完成后的样式 */
+.response-content .typing-effect {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--bc);
+}
+
+.response-content .react-markdown {
+  animation: fadeIn 0.3s ease-out;
 } 

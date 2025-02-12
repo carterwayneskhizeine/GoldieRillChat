@@ -150,6 +150,9 @@ export function ChatView({
       <div 
         id="ai-chat-messages"
         className={`flex-1 overflow-y-auto p-4 ${isCompact ? 'compact-scroll' : ''} chat-view-messages`}
+        style={{
+          paddingBottom: '145px' // 增加底部空间以避免消息被输入框遮挡
+        }}
       >
         <div className="space-y-4 max-w-[1200px] mx-auto">
           {messages.map(message => (

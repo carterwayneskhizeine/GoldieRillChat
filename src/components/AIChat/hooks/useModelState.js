@@ -29,7 +29,11 @@ export const useModelState = () => {
   });
 
   const [showApiKey, setShowApiKey] = useState(false);
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(() => {
+    // 初始化时从 localStorage 加载 API 密钥
+    const provider = localStorage.getItem(STORAGE_KEYS.SELECTED_PROVIDER) || DEFAULT_SETTINGS.PROVIDER;
+    return localStorage.getItem(`${STORAGE_KEYS.API_KEY_PREFIX}_${provider}`) || '';
+  });
   
   // 设置弹窗状态
   const [showSettings, setShowSettings] = useState(false);
@@ -49,11 +53,21 @@ export const useModelState = () => {
       setApiHost(savedApiHost || MODEL_PROVIDERS[selectedProvider].apiHost);
 
       // 加载对应提供商的 API 密钥
-      const savedApiKey = localStorage.getItem(`aichat_api_key_${selectedProvider}`);
-      // 只设置当前提供商的API密钥，如果没有则设置为空字符串
+      const savedApiKey = localStorage.getItem(`${STORAGE_KEYS.API_KEY_PREFIX}_${selectedProvider}`);
       setApiKey(savedApiKey || '');
     }
   }, [selectedProvider]);
+
+  // 当 API 密钥变更时保存到 localStorage
+  useEffect(() => {
+    if (selectedProvider && apiKey !== undefined) {
+      if (apiKey.trim()) {
+        localStorage.setItem(`${STORAGE_KEYS.API_KEY_PREFIX}_${selectedProvider}`, apiKey);
+      } else {
+        localStorage.removeItem(`${STORAGE_KEYS.API_KEY_PREFIX}_${selectedProvider}`);
+      }
+    }
+  }, [selectedProvider, apiKey]);
 
   // 当 API 密钥变更时更新模型列表
   useEffect(() => {
@@ -140,10 +154,10 @@ export const useModelState = () => {
       
       // 只有当API密钥不为空时才保存
       if (apiKey.trim()) {
-        localStorage.setItem(`aichat_api_key_${selectedProvider}`, apiKey);
+        localStorage.setItem(`${STORAGE_KEYS.API_KEY_PREFIX}_${selectedProvider}`, apiKey);
       } else {
         // 如果API密钥为空，则删除存储的密钥
-        localStorage.removeItem(`aichat_api_key_${selectedProvider}`);
+        localStorage.removeItem(`${STORAGE_KEYS.API_KEY_PREFIX}_${selectedProvider}`);
       }
     }
   }, [selectedProvider, selectedModel, apiHost, apiKey]);
