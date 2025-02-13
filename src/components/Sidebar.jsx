@@ -70,7 +70,7 @@ export default function Sidebar({
   const [openChatFolder, setOpenChatFolder] = useState(null);
 
   useEffect(() => {
-    if (activeTool === 'chat') {
+    if (activeTool === 'chat' || activeTool === 'aichat') {
       setSidebarMode('default');
     } else if (previousMode) {
       setSidebarMode('chat');
@@ -79,6 +79,9 @@ export default function Sidebar({
 
   const handleSidebarModeToggleLocal = () => {
     if (sidebarMode === 'default') {
+      if (activeTool === 'chat' || activeTool === 'aichat') {
+        return;
+      }
       setPreviousMode('default');
       setSidebarMode('chat');
       

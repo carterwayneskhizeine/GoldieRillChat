@@ -64,16 +64,12 @@ export function ChatView({
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const selection = window.getSelection();
-    const text = selection.toString();
     
     // 创建一个自定义事件并触发
     const contextMenuEvent = new CustomEvent('showContextMenu', {
       detail: {
         x: e.pageX,
-        y: e.pageY,
-        text: text,
-        target: e.target
+        y: e.pageY
       }
     });
     window.dispatchEvent(contextMenuEvent);
@@ -154,7 +150,8 @@ export function ChatView({
         id="ai-chat-messages"
         className={`flex-1 overflow-y-auto p-4 ${isCompact ? 'compact-scroll' : ''} chat-view-messages`}
         style={{
-          paddingBottom: '145px' // 增加底部空间以避免消息被输入框遮挡
+          paddingBottom: isCompact ? '205px' : '145px', // 增加底部空间以避免消息和滑动条被输入框和底部按钮遮挡
+          marginBottom: isCompact ? '60px' : '0px' // 为紧凑模式添加额外的底部间距，避免滑动条被底部按钮遮挡
         }}
       >
         <div className="space-y-4 max-w-[1200px] mx-auto">
@@ -171,7 +168,9 @@ export function ChatView({
                       <input
                         type="text"
                         value={fileNameInput}
-                        onChange={(e) => setFileNameInput(e.target.value)}
+                        onChange={(e) => {
+                          setFileNameInput(e.target.value);
+                        }}
                         className="input input-xs input-bordered join-item"
                         placeholder="Enter new file name"
                         onKeyPress={(e) => {
@@ -216,7 +215,9 @@ export function ChatView({
                         <input
                           type="text"
                           value={fileNameInput}
-                          onChange={(e) => setFileNameInput(e.target.value)}
+                          onChange={(e) => {
+                            setFileNameInput(e.target.value);
+                          }}
                           className="input input-xs input-bordered join-item"
                           placeholder="Enter new file name"
                           onKeyPress={(e) => {
@@ -579,7 +580,9 @@ export function ChatView({
 
       {/* 输入区域 */}
       {!editingMessage && (
-        <div className={`absolute bottom-0 left-0 ${isCompact ? 'right-[20px] p-2 pointer-events-none bg-transparent' : 'right-[20px] p-4 bg-transparent'}`}>
+        <div className={`absolute bottom-0 left-0 ${isCompact ? 'right-[20px] p-2 pointer-events-none bg-transparent' : 'right-[20px] p-4 bg-transparent'}`} style={{ 
+          bottom: isCompact ? '48px' : '0px' // 添加底部间距，避免被底部按钮遮挡
+        }}>
           <div className={`${isCompact ? 'max-w-[300px] mx-auto pointer-events-auto' : 'max-w-3xl mx-auto'}`}>
             {selectedFiles.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">

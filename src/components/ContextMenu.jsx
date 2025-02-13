@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 
-export function ContextMenu({ contextMenu, onClose, onDelete, onRename, onCopy, onPaste, selectedElement }) {
+export function ContextMenu({ contextMenu, onClose, onDelete, onRename }) {
   // 添加全局点击事件监听，当点击页面其它区域时隐藏上下文菜单
   useEffect(() => {
     const handleClickOutside = () => {
@@ -43,13 +43,6 @@ export function ContextMenu({ contextMenu, onClose, onDelete, onRename, onCopy, 
           <>
             <li><a onClick={() => { onDelete(contextMenu.data); onClose(); }}>Delete</a></li>
             <li><a onClick={() => { onRename(contextMenu.data); onClose(); }}>Rename</a></li>
-          </>
-        );
-      case 'code':
-        return (
-          <>
-            <li><a onClick={() => { onCopy(); onClose(); }}>Copy</a></li>
-            <li><a onClick={() => { onPaste(); onClose(); }}>Paste</a></li>
           </>
         );
       default:

@@ -16,7 +16,6 @@ import {
 import { moveMessage as moveMessageOp } from './components/messageMovement'
 import { copyMessageContent } from './components/messageUtils'
 import { handlePaste } from './components/pasteHandler'
-import { copyCode, pasteCode } from './components/codeOperations'
 import { ContextMenu } from './components/ContextMenu'
 import { formatMessageTime } from './utils/timeFormat'
 import { handleFileSelect, removeFile, handleFileDrop } from './components/fileHandlers'
@@ -659,31 +658,12 @@ export default function App() {
   const handleContextMenu = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    const selection = window.getSelection()
-    const text = selection.toString()
-
     setContextMenu({ visible: true, x: e.pageX, y: e.pageY })
-    setSelectedText(text)
-    setSelectedElement(e.target)
   }
 
   // 关闭右键菜单
   const closeContextMenu = () => {
     setContextMenu({ visible: false, x: 0, y: 0 })
-    setSelectedText('')
-    setSelectedElement(null)
-  }
-
-  // 复制代码
-  const handleCopyCode = () => {
-    copyCode(selectedElement, selectedText)
-    closeContextMenu()
-  }
-
-  // 粘贴代码
-  const handlePasteCode = async () => {
-    await pasteCode(selectedElement, setMessageInput)
-    closeContextMenu()
   }
 
   // 处理删除对话
@@ -1249,9 +1229,6 @@ export default function App() {
             onClose={closeContextMenu}
             onDelete={handleDeleteConversation}
             onRename={handleRenameConversation}
-            onCopy={handleCopyCode}
-            onPaste={handlePasteCode}
-            selectedElement={selectedElement}
           />
 
           <ImageLightbox
