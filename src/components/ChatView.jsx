@@ -102,7 +102,7 @@ export function ChatView({
           }
           .collapse-button {
             position: sticky;
-            top: 2px;
+            top: -15px;
             float: right;
             margin-left: 8px;
             margin-right: 0px;

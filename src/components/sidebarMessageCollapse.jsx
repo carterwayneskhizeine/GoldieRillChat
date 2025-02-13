@@ -46,7 +46,7 @@ export const SidebarCollapseButton = ({ messageId, collapsedMessages, setCollaps
       className="collapse-button"
       style={{
         position: 'sticky',
-        top: '2px',
+        top: '-15px',
         float: 'right',
         marginLeft: '8px',
         marginRight: '0px',

@@ -116,7 +116,7 @@
 /* 折叠/展开按钮 */
 .collapse-button {
   position: sticky;
-  top: 2px;
+  top: -15px;
   float: right;
   margin-left: 8px;
   z-index: 100;
