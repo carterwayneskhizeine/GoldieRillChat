@@ -19,10 +19,14 @@ export const MessageItem = ({
 }) => {
   // 添加推理过程折叠状态
   const [isReasoningCollapsed, setIsReasoningCollapsed] = useState(false);
+  // 添加消息折叠状态
+  const [isMessageCollapsed, setIsMessageCollapsed] = useState(false);
 
   return (
     <div
-      className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container`}
+      className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container ${
+        isMessageCollapsed ? 'aichat-message-collapsed' : ''
+      }`}
       data-message-id={message.id}
     >
       {/* 消息头部 */}
@@ -44,6 +48,23 @@ export const MessageItem = ({
         message.type === 'user' ? 'chat-bubble-primary' : 
         message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
       }`}>
+        {/* 添加折叠按钮 */}
+        {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
+          <button
+            className="aichat-collapse-btn"
+            onClick={() => setIsMessageCollapsed(!isMessageCollapsed)}
+          >
+            {isMessageCollapsed ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            )}
+          </button>
+        )}
         <div className="message-content">
           {/* 移除折叠按钮相关代码 */}
 
