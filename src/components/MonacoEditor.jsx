@@ -70,12 +70,22 @@ export const MonacoEditor = () => {
   useEffect(() => {
     if (isEditorReady && language === "markdown" && editorRef.current) {
       const model = editorRef.current.getModel();
+      // 立即设置初始内容
+      setMarkdownContent(editorRef.current.getValue());
+      
       const disposable = model.onDidChangeContent(() => {
         setMarkdownContent(editorRef.current.getValue());
       });
       return () => disposable.dispose();
     }
   }, [isEditorReady, language]);
+
+  // 在显示预览时更新内容
+  useEffect(() => {
+    if (showPreview && language === "markdown" && editorRef.current) {
+      setMarkdownContent(editorRef.current.getValue());
+    }
+  }, [showPreview, language]);
 
   // 运行 Python 代码
   const runPythonCode = async () => {
