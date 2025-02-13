@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getToolDisplayName, tools } from '../config/toolsConfig';
 import { BrowserTabs } from './BrowserTabs';
 import { ChatView } from './ChatView';
@@ -67,6 +67,8 @@ export default function Sidebar({
   sendToEditor,
   handleRenameConfirm
 }) {
+  const [openChatFolder, setOpenChatFolder] = useState(null);
+
   useEffect(() => {
     if (activeTool === 'chat') {
       setSidebarMode('default');
@@ -80,12 +82,23 @@ export default function Sidebar({
       setPreviousMode('default');
       setSidebarMode('chat');
       
-      if (!currentConversation && conversations.length > 0) {
+      if (activeTool !== 'chat' && !openChatFolder && conversations.length > 0) {
+        setOpenChatFolder(conversations[0]);
+        loadConversation(conversations[0].id);
+      } else if (activeTool === 'chat' && !currentConversation && conversations.length > 0) {
         loadConversation(conversations[0].id);
       }
     } else {
       setSidebarMode('default');
       setPreviousMode(null);
+    }
+  };
+
+  const handleOpenChatFolderChange = (conversationId) => {
+    const selectedConversation = conversations.find(c => c.id === conversationId);
+    if (selectedConversation) {
+      setOpenChatFolder(selectedConversation);
+      loadConversation(conversationId);
     }
   };
 
@@ -154,6 +167,30 @@ export default function Sidebar({
               </button>
             )}
           </div>
+
+          {/* 添加Open Chat文件夹选择器 */}
+          {sidebarMode === 'chat' && activeTool !== 'chat' && (
+            <div className="dropdown dropdown-bottom w-full mb-4">
+              <label tabIndex={0} className="btn btn-outline btn-sm w-full flex justify-between items-center">
+                <span className="truncate">{openChatFolder?.name || '选择对话文件夹'}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </label>
+              <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full max-h-[300px] overflow-y-auto">
+                {conversations.map(conversation => (
+                  <li key={conversation.id}>
+                    <a 
+                      className={openChatFolder?.id === conversation.id ? 'active' : ''}
+                      onClick={() => handleOpenChatFolderChange(conversation.id)}
+                    >
+                      {conversation.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* 工具特定内容：例如聊天室展示对话列表 */}
           {activeTool === 'chat' && (
@@ -705,6 +742,22 @@ export default function Sidebar({
             <button
               className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
               onClick={() => setShowSettings(true)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Settings</span>
+            </button>
+          ) : activeTool === 'aichat' ? (
+            // AI Chat工具显示Settings按钮
+            <button
+              className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
+              onClick={() => {
+                if (window.aichat && window.aichat.setShowSettings) {
+                  window.aichat.setShowSettings(true);
+                }
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

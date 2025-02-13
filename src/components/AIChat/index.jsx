@@ -54,13 +54,14 @@ export const AIChat = ({
   // 在组件挂载时将创建新对话的函数绑定到 window.aichat
   useEffect(() => {
     window.aichat = {
-      createNewConversation: handleCreateNewConversation
+      createNewConversation: handleCreateNewConversation,
+      setShowSettings: modelState.setShowSettings
     };
     
     return () => {
       delete window.aichat;
     };
-  }, [createNewConversation]);
+  }, [createNewConversation, modelState.setShowSettings]);
 
   // 创建消息处理函数
   const messageHandlers = createMessageHandlers({
