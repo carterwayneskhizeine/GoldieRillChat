@@ -97,6 +97,7 @@
             "remark-gfm": "^4.0.0",
             "remark-math": "^6.0.0",
             "styled-components": "^6.1.15",
+            "three": "^0.173.0",
             "yet-another-react-lightbox": "^3.21.7"
       },
       "devDependencies": {
@@ -109,6 +110,7 @@
             "electron": "^28.0.0",
             "electron-builder": "^24.9.1",
             "postcss": "^8.4.32",
+            "raw-loader": "^4.0.2",
             "tailwindcss": "^3.3.6",
             "vite": "^4.4.5",
             "vite-plugin-electron": "^0.15.5",

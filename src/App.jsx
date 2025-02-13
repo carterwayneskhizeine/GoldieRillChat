@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import TitleBar from './components/TitleBar'
+import ThreeBackground from './components/ThreeBackground'
 import { 
   updateMessage,
   sendMessage as sendMessageOp,
@@ -963,7 +964,8 @@ export default function App() {
   }, [currentConversation]);
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-base-100">
+      <ThreeBackground />
       <style>{globalStyles}</style>
       <TitleBar 
         activeTool={activeTool}
