@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MessageItem } from './MessageItem';
+import { useMessageCollapse } from '../hooks/useMessageCollapse';
 import '../styles/messages.css';
 
 export const MessageList = ({
@@ -8,8 +9,6 @@ export const MessageList = ({
   editingMessageId,
   editContent,
   setEditContent,
-  collapsedMessages,
-  setCollapsedMessages,
   handleEditStart,
   handleEditCancel,
   handleEditSave,
@@ -19,6 +18,9 @@ export const MessageList = ({
 }) => {
   // 删除确认状态
   const [deletingMessageId, setDeletingMessageId] = useState(null);
+
+  // 使用折叠状态 hook
+  const { isMessageCollapsed, toggleMessageCollapse } = useMessageCollapse();
 
   // 处理删除消息
   const onDeleteMessage = async (messageId) => {
@@ -59,14 +61,14 @@ export const MessageList = ({
               editingMessageId={editingMessageId}
               editContent={editContent}
               setEditContent={setEditContent}
-              collapsedMessages={collapsedMessages}
-              setCollapsedMessages={setCollapsedMessages}
               handleEditStart={handleEditStart}
               handleEditCancel={handleEditCancel}
               handleEditSave={handleEditSave}
               handleDeleteMessage={onDeleteMessage}
               handleRetry={handleRetry}
               handleHistoryNavigation={handleHistoryNavigation}
+              isCollapsed={isMessageCollapsed(message.id)}
+              onToggleCollapse={toggleMessageCollapse}
             />
           ))}
         </div>

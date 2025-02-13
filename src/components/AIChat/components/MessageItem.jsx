@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MarkdownRenderer } from '../../shared/MarkdownRenderer';
+import { shouldCollapseMessage, getMessageContentStyle } from '../utils/messageCollapse';
 import '../styles/messages.css';
 
 export const MessageItem = ({
@@ -8,26 +9,28 @@ export const MessageItem = ({
   editingMessageId,
   editContent,
   setEditContent,
-  collapsedMessages,
-  setCollapsedMessages,
   handleEditStart,
   handleEditCancel,
   handleEditSave,
   handleDeleteMessage,
   handleRetry,
-  handleHistoryNavigation
+  handleHistoryNavigation,
+  isCollapsed,
+  onToggleCollapse
 }) => {
   // 添加推理过程折叠状态
   const [isReasoningCollapsed, setIsReasoningCollapsed] = useState(false);
-  // 添加消息折叠状态
-  const [isMessageCollapsed, setIsMessageCollapsed] = useState(false);
+
+  // 获取消息内容样式
+  const contentStyle = getMessageContentStyle(isCollapsed);
 
   return (
     <div
       className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container ${
-        isMessageCollapsed ? 'aichat-message-collapsed' : ''
+        isCollapsed ? 'aichat-message-collapsed' : ''
       }`}
       data-message-id={message.id}
+      data-aichat-message="true"
     >
       {/* 消息头部 */}
       <div className="chat-header opacity-70">
@@ -49,12 +52,12 @@ export const MessageItem = ({
         message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
       }`}>
         {/* 添加折叠按钮 */}
-        {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
+        {shouldCollapseMessage(message) && (
           <button
             className="aichat-collapse-btn"
-            onClick={() => setIsMessageCollapsed(!isMessageCollapsed)}
+            onClick={() => onToggleCollapse(message.id, isCollapsed)}
           >
-            {isMessageCollapsed ? (
+            {isCollapsed ? (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -66,9 +69,7 @@ export const MessageItem = ({
           </button>
         )}
         <div className="message-content">
-          {/* 移除折叠按钮相关代码 */}
-
-          <div className={`response-content`}>
+          <div className="response-content" style={contentStyle}>
             {editingMessageId === message.id ? (
               <div className="flex flex-col gap-2 w-full max-w-[1200px] mx-auto">
                 <div className="mockup-code min-w-[800px] bg-base-300 relative">
@@ -76,7 +77,6 @@ export const MessageItem = ({
                     value={editContent}
                     onChange={(e) => {
                       setEditContent(e.target.value);
-                      // 自动调整高度
                       e.target.style.height = 'auto';
                       e.target.style.height = `${Math.min(e.target.scrollHeight, 800)}px`;
                     }}
@@ -91,18 +91,8 @@ export const MessageItem = ({
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={handleEditCancel}
-                  >
-                    取消
-                  </button>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => handleEditSave(message.id)}
-                  >
-                    保存
-                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={handleEditCancel}>取消</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => handleEditSave(message.id)}>保存</button>
                 </div>
               </div>
             ) : (
@@ -121,13 +111,11 @@ export const MessageItem = ({
                     {/* 显示推理过程 */}
                     {message.type === 'assistant' && message.reasoning_content && (
                       <div className="mb-4 p-4 bg-base-200 rounded-lg border border-base-300 reasoning-bubble relative">
-                        {/* 推理内容 */}
                         <div className={`typing-content ${message.generating ? 'generating' : ''} ${
                           isReasoningCollapsed ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
                         }`}>
                           {message.reasoning_content}
                         </div>
-                        {/* 添加折叠按钮 - 放在内容下方中间 */}
                         <div className="flex justify-center mt-2">
                           <button 
                             className="btn btn-xs btn-ghost bg-base-100 hover:bg-base-200 min-w-[80px]"
@@ -182,33 +170,11 @@ export const MessageItem = ({
       {/* 消息操作按钮 */}
       {!editingMessageId && (
         <div className="message-actions">
-          <button
-            className="btn btn-ghost btn-xs"
-            onClick={() => handleEditStart(message)}
-          >
-            编辑
-          </button>
-          <button
-            className="btn btn-ghost btn-xs"
-            onClick={() => handleDeleteMessage(message.id)}
-          >
-            删除
-          </button>
-          <button
-            className="btn btn-ghost btn-xs"
-            onClick={() => {
-              navigator.clipboard.writeText(message.content);
-            }}
-          >
-            复制
-          </button>
+          <button className="btn btn-ghost btn-xs" onClick={() => handleEditStart(message)}>编辑</button>
+          <button className="btn btn-ghost btn-xs" onClick={() => handleDeleteMessage(message.id)}>删除</button>
+          <button className="btn btn-ghost btn-xs" onClick={() => navigator.clipboard.writeText(message.content)}>复制</button>
           {message.type === 'assistant' && (
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => handleRetry(message.id)}
-            >
-              重试
-            </button>
+            <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>重试</button>
           )}
           {message.history?.length > 0 && (
             <>

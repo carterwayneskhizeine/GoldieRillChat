@@ -1126,7 +1126,7 @@ export default function App() {
 
           {/* Browser content */}
           <div style={{ display: activeTool === 'browser' ? 'flex' : 'none' }} className="flex-1 flex flex-col relative">
-            <div className="flex-1 bg-base-100 overflow-auto">
+            <div className="flex-1 bg-base-100 overflow-auto" style={{ height: 'calc(100vh - 28px)' }}>
               {/* Browser view managed by main process */}
             </div>
           </div>

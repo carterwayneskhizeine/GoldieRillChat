@@ -9,9 +9,6 @@ export const useMessageState = (currentConversation) => {
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editContent, setEditContent] = useState('');
   
-  // 消息折叠状态
-  const [collapsedMessages, setCollapsedMessages] = useState(new Set());
-  
   // 重试相关状态
   const [retryingMessageId, setRetryingMessageId] = useState(null);
   const [failedMessages, setFailedMessages] = useState(new Set());
@@ -90,8 +87,6 @@ export const useMessageState = (currentConversation) => {
     setEditingMessageId,
     editContent,
     setEditContent,
-    collapsedMessages,
-    setCollapsedMessages,
     retryingMessageId,
     setRetryingMessageId,
     failedMessages,
