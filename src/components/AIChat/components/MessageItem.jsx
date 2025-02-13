@@ -45,8 +45,10 @@ export const MessageItem = ({
         message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
       }`}>
         <div className="message-content">
-          {/* 折叠按钮 */}
-          {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
+          {/* 折叠按钮 - 只在消息不是生成状态时显示 */}
+          {message.content && 
+           !message.generating && 
+           (message.content.split('\n').length > 6 || message.content.length > 300) && (
             <div className="collapse-button">
               <button 
                 className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
@@ -60,24 +62,20 @@ export const MessageItem = ({
                     newSet.delete(message.id);
                     setCollapsedMessages(newSet);
                     setTimeout(() => {
-                      if (messageElement) {
-                        messageElement.scrollIntoView({
-                          behavior: 'smooth',
-                          block: 'start'
-                        });
-                      }
+                      messageElement?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                      });
                     }, 100);
                   } else {
                     // 折叠消息
                     newSet.add(message.id);
                     setCollapsedMessages(newSet);
                     setTimeout(() => {
-                      if (messageElement) {
-                        messageElement.scrollIntoView({
-                          behavior: 'smooth',
-                          block: 'center'
-                        });
-                      }
+                      messageElement?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                      });
                     }, 100);
                   }
                 }}
