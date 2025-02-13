@@ -90,41 +90,9 @@
   background-color: var(--b2);
 }
 
-/* 折叠相关样式 */
-.message-collapsed {
-  max-height: 100px !important;
-  overflow: hidden;
-}
-
+/* 响应内容样式 */
 .response-content {
   transition: max-height 0.3s ease-out;
-}
-
-.collapse-button {
-  position: sticky;
-  top: 2px;
-  float: right;
-  margin-left: 8px;
-  margin-right: 0px;
-  z-index: 100;
-  pointer-events: all;
-}
-
-.collapse-button button {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: transform 0.2s;
-  background-color: var(--b1);
-  border: 1px solid var(--b3);
-}
-
-.collapse-button button:hover {
-  transform: scale(1.1);
-  background-color: var(--b2);
-}
-
-.mask-bottom {
-  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
 }
 
 /* 思考中动画样式 */
@@ -208,16 +176,28 @@
 
 /* 打字机效果 */
 .typing-effect {
-  border-right: 2px solid var(--bc);
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  color: var(--bc);
+  position: relative;
+}
+
+.typing-effect::after {
+  content: '▋';
+  display: inline-block;
   animation: cursor-blink 0.8s step-end infinite;
+  margin-left: 2px;
+  color: var(--bc);
 }
 
 @keyframes cursor-blink {
   from, to {
-    border-color: transparent;
+    opacity: 0;
   }
   50% {
-    border-color: var(--bc);
+    opacity: 1;
   }
 }
 

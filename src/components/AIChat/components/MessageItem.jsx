@@ -45,55 +45,9 @@ export const MessageItem = ({
         message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
       }`}>
         <div className="message-content">
-          {/* 折叠按钮 - 只在消息不是生成状态时显示 */}
-          {message.content && 
-           !message.generating && 
-           (message.content.split('\n').length > 6 || message.content.length > 300) && (
-            <div className="collapse-button">
-              <button 
-                className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
-                onClick={(e) => {
-                  const isCollapsed = collapsedMessages.has(message.id);
-                  const newSet = new Set([...collapsedMessages]);
-                  const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-                  
-                  if (isCollapsed) {
-                    // 展开消息
-                    newSet.delete(message.id);
-                    setCollapsedMessages(newSet);
-                    setTimeout(() => {
-                      messageElement?.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                      });
-                    }, 100);
-                  } else {
-                    // 折叠消息
-                    newSet.add(message.id);
-                    setCollapsedMessages(newSet);
-                    setTimeout(() => {
-                      messageElement?.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                      });
-                    }, 100);
-                  }
-                }}
-              >
-                {collapsedMessages.has(message.id) ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          )}
+          {/* 移除折叠按钮相关代码 */}
 
-          <div className={`response-content ${collapsedMessages.has(message.id) ? 'message-collapsed' : ''}`}>
+          <div className={`response-content`}>
             {editingMessageId === message.id ? (
               <div className="flex flex-col gap-2 w-full max-w-[1200px] mx-auto">
                 <div className="mockup-code min-w-[800px] bg-base-300 relative">
@@ -131,10 +85,8 @@ export const MessageItem = ({
                 </div>
               </div>
             ) : (
-              <div className={`prose max-w-none ${
-                collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
-              }`}>
-                {message.generating ? (
+              <div className={`prose max-w-none`}>
+                {message.generating && !message.content ? (
                   <div className="thinking-animation">
                     <span className="thinking-text">Thinking</span>
                     <div className="thinking-dots">
@@ -181,16 +133,22 @@ export const MessageItem = ({
                     )}
                     {/* 显示最终内容 */}
                     <div className={message.type === 'assistant' && message.reasoning_content ? 'mt-4' : ''}>
-                      <MarkdownRenderer
-                        content={message.content || ''}
-                        isCompact={false}
-                        onCopyCode={(code) => {
-                          console.log('Code copied:', code);
-                        }}
-                        onLinkClick={(href) => {
-                          window.electron.openExternal(href);
-                        }}
-                      />
+                      {message.generating ? (
+                        <div className="typing-effect">
+                          {message.content}
+                        </div>
+                      ) : (
+                        <MarkdownRenderer
+                          content={message.content || ''}
+                          isCompact={false}
+                          onCopyCode={(code) => {
+                            console.log('Code copied:', code);
+                          }}
+                          onLinkClick={(href) => {
+                            window.electron.openExternal(href);
+                          }}
+                        />
+                      )}
                     </div>
                   </>
                 )}
