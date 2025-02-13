@@ -51,6 +51,19 @@ export const AIChat = ({
     }
   };
 
+  // 添加滚动到底部的函数
+  const scrollToBottom = () => {
+    const messagesContainer = document.querySelector('#ai-chat-messages');
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  };
+
+  // 监听消息变化和对话切换，自动滚动到底部
+  useEffect(() => {
+    setTimeout(scrollToBottom, 100);
+  }, [messageState.messages, currentConversation]);
+
   // 在组件挂载时将创建新对话的函数绑定到 window.aichat
   useEffect(() => {
     window.aichat = {
@@ -79,7 +92,8 @@ export const AIChat = ({
     currentConversation,
     window,
     maxTokens,
-    temperature
+    temperature,
+    editContent: messageState.editContent
   });
 
   // 创建设置处理函数

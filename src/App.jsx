@@ -639,13 +639,17 @@ export default function App() {
     }
   }
 
-  // 添加对 showContextMenu 事件的监听
+  // 处理右键菜单
   useEffect(() => {
     const handleShowContextMenu = (e) => {
-      const { x, y, text, target } = e.detail;
-      setContextMenu({ visible: true, x, y });
-      setSelectedText(text);
-      setSelectedElement(target);
+      const { x, y, type, data } = e.detail;
+      setContextMenu({
+        visible: true,
+        x,
+        y,
+        type,
+        data
+      });
     };
 
     window.addEventListener('showContextMenu', handleShowContextMenu);
@@ -653,18 +657,6 @@ export default function App() {
       window.removeEventListener('showContextMenu', handleShowContextMenu);
     };
   }, []);
-
-  // 处理右键菜单
-  const handleContextMenu = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setContextMenu({ visible: true, x: e.pageX, y: e.pageY })
-  }
-
-  // 关闭右键菜单
-  const closeContextMenu = () => {
-    setContextMenu({ visible: false, x: 0, y: 0 })
-  }
 
   // 处理删除对话
   const handleDeleteConversation = (conversation) => {
@@ -1226,7 +1218,7 @@ export default function App() {
         <div className="overlays">
           <ContextMenu
             contextMenu={contextMenu}
-            onClose={closeContextMenu}
+            onClose={() => setContextMenu({ visible: false, x: 0, y: 0 })}
             onDelete={handleDeleteConversation}
             onRename={handleRenameConversation}
           />

@@ -7,6 +7,35 @@ export const InputArea = ({
   handleKeyDown,
   fileInputRef
 }) => {
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const selectedText = window.getSelection().toString();
+    const target = e.target;
+    
+    const contextMenuEvent = new CustomEvent('showContextMenu', {
+      detail: {
+        x: e.pageX,
+        y: e.pageY,
+        type: 'text',
+        data: {
+          text: selectedText || target.value || target.textContent,
+          onPaste: (text) => {
+            if (target.tagName === 'TEXTAREA') {
+              const start = target.selectionStart;
+              const end = target.selectionEnd;
+              const currentValue = target.value;
+              target.value = currentValue.substring(0, start) + text + currentValue.substring(end);
+              setMessageInput(target.value);
+            }
+          }
+        }
+      }
+    });
+    window.dispatchEvent(contextMenuEvent);
+  };
+
   return (
     <div className="border-t border-base-300 p-4 bg-transparent">
       <div className="relative max-w-[750px] mx-auto">
@@ -33,6 +62,7 @@ export const InputArea = ({
             }
           }}
           onKeyDown={handleKeyDown}
+          onContextMenu={handleContextMenu}
           style={{
             backgroundColor: 'transparent',
             backdropFilter: 'blur(8px)',

@@ -29,7 +29,8 @@ export const createMessageHandlers = ({
   currentConversation,
   window,
   maxTokens,
-  temperature
+  temperature,
+  editContent
 }) => {
   // 添加新消息
   const addMessage = (content, type = 'user') => {
@@ -87,16 +88,41 @@ export const createMessageHandlers = ({
     setEditContent(message.content);
   };
 
-  // 取消编辑消息
+  // 取消编辑
   const cancelEditing = () => {
     setEditingMessageId(null);
     setEditContent('');
   };
 
-  // 保存编辑的消息
-  const saveEdit = (id) => {
-    updateMessage(id, { content: editContent });
-    cancelEditing();
+  // 保存编辑
+  const saveEdit = async (messageId) => {
+    try {
+      if (!editContent) {
+        throw new Error('编辑内容不能为空');
+      }
+
+      // 更新消息
+      const updatedMessages = messages.map(msg =>
+        msg.id === messageId ? { ...msg, content: editContent } : msg
+      );
+
+      // 保存到本地文件
+      if (currentConversation?.path) {
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          updatedMessages
+        );
+      }
+
+      // 更新状态
+      setMessages(updatedMessages);
+      setEditingMessageId(null);
+      setEditContent('');
+    } catch (error) {
+      console.error('保存编辑失败:', error);
+      alert('保存编辑失败: ' + error.message);
+    }
   };
 
   // 重试失败的消息

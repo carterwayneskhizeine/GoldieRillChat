@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageItem } from './MessageItem';
 import { useMessageCollapse } from '../hooks/useMessageCollapse';
 import '../styles/messages.css';
@@ -16,11 +16,22 @@ export const MessageList = ({
   handleRetry,
   handleHistoryNavigation
 }) => {
+  const messagesEndRef = useRef(null);
+
   // 删除确认状态
   const [deletingMessageId, setDeletingMessageId] = useState(null);
 
   // 使用折叠状态 hook
   const { isMessageCollapsed, toggleMessageCollapse } = useMessageCollapse();
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // 监听消息变化，自动滚动到底部
+  useEffect(() => {
+    setTimeout(scrollToBottom, 100);
+  }, [messages]);
 
   // 处理删除消息
   const onDeleteMessage = async (messageId) => {
@@ -71,6 +82,7 @@ export const MessageList = ({
               onToggleCollapse={toggleMessageCollapse}
             />
           ))}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 

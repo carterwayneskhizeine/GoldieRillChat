@@ -45,7 +45,8 @@ export function ChatView({
   isCompact = false,
   sendToMonaco,
   sendToEditor,
-  shouldScrollToBottom = false
+  shouldScrollToBottom = false,
+  setShouldScrollToBottom
 }) {
   const messagesEndRef = useRef(null);
 
@@ -57,19 +58,41 @@ export function ChatView({
   // 每次消息列表变化或组件挂载时滚动到底部
   useEffect(() => {
     if (shouldScrollToBottom) {
-      scrollToBottom();
+      setTimeout(() => {
+        scrollToBottom();
+        if (typeof setShouldScrollToBottom === 'function') {
+          setShouldScrollToBottom(false);
+        }
+      }, 50);
     }
-  }, [messages, isCompact, shouldScrollToBottom]);
+  }, [messages, isCompact, shouldScrollToBottom, setShouldScrollToBottom]);
 
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
     
+    // 获取选中的文本
+    const selectedText = window.getSelection().toString();
+    const target = e.target;
+    
     // 创建一个自定义事件并触发
     const contextMenuEvent = new CustomEvent('showContextMenu', {
       detail: {
         x: e.pageX,
-        y: e.pageY
+        y: e.pageY,
+        type: 'text',
+        data: {
+          text: selectedText || target.value || target.textContent,
+          onPaste: (text) => {
+            if (target.tagName === 'TEXTAREA') {
+              const start = target.selectionStart;
+              const end = target.selectionEnd;
+              const currentValue = target.value;
+              target.value = currentValue.substring(0, start) + text + currentValue.substring(end);
+              setMessageInput(target.value);
+            }
+          }
+        }
       }
     });
     window.dispatchEvent(contextMenuEvent);
@@ -336,6 +359,7 @@ export function ChatView({
                               e.target.style.height = 'auto';
                               e.target.style.height = `${Math.min(e.target.scrollHeight, 800)}px`;
                             }}
+                            onContextMenu={handleContextMenu}
                             className="w-full min-h-[300px] max-h-[800px] p-4 bg-transparent text-current font-mono text-sm leading-relaxed resize-none focus:outline-none"
                             placeholder="编辑消息..."
                             style={{
@@ -366,6 +390,7 @@ export function ChatView({
                         className={`prose max-w-none ${
                           collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
                         }`}
+                        onContextMenu={handleContextMenu}
                       >
                         {/* 判断是否是图片/视频消息或包含图片/视频的消息 */}
                         {message.files?.some(file => 
@@ -373,7 +398,7 @@ export function ChatView({
                         ) ? (
                           <div className="flex flex-col gap-2">
                             {/* 显示文本内容 */}
-                            <div className="whitespace-pre-wrap">
+                            <div className="whitespace-pre-wrap" onContextMenu={handleContextMenu}>
                               {message.content}
                             </div>
                             
@@ -431,7 +456,7 @@ export function ChatView({
                         ) ? (
                           <div className="flex flex-col gap-2">
                             {/* 显示文本内容 */}
-                            <div className="whitespace-pre-wrap">
+                            <div className="whitespace-pre-wrap" onContextMenu={handleContextMenu}>
                               {message.content}
                             </div>
                             

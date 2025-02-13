@@ -35,10 +35,21 @@ export const Header = ({
       </h2>
 
       {/* 右侧设置区域 */}
-      <div className="flex items-center gap-4">
-        {/* Max Tokens 滑块 */}
-        <div className="flex flex-col items-center">
-          <span className="text-xs opacity-70">Max Tokens: {maxTokens === 999999 ? '∞' : maxTokens}</span>
+      <div className="flex flex-col gap-2">
+        {/* 标签和数值行 */}
+        <div className="flex gap-4">
+          <div className="flex items-center gap-1">
+            <span className="text-xs opacity-70">Max Tokens:</span>
+            <span className="text-xs opacity-70 min-w-[40px]">{maxTokens === 999999 ? '∞' : maxTokens}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs opacity-70">Temperature:</span>
+            <span className="text-xs opacity-70 min-w-[30px]">{temperature.toFixed(1)}</span>
+          </div>
+        </div>
+
+        {/* 滑动条行 */}
+        <div className="flex gap-4">
           <div className="flex items-center gap-1">
             <input
               type="range"
@@ -65,23 +76,20 @@ export const Header = ({
               {maxTokens === 999999 ? "↺" : "∞"}
             </button>
           </div>
-        </div>
-
-        {/* Temperature 滑块 */}
-        <div className="flex flex-col items-center">
-          <span className="text-xs opacity-70">Temperature: {temperature.toFixed(2)}</span>
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={temperature}
-            onChange={(e) => {
-              setTemperature(parseFloat(e.target.value));
-              localStorage.setItem('aichat_temperature', e.target.value);
-            }}
-            className="range range-xs range-primary w-[100px]"
-          />
+          <div className="flex items-center">
+            <input
+              type="range"
+              min="0"
+              max="2"
+              step="0.1"
+              value={temperature}
+              onChange={(e) => {
+                setTemperature(parseFloat(e.target.value));
+                localStorage.setItem('aichat_temperature', e.target.value);
+              }}
+              className="range range-xs range-primary w-[100px]"
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -68,6 +68,7 @@ export default function Sidebar({
   handleRenameConfirm
 }) {
   const [openChatFolder, setOpenChatFolder] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (activeTool === 'chat' || activeTool === 'aichat') {
@@ -102,7 +103,24 @@ export default function Sidebar({
     if (selectedConversation) {
       setOpenChatFolder(selectedConversation);
       loadConversation(conversationId);
+      setTimeout(() => {
+        const messagesContainer = document.querySelector('.chat-view-messages');
+        if (messagesContainer) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }, 100);
     }
+  };
+
+  const handleConversationClick = (conversation) => {
+    if (editingFolderName === conversation.id) return;
+    loadConversation(conversation.id);
+    setTimeout(() => {
+      const messagesContainer = document.querySelector('.chat-view-messages');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }, 100);
   };
 
   return (
@@ -174,18 +192,29 @@ export default function Sidebar({
           {/* 添加Open Chat文件夹选择器 */}
           {sidebarMode === 'chat' && activeTool !== 'chat' && (
             <div className="dropdown dropdown-bottom w-full mb-4">
-              <label tabIndex={0} className="btn btn-outline btn-sm w-full flex justify-between items-center">
+              <label 
+                tabIndex={0} 
+                className="btn btn-outline btn-sm w-full flex justify-between items-center"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              >
                 <span className="truncate">{openChatFolder?.name || '选择对话文件夹'}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </label>
-              <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full max-h-[300px] overflow-y-auto">
+              <ul 
+                tabIndex={0} 
+                className={`dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full max-h-[300px] overflow-y-auto ${dropdownOpen ? '' : 'hidden'}`}
+                onBlur={() => setDropdownOpen(false)}
+              >
                 {conversations.map(conversation => (
                   <li key={conversation.id}>
                     <a 
                       className={openChatFolder?.id === conversation.id ? 'active' : ''}
-                      onClick={() => handleOpenChatFolderChange(conversation.id)}
+                      onClick={() => {
+                        handleOpenChatFolderChange(conversation.id);
+                        setDropdownOpen(false);
+                      }}
                     >
                       {conversation.name}
                     </a>
@@ -238,10 +267,7 @@ export default function Sidebar({
                         ]
                       });
                     }}
-                    onClick={() => {
-                      if (editingFolderName === conversation.id) return;
-                      loadConversation(conversation.id);
-                    }}
+                    onClick={() => handleConversationClick(conversation)}
                   >
                     <div className="flex items-center gap-2 flex-1">
                       {editingFolderName === conversation.id ? (
@@ -394,10 +420,7 @@ export default function Sidebar({
                               ]
                             });
                           }}
-                          onClick={() => {
-                            if (editingFolderName === conversation.id) return;
-                            loadConversation(conversation.id);
-                          }}
+                          onClick={() => handleConversationClick(conversation)}
                         >
                           <div className="flex items-center gap-2 flex-1">
                             {editingFolderName === conversation.id ? (

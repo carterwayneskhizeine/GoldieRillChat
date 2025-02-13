@@ -47,11 +47,15 @@
 /* 画布容器样式 */
 .canvas-container {
   @apply flex-1 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden;
+  position: relative;
+  z-index: 10;
 }
 
 /* 画布样式 */
 .canvas-element {
   @apply bg-neutral-content rounded max-w-full max-h-full w-auto h-auto object-contain;
+  position: relative;
+  z-index: 10;
 }
 
 /* 消息输入框样式 */
