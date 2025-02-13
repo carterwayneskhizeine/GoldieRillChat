@@ -176,26 +176,24 @@ export const MessageItem = ({
           {message.type === 'assistant' && (
             <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>重试</button>
           )}
-          {message.history?.length > 0 && (
+          {message.history && message.history.length > 0 && (
             <>
               <button
                 className="btn btn-ghost btn-xs"
                 onClick={() => handleHistoryNavigation(message.id, 'prev')}
-                disabled={!message.currentHistoryIndex}
+                disabled={message.currentHistoryIndex === 0}
               >
-                上一个
+                上一条
               </button>
               <button
                 className="btn btn-ghost btn-xs"
                 onClick={() => handleHistoryNavigation(message.id, 'next')}
-                disabled={message.currentHistoryIndex === message.history.length}
+                disabled={message.currentHistoryIndex >= message.history.length}
               >
-                下一个
+                下一条
               </button>
-              <span className="text-xs opacity-70">
-                {message.currentHistoryIndex === message.history.length ? 
-                  '当前' : 
-                  `${message.currentHistoryIndex + 1}/${message.history.length + 1}`}
+              <span className="text-xs opacity-50">
+                {message.currentHistoryIndex + 1}/{message.history.length + 1}
               </span>
             </>
           )}
