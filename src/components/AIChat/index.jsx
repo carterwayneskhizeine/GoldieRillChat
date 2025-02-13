@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { InputArea } from './components/InputArea';
@@ -39,6 +39,28 @@ export const AIChat = ({
   const [temperature, setTemperature] = useState(() => {
     return parseFloat(localStorage.getItem('aichat_temperature')) || 0.7;
   });
+
+  // 添加创建新对话的函数
+  const handleCreateNewConversation = async () => {
+    try {
+      // 直接调用父组件传入的创建函数
+      await createNewConversation();
+    } catch (error) {
+      console.error('创建新对话失败:', error);
+      alert('创建新对话失败: ' + error.message);
+    }
+  };
+
+  // 在组件挂载时将创建新对话的函数绑定到 window.aichat
+  useEffect(() => {
+    window.aichat = {
+      createNewConversation: handleCreateNewConversation
+    };
+    
+    return () => {
+      delete window.aichat;
+    };
+  }, [createNewConversation]);
 
   // 创建消息处理函数
   const messageHandlers = createMessageHandlers({

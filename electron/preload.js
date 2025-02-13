@@ -155,5 +155,17 @@ contextBridge.exposeInMainWorld('electron', {
       console.error('删除文件失败:', error);
       throw error;
     }
+  },
+
+  // 添加 aichat 对象
+  aichat: {
+    createNewConversation: async (basePath) => {
+      try {
+        return await ipcRenderer.invoke('create-aichat-folder', basePath);
+      } catch (error) {
+        console.error('创建新对话失败:', error);
+        throw error;
+      }
+    }
   }
 }) 
