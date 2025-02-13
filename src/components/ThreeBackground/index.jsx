@@ -1,10 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { useThreeScene } from './hooks/useThreeScene';
 import { useAnimationFrame } from './hooks/useAnimationFrame';
+import { useInputEvents } from './hooks/useInputEvents';
 
 const ThreeBackground = () => {
   const canvasRef = useRef(null);
   const { scene, initScene, updateScene } = useThreeScene();
+  
+  useInputEvents();
   
   useAnimationFrame((deltaTime) => {
     if (scene) {
@@ -37,7 +40,7 @@ const ThreeBackground = () => {
         width: '100vw',
         height: '100vh',
         zIndex: 0,
-        opacity: 1,
+        opacity: 0.25,
         pointerEvents: 'none',
         background: 'rgba(0,0,255,0.1)'
       }}

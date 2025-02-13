@@ -8,10 +8,10 @@ export const InputArea = ({
   fileInputRef
 }) => {
   return (
-    <div className="border-t border-base-300 p-4 bg-base-100">
+    <div className="border-t border-base-300 p-4 bg-transparent">
       <div className="relative max-w-[750px] mx-auto">
         <textarea
-          className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-base-100 aichat-input"
+          className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-transparent aichat-input"
           placeholder="输入消息..."
           value={messageInput}
           onChange={(e) => {
@@ -33,6 +33,11 @@ export const InputArea = ({
             }
           }}
           onKeyDown={handleKeyDown}
+          style={{
+            backgroundColor: 'transparent',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)', // 为 Safari 添加支持
+          }}
           rows="2"
         />
         <div className="absolute right-4 bottom-3 flex items-center gap-2">
