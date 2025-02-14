@@ -20,19 +20,14 @@ export const MarkdownRenderer = ({
     // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
     let processed = text.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
 
-    // 处理行内代码块，将普通代码说明文本的反引号去掉
-    processed = processed.replace(/`([^`\n]+)`/g, (match, content) => {
-      // 如果是函数调用格式 (如 print() 或 range(100))
-      if (/^[a-zA-Z_]\w*\([^)]*\)$/.test(content)) {
-        return content;
-      }
-      // 如果是单个变量或关键字 (如 i 或 for)
-      if (/^[a-zA-Z_]\w*$/.test(content)) {
-        return content;
-      }
-      // 其他情况保持代码块格式
-      return match;
-    });
+    // 保持缩进和换行
+    processed = processed.replace(/\n/g, '  \n');
+
+    // 确保标题前后有空行
+    processed = processed.replace(/^(#{1,6}\s.*)/gm, '\n$1\n');
+
+    // 确保列表项之间有正确的间距
+    processed = processed.replace(/^([*-]|\d+\.)\s/gm, '\n$&');
 
     return processed;
   };
@@ -67,29 +62,99 @@ export const MarkdownRenderer = ({
           }
 
           .markdown-content p {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 4px;
+            margin: 1em 0;
+            white-space: pre-wrap;
+          }
+
+          .markdown-content h1,
+          .markdown-content h2,
+          .markdown-content h3,
+          .markdown-content h4,
+          .markdown-content h5,
+          .markdown-content h6 {
+            margin: 1.5em 0 1em;
+            line-height: 1.3;
+          }
+
+          .markdown-content h1:first-child,
+          .markdown-content h2:first-child,
+          .markdown-content h3:first-child {
+            margin-top: 0;
+          }
+
+          .markdown-content ul,
+          .markdown-content ol {
+            margin: 1em 0;
+            padding-left: 2em;
           }
 
           .markdown-content li {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 4px;
+            margin: 0.5em 0;
+            padding-left: 0.5em;
+          }
+
+          .markdown-content ol {
+            list-style-type: decimal;
+          }
+
+          .markdown-content ul {
+            list-style-type: disc;
           }
 
           .markdown-content pre {
-            margin: 0.5rem 0;
+            margin: 1em 0;
+            padding: 1em;
             border-radius: 0.3rem;
             background-color: var(--b2);
+            overflow-x: auto;
           }
 
           .markdown-content code {
             font-family: 'Fira Code', monospace;
             font-size: 0.9em;
             line-height: 1.5;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+          }
+
+          .markdown-content blockquote {
+            margin: 1em 0;
+            padding: 0.5em 1em;
+            border-left: 4px solid var(--p);
+            background-color: var(--b2);
+            border-radius: 0 0.3rem 0.3rem 0;
+          }
+
+          .markdown-content img {
+            max-width: 100%;
+            margin: 1em 0;
+            border-radius: 0.3rem;
+          }
+
+          .markdown-content table {
+            margin: 1em 0;
+            border-collapse: collapse;
+            width: 100%;
+          }
+
+          .markdown-content th,
+          .markdown-content td {
+            padding: 0.5em;
+            border: 1px solid var(--b3);
+          }
+
+          .markdown-content th {
+            background-color: var(--b2);
+            font-weight: bold;
+          }
+
+          .markdown-content a {
+            color: var(--p);
+            text-decoration: none;
+          }
+
+          .markdown-content a:hover {
+            text-decoration: underline;
           }
 
           .markdown-content .inline-code {
@@ -122,48 +187,6 @@ export const MarkdownRenderer = ({
             background-color: var(--b2);
             border-bottom-left-radius: 0.3rem;
             border-bottom-right-radius: 0.3rem;
-          }
-
-          .markdown-content table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 1rem 0;
-          }
-
-          .markdown-content th,
-          .markdown-content td {
-            border: 1px solid var(--b3);
-            padding: 0.5rem;
-          }
-
-          .markdown-content th {
-            background-color: var(--b2);
-          }
-
-          .markdown-content a {
-            color: var(--p);
-            text-decoration: none;
-          }
-
-          .markdown-content a:hover {
-            text-decoration: underline;
-          }
-
-          .markdown-content img {
-            max-width: 100%;
-            border-radius: 0.3rem;
-          }
-
-          .markdown-content blockquote {
-            border-left: 4px solid var(--p);
-            margin: 1rem 0;
-            padding-left: 1rem;
-            color: var(--bc);
-          }
-
-          .markdown-content ul,
-          .markdown-content ol {
-            padding-left: 1.5rem;
           }
 
           .markdown-content .math {
