@@ -11,6 +11,7 @@ import { MarkdownRenderer } from './shared/MarkdownRenderer';
 import '../styles/markdown-preview.css';
 import { createPortal } from 'react-dom';
 import Editor from "@monaco-editor/react";
+import '../styles/chat.css';
 
 export function ChatView({
   messages = [],
@@ -679,46 +680,29 @@ export function ChatView({
                             
                             {/* 显示文件 */}
                             {message.files?.length > 0 && (
-                              <div className="flex flex-wrap gap-2">
-                                {message.files.map((file, index) => {
-                                  // 图片文件
+                              <div className="chat-media-content">
+                                {message.files.map(file => {
                                   if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
                                     return (
-                                      <div key={index} className="relative">
+                                      <div key={file.path} className="chat-media-container">
                                         <img 
                                           src={`local-file://${file.path}`} 
                                           alt={file.name}
-                                          className={`rounded-lg object-cover cursor-pointer ${
-                                            isCompact ? 'max-w-[200px] max-h-[200px]' : 'max-w-[300px] max-h-[300px]'
-                                          }`}
+                                          className="rounded-lg object-cover cursor-pointer"
                                           onClick={(e) => handleImageClick(e, file)}
                                         />
                                       </div>
                                     );
-                                  }
-                                  // 视频文件
-                                  else if (file.name.match(/\.mp4$/i)) {
+                                  } else if (file.name.match(/\.mp4$/i)) {
                                     return (
-                                      <div key={index} className="w-full">
-                                        <video controls className={`rounded-lg ${
-                                          isCompact ? 'max-w-[200px]' : 'w-full max-w-[800px]'
-                                        }`}>
-                                          <source src={`local-file://${file.path}`} type="video/mp4" />
-                                          Your browser does not support the video tag.
+                                      <div key={file.path} className="chat-media-container">
+                                        <video
+                                          src={`local-file://${file.path}`}
+                                          controls
+                                          className="rounded-lg"
+                                        >
+                                          您的浏览器不支持视频播放。
                                         </video>
-                                      </div>
-                                    );
-                                  }
-                                  // 其他文件类型
-                                  else {
-                                    return (
-                                      <div 
-                                        key={index} 
-                                        className="badge badge-lg gap-2 cursor-pointer hover:bg-base-200"
-                                        onClick={() => openFileLocation(file)}
-                                        title="点击打开文件位置"
-                                      >
-                                        {file.name}
                                       </div>
                                     );
                                   }

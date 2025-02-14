@@ -1,0 +1,76 @@
+/* Chat 界面媒体容器样式 */
+.chat-media-container {
+  position: relative;
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background-color: var(--b1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.chat-media-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 图片样式 */
+.chat-media-container img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  margin: 0 auto;
+  transition: all 0.3s ease;
+  filter: brightness(0.98);
+}
+
+.chat-media-container:hover img {
+  filter: brightness(1.05);
+}
+
+/* 添加图片悬停遮罩 */
+.chat-media-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 80%, rgba(0, 0, 0, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.chat-media-container:hover::after {
+  opacity: 1;
+}
+
+/* 视频样式 */
+.chat-media-container video {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  background-color: var(--b2);
+}
+
+/* 媒体内容网格布局 */
+.chat-media-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* 响应式布局 */
+@media (max-width: 640px) {
+  .chat-media-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .chat-media-container img,
+  .chat-media-container video {
+    max-height: 200px;
+  }
+} 

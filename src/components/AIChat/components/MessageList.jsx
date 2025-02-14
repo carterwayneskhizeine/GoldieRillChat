@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageItem } from './MessageItem';
 import { useMessageCollapse } from '../hooks/useMessageCollapse';
 import '../styles/messages.css';
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
 
 export const MessageList = ({
   messages,
@@ -23,6 +25,11 @@ export const MessageList = ({
 
   // 使用折叠状态 hook
   const { isMessageCollapsed, toggleMessageCollapse } = useMessageCollapse();
+
+  // 添加 Lightbox 相关状态
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxImages, setLightboxImages] = useState([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,6 +56,34 @@ export const MessageList = ({
       await handleDeleteMessage(deletingMessageId);
       setDeletingMessageId(null);
     }
+  };
+
+  // 处理图片点击
+  const handleImageClick = (e, file) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // 获取所有消息中的图片
+    const allImages = messages.reduce((acc, message) => {
+      if (message.files) {
+        const images = message.files
+          .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+          .map(file => ({
+            src: `local-file://${file.path}`,
+            alt: file.name
+          }));
+        return [...acc, ...images];
+      }
+      return acc;
+    }, []);
+    
+    // 找到当前图片的索引
+    const currentImage = { src: `local-file://${file.path}` };
+    const imageIndex = allImages.findIndex(img => img.src === currentImage.src);
+    
+    setLightboxImages(allImages);
+    setLightboxIndex(imageIndex);
+    setLightboxOpen(true);
   };
 
   return (
@@ -80,6 +115,7 @@ export const MessageList = ({
               handleHistoryNavigation={handleHistoryNavigation}
               isCollapsed={isMessageCollapsed(message.id)}
               onToggleCollapse={toggleMessageCollapse}
+              onImageClick={handleImageClick}
             />
           ))}
           <div ref={messagesEndRef} />
@@ -102,6 +138,14 @@ export const MessageList = ({
           <div className="modal-backdrop" onClick={cancelDeleteMessage}></div>
         </div>
       )}
+
+      {/* Lightbox 组件 */}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        index={lightboxIndex}
+        slides={lightboxImages}
+      />
     </div>
   );
 }; 

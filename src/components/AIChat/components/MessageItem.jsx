@@ -18,7 +18,8 @@ export const MessageItem = ({
   handleRetry,
   handleHistoryNavigation,
   isCollapsed,
-  onToggleCollapse
+  onToggleCollapse,
+  onImageClick
 }) => {
   // 添加推理过程折叠状态
   const [isReasoningCollapsed, setIsReasoningCollapsed] = useState(false);
@@ -33,6 +34,37 @@ export const MessageItem = ({
 
   // 获取消息内容样式
   const contentStyle = getMessageContentStyle(isCollapsed);
+
+  // 渲染媒体文件
+  const renderMediaContent = (file) => {
+    if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      return (
+        <div key={file.path} className="media-container my-2">
+          <img
+            src={`local-file://${file.path}`}
+            alt={file.name}
+            className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={(e) => onImageClick(e, file)}
+            style={{ maxHeight: '300px', objectFit: 'contain' }}
+          />
+        </div>
+      );
+    } else if (file.name.match(/\.mp4$/i)) {
+      return (
+        <div key={file.path} className="media-container my-2">
+          <video
+            src={`local-file://${file.path}`}
+            controls
+            className="max-w-full rounded-lg"
+            style={{ maxHeight: '300px' }}
+          >
+            您的浏览器不支持视频播放。
+          </video>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <>
@@ -147,6 +179,13 @@ export const MessageItem = ({
                           />
                         )}
                       </div>
+
+                      {/* 显示媒体文件 */}
+                      {message.files?.length > 0 && (
+                        <div className="media-content">
+                          {message.files.map(file => renderMediaContent(file))}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

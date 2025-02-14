@@ -302,4 +302,94 @@
   mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
   transition: max-height 0.3s ease-out;
+}
+
+/* 媒体容器样式 */
+.media-container {
+  position: relative;
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background-color: var(--b1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.media-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 图片样式 */
+.media-container img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  margin: 0 auto;
+  transition: all 0.3s ease;
+  filter: brightness(0.98);
+}
+
+.media-container:hover img {
+  filter: brightness(1.05);
+}
+
+/* 添加图片悬停遮罩 */
+.media-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 80%, rgba(0, 0, 0, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.media-container:hover::after {
+  opacity: 1;
+}
+
+/* 视频样式 */
+.media-container video {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  background-color: var(--b2);
+}
+
+/* 媒体内容网格布局 */
+.media-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* 响应式布局 */
+@media (max-width: 640px) {
+  .media-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .media-container img,
+  .media-container video {
+    max-height: 200px;
+  }
+}
+
+/* Lightbox 自定义样式 */
+.yarl__root {
+  --yarl__color_backdrop: rgba(0, 0, 0, 0.9);
+  --yarl__slide_title_color: #fff;
+}
+
+.yarl__slide_title {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 0.25rem;
 } 

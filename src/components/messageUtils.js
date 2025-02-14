@@ -1,46 +1,63 @@
 export const copyMessageContent = async (message) => {
   try {
-    // 创建一个新的 ClipboardItem 数组
-    const clipboardItems = []
-    
-    // 如果有文本内容，添加到剪贴板项
-    if (message.content) {
-      const textBlob = new Blob([message.content], { type: 'text/plain' })
-      clipboardItems.push(new ClipboardItem({ 'text/plain': textBlob }))
-    }
-    
-    // 如果有图片文件，添加到剪贴板项
-    if (message.files?.length > 0) {
-      await Promise.all(message.files.map(async file => {
-        if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-          // 创建一个临时的 canvas 来获取图片数据
-          const img = new Image()
-          await new Promise((resolve, reject) => {
-            img.onload = resolve
-            img.onerror = reject
-            img.src = `local-file://${file.path}`
-          })
-          
-          const canvas = document.createElement('canvas')
-          canvas.width = img.naturalWidth
-          canvas.height = img.naturalHeight
-          const ctx = canvas.getContext('2d')
-          ctx.drawImage(img, 0, 0)
-          
-          // 转换为 blob
-          const blob = await new Promise(resolve => {
-            canvas.toBlob(resolve, 'image/png')
-          })
-          
-          clipboardItems.push(new ClipboardItem({ 'image/png': blob }))
+    // 如果消息包含图片文件
+    if (message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+      // 获取第一个图片文件
+      const imageFile = message.files.find(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
+      if (imageFile) {
+        // 创建一个 img 元素来加载图片
+        const img = new Image();
+        img.src = `local-file://${imageFile.path}`;
+        
+        // 等待图片加载完成
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+
+        // 创建 canvas 并绘制图片
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        try {
+          // 尝试直接复制到剪贴板
+          await canvas.toBlob(async (blob) => {
+            try {
+              const item = new ClipboardItem({ [blob.type]: blob });
+              await navigator.clipboard.write([item]);
+            } catch (clipboardError) {
+              console.error('Failed to use Clipboard API:', clipboardError);
+              // 如果 Clipboard API 失败，尝试使用 execCommand
+              document.body.appendChild(canvas);
+              canvas.focus();
+              try {
+                document.execCommand('copy');
+              } catch (execError) {
+                console.error('Failed to use execCommand:', execError);
+              }
+              document.body.removeChild(canvas);
+            }
+          }, 'image/png');
+        } catch (error) {
+          console.error('Failed to copy image:', error);
         }
-      }))
+        
+        return true;
+      }
     }
     
-    // 写入剪贴板
-    await navigator.clipboard.write(clipboardItems)
+    // 如果没有图片文件,则复制文本内容
+    if (message.content) {
+      await navigator.clipboard.writeText(message.content);
+      return true;
+    }
+    
+    return false;
   } catch (error) {
-    console.error('Failed to copy content:', error)
-    alert('复制失败')
+    console.error('Failed to copy content:', error);
+    return false;
   }
-} 
+}; 
