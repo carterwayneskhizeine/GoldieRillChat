@@ -20,6 +20,37 @@ export const MarkdownRenderer = ({
     // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
     let processed = text.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
 
+    // 处理行内代码块，将非代码块的反引号去掉
+    processed = processed.replace(/`([^`\n]+)`/g, (match, content) => {
+      // 如果内容不包含代码特征，则去掉反引号
+      if (
+        // 如果是包名或技术名称（允许 @ - / . 字符）
+        /^[@a-zA-Z][\w\-\/.]*$/.test(content) ||
+        // 或者是多个单词（允许空格分隔的单词）
+        /^[\w\-\./\s]+$/.test(content)
+      ) {
+        return content;
+      }
+      // 如果包含代码关键字，保持代码块格式
+      if (content.includes('function') ||
+          content.includes('return') ||
+          content.includes('const') ||
+          content.includes('let') ||
+          content.includes('var') ||
+          content.includes('import') ||
+          content.includes('export') ||
+          content.includes('class') ||
+          content.includes('=>')) {
+        return match;
+      }
+      // 如果包含代码特征字符（除了 - . /），保持代码块格式
+      if (/[{}[\]()=+*<>!|&;$]/.test(content)) {
+        return match;
+      }
+      // 其他情况去掉反引号
+      return content;
+    });
+
     // 保持缩进和换行
     processed = processed.replace(/\n/g, '  \n');
 
@@ -102,8 +133,8 @@ export const MarkdownRenderer = ({
           }
 
           .markdown-content pre {
-            margin: 1em 0;
-            padding: 1em;
+            margin: 0;
+            padding: 0.1rem;
             border-radius: 0.3rem;
             background-color: var(--b2);
             overflow-x: auto;
@@ -113,7 +144,7 @@ export const MarkdownRenderer = ({
             font-family: 'Fira Code', monospace;
             font-size: 0.9em;
             line-height: 1.5;
-            padding: 0.2em 0.4em;
+            padding: 0;
             border-radius: 3px;
           }
 
@@ -168,7 +199,7 @@ export const MarkdownRenderer = ({
 
           .markdown-content .code-block {
             position: relative;
-            margin: 1rem 0;
+            margin: 0;
           }
 
           .markdown-content .code-header {
@@ -176,13 +207,13 @@ export const MarkdownRenderer = ({
             justify-content: space-between;
             align-items: center;
             background-color: var(--b3);
-            padding: 0.5rem 1rem;
+            padding: 0.2rem 0.5rem;
             border-top-left-radius: 0.3rem;
             border-top-right-radius: 0.3rem;
           }
 
           .markdown-content .code-content {
-            padding: 1rem;
+            padding: 0.3rem;
             overflow-x: auto;
             background-color: var(--b2);
             border-bottom-left-radius: 0.3rem;
@@ -197,7 +228,7 @@ export const MarkdownRenderer = ({
           .copy-button-wrapper {
             position: absolute;
             right: 0.5rem;
-            top: 0.5rem;
+            top: 0.2rem;
             z-index: 50;
             pointer-events: auto;
           }
@@ -205,7 +236,7 @@ export const MarkdownRenderer = ({
           .copy-button {
             background-color: var(--b2);
             border: 1px solid var(--b3);
-            padding: 0.25rem 0.5rem;
+            padding: 0.1rem 0.3rem;
             border-radius: 0.25rem;
             font-size: 0.75rem;
             line-height: 1rem;
@@ -221,15 +252,76 @@ export const MarkdownRenderer = ({
           .copy-button:active {
             transform: translateY(0);
           }
+
+          /* 添加数学公式样式 */
+          .math-display {
+            display: block;
+            overflow-x: auto;
+            padding: 1rem 0;
+            text-align: center;
+          }
+
+          .math-inline {
+            padding: 0 0.2rem;
+            display: inline-block;
+          }
+
+          /* 确保 KaTeX 公式能够正确滚动 */
+          .katex-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0.5rem 0;
+            margin: 0.5rem 0;
+          }
+
+          .katex {
+            font-size: 1.1em;
+          }
+
+          /* 处理长公式 */
+          .katex-display > .katex {
+            display: inline-block;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow-x: auto;
+            text-align: initial;
+          }
+
+          /* 确保公式块有合适的背景和边框 */
+          .math-display {
+            background: var(--b2);
+            border-radius: 0.3rem;
+            border: 1px solid var(--b3);
+            margin: 1rem 0;
+          }
         `}
       </style>
 
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[
+          remarkGfm,
+          [remarkMath, { singleDollar: true }],
+          remarkBreaks
+        ]}
         rehypePlugins={[
-          rehypeRaw, 
-          rehypeSanitize,
-          [rehypeKatex, { strict: false }]  // 设置 strict: false 来禁用警告
+          rehypeRaw,
+          [rehypeSanitize, {
+            attributes: {
+              '*': ['className', 'style'],
+              'math': ['display', 'inline']
+            }
+          }],
+          [rehypeKatex, {
+            strict: false,
+            output: 'html',
+            throwOnError: false,
+            displayMode: true,
+            trust: true,
+            macros: {
+              "\\d": "\\mathrm{d}",
+              "\\partial": "\\partial"
+            }
+          }]
         ]}
         components={{
           // 代码块渲染
@@ -237,14 +329,42 @@ export const MarkdownRenderer = ({
             const match = /language-(\w+)/.exec(className || '');
             
             if (inline) {
-              return (
-                <code
-                  className="inline-code"
-                  {...props}
-                >
-                  {children}
-                </code>
-              );
+              const content = String(children).trim();
+              // 如果内容不包含代码特征，则不使用代码样式
+              if (
+                // 如果是包名或技术名称（允许 @ - / . 字符）
+                /^[@a-zA-Z][\w\-\/.]*$/.test(content) ||
+                // 或者是多个单词（允许空格分隔的单词）
+                /^[\w\-\./\s]+$/.test(content)
+              ) {
+                return <span>{content}</span>;
+              }
+              // 如果包含代码关键字，使用代码样式
+              if (content.includes('function') ||
+                  content.includes('return') ||
+                  content.includes('const') ||
+                  content.includes('let') ||
+                  content.includes('var') ||
+                  content.includes('import') ||
+                  content.includes('export') ||
+                  content.includes('class') ||
+                  content.includes('=>')) {
+                return (
+                  <code className="inline-code" {...props}>
+                    {content}
+                  </code>
+                );
+              }
+              // 如果包含代码特征字符（除了 - . /），使用代码样式
+              if (/[{}[\]()=+*<>!|&;$]/.test(content)) {
+                return (
+                  <code className="inline-code" {...props}>
+                    {content}
+                  </code>
+                );
+              }
+              // 其他情况不使用代码样式
+              return <span>{content}</span>;
             }
 
             const language = match ? match[1] : '';
@@ -336,10 +456,12 @@ export const MarkdownRenderer = ({
             );
           },
 
-          // 数学公式块
-          math({node, ...props}) {
-            return (
-              <div className="math overflow-x-auto py-2" {...props} />
+          // 数学公式块渲染
+          math: ({node, inline, children, ...props}) => {
+            return inline ? (
+              <span className="math-inline" {...props}>{children}</span>
+            ) : (
+              <div className="math-display" {...props}>{children}</div>
             );
           },
 

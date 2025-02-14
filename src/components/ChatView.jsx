@@ -48,13 +48,15 @@ export function ChatView({
   sendToMonaco,
   sendToEditor,
   shouldScrollToBottom = false,
-  setShouldScrollToBottom
+  setShouldScrollToBottom,
+  setMessages
 }) {
   const messagesEndRef = useRef(null);
   const [editorLanguage, setEditorLanguage] = useState("plaintext");
   const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [fontSize, setFontSize] = useState(14);
   const editorRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // 滚动到底部的函数
   const scrollToBottom = () => {
@@ -109,6 +111,100 @@ export function ChatView({
 
   const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
+  };
+
+  // 添加拖拽处理函数
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!currentConversation) return;
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (!currentConversation) {
+      alert('请先选择或创建一个对话');
+      return;
+    }
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    try {
+      // 对每个文件单独处理并发送消息
+      for (const file of files) {
+        // 创建文件的副本并保存到对话文件夹
+        const result = await window.electron.saveFile(currentConversation.path, {
+          name: file.name,
+          data: await file.arrayBuffer()
+        });
+        
+        const processedFile = {
+          name: result.name,
+          path: result.path,
+          type: file.type
+        };
+
+        // 构建消息内容
+        let messageContent = '';
+        if (file.type.startsWith('image/')) {
+          messageContent = `图片文件: ${file.name}`;
+        } else if (file.type.startsWith('video/')) {
+          messageContent = `视频文件: ${file.name}`;
+        } else if (file.type.startsWith('audio/')) {
+          messageContent = `音频文件: ${file.name}`;
+        } else if (file.type === 'application/pdf') {
+          messageContent = `PDF文档: ${file.name}`;
+        } else if (file.type.includes('document') || file.type.includes('sheet') || file.type.includes('presentation')) {
+          messageContent = `办公文档: ${file.name}`;
+        } else if (file.type.includes('text/')) {
+          messageContent = `文本文件: ${file.name}`;
+        } else {
+          messageContent = `文件: ${file.name}`;
+        }
+
+        // 直接发送包含单个文件的消息
+        const tempMessage = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          content: messageContent,
+          type: 'user',
+          timestamp: new Date().toISOString(),
+          files: [processedFile]
+        };
+
+        // 保存消息
+        const updatedMessages = [...messages, tempMessage];
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          updatedMessages
+        );
+
+        // 更新消息列表
+        setMessages(updatedMessages);
+        if (typeof setShouldScrollToBottom === 'function') {
+          setShouldScrollToBottom(true);
+        }
+      }
+    } catch (error) {
+      console.error('文件上传失败:', error);
+      alert('文件上传失败: ' + error.message);
+    }
   };
 
   return (
@@ -176,8 +272,64 @@ export function ChatView({
             transform: scale(1.05);
             background-color: var(--b2);
           }
+          /* 拖拽上传样式 */
+          .drag-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: var(--b1);
+            opacity: 0.9;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+          }
+
+          .drag-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+          }
+
+          .drag-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            color: var(--p);
+            animation: bounce 1s infinite;
+          }
+
+          @keyframes bounce {
+            0%, 100% {
+              transform: translateY(-10%);
+              animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+            }
+            50% {
+              transform: translateY(0);
+              animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+            }
+          }
         `}
       </style>
+
+      {/* 拖拽上传遮罩 */}
+      <div 
+        className={`drag-overlay ${isDragging ? '' : 'hidden'}`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        <div className="drag-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        </div>
+        <div className="text-lg font-medium">拖放文件到这里上传</div>
+        <div className="text-sm opacity-70 mt-2">支持图片、视频、文档等文件格式</div>
+      </div>
+
       {/* 消息列表容器 */}
       <div 
         id="ai-chat-messages"
@@ -186,6 +338,10 @@ export function ChatView({
           paddingBottom: isCompact ? '205px' : '145px',
           marginBottom: isCompact ? '60px' : '0px'
         }}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
         <div className="space-y-4 max-w-[1200px] mx-auto">
           {messageList.map(message => (

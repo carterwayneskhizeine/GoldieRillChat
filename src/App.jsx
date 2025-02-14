@@ -516,8 +516,17 @@ export default function App() {
           path: result.path
         };
 
+        // 更新消息内容，替换旧的文件名为新的文件名
+        let updatedContent = message.content;
+        if (updatedContent.includes(file.name)) {
+          updatedContent = updatedContent.replace(file.name, result.name);
+        } else if (updatedContent.includes('图片文件:') || updatedContent.includes('视频文件:')) {
+          updatedContent = updatedContent.replace(/: .+$/, `: ${result.name}`);
+        }
+
         const updatedMessage = {
           ...message,
+          content: updatedContent,
           files: updatedFiles
         };
 
@@ -984,6 +993,7 @@ export default function App() {
           handleConversationRename={handleConversationRename}
           handleRenameConfirm={handleRenameConfirm}
           messages={messages}
+          setMessages={setMessages}
           editingMessage={editingMessage}
           setEditingMessage={setEditingMessage}
           messageInput={messageInput}
@@ -1020,6 +1030,8 @@ export default function App() {
           scrollToMessage={scrollToMessage}
           sendToMonaco={sendToMonaco}
           sendToEditor={sendToEditor}
+          shouldScrollToBottom={shouldScrollToBottom}
+          setShouldScrollToBottom={setShouldScrollToBottom}
         />
 
         {/* Main content area */}
@@ -1033,6 +1045,7 @@ export default function App() {
             className="flex-1 flex flex-col overflow-hidden">
             <ChatView
               messages={messages}
+              setMessages={setMessages}
               currentConversation={currentConversation}
               editingMessage={editingMessage}
               setEditingMessage={setEditingMessage}
@@ -1066,6 +1079,7 @@ export default function App() {
               sendToMonaco={sendToMonaco}
               sendToEditor={sendToEditor}
               shouldScrollToBottom={shouldScrollToBottom}
+              setShouldScrollToBottom={setShouldScrollToBottom}
             />
           </div>
 

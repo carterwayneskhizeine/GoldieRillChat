@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export const InputArea = ({
   messageInput,
@@ -7,6 +7,8 @@ export const InputArea = ({
   handleKeyDown,
   fileInputRef
 }) => {
+  const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);
+
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -71,6 +73,15 @@ export const InputArea = ({
           rows="2"
         />
         <div className="absolute right-4 bottom-3 flex items-center gap-2">
+          <button
+            className={`btn btn-ghost btn-sm btn-circle ${isNetworkEnabled ? 'text-primary' : 'text-gray-400'}`}
+            onClick={() => setIsNetworkEnabled(!isNetworkEnabled)}
+            title={isNetworkEnabled ? "禁用网络搜索" : "启用网络搜索"}
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+          </button>
           <button
             className="btn btn-ghost btn-sm btn-circle"
             onClick={() => fileInputRef.current?.click()}

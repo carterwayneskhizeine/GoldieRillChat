@@ -158,11 +158,35 @@ export const MessageItem = ({
         {/* 消息操作按钮 */}
         {!editingMessageId && (
           <div className="message-actions">
-            <button className="btn btn-ghost btn-xs" onClick={() => handleEditStart(message)}>编辑</button>
+            {/* 仅当消息没有附件文件且是用户消息时显示编辑按钮 */}
+            {!message.files?.length && message.type === 'user' && (
+              <button className="btn btn-ghost btn-xs" onClick={() => handleEditStart(message)}>编辑</button>
+            )}
             <button className="btn btn-ghost btn-xs" onClick={() => handleDeleteMessage(message.id)}>删除</button>
-            <button className="btn btn-ghost btn-xs" onClick={() => navigator.clipboard.writeText(message.content)}>复制</button>
+            {/* 仅当消息没有附件文件时显示复制按钮 */}
+            {!message.files?.length && (
+              <button className="btn btn-ghost btn-xs" onClick={() => navigator.clipboard.writeText(message.content)}>复制</button>
+            )}
+            {/* AI 消息的编辑按钮 */}
+            {!message.files?.length && message.type === 'assistant' && (
+              <button className="btn btn-ghost btn-xs" onClick={() => handleEditStart(message)}>编辑</button>
+            )}
             {message.type === 'assistant' && (
               <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>重试</button>
+            )}
+            {/* 发送到编辑器按钮 */}
+            {(message.files?.every(file => 
+              file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+            ) || !message.files?.length) && (
+              <button className="btn btn-ghost btn-xs" onClick={() => {
+                // 如果消息包含图片，发送到图片编辑器
+                if (message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+                  sendToEditor(message);
+                } else {
+                  // 否则发送到 Monaco 编辑器
+                  sendToMonaco(message);
+                }
+              }}>发送</button>
             )}
             {message.history && message.history.length > 0 && (
               <>

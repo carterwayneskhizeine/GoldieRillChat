@@ -41,12 +41,12 @@
 /* Markdown 样式 */
 .chat-bubble {
   overflow-x: auto;
-  line-height: 1.6;
+  line-height: 1.2;
 }
 
 .chat-bubble p {
-  margin: 0.5rem 0;
-  line-height: 1.6;
+  margin: 0.3rem 0;
+  line-height: 1.2;
 }
 
 .chat-bubble h1,
@@ -57,7 +57,7 @@
 .chat-bubble h6 {
   margin: 1rem 0 0.5rem 0;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .chat-bubble h1 { font-size: 1.5em; margin-top: 1.5rem; }
@@ -75,10 +75,12 @@
 
 .chat-bubble li {
   margin: 0.3rem 0;
+  line-height: 1.2;
 }
 
 .chat-bubble li > p {
   margin: 0.2rem 0;
+  line-height: 1.2;
 }
 
 .chat-bubble blockquote {
@@ -87,16 +89,20 @@
   border-left: 4px solid var(--b3);
   background-color: var(--b2);
   border-radius: 0.3rem;
+  line-height: 1.2;
 }
 
 .chat-bubble blockquote p {
   margin: 0.3rem 0;
+  line-height: 1.2;
 }
 
 .chat-bubble pre {
-  margin: 0.8rem 0;
+  margin: 0;
   border-radius: 0.5rem;
   background-color: var(--b2);
+  line-height: 1.2;
+  padding: 0.3rem;
 }
 
 .chat-bubble table {
@@ -111,6 +117,7 @@
   padding: 0.5rem;
   border: 1px solid var(--b3);
   background-color: var(--b1);
+  line-height: 1.2;
 }
 
 .chat-bubble th {
@@ -151,13 +158,15 @@
 /* 代码块样式优化 */
 .chat-bubble pre > div {
   margin: 0 !important;
-  border-radius: 0 0 0.3rem 0.3rem !important;
+  border-radius: 0.3rem !important;
+  padding: 0.3rem !important;
 }
 
 .chat-bubble pre code {
   font-family: 'Fira Code', monospace;
   font-size: 0.9em;
-  line-height: 1.5;
+  line-height: 1.2;
+  padding: 0 !important;
 }
 
 /* 自定义滚动条样式 */
@@ -342,12 +351,13 @@
   opacity: 0.9;
   font-family: monospace;
   white-space: pre-wrap;
-  line-height: 1.5;
+  line-height: 1.2;
 }
 
 .reasoning-bubble .typing-content {
   font-size: 0.9em;
   color: var(--bc);
+  line-height: 1.2;
 }
 
 @keyframes blink {
@@ -359,7 +369,7 @@
 .chat-bubble {
   padding: 0.75rem 1rem;
   overflow: visible;
-  line-height: 1.6;
+  line-height: 1.2;
   transition: all 0.3s ease-out;
 }
 
@@ -381,12 +391,13 @@
   font-family: var(--font-mono);
   white-space: pre-wrap;
   position: relative;
+  line-height: 1.2;
 }
 
 /* 区分生成中和完成后的样式 */
 .response-content .typing-effect {
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.2;
   color: var(--bc);
 }
 
@@ -399,7 +410,7 @@
   font-family: var(--font-mono);
   font-size: 1rem;
   color: var(--bc);
-  line-height: 1.6;
+  line-height: 1.2;
   white-space: pre-wrap;
 }
 
@@ -408,4 +419,57 @@
   font-size: 1.1rem; /* 增加标题字体大小 */
   margin-bottom: 0.75rem; /* 增加底部间距 */
   color: var(--bc);
+}
+
+/* 修改消息内容的行间距 */
+.chat-bubble .prose {
+  line-height: 1.2;
+}
+
+.chat-bubble .prose * {
+  line-height: 1.2 !important; /* 强制所有子元素使用 1.2 的行间距 */
+}
+
+.chat-bubble .prose p,
+.chat-bubble .prose li,
+.chat-bubble .prose blockquote,
+.chat-bubble .prose pre,
+.chat-bubble .prose table {
+  line-height: 1.2;
+}
+
+/* 修改代码块内的行间距 */
+.chat-bubble pre code {
+  line-height: 1.2;
+}
+
+/* 修改推理过程的行间距 */
+.reasoning-bubble .typing-content {
+  line-height: 1.2;
+}
+
+/* 修改打字效果的行间距 */
+.typing-effect {
+  line-height: 1.2;
+}
+
+/* 确保 markdown 渲染的内容也使用相同的行间距 */
+.chat-bubble .react-markdown {
+  line-height: 1.2;
+}
+
+.chat-bubble .react-markdown * {
+  line-height: 1.2 !important;
+}
+
+/* 调整代码块和其他元素的间距 */
+.chat-bubble .prose pre {
+  margin: 0;
+}
+
+/* 确保代码块前后的段落间距也移除 */
+.chat-bubble p + pre,
+.chat-bubble pre + p {
+  margin-top: 0;
+  margin-bottom: 0;
 } 
