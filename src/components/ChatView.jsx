@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { formatMessageTime } from '../utils/timeFormat';
 import { ImageLightbox } from './ImageLightbox';
 import { getAllMessageImages, findImageIndex } from './imagePreviewUtils';
@@ -9,6 +9,8 @@ import { handleFileSelect, removeFile, handleFileDrop } from './fileHandlers';
 import { SidebarCollapseButton, shouldShowCollapseButton, getMessageContentStyle } from './sidebarMessageCollapse.jsx';
 import { MarkdownRenderer } from './shared/MarkdownRenderer';
 import '../styles/markdown-preview.css';
+import { createPortal } from 'react-dom';
+import Editor from "@monaco-editor/react";
 
 export function ChatView({
   messages = [],
@@ -49,6 +51,10 @@ export function ChatView({
   setShouldScrollToBottom
 }) {
   const messagesEndRef = useRef(null);
+  const [editorLanguage, setEditorLanguage] = useState("plaintext");
+  const [editorTheme, setEditorTheme] = useState("vs-dark");
+  const [fontSize, setFontSize] = useState(14);
+  const editorRef = useRef(null);
 
   // 滚动到底部的函数
   const scrollToBottom = () => {
@@ -100,6 +106,10 @@ export function ChatView({
 
   // 确保 messages 是数组
   const messageList = Array.isArray(messages) ? messages : [];
+
+  const handleEditorDidMount = (editor) => {
+    editorRef.current = editor;
+  };
 
   return (
     <div className={`flex flex-col h-full relative ${isCompact ? 'chat-view-compact' : ''}`}>
@@ -173,8 +183,8 @@ export function ChatView({
         id="ai-chat-messages"
         className={`flex-1 overflow-y-auto p-4 ${isCompact ? 'compact-scroll' : ''} chat-view-messages`}
         style={{
-          paddingBottom: isCompact ? '205px' : '145px', // 增加底部空间以避免消息和滑动条被输入框和底部按钮遮挡
-          marginBottom: isCompact ? '60px' : '0px' // 为紧凑模式添加额外的底部间距，避免滑动条被底部按钮遮挡
+          paddingBottom: isCompact ? '205px' : '145px',
+          marginBottom: isCompact ? '60px' : '0px'
         }}
       >
         <div className="space-y-4 max-w-[1200px] mx-auto">
@@ -606,7 +616,7 @@ export function ChatView({
       {/* 输入区域 */}
       {!editingMessage && (
         <div className={`absolute bottom-0 left-0 ${isCompact ? 'right-[20px] p-2 pointer-events-none bg-transparent' : 'right-[20px] p-4 bg-transparent'}`} style={{ 
-          bottom: isCompact ? '48px' : '0px' // 添加底部间距，避免被底部按钮遮挡
+          bottom: isCompact ? '48px' : '0px'
         }}>
           <div className={`${isCompact ? 'max-w-[300px] mx-auto pointer-events-auto' : 'max-w-3xl mx-auto'}`}>
             {selectedFiles.length > 0 && (
@@ -711,6 +721,109 @@ export function ChatView({
           </div>
         )
       )}
+
+      {editingMessage &&
+        createPortal(
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="absolute inset-0 bg-base-300/50 backdrop-blur-sm" onClick={exitEditMode}></div>
+            <div className="relative bg-base-100 rounded-lg shadow-xl w-[90vw] max-w-[1200px] h-[80vh] flex flex-col">
+              <div className="flex-none flex items-center justify-between px-4 py-2 border-b border-base-300">
+                <div className="flex items-center gap-2">
+                  <select 
+                    className="select select-bordered select-sm"
+                    value={editorLanguage}
+                    onChange={(e) => setEditorLanguage(e.target.value)}
+                  >
+                    <option value="plaintext">plaintext</option>
+                    <option value="javascript">javascript</option>
+                    <option value="typescript">typescript</option>
+                    <option value="python">python</option>
+                    <option value="java">java</option>
+                    <option value="cpp">cpp</option>
+                    <option value="csharp">csharp</option>
+                    <option value="html">html</option>
+                    <option value="css">css</option>
+                    <option value="json">json</option>
+                    <option value="markdown">markdown</option>
+                    <option value="sql">sql</option>
+                    <option value="xml">xml</option>
+                    <option value="yaml">yaml</option>
+                  </select>
+
+                  <select 
+                    className="select select-bordered select-sm"
+                    value={editorTheme}
+                    onChange={(e) => setEditorTheme(e.target.value)}
+                  >
+                    <option value="vs-dark">vs-dark</option>
+                    <option value="light">light</option>
+                    <option value="hc-black">hc-black</option>
+                  </select>
+
+                  <div className="flex items-center gap-1">
+                    <button 
+                      className="btn btn-sm btn-square"
+                      onClick={() => setFontSize(prev => Math.max(8, prev - 2))}
+                    >
+                      -
+                    </button>
+                    <span className="text-sm min-w-[3ch] text-center">{fontSize}</span>
+                    <button 
+                      className="btn btn-sm btn-square"
+                      onClick={() => setFontSize(prev => Math.min(32, prev + 2))}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <button 
+                  className="btn btn-ghost btn-sm btn-circle"
+                  onClick={exitEditMode}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex-1 min-h-0">
+                <Editor
+                  height="100%"
+                  language={editorLanguage}
+                  theme={editorTheme}
+                  value={messageInput}
+                  onChange={setMessageInput}
+                  onMount={handleEditorDidMount}
+                  options={{
+                    fontSize: fontSize,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    wordWrap: "on",
+                    automaticLayout: true,
+                    padding: { top: 8, bottom: 8 }
+                  }}
+                />
+              </div>
+
+              <div className="flex-none flex justify-end gap-2 px-4 py-3 border-t border-base-300">
+                <button 
+                  className="btn btn-ghost btn-sm"
+                  onClick={exitEditMode}
+                >
+                  取消
+                </button>
+                <button 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => updateMessage(editingMessage.id, messageInput)}
+                >
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 } 
