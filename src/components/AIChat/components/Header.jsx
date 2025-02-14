@@ -53,10 +53,10 @@ export const Header = ({
           <div className="flex items-center gap-1">
             <input
               type="range"
-              min="1000"
-              max="8000"
-              step="100"
-              value={maxTokens > 8000 ? 8000 : maxTokens}
+              min="1024"
+              max="8192"
+              step="128"
+              value={maxTokens > 8192 ? 8192 : maxTokens}
               onChange={(e) => {
                 const value = parseInt(e.target.value);
                 setMaxTokens(value);
