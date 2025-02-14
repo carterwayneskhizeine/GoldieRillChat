@@ -20,6 +20,10 @@ export const MarkdownRenderer = ({
     // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
     let processed = text.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
 
+    // 处理带有反引号的序号标题格式
+    processed = processed.replace(/^(#+\s*\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
+    processed = processed.replace(/^(\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
+
     // 处理行内代码块，将非代码块的反引号去掉
     processed = processed.replace(/`([^`\n]+)`/g, (match, content) => {
       // 如果内容不包含代码特征，则去掉反引号
@@ -330,6 +334,11 @@ export const MarkdownRenderer = ({
             
             if (inline) {
               const content = String(children).trim();
+              // 检查是否是带序号和反引号的标题格式
+              if (/^\d+\.\s+`.+`.*$/.test(content)) {
+                return <span>{content.replace(/`/g, '')}</span>;
+              }
+              
               // 如果内容不包含代码特征，则不使用代码样式
               if (
                 // 如果是包名或技术名称（允许 @ - / . 字符）
@@ -368,6 +377,23 @@ export const MarkdownRenderer = ({
             }
 
             const language = match ? match[1] : '';
+            // 定义支持的编程语言列表
+            const supportedLanguages = [
+              'python', 'javascript', 'java', 'cpp', 'csharp', 'ruby', 'php',
+              'swift', 'go', 'rust', 'kotlin', 'typescript', 'scala', 'sql',
+              'lua', 'perl', 'r', 'nodejs', 'dart', 'rails', 'erlang',
+              'haskell', 'scala', 'golang', 'c', 'css', 'html', 'xml', 'yaml',
+              'json', 'markdown', 'bash', 'shell', 'powershell'
+            ];
+
+            // 如果没有指定语言或者语言不在支持列表中，就当作普通文本处理
+            if (!language || !supportedLanguages.includes(language.toLowerCase())) {
+              return (
+                <div className="whitespace-pre-wrap text-current">
+                  {children}
+                </div>
+              );
+            }
 
             const handleCopy = () => {
               const code = String(children).replace(/\n$/, '');

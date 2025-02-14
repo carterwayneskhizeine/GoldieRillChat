@@ -174,20 +174,6 @@ export const MessageItem = ({
             {message.type === 'assistant' && (
               <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>重试</button>
             )}
-            {/* 发送到编辑器按钮 */}
-            {(message.files?.every(file => 
-              file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-            ) || !message.files?.length) && (
-              <button className="btn btn-ghost btn-xs" onClick={() => {
-                // 如果消息包含图片，发送到图片编辑器
-                if (message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
-                  sendToEditor(message);
-                } else {
-                  // 否则发送到 Monaco 编辑器
-                  sendToMonaco(message);
-                }
-              }}>发送</button>
-            )}
             {message.history && message.history.length > 0 && (
               <>
                 <button
