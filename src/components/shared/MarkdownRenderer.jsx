@@ -203,7 +203,11 @@ export const MarkdownRenderer = ({
 
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex, rehypeRaw, rehypeSanitize]}
+        rehypePlugins={[
+          rehypeRaw, 
+          rehypeSanitize,
+          [rehypeKatex, { strict: false }]  // 设置 strict: false 来禁用警告
+        ]}
         components={{
           // 代码块渲染
           code({node, inline, className, children, ...props}) {
