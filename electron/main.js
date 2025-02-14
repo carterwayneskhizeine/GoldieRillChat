@@ -557,8 +557,8 @@ function createWindow() {
   console.log('Creating window with icon path:', iconPath)
 
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1270,
+    height: 920,
     frame: false,
     transparent: false,
     backgroundColor: '#2e2e2e',
@@ -566,6 +566,8 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
+      webSecurity: true,
+      additionalArguments: ['--js-flags=--max-old-space-size=4096'],
     },
     icon: iconPath
   })

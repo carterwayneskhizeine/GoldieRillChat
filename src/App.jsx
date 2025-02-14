@@ -63,8 +63,8 @@ import {
 } from './components/conversationHandlers'
 
 export default function App() {
-  // 修改初始工具为 browser
-  const [activeTool, setActiveTool] = useState('browser')
+  // 修改初始工具为 chat
+  const [activeTool, setActiveTool] = useState('chat')
   
   // 侧边栏状态
   const initialSidebarState = initializeSidebarState()
