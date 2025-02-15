@@ -5,6 +5,90 @@ import { MarkdownRenderer } from '../../shared/MarkdownRenderer';
 import { shouldCollapseMessage, getMessageContentStyle } from '../utils/messageCollapse';
 import '../styles/messages.css';
 
+const SearchSources = ({ sources, openInBrowserTab }) => {
+  const [showSources, setShowSources] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (showSources && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // 计算列表宽度（320px）是否会超出右侧边界
+      const willOverflowRight = buttonRect.left + 320 > viewportWidth;
+      
+      // 计算下方空间和上方空间
+      const spaceBelow = viewportHeight - buttonRect.bottom - 8;
+      const spaceAbove = buttonRect.top - 8;
+      
+      // 判断是否应该向上显示（当下方空间不足且上方空间足够时）
+      const shouldShowAbove = spaceBelow < 300 && spaceAbove > 300;
+      
+      setPosition({
+        // 如果应该向上显示，则定位到按钮上方
+        top: shouldShowAbove ? buttonRect.top - 8 - 300 : buttonRect.bottom + 8,
+        // 如果按钮在右侧，列表左对齐；如果按钮在左侧，列表右对齐
+        left: willOverflowRight ? buttonRect.right - 320 : buttonRect.left
+      });
+    }
+  }, [showSources]);
+
+  if (!sources || sources.length === 0) return null;
+
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        className="btn btn-xs btn-ghost bg-base-100 hover:bg-base-200"
+        onClick={() => setShowSources(!showSources)}
+      >
+        {showSources ? '隐藏来源' : '查看来源'} ({sources.length})
+      </button>
+      {showSources && createPortal(
+        <div 
+          className="fixed bg-base-100 rounded-lg shadow-lg border border-base-300 p-2"
+          style={{ 
+            top: `${position.top}px`, 
+            left: `${position.left}px`,
+            width: '320px',
+            height: '300px',
+            overflowY: 'auto',
+            zIndex: 9999
+          }}
+        >
+          <div className="space-y-2">
+            {sources.map((source, index) => (
+              <div key={index} className="text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-base-content/60 flex-none">[{index + 1}]</span>
+                  <div className="flex-1">
+                    <a
+                      href={source.link}
+                      className="link link-primary hover:link-primary-focus block"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openInBrowserTab(source.link);
+                      }}
+                    >
+                      {source.title}
+                    </a>
+                    <div className="text-xs text-base-content/70 mt-1">
+                      {source.snippet}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
 export const MessageItem = ({
   message,
   selectedModel,
@@ -16,11 +100,13 @@ export const MessageItem = ({
   handleEditSave,
   handleDeleteMessage,
   handleRetry,
+  handleStop,
   handleHistoryNavigation,
   isCollapsed,
   onToggleCollapse,
   onImageClick,
-  openFileLocation
+  openFileLocation,
+  openInBrowserTab
 }) => {
   // 添加推理过程折叠状态
   const [isReasoningCollapsed, setIsReasoningCollapsed] = useState(false);
@@ -114,13 +200,24 @@ export const MessageItem = ({
           message.type === 'user' ? 'chat-bubble-primary' : 
           message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
         }`}
-        style={{ userSelect: 'text' }}
+        style={{ userSelect: 'text', position: 'relative', overflow: 'visible' }}
         >
+          {/* 添加搜索结果来源 */}
+          {message.searchResults && (
+            <div className="absolute bottom-0 right-0 -mb-[30px]" style={{ zIndex: 50 }}>
+              <SearchSources 
+                sources={message.searchResults} 
+                openInBrowserTab={openInBrowserTab}
+              />
+            </div>
+          )}
+
           {/* 添加折叠按钮 */}
           {shouldCollapseMessage(message) && (
             <button
               className="aichat-collapse-btn"
               onClick={() => onToggleCollapse(message.id, isCollapsed)}
+              style={{ zIndex: 40 }}
             >
               {isCollapsed ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -133,8 +230,8 @@ export const MessageItem = ({
               )}
             </button>
           )}
-          <div className="message-content">
-            <div className="response-content" style={contentStyle}>
+          <div className="message-content" style={{ overflow: 'visible' }}>
+            <div className="response-content" style={{ ...contentStyle, overflow: 'visible' }}>
               {editingMessageId === message.id ? (
                 null // 不在这里渲染编辑框
               ) : (
@@ -233,7 +330,20 @@ export const MessageItem = ({
               <button className="btn btn-ghost btn-xs" onClick={() => handleEditStart(message)}>编辑</button>
             )}
             {message.type === 'assistant' && (
-              <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>重试</button>
+              <>
+                <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>重试</button>
+                {message.generating && (
+                  <button 
+                    className="btn btn-ghost btn-xs text-error" 
+                    onClick={() => handleStop(message.id)}
+                    title="停止生成"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </>
             )}
             {/* 添加文件按钮 */}
             {message.files?.length > 0 && (

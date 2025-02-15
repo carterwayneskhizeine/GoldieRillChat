@@ -944,6 +944,14 @@ export default function App() {
     }
   }, [currentConversation]);
 
+  // 在 App 组件中添加新的方法
+  const openInBrowserTab = (url) => {
+    // 切换到浏览器工具
+    setActiveTool('browser');
+    // 通知主进程创建新标签页
+    window.electron.browser.newTab(url);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-base-100">
       <ThreeBackground />
@@ -1137,6 +1145,7 @@ export default function App() {
               onConversationRename={handleConversationRename}
               window={window}
               electron={window.electron}
+              openInBrowserTab={openInBrowserTab}
             />
           </div>
         </div>

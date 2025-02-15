@@ -53,35 +53,36 @@ export const MODEL_PROVIDERS = {
     name: 'Claude',
     apiHost: 'https://api.anthropic.com',
     models: [
-      'claude-3-opus-20240229',
+      'claude-3-5-sonnet-latest',
+      'claude-3-5-haiku-latest',
+      'claude-3-opus-latest',
       'claude-3-sonnet-20240229',
-      'claude-2.1',
-      'claude-2.0',
-      'claude-instant-1.2'
+      'claude-3-haiku-20240307'
     ],
     needsApiKey: true,
     apiKeyHelp: '在 Anthropic 官网获取 API 密钥: https://console.anthropic.com/account/keys'
   },
   siliconflow: {
-    name: 'SiliconFlow API',
+    name: 'SiliconFlow',
     apiHost: 'https://api.siliconflow.cn',
     needsApiKey: true,
-    apiKeyHelp: '在 SiliconFlow 官网获取 API 密钥: https://api.siliconflow.cn',
+    apiKeyHelp: '在 SiliconFlow 官网获取 API 密钥: https://siliconflow.cn/',
     models: [
+      'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B',
       'Qwen/Qwen2.5-7B-Instruct',
-      'Qwen/Qwen2.5-14B-Instruct',
-      'Qwen/Qwen2.5-72B-Instruct',
-      'Qwen/Qwen2.5-Coder-32B-Instruct',
-      'ChatGLM/ChatGLM3-6B',
-      'ChatGLM/ChatGLM2-6B',
-      'ChatGLM/ChatGLM-6B'
+      'Qwen/Qwen2.5-Coder-7B-Instruct',
+      'internlm/internlm2_5-7b-chat',
+      'meta-llama/Meta-Llama-3.1-8B-Instruct',
+      'THUDM/glm-4-9b-chat',
+      'AIDC-AI/Marco-o1',
+      '01-ai/Yi-1.5-9B-Chat-16K'
     ]
   },
   deepseek: {
     name: 'DeepSeek',
     apiHost: 'https://api.deepseek.com/v1',
     needsApiKey: true,
-    apiKeyHelp: '在 DeepSeek 官网获取 API 密钥: https://platform.deepseek.ai/settings',
+    apiKeyHelp: '在 DeepSeek 官网获取 API 密钥: https://platform.deepseek.com/',
     models: [
       'deepseek-chat',
       'deepseek-reasoner'
@@ -93,13 +94,13 @@ export const MODEL_PROVIDERS = {
     needsApiKey: true,
     apiKeyHelp: '在 OpenRouter 官网获取 API 密钥: https://openrouter.ai/keys',
     models: [
-      'openai/gpt-3.5-turbo',
-      'openai/gpt-4',
-      'anthropic/claude-2',
+      'google/gemini-2.0-flash-thinking-exp:free',
+      'deepseek/deepseek-chat:free',
+      'google/gemini-2.0-pro-exp-02-05:free',
       'google/palm-2-chat-bison',
-      'meta-llama/llama-2-70b-chat',
-      'meta-llama/llama-2-13b-chat',
-      'mistral-ai/mistral-7b-instruct'
+      'deepseek/deepseek-r1:free',
+      'anthropic/claude-3.5-sonnet',
+      'openai/gpt-4o'
     ]
   }
 };

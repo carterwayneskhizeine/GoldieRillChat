@@ -79,6 +79,7 @@
             "@mui/icons-material": "^6.4.3",
             "@mui/material": "^6.4.3",
             "@uiw/react-codemirror": "^4.23.7",
+            "cheerio": "^1.0.0",
             "cherry-markdown": "^0.8.44",
             "electron-as-browser": "^1.0.0",
             "katex": "^0.16.21",

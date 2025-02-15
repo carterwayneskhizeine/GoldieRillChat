@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { callModelAPI } from '../../../services/modelProviders';
 import { MESSAGE_STATES } from '../constants';
+import { searchService } from '../../../services/searchService';
 
 // 格式化时间函数
 const formatAIChatTime = (timestamp) => {
@@ -30,7 +31,10 @@ export const createMessageHandlers = ({
   window,
   maxTokens,
   temperature,
-  editContent
+  editContent,
+  abortController,
+  setAbortController,
+  isNetworkEnabled
 }) => {
   // 添加新消息
   const addMessage = (content, type = 'user') => {
@@ -127,52 +131,111 @@ export const createMessageHandlers = ({
 
   // 重试失败的消息
   const handleRetry = async (messageId) => {
-    const aiMessage = messages.find(msg => msg.id === messageId);
-    if (!aiMessage || aiMessage.type !== 'assistant') return;
-
-    // 保存当前回复到历史记录
-    setMessages(prev => {
-      const newMessages = [...prev];
-      const index = newMessages.findIndex(msg => msg.id === messageId);
-      if (index === -1) return prev;
-
-      const currentMessage = newMessages[index];
-      const history = currentMessage.history || [];
-      
-      // 只有当当前内容不为空且不是错误消息，且与最后一条历史记录不同时才保存
-      if (currentMessage.content && 
-          !currentMessage.error && 
-          (!history.length || history[history.length - 1].content !== currentMessage.content)) {
-        history.push({
-          content: currentMessage.content,
-          timestamp: new Date(),
-          model: currentMessage.model,
-          tokens: currentMessage.tokens,
-          reasoning_content: currentMessage.reasoning_content  // 保存推理内容到历史记录
-        });
-      }
-
-      newMessages[index] = {
-        ...currentMessage,
-        history: history,
-        currentHistoryIndex: history.length, // 设置为最新的索引
-        currentContent: null, // 重置当前内容
-        reasoning_content: '' // 重置推理内容
-      };
-      return newMessages;
-    });
-
-    // 设置消息状态为思考中
-    setMessageStates(prev => ({
-      ...prev,
-      [messageId]: MESSAGE_STATES.THINKING
-    }));
+    // 创建新的 AbortController
+    const controller = new AbortController();
+    setAbortController(controller);
 
     try {
+      const aiMessage = messages.find(msg => msg.id === messageId);
+      if (!aiMessage || aiMessage.type !== 'assistant') return;
+
+      // 保存当前回复到历史记录
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const index = newMessages.findIndex(msg => msg.id === messageId);
+        if (index === -1) return prev;
+
+        const currentMessage = newMessages[index];
+        const history = currentMessage.history || [];
+        
+        // 只有当当前内容不为空且不是错误消息，且与最后一条历史记录不同时才保存
+        if (currentMessage.content && 
+            !currentMessage.error && 
+            (!history.length || history[history.length - 1].content !== currentMessage.content)) {
+          history.push({
+            content: currentMessage.content,
+            timestamp: new Date(),
+            model: currentMessage.model,
+            tokens: currentMessage.tokens,
+            reasoning_content: currentMessage.reasoning_content  // 保存推理内容到历史记录
+          });
+        }
+
+        newMessages[index] = {
+          ...currentMessage,
+          history: history,
+          currentHistoryIndex: history.length, // 设置为最新的索引
+          currentContent: null, // 重置当前内容
+          reasoning_content: '' // 重置推理内容
+        };
+        return newMessages;
+      });
+
+      // 设置消息状态为思考中
+      setMessageStates(prev => ({
+        ...prev,
+        [messageId]: MESSAGE_STATES.THINKING
+      }));
+
       // 获取用户消息
       const userMessageIndex = messages.findIndex(msg => msg.id === messageId) - 1;
       if (userMessageIndex < 0) return;
       const userMessage = messages[userMessageIndex];
+
+      // 尝试进行网络搜索
+      let systemMessage = '';
+      let searchResults = null;
+      
+      // 只在网络搜索开启时执行搜索
+      if (isNetworkEnabled) {
+        try {
+          console.log('重试时进行网络搜索:', userMessage.content);
+          const searchResponse = await searchService.searchAndFetchContent(userMessage.content);
+          console.log('搜索结果:', searchResponse);
+          
+          if (searchResponse.results && searchResponse.results.length > 0) {
+            systemMessage = `以下是与问题相关的网络搜索结果：\n\n${
+              searchResponse.results.map((result, index) => (
+                `[${index + 1}] ${result.title}\n${result.snippet}\n${result.content}\n---\n`
+              )).join('\n')
+            }\n\n请基于以上搜索结果回答用户的问题："${userMessage.content}"。如果搜索结果不足以完整回答问题，也可以使用你自己的知识来补充。请在回答末尾列出使用的参考来源编号。`;
+            
+            searchResults = searchResponse.results;
+            console.log('搜索结果处理完成');
+          }
+        } catch (error) {
+          console.error('搜索失败:', error);
+          // 搜索失败时继续对话，但不使用搜索结果
+        }
+      }
+
+      // 构建消息历史
+      const messagesHistory = [];
+      
+      // 如果有系统消息，添加到消息列表开头
+      if (systemMessage) {
+        messagesHistory.push({
+          role: 'system',
+          content: systemMessage
+        });
+      }
+
+      // 获取历史消息数量设置
+      const maxHistoryMessages = parseInt(localStorage.getItem('aichat_max_history_messages')) || 5;
+      
+      // 添加历史对话消息
+      const recentMessages = messages
+        .slice(
+          maxHistoryMessages === 21 ? 0 : Math.max(0, userMessageIndex - maxHistoryMessages + 1),
+          userMessageIndex + 1
+        )
+        .filter(msg => msg.type === 'user' || msg.type === 'assistant')
+        .map(msg => ({
+          role: msg.type === 'user' ? 'user' : 'assistant',
+          content: msg.content || ''
+        }));
+
+      messagesHistory.push(...recentMessages);
 
       // 调用 AI API
       const response = await callModelAPI({
@@ -180,9 +243,10 @@ export const createMessageHandlers = ({
         apiKey,
         apiHost,
         model: selectedModel,
-        messages: messages.slice(0, userMessageIndex + 1),
+        messages: messagesHistory,
         maxTokens,
         temperature,
+        signal: controller.signal,
         onUpdate: (update) => {
           if (update.type === 'content') {
             setMessages(prev => {
@@ -194,7 +258,8 @@ export const createMessageHandlers = ({
               newMessages[index] = {
                 ...newMessages[index],
                 content: update.content,
-                generating: !update.done
+                generating: !update.done,
+                searchResults: searchResults // 添加搜索结果
               };
 
               return newMessages;
@@ -247,7 +312,8 @@ export const createMessageHandlers = ({
           model: selectedModel,
           tokens: response.usage?.total_tokens || 0,
           currentHistoryIndex: currentMessage.history.length, // 设置为最新的索引
-          reasoning_content: response.reasoning_content || currentMessage.reasoning_content // 保留推理内容
+          reasoning_content: response.reasoning_content || currentMessage.reasoning_content, // 保留推理内容
+          searchResults: searchResults // 添加搜索结果
         };
 
         return newMessages;
@@ -260,6 +326,10 @@ export const createMessageHandlers = ({
       }));
 
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('生成已被用户中止');
+        return;
+      }
       console.error('重试失败:', error);
       
       // 更新消息列表，将错误信息添加到 AI 回复中
@@ -283,6 +353,40 @@ export const createMessageHandlers = ({
         ...prev,
         [messageId]: MESSAGE_STATES.ERROR
       }));
+    } finally {
+      setAbortController(null);
+    }
+  };
+
+  // 添加停止生成功能
+  const handleStop = async (messageId) => {
+    try {
+      // 中断当前的请求
+      if (abortController) {
+        abortController.abort();
+        setAbortController(null);
+      }
+
+      // 更新消息状态
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const index = newMessages.findIndex(msg => msg.id === messageId);
+        if (index === -1) return prev;
+
+        newMessages[index] = {
+          ...newMessages[index],
+          generating: false,
+          content: newMessages[index].content + '\n\n[已停止生成]'
+        };
+        return newMessages;
+      });
+
+      setMessageStates(prev => ({
+        ...prev,
+        [messageId]: MESSAGE_STATES.COMPLETED
+      }));
+    } catch (error) {
+      console.error('停止生成失败:', error);
     }
   };
 
@@ -339,6 +443,7 @@ export const createMessageHandlers = ({
     cancelEditing,
     saveEdit,
     handleRetry,
+    handleStop,
     handleHistoryNavigation
   };
 }; 

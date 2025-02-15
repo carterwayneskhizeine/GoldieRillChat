@@ -30,6 +30,17 @@ export const SettingsModal = ({
     return localStorage.getItem('aichat_search_engine_id') || '';
   });
   const [showGoogleApiKey, setShowGoogleApiKey] = useState(false);
+  
+  // 添加最大搜索数量状态
+  const [maxSearchResults, setMaxSearchResults] = useState(() => {
+    return parseInt(localStorage.getItem('aichat_max_search_results')) || 5;
+  });
+
+  // 添加消息历史记录数量状态
+  const [maxHistoryMessages, setMaxHistoryMessages] = useState(() => {
+    const saved = localStorage.getItem('aichat_max_history_messages');
+    return saved ? parseInt(saved) : 5;  // 默认5条
+  });
 
   // 处理 Google API 密钥变更
   const handleGoogleApiKeyChange = (value) => {
@@ -76,6 +87,37 @@ export const SettingsModal = ({
     }
   };
 
+  // 处理最大搜索数量变更
+  const handleMaxSearchResultsChange = (value) => {
+    const numValue = parseInt(value);
+    setMaxSearchResults(numValue);
+    localStorage.setItem('aichat_max_search_results', numValue.toString());
+  };
+
+  // 处理消息历史记录数量变更
+  const handleMaxHistoryMessagesChange = (value) => {
+    const numValue = parseInt(value);
+    setMaxHistoryMessages(numValue);
+    localStorage.setItem('aichat_max_history_messages', numValue.toString());
+  };
+
+  const openExternalLink = (url) => {
+    try {
+      // 首选使用 electron 的 shell.openExternal
+      if (window.electron?.shell?.openExternal) {
+        window.electron.shell.openExternal(url);
+      }
+      // 回退到 window.open
+      else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      console.error('打开链接失败:', error);
+      // 最后的回退方案
+      window.open(url, '_blank');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-base-100 rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto settings-panel">
@@ -106,6 +148,12 @@ export const SettingsModal = ({
               onClick={() => setActiveTab('search')}
             >
               搜索
+            </a>
+            <a 
+              className={`tab ${activeTab === 'other' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('other')}
+            >
+              其它
             </a>
           </div>
           
@@ -224,8 +272,8 @@ export const SettingsModal = ({
                               return (
                                 <a
                                   key={index}
-                                  className="text-primary hover:text-primary-focus"
-                                  onClick={() => window.electron.openExternal(part.trim())}
+                                  className="text-primary hover:text-primary-focus cursor-pointer"
+                                  onClick={() => openExternalLink(part.trim())}
                                 >
                                   {part.trim()}
                                 </a>
@@ -247,7 +295,7 @@ export const SettingsModal = ({
             <div className="space-y-4">
               {/* Google Search API Key */}
               <div>
-                <h3 className="text-lg font-medium mb-2">Google API 密钥</h3>
+                <h3 className="text-lg font-medium mb-2">Google Custom Search JSON API</h3>
                 <div className="flex flex-col gap-2">
                   <div className="flex w-full gap-0">
                     <input
@@ -255,7 +303,7 @@ export const SettingsModal = ({
                       className="input input-bordered flex-1 rounded-r-none"
                       value={googleApiKey}
                       onChange={(e) => handleGoogleApiKeyChange(e.target.value)}
-                      placeholder="请输入 Google API 密钥..."
+                      placeholder="Google Custom Search JSON API..."
                     />
                     <button 
                       type="button"
@@ -304,6 +352,28 @@ export const SettingsModal = ({
                 </div>
               </div>
 
+              {/* 最大搜索数量滑块 */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">最大搜索结果数量</h3>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={maxSearchResults}
+                      onChange={(e) => handleMaxSearchResultsChange(e.target.value)}
+                      className="range range-primary"
+                      step="1"
+                    />
+                    <span className="text-lg font-medium min-w-[3ch]">{maxSearchResults}</span>
+                  </div>
+                  <div className="text-xs opacity-70">
+                    设置每次搜索返回的最大结果数量（1-10），免费用户每次搜索最多返回10条结果
+                  </div>
+                </div>
+              </div>
+
               {/* 帮助信息 */}
               <div className="text-xs opacity-70 space-y-2">
                 <div className="settings-help-text">
@@ -322,11 +392,40 @@ export const SettingsModal = ({
                     获取帮助：
                     <a
                       className="text-primary hover:text-primary-focus cursor-pointer"
-                      onClick={() => window.electron.openExternal('https://developers.google.com/custom-search/v1/overview')}
+                      onClick={() => openExternalLink('https://developers.google.com/custom-search/v1/overview')}
                     >
-                      Google Custom Search 文档
+                      Google Custom Search JSON API
                     </a>
                   </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab 3: 其它设置 */}
+          <div className={activeTab === 'other' ? '' : 'hidden'}>
+            <div className="space-y-4">
+              {/* 消息历史记录数量设置 */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">消息历史记录数量</h3>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="5"
+                      max="21"
+                      value={maxHistoryMessages}
+                      onChange={(e) => handleMaxHistoryMessagesChange(e.target.value)}
+                      className="range range-primary"
+                      step="1"
+                    />
+                    <span className="text-lg font-medium min-w-[5ch]">
+                      {maxHistoryMessages === 21 ? '全部' : maxHistoryMessages}
+                    </span>
+                  </div>
+                  <div className="text-xs opacity-70">
+                    设置每次重试时使用的历史消息数量（5-20条，或全部历史消息）
+                  </div>
                 </div>
               </div>
             </div>

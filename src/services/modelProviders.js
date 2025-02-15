@@ -73,7 +73,7 @@ export const callClaude = async ({ apiKey, apiHost, model, messages, maxTokens =
 };
 
 // SiliconFlow API 调用实现
-export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7 }) => {
+export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7, signal }) => {
   const maxRetries = 3;  // 最大重试次数
   const baseDelay = 1000;  // 基础延迟时间（毫秒）
   let retryCount = 0;
@@ -112,7 +112,8 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
           stop: null,
           presence_penalty: 0,
           frequency_penalty: 0
-        })
+        }),
+        signal
       });
 
       // 处理速率限制错误
@@ -460,7 +461,17 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
 };
 
 // 统一的 API 调用函数
-export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7 }) => {
+export const callModelAPI = async ({
+  provider,
+  apiKey,
+  apiHost,
+  model,
+  messages,
+  maxTokens,
+  temperature,
+  onUpdate,
+  signal
+}) => {
   // 验证必要的参数
   if (!apiKey) {
     throw new Error('请先配置 API 密钥');
@@ -481,7 +492,16 @@ export const callModelAPI = async ({ provider, apiKey, apiHost, model, messages,
     case 'claude':
       return callClaude({ apiKey, apiHost, model, messages, maxTokens, temperature });
     case 'siliconflow':
-      return callSiliconCloud({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature });
+      return await callSiliconCloud({
+        apiKey,
+        apiHost,
+        model,
+        messages,
+        maxTokens,
+        temperature,
+        onUpdate,
+        signal
+      });
     case 'openrouter':
       return callOpenRouter({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature });
     case 'deepseek':

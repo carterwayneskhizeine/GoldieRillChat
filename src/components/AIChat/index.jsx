@@ -26,7 +26,8 @@ export const AIChat = ({
   onConversationDelete,
   onConversationRename,
   window,
-  electron
+  electron,
+  openInBrowserTab
 }) => {
   // 使用状态管理 hooks
   const messageState = useMessageState(currentConversation);
@@ -41,6 +42,12 @@ export const AIChat = ({
   const [temperature, setTemperature] = useState(() => {
     return parseFloat(localStorage.getItem('aichat_temperature')) || 0.7;
   });
+
+  // 添加网络搜索状态
+  const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);
+
+  // 添加 AbortController 状态
+  const [abortController, setAbortController] = useState(null);
 
   // 添加创建新对话的函数
   const handleCreateNewConversation = async () => {
@@ -99,7 +106,10 @@ export const AIChat = ({
     window,
     maxTokens,
     temperature,
-    editContent: messageState.editContent
+    editContent: messageState.editContent,
+    abortController,
+    setAbortController,
+    isNetworkEnabled
   });
 
   // 创建设置处理函数
@@ -132,7 +142,13 @@ export const AIChat = ({
     setFailedMessages: messageState.setFailedMessages,
     setRetryingMessageId: messageState.setRetryingMessageId,
     maxTokens,
-    temperature
+    temperature,
+    isNetworkEnabled,
+    setError: (error) => console.error(error),
+    updateMessage: messageHandlers.updateMessage,
+    deleteMessage: messageHandlers.deleteMessage,
+    abortController,
+    setAbortController
   });
 
   // 添加 openFileLocation 函数
@@ -175,8 +191,10 @@ export const AIChat = ({
           handleEditSave={messageHandlers.saveEdit}
           handleDeleteMessage={messageHandlers.deleteMessage}
           handleRetry={messageHandlers.handleRetry}
+          handleStop={messageHandlers.handleStop}
           handleHistoryNavigation={messageHandlers.handleHistoryNavigation}
           openFileLocation={openFileLocation}
+          openInBrowserTab={openInBrowserTab}
         />
       </div>
 
@@ -188,6 +206,8 @@ export const AIChat = ({
           handleSendMessage={inputHandlers.handleSendMessage}
           handleKeyDown={inputHandlers.handleKeyDown}
           fileInputRef={inputState.fileInputRef}
+          isNetworkEnabled={isNetworkEnabled}
+          setIsNetworkEnabled={setIsNetworkEnabled}
         />
       </div>
 

@@ -16,8 +16,10 @@ export const MessageList = ({
   handleEditSave,
   handleDeleteMessage,
   handleRetry,
+  handleStop,
   handleHistoryNavigation,
-  openFileLocation
+  openFileLocation,
+  openInBrowserTab
 }) => {
   const messagesEndRef = useRef(null);
 
@@ -113,11 +115,13 @@ export const MessageList = ({
               handleEditSave={handleEditSave}
               handleDeleteMessage={onDeleteMessage}
               handleRetry={handleRetry}
+              handleStop={handleStop}
               handleHistoryNavigation={handleHistoryNavigation}
               isCollapsed={isMessageCollapsed(message.id)}
               onToggleCollapse={toggleMessageCollapse}
               onImageClick={handleImageClick}
               openFileLocation={openFileLocation}
+              openInBrowserTab={openInBrowserTab}
             />
           ))}
           <div ref={messagesEndRef} />

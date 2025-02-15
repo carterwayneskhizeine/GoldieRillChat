@@ -1,6 +1,7 @@
 import { callModelAPI } from '../../../services/modelProviders';
 import { formatAIChatTime } from '../../../utils/AIChatTimeFormat';
 import { MESSAGE_STATES } from '../constants';
+import { searchService } from '../../../services/searchService';
 
 export const createInputHandlers = ({
   messageInput,
@@ -23,40 +24,39 @@ export const createInputHandlers = ({
   setFailedMessages,
   setRetryingMessageId,
   maxTokens,
-  temperature
+  temperature,
+  setError,
+  abortController,
+  setAbortController,
+  isNetworkEnabled,
+  updateMessage,
+  deleteMessage
 }) => {
   // 处理发送消息
-  const handleSendMessage = async (isRetry = false, retryContent = null) => {
+  const handleSendMessage = async (isRetry = false, retryContent = null, forceNetworkSearch = false) => {
     if (!messageInput.trim() && !isRetry) return;
     if (!currentConversation) {
       alert('请先创建或选择一个会话');
       return;
     }
     
+    // 创建新的 AbortController
+    const controller = new AbortController();
+    setAbortController(controller);
+
     // 获取要发送的内容
     const content = isRetry ? retryContent : messageInput;
-    
-    // 添加用户消息
-    const userMessage = {
-      id: Date.now(),
-      content: content,
-      type: 'user',
-      timestamp: new Date()
-    };
+    let aiMessage = null;
 
-    // 创建 AI 消息对象
-    const aiMessage = {
-      id: Date.now() + 1,
-      content: '',
-      type: 'assistant',
-      timestamp: new Date(),
-      generating: true,
-      reasoning_content: '',  // 初始化推理内容字段
-      history: [],
-      currentHistoryIndex: 0
-    };
-    
     try {
+      // 添加用户消息
+      const userMessage = {
+        id: Date.now(),
+        content: content,
+        type: 'user',
+        timestamp: new Date()
+      };
+
       // 保存用户消息到txt文件
       const txtFile = await window.electron.saveMessageAsTxt(
         currentConversation.path, 
@@ -65,8 +65,10 @@ export const createInputHandlers = ({
       userMessage.txtFile = txtFile;
       
       // 更新消息列表
-      const messagesWithUser = [...messages, userMessage];
-      setMessages(messagesWithUser);
+      const messagesWithUser = isRetry ? messages : [...messages, userMessage];
+      if (!isRetry) {
+        setMessages(messagesWithUser);
+      }
 
       if (!isRetry) {
         setMessageInput('');
@@ -77,6 +79,18 @@ export const createInputHandlers = ({
           textarea.style.overflowY = 'hidden';
         }
       }
+
+      // 创建 AI 消息对象
+      aiMessage = {
+        id: Date.now() + 1,
+        content: '',
+        type: 'assistant',
+        timestamp: new Date(),
+        generating: true,
+        reasoning_content: '',
+        history: [],
+        currentHistoryIndex: 0
+      };
 
       // 设置初始状态
       setMessageStates(prev => ({
@@ -93,15 +107,63 @@ export const createInputHandlers = ({
       const messagesWithAI = [...messagesWithUser, aiMessage];
       setMessages(messagesWithAI);
 
-      // 调用 AI API
+      // 如果启用了网络搜索或强制搜索，进行搜索
+      let systemMessage = '';
+      let searchResults = null;
+
+      if (isNetworkEnabled || forceNetworkSearch) {
+        try {
+          console.log('开始网络搜索:', content);
+          const searchResponse = await searchService.searchAndFetchContent(content);
+          console.log('搜索结果:', searchResponse);
+          
+          if (searchResponse.results && searchResponse.results.length > 0) {
+            // 构建搜索结果上下文
+            systemMessage = `以下是与问题相关的网络搜索结果：\n\n${
+              searchResponse.results.map((result, index) => (
+                `[${index + 1}] ${result.title}\n${result.snippet}\n${result.content}\n---\n`
+              )).join('\n')
+            }\n\n请基于以上搜索结果回答用户的问题："${content}"。如果搜索结果不足以完整回答问题，也可以使用你自己的知识来补充。请在回答末尾列出使用的参考来源编号。`;
+            
+            searchResults = searchResponse.results;
+            console.log('搜索结果处理完成');
+          }
+        } catch (error) {
+          console.error('搜索失败:', error);
+          // 搜索失败时继续对话，但不使用搜索结果
+        }
+      }
+
+      // 构建消息历史
+      const messagesHistory = messages.map(msg => ({
+        role: msg.type,
+        content: msg.content,
+      }));
+
+      // 如果有系统消息，添加到消息列表开头
+      if (systemMessage) {
+        messagesHistory.unshift({
+          role: 'system',
+          content: systemMessage,
+        });
+      }
+
+      // 添加新的用户消息
+      messagesHistory.push({
+        role: 'user',
+        content: content,
+      });
+
+      // 调用AI接口
       const response = await callModelAPI({
         provider: selectedProvider,
         apiKey,
         apiHost,
         model: selectedModel,
-        messages: messagesWithUser,
+        messages: messagesHistory,
         maxTokens,
         temperature,
+        signal: controller.signal,
         onUpdate: (update) => {
           if (update.type === 'content') {
             setMessages(prev => {
@@ -112,24 +174,8 @@ export const createInputHandlers = ({
               const updatedAiMessage = {
                 ...newMessages[aiMessageIndex],
                 content: update.content,
-                generating: !update.done
-              };
-
-              newMessages[aiMessageIndex] = updatedAiMessage;
-              return newMessages;
-            });
-          } else if (update.type === 'reasoning') {
-            // 更新推理内容
-            setMessages(prev => {
-              const newMessages = [...prev];
-              const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
-              if (aiMessageIndex === -1) return prev;
-
-              console.log('更新推理内容:', update.content); // 添加日志
-
-              const updatedAiMessage = {
-                ...newMessages[aiMessageIndex],
-                reasoning_content: update.content || ''
+                generating: !update.done,
+                searchResults: searchResults
               };
 
               newMessages[aiMessageIndex] = updatedAiMessage;
@@ -144,7 +190,7 @@ export const createInputHandlers = ({
         currentConversation.path,
         {
           ...aiMessage,
-          content: `${response.reasoning_content ? `推理过程:\n${response.reasoning_content}\n\n回答:\n` : ''}${response.content}`,
+          content: response.content,
           fileName: `${formatAIChatTime(aiMessage.timestamp)} • 模型: ${selectedModel} • Token: ${response.usage?.total_tokens || 0}`
         }
       );
@@ -158,7 +204,7 @@ export const createInputHandlers = ({
         txtFile: aiTxtFile,
         model: selectedModel,
         tokens: response.usage?.total_tokens || 0,
-        reasoning_content: response.reasoning_content || ''  // 添加推理内容
+        searchResults: searchResults
       };
 
       // 更新消息列表
@@ -167,46 +213,23 @@ export const createInputHandlers = ({
       );
       setMessages(finalMessages);
 
-      // 清除失败状态
-      if (isRetry) {
-        setFailedMessages(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(retryingMessageId);
-          return newSet;
-        });
-        setRetryingMessageId(null);
-      }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('生成已被用户中止');
+        return;
+      }
       console.error('发送消息失败:', error);
+      setError(error.message);
       
-      // 更新消息列表，将错误信息添加到 AI 回复中
-      setMessages(prev => {
-        const newMessages = [...prev];
-        const aiMessageIndex = newMessages.findIndex(msg => msg.generating);
-        if (aiMessageIndex !== -1) {
-          newMessages[aiMessageIndex] = {
-            ...newMessages[aiMessageIndex],
-            content: `**错误信息**:\n\`\`\`\n${error.message}\n\`\`\``,
-            generating: false,
-            error: true
-          };
-        } else {
-          // 如果找不到正在生成的消息，添加一个新的错误消息
-          newMessages.push({
-            ...aiMessage,
-            content: `**错误信息**:\n\`\`\`\n${error.message}\n\`\`\``,
-            generating: false,
-            error: true
-          });
-        }
-        return newMessages;
-      });
-
-      // 更新消息状态
-      setMessageStates(prev => ({
-        ...prev,
-        [aiMessage.id]: MESSAGE_STATES.ERROR
-      }));
+      if (aiMessage) {
+        // 更新消息状态
+        setMessageStates(prev => ({
+          ...prev,
+          [aiMessage.id]: MESSAGE_STATES.ERROR
+        }));
+      }
+    } finally {
+      setAbortController(null);
     }
   };
 
@@ -243,9 +266,42 @@ export const createInputHandlers = ({
     }
   };
 
+  // 添加停止生成功能
+  const handleStop = async (messageId) => {
+    try {
+      // 中断当前的请求
+      if (abortController) {
+        abortController.abort();
+        setAbortController(null);
+      }
+
+      // 更新消息状态
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const index = newMessages.findIndex(msg => msg.id === messageId);
+        if (index === -1) return prev;
+
+        newMessages[index] = {
+          ...newMessages[index],
+          generating: false,
+          content: newMessages[index].content + '\n\n[已停止生成]'
+        };
+        return newMessages;
+      });
+
+      setMessageStates(prev => ({
+        ...prev,
+        [messageId]: MESSAGE_STATES.COMPLETED
+      }));
+    } catch (error) {
+      console.error('停止生成失败:', error);
+    }
+  };
+
   return {
     handleSendMessage,
     handleKeyDown,
-    handleFileSelect
+    handleFileSelect,
+    handleStop
   };
 }; 

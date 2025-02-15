@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 export const InputArea = ({
   messageInput,
   setMessageInput,
   handleSendMessage,
   handleKeyDown,
-  fileInputRef
+  fileInputRef,
+  isNetworkEnabled,
+  setIsNetworkEnabled,
 }) => {
-  const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);
-
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();

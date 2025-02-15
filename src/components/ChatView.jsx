@@ -278,6 +278,23 @@ export function ChatView({
     }
   };
 
+  const openExternalLink = (url) => {
+    try {
+      // 首选使用 electron 的 shell.openExternal
+      if (window?.electron?.shell?.openExternal) {
+        window.electron.shell.openExternal(url);
+      }
+      // 回退到 window.open
+      else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      console.error('打开链接失败:', error);
+      // 最后的回退方案
+      window.open(url, '_blank');
+    }
+  };
+
   return (
     <div 
       className={`flex flex-col h-full relative ${isCompact ? 'chat-view-compact' : ''}`}
@@ -778,14 +795,12 @@ export function ChatView({
                           </div>
                         ) : (
                           <MarkdownRenderer
-                            content={message.content}
-                            isCompact={isCompact}
+                            content={message.content || ''}
+                            isCompact={false}
                             onCopyCode={(code) => {
-                              navigator.clipboard.writeText(code);
+                              console.log('Code copied:', code);
                             }}
-                            onLinkClick={(href) => {
-                              window.electron.openExternal(href);
-                            }}
+                            onLinkClick={(href) => openExternalLink(href)}
                           />
                         )}
                       </div>
