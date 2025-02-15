@@ -68,8 +68,8 @@
 
 /* 用户消息气泡样式 */
 .chat-end .chat-bubble {
-  background-color: var(--primary) !important;
-  color: var(--primary-content) !important;
+  background-color: var(--b2) !important;
+  color: var(--bc) !important;
   border-bottom-right-radius: 0.25rem;
   margin-left: auto;
 }

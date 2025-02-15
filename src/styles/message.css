@@ -24,7 +24,7 @@
 .chat-end .chat-bubble {
   margin-right: 0; /* 移除右边距 */
   margin-left: auto; /* 让消息靠右 */
-  background-color: transparent !important; /* 设置背景透明 */
+  background-color: var(--b2) !important; /* 使用主题色 */
   color: var(--bc) !important; /* 统一文字颜色 */
 }
 
