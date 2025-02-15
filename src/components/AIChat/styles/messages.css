@@ -56,6 +56,17 @@
   margin: 0.5rem;
   overflow: visible;
   line-height: 1.2;
+  user-select: text;
+  cursor: text;
+}
+
+.chat-bubble * {
+  user-select: text;
+}
+
+.chat-bubble pre,
+.chat-bubble code {
+  user-select: text;
 }
 
 /* AI消息气泡样式 */

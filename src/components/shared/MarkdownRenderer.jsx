@@ -27,6 +27,24 @@ export const MarkdownRenderer = ({
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [images, setImages] = useState([]);
 
+  // 添加复制功能
+  const handleCopySelectedText = useCallback((e) => {
+    if (e.ctrlKey && e.key === 'c') {
+      const selectedText = window.getSelection().toString();
+      if (selectedText) {
+        navigator.clipboard.writeText(selectedText);
+      }
+    }
+  }, []);
+
+  // 添加键盘事件监听
+  useEffect(() => {
+    document.addEventListener('keydown', handleCopySelectedText);
+    return () => {
+      document.removeEventListener('keydown', handleCopySelectedText);
+    };
+  }, [handleCopySelectedText]);
+
   // 收集文档中的所有图片
   const collectImages = useCallback((content) => {
     const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
@@ -334,17 +352,70 @@ export const MarkdownRenderer = ({
   };
 
   return (
-    <div className={`markdown-content ${className}`} onContextMenu={handleContextMenu}>
+    <div 
+      className={`markdown-content ${className} select-text`} 
+      onContextMenu={handleContextMenu}
+      style={{ userSelect: 'text' }}
+    >
       <style>
         {`
           .markdown-content {
             font-size: ${isCompact ? '0.9em' : '1em'};
             line-height: 1.6;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            cursor: text;
           }
 
-          .markdown-content p {
-            margin: 1em 0;
-            white-space: pre-wrap;
+          .markdown-content * {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
+
+          .markdown-content pre,
+          .markdown-content code {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
+
+          .markdown-content p,
+          .markdown-content h1,
+          .markdown-content h2,
+          .markdown-content h3,
+          .markdown-content h4,
+          .markdown-content h5,
+          .markdown-content h6,
+          .markdown-content ul,
+          .markdown-content ol,
+          .markdown-content li,
+          .markdown-content blockquote,
+          .markdown-content table,
+          .markdown-content th,
+          .markdown-content td {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
+
+          .markdown-content .prose {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
+
+          .markdown-content .prose * {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
           }
 
           .markdown-content h1,
@@ -386,7 +457,7 @@ export const MarkdownRenderer = ({
             margin: 0;
             padding: 0.1rem;
             border-radius: 0.3rem;
-            background-color: var(--b2);
+            background-color: transparent;
             overflow-x: auto;
           }
 
@@ -396,6 +467,7 @@ export const MarkdownRenderer = ({
             line-height: 1.5;
             padding: 0;
             border-radius: 3px;
+            background-color: transparent;
           }
 
           .markdown-content blockquote {
@@ -450,7 +522,7 @@ export const MarkdownRenderer = ({
           .markdown-content .code-block {
             position: relative;
             margin: 1rem 0;
-            background-color: var(--b2);
+            background-color: transparent;
             border-radius: 0.5rem;
             overflow: hidden;
           }
@@ -502,6 +574,7 @@ export const MarkdownRenderer = ({
           .markdown-content .code-content {
             margin: 0;
             padding: 0;
+            background-color: transparent;
           }
 
           .markdown-content .code-content pre {
@@ -820,7 +893,7 @@ export const MarkdownRenderer = ({
           rehypeRaw,
           [rehypeSanitize, {
             attributes: {
-              '*': ['className', 'style'],
+              '*': ['className', 'style', 'data-selectable'],
               'math': ['display', 'inline']
             }
           }],
@@ -929,7 +1002,17 @@ export const MarkdownRenderer = ({
                 <div className="code-content">
                   <SyntaxHighlighter
                     language={language}
-                    style={oneDark}
+                    style={{
+                      ...oneDark,
+                      'pre[class*="language-"]': {
+                        ...oneDark['pre[class*="language-"]'],
+                        background: 'transparent',
+                      },
+                      'code[class*="language-"]': {
+                        ...oneDark['code[class*="language-"]'],
+                        background: 'transparent',
+                      }
+                    }}
                     showLineNumbers={true}
                     wrapLines={true}
                     customStyle={{
@@ -1087,7 +1170,7 @@ export const MarkdownRenderer = ({
           // 段落渲染
           p({node, children, ...props}) {
             return (
-              <p {...props} onContextMenu={handleContextMenu}>
+              <p {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu}>
                 {children}
               </p>
             );
@@ -1096,7 +1179,7 @@ export const MarkdownRenderer = ({
           // 列表项渲染
           li({node, children, ...props}) {
             return (
-              <li {...props} onContextMenu={handleContextMenu}>
+              <li {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu}>
                 {children}
               </li>
             );
@@ -1104,12 +1187,66 @@ export const MarkdownRenderer = ({
 
           // 添加有序列表组件
           ol: ({node, ...props}) => (
-            <ol className="list-decimal pl-6 my-4" {...props} onContextMenu={handleContextMenu} />
+            <ol className="list-decimal pl-6 my-4" {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
           ),
 
           // 添加无序列表组件
           ul: ({node, ...props}) => (
-            <ul className="list-disc pl-6 my-4" {...props} onContextMenu={handleContextMenu} />
+            <ul className="list-disc pl-6 my-4" {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+
+          // 标题渲染
+          h1: ({node, ...props}) => (
+            <h1 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h2: ({node, ...props}) => (
+            <h2 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h3: ({node, ...props}) => (
+            <h3 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h4: ({node, ...props}) => (
+            <h4 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h5: ({node, ...props}) => (
+            <h5 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h6: ({node, ...props}) => (
+            <h6 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+
+          // 表格相关组件
+          table: ({node, ...props}) => (
+            <table {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          thead: ({node, ...props}) => (
+            <thead {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          tbody: ({node, ...props}) => (
+            <tbody {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          tr: ({node, ...props}) => (
+            <tr {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          td: ({node, ...props}) => (
+            <td {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          th: ({node, ...props}) => (
+            <th {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+
+          // 其他内联元素
+          strong: ({node, ...props}) => (
+            <strong {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          em: ({node, ...props}) => (
+            <em {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          del: ({node, ...props}) => (
+            <del {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          blockquote: ({node, ...props}) => (
+            <blockquote {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
           ),
         }}
       >

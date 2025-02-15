@@ -59,6 +59,24 @@ export function ChatView({
   const editorRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // 添加复制功能
+  const handleCopySelectedText = (e) => {
+    if (e.ctrlKey && e.key === 'c') {
+      const selectedText = window.getSelection().toString();
+      if (selectedText) {
+        navigator.clipboard.writeText(selectedText);
+      }
+    }
+  };
+
+  // 添加键盘事件监听
+  useEffect(() => {
+    document.addEventListener('keydown', handleCopySelectedText);
+    return () => {
+      document.removeEventListener('keydown', handleCopySelectedText);
+    };
+  }, []);
+
   // 滚动到底部的函数
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -261,9 +279,48 @@ export function ChatView({
   };
 
   return (
-    <div className={`flex flex-col h-full relative ${isCompact ? 'chat-view-compact' : ''}`}>
+    <div 
+      className={`flex flex-col h-full relative ${isCompact ? 'chat-view-compact' : ''}`}
+      style={{ userSelect: 'text' }}
+    >
       <style>
         {`
+          .chat-view-messages {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
+          .chat-bubble {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
+          .chat-bubble * {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
+          .message-content {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
+          .prose {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
+          .prose * {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+          }
           .mask-bottom {
             mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
             -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
@@ -296,10 +353,6 @@ export function ChatView({
           .collapse-button button:hover {
             transform: scale(1.1);
             background-color: var(--b2);
-          }
-          .chat-bubble {
-            position: relative;
-            z-index: 1;
           }
           .message-actions {
             display: none;

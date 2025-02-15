@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Editor from "@monaco-editor/react";
 import { MarkdownRenderer } from '../../shared/MarkdownRenderer';
@@ -28,6 +28,24 @@ export const MessageItem = ({
   const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [fontSize, setFontSize] = useState(14);
   const editorRef = useRef(null);
+
+  // 添加复制功能
+  const handleCopySelectedText = (e) => {
+    if (e.ctrlKey && e.key === 'c') {
+      const selectedText = window.getSelection().toString();
+      if (selectedText) {
+        navigator.clipboard.writeText(selectedText);
+      }
+    }
+  };
+
+  // 添加键盘事件监听
+  useEffect(() => {
+    document.addEventListener('keydown', handleCopySelectedText);
+    return () => {
+      document.removeEventListener('keydown', handleCopySelectedText);
+    };
+  }, []);
 
   const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
@@ -75,10 +93,11 @@ export const MessageItem = ({
         }`}
         data-message-id={message.id}
         data-aichat-message="true"
+        style={{ userSelect: 'text' }}
       >
         {/* 消息头部 */}
-        <div className="chat-header opacity-70">
-          <span className="text-xs">
+        <div className="chat-header opacity-70" style={{ userSelect: 'text' }}>
+          <span className="text-xs" style={{ userSelect: 'text' }}>
             {new Date(message.timestamp).toLocaleString()}
             {message.type === 'assistant' && (
               <>
@@ -94,7 +113,9 @@ export const MessageItem = ({
         <div className={`chat-bubble ${
           message.type === 'user' ? 'chat-bubble-primary' : 
           message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
-        }`}>
+        }`}
+        style={{ userSelect: 'text' }}
+        >
           {/* 添加折叠按钮 */}
           {shouldCollapseMessage(message) && (
             <button
