@@ -35,6 +35,12 @@ const SearchSources = ({ sources, openInBrowserTab }) => {
     }
   }, [showSources]);
 
+  // 处理链接点击
+  const handleLinkClick = (url) => {
+    openInBrowserTab(url);
+    setShowSources(false); // 关闭弹窗
+  };
+
   if (!sources || sources.length === 0) return null;
 
   return (
@@ -69,7 +75,7 @@ const SearchSources = ({ sources, openInBrowserTab }) => {
                       className="link link-primary hover:link-primary-focus block"
                       onClick={(e) => {
                         e.preventDefault();
-                        openInBrowserTab(source.link);
+                        handleLinkClick(source.link);
                       }}
                     >
                       {source.title}

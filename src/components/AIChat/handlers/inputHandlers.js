@@ -135,21 +135,26 @@ export const createInputHandlers = ({
       }
 
       // 构建消息历史
-      const messagesHistory = messages.map(msg => ({
-        role: msg.type,
-        content: msg.content,
-      }));
+      const maxHistoryMessages = parseInt(localStorage.getItem('aichat_max_history_messages')) || 5;
+      
+      // 获取历史消息
+      const recentMessages = messages
+        .slice(maxHistoryMessages === 21 ? 0 : Math.max(0, messages.length - maxHistoryMessages))
+        .map(msg => ({
+          role: msg.type,
+          content: msg.content,
+        }));
 
       // 如果有系统消息，添加到消息列表开头
       if (systemMessage) {
-        messagesHistory.unshift({
+        recentMessages.unshift({
           role: 'system',
           content: systemMessage,
         });
       }
 
       // 添加新的用户消息
-      messagesHistory.push({
+      recentMessages.push({
         role: 'user',
         content: content,
       });
@@ -160,7 +165,7 @@ export const createInputHandlers = ({
         apiKey,
         apiHost,
         model: selectedModel,
-        messages: messagesHistory,
+        messages: recentMessages,
         maxTokens,
         temperature,
         signal: controller.signal,
