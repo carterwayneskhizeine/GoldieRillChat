@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -6,6 +6,9 @@ import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { CheckIcon, CopyIcon } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 
 export const MarkdownRenderer = ({
@@ -85,6 +88,79 @@ export const MarkdownRenderer = ({
       }
     });
     window.dispatchEvent(contextMenuEvent);
+  };
+
+  // 添加语言名称映射
+  const languageNameMap = {
+    python: 'Python',
+    javascript: 'JavaScript',
+    typescript: 'TypeScript',
+    java: 'Java',
+    cpp: 'C++',
+    csharp: 'C#',
+    php: 'PHP',
+    ruby: 'Ruby',
+    go: 'Go',
+    rust: 'Rust',
+    swift: 'Swift',
+    kotlin: 'Kotlin',
+    scala: 'Scala',
+    html: 'HTML',
+    css: 'CSS',
+    sql: 'SQL',
+    shell: 'Shell',
+    bash: 'Bash',
+    powershell: 'PowerShell',
+    markdown: 'Markdown',
+    json: 'JSON',
+    yaml: 'YAML',
+    xml: 'XML',
+  };
+
+  // 添加 KaTeX 宏定义
+  const katexMacros = {
+    "\\d": "\\mathrm{d}",
+    "\\partial": "\\partial",
+    // 常用数学符号
+    "\\eps": "\\varepsilon",
+    "\\phi": "\\varphi",
+    "\\ell": "\\ell",
+    // 集合和逻辑
+    "\\set": "\\{#1\\}",
+    "\\N": "\\mathbb{N}",
+    "\\Z": "\\mathbb{Z}",
+    "\\Q": "\\mathbb{Q}",
+    "\\R": "\\mathbb{R}",
+    "\\C": "\\mathbb{C}",
+    // 微积分和分析
+    "\\diff": "\\mathrm{d}#1",
+    "\\deriv": "\\frac{\\mathrm{d}#1}{\\mathrm{d}#2}",
+    "\\pderiv": "\\frac{\\partial #1}{\\partial #2}",
+    "\\limit": "\\lim_{#1 \\to #2}",
+    "\\infty": "\\infty",
+    // 线性代数
+    "\\matrix": "\\begin{pmatrix} #1 \\end{pmatrix}",
+    "\\vector": "\\begin{pmatrix} #1 \\end{pmatrix}",
+    "\\det": "\\mathrm{det}",
+    "\\tr": "\\mathrm{tr}",
+    // 概率论
+    "\\E": "\\mathbb{E}",
+    "\\P": "\\mathbb{P}",
+    "\\Var": "\\mathrm{Var}",
+    "\\Cov": "\\mathrm{Cov}",
+    // 常用函数和算子
+    "\\abs": "|#1|",
+    "\\norm": "\\|#1\\|",
+    "\\inner": "\\langle #1, #2 \\rangle",
+    "\\floor": "\\lfloor #1 \\rfloor",
+    "\\ceil": "\\lceil #1 \\rceil",
+    // 求和、积分等
+    "\\series": "\\sum_{#1}^{#2}",
+    "\\integral": "\\int_{#1}^{#2}",
+    // 箭头和关系
+    "\\implies": "\\Rightarrow",
+    "\\iff": "\\Leftrightarrow",
+    "\\compose": "\\circ"
   };
 
   return (
@@ -203,25 +279,65 @@ export const MarkdownRenderer = ({
 
           .markdown-content .code-block {
             position: relative;
-            margin: 0;
+            margin: 1rem 0;
+            background-color: var(--b2);
+            border-radius: 0.5rem;
+            overflow: hidden;
           }
 
           .markdown-content .code-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0.5rem 1rem;
             background-color: var(--b3);
-            padding: 0.2rem 0.5rem;
-            border-top-left-radius: 0.3rem;
-            border-top-right-radius: 0.3rem;
+            border-bottom: 1px solid var(--b4);
+          }
+
+          .markdown-content .language-label {
+            font-size: 0.875rem;
+            color: var(--bc);
+            opacity: 0.7;
+            font-family: 'Fira Code', monospace;
+          }
+
+          .markdown-content .copy-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+            color: var(--bc);
+            background-color: var(--b2);
+            border: 1px solid var(--b4);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .markdown-content .copy-button:hover {
+            background-color: var(--b3);
+            transform: translateY(-1px);
+          }
+
+          .markdown-content .copy-button:active {
+            transform: translateY(0);
+          }
+
+          .markdown-content .copy-button .icon {
+            width: 1rem;
+            height: 1rem;
           }
 
           .markdown-content .code-content {
-            padding: 0.3rem;
-            overflow-x: auto;
-            background-color: var(--b2);
-            border-bottom-left-radius: 0.3rem;
-            border-bottom-right-radius: 0.3rem;
+            margin: 0;
+            padding: 0;
+          }
+
+          .markdown-content .code-content pre {
+            margin: 0 !important;
+            padding: 1rem !important;
+            background-color: transparent !important;
           }
 
           .markdown-content .math {
@@ -229,74 +345,77 @@ export const MarkdownRenderer = ({
             padding: 0.5rem 0;
           }
 
-          .copy-button-wrapper {
-            position: absolute;
-            right: 0.5rem;
-            top: 0.2rem;
-            z-index: 50;
-            pointer-events: auto;
-          }
-
-          .copy-button {
-            background-color: var(--b2);
-            border: 1px solid var(--b3);
-            padding: 0.1rem 0.3rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            line-height: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-          }
-
-          .copy-button:hover {
-            background-color: var(--b3);
-            transform: translateY(-1px);
-          }
-
-          .copy-button:active {
-            transform: translateY(0);
-          }
-
-          /* 添加数学公式样式 */
-          .math-display {
+          .markdown-content .math-display {
             display: block;
             overflow-x: auto;
-            padding: 1rem 0;
+            padding: 1.5rem 1rem;
             text-align: center;
+            background: var(--b2);
+            border-radius: 0.5rem;
+            border: 1px solid var(--b3);
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
           }
 
-          .math-inline {
-            padding: 0 0.2rem;
-            display: inline-block;
+          .markdown-content .math-inline {
+            padding: 0.1rem 0.3rem;
+            display: inline-flex;
+            align-items: center;
+            background: var(--b2);
+            border-radius: 0.25rem;
+            border: 1px solid var(--b3);
+            margin: 0 0.2rem;
           }
 
-          /* 确保 KaTeX 公式能够正确滚动 */
-          .katex-display {
+          .markdown-content .katex-display {
             overflow-x: auto;
             overflow-y: hidden;
             padding: 0.5rem 0;
             margin: 0.5rem 0;
+            -webkit-overflow-scrolling: touch;
           }
 
-          .katex {
+          .markdown-content .katex {
             font-size: 1.1em;
+            font-family: 'KaTeX_Math', 'Times New Roman', serif;
+            line-height: 1.2;
           }
 
-          /* 处理长公式 */
-          .katex-display > .katex {
+          .markdown-content .katex-display > .katex {
             display: inline-block;
             white-space: nowrap;
             max-width: 100%;
             overflow-x: auto;
             text-align: initial;
+            padding: 0.5rem 0;
           }
 
-          /* 确保公式块有合适的背景和边框 */
-          .math-display {
+          .markdown-content .katex-display::-webkit-scrollbar {
+            height: 4px;
+          }
+
+          .markdown-content .katex-display::-webkit-scrollbar-track {
             background: var(--b2);
-            border-radius: 0.3rem;
-            border: 1px solid var(--b3);
-            margin: 1rem 0;
+            border-radius: 2px;
+          }
+
+          .markdown-content .katex-display::-webkit-scrollbar-thumb {
+            background: var(--b3);
+            border-radius: 2px;
+          }
+
+          .markdown-content .katex-display::-webkit-scrollbar-thumb:hover {
+            background: var(--b4);
+          }
+
+          .markdown-content .katex-error {
+            color: var(--error);
+            background: var(--error-content);
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            margin: 0.5rem 0;
+            font-family: monospace;
+            white-space: pre-wrap;
           }
         `}
       </style>
@@ -321,9 +440,17 @@ export const MarkdownRenderer = ({
             throwOnError: false,
             displayMode: true,
             trust: true,
-            macros: {
-              "\\d": "\\mathrm{d}",
-              "\\partial": "\\partial"
+            macros: katexMacros,
+            errorColor: 'var(--error)',
+            colorIsTextColor: true,
+            maxSize: 500,
+            maxExpand: 1000,
+            minRuleThickness: 0.04,
+            strict: (handler, style) => {
+              if (style === 'display') {
+                return false;
+              }
+              return true;
             }
           }]
         ]}
@@ -331,6 +458,7 @@ export const MarkdownRenderer = ({
           // 代码块渲染
           code({node, inline, className, children, ...props}) {
             const match = /language-(\w+)/.exec(className || '');
+            const [isCopied, setIsCopied] = useState(false);
             
             if (inline) {
               const content = String(children).trim();
@@ -364,7 +492,7 @@ export const MarkdownRenderer = ({
                   </code>
                 );
               }
-              // 如果包含代码特征字符（除了 - . /），使用代码样式
+              // 如果包含代码特征字符（除了 - . /），保持代码块格式
               if (/[{}[\]()=+*<>!|&;$]/.test(content)) {
                 return (
                   <code className="inline-code" {...props}>
@@ -376,61 +504,58 @@ export const MarkdownRenderer = ({
               return <span>{content}</span>;
             }
 
-            const language = match ? match[1] : '';
-            // 定义支持的编程语言列表
-            const supportedLanguages = [
-              'python', 'javascript', 'java', 'cpp', 'csharp', 'ruby', 'php',
-              'swift', 'go', 'rust', 'kotlin', 'typescript', 'scala', 'sql',
-              'lua', 'perl', 'r', 'nodejs', 'dart', 'rails', 'erlang',
-              'haskell', 'scala', 'golang', 'c', 'css', 'html', 'xml', 'yaml',
-              'json', 'markdown', 'bash', 'shell', 'powershell'
-            ];
+            const language = match ? match[1].toLowerCase() : '';
+            const displayLanguage = languageNameMap[language] || language.toUpperCase() || 'TEXT';
 
-            // 如果没有指定语言或者语言不在支持列表中，就当作普通文本处理
-            if (!language || !supportedLanguages.includes(language.toLowerCase())) {
-              return (
-                <div className="whitespace-pre-wrap text-current">
-                  {children}
-                </div>
-              );
-            }
-
-            const handleCopy = () => {
+            const handleCopy = async () => {
               const code = String(children).replace(/\n$/, '');
-              navigator.clipboard.writeText(code).then(() => {
-                // 复制成功后显示提示
-                const button = document.activeElement;
-                const originalText = button.textContent;
-                button.textContent = '已复制';
-                setTimeout(() => {
-                  button.textContent = originalText;
-                }, 1000);
-              });
+              await navigator.clipboard.writeText(code);
+              setIsCopied(true);
+              setTimeout(() => setIsCopied(false), 2000);
             };
 
             return (
-              <div className="relative">
-                <div className="copy-button-wrapper">
+              <div className="code-block">
+                <div className="code-header">
+                  <span className="language-label">{displayLanguage}</span>
                   <button
                     className="copy-button"
                     onClick={handleCopy}
+                    aria-label={isCopied ? "已复制" : "复制代码"}
                   >
-                    复制
+                    {isCopied ? (
+                      <>
+                        <CheckIcon className="icon" />
+                        已复制
+                      </>
+                    ) : (
+                      <>
+                        <CopyIcon className="icon" />
+                        复制
+                      </>
+                    )}
                   </button>
                 </div>
-                <div className="code-block">
-                  <div className="code-header">
-                    <span className="text-sm opacity-50">
-                      {language ? `<${language.toUpperCase()}>` : 'CODE'}
-                    </span>
-                  </div>
-                  <div className="code-content">
-                    <pre {...props} className={`language-${language} rounded-lg`} onContextMenu={handleContextMenu}>
-                      <code className={className}>
-                        {children}
-                      </code>
-                    </pre>
-                  </div>
+                <div className="code-content">
+                  <SyntaxHighlighter
+                    language={language}
+                    style={oneDark}
+                    showLineNumbers={true}
+                    wrapLines={true}
+                    customStyle={{
+                      margin: 0,
+                      background: 'transparent',
+                      padding: '1rem',
+                    }}
+                    lineNumberStyle={{
+                      minWidth: '2.5em',
+                      paddingRight: '1em',
+                      color: 'var(--bc)',
+                      opacity: 0.3,
+                    }}
+                  >
+                    {String(children).replace(/\n$/, '')}
+                  </SyntaxHighlighter>
                 </div>
               </div>
             );
@@ -484,10 +609,33 @@ export const MarkdownRenderer = ({
 
           // 数学公式块渲染
           math: ({node, inline, children, ...props}) => {
+            const [error, setError] = useState(null);
+
+            const handleError = (err) => {
+              console.error('KaTeX error:', err);
+              setError(err.message);
+            };
+
+            if (error) {
+              return (
+                <div className="katex-error">
+                  Error rendering formula: {error}
+                  <br />
+                  Formula: {children}
+                </div>
+              );
+            }
+
             return inline ? (
-              <span className="math-inline" {...props}>{children}</span>
+              <span className="math-inline" {...props}>
+                {children}
+              </span>
             ) : (
-              <div className="math-display" {...props}>{children}</div>
+              <div className="math-display" {...props}>
+                <div className="katex-wrapper">
+                  {children}
+                </div>
+              </div>
             );
           },
 

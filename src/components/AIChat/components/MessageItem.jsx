@@ -19,7 +19,8 @@ export const MessageItem = ({
   handleHistoryNavigation,
   isCollapsed,
   onToggleCollapse,
-  onImageClick
+  onImageClick,
+  openFileLocation
 }) => {
   // 添加推理过程折叠状态
   const [isReasoningCollapsed, setIsReasoningCollapsed] = useState(false);
@@ -212,6 +213,21 @@ export const MessageItem = ({
             )}
             {message.type === 'assistant' && (
               <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>重试</button>
+            )}
+            {/* 添加文件按钮 */}
+            {message.files?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {message.files.map((file, index) => (
+                  <button
+                    key={index}
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => openFileLocation(file)}
+                    title="打开文件位置"
+                  >
+                    文件
+                  </button>
+                ))}
+              </div>
             )}
             {message.history && message.history.length > 0 && (
               <>

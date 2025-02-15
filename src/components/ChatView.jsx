@@ -450,7 +450,9 @@ export function ChatView({
                       </span>
                     </div>
                   )
-                ) : message.files?.some(file => !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)) ? (
+                ) : message.files?.some(file => 
+                  !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                ) ? (
                   <div className="flex items-center gap-2">
                     {editingFileName === message.id ? (
                       <div className="join">
@@ -507,7 +509,9 @@ export function ChatView({
                       </>
                     )}
                   </div>
-                ) : message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)) ? (
+                ) : message.files?.some(file => 
+                  file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                ) ? (
                   <div className="flex items-center gap-2">
                     {editingFileName?.startsWith(message.id) ? (
                       <div className="join">
@@ -718,20 +722,6 @@ export function ChatView({
                             <div className="whitespace-pre-wrap" onContextMenu={handleContextMenu}>
                               {message.content}
                             </div>
-                            
-                            {/* 显示其他类型文件 */}
-                            <div className="flex flex-wrap gap-2">
-                              {message.files.map((file, index) => (
-                                <div 
-                                  key={index} 
-                                  className="badge badge-lg gap-2 cursor-pointer hover:bg-base-200"
-                                  onClick={() => openFileLocation(file)}
-                                  title="点击打开文件位置"
-                                >
-                                  {file.name}
-                                </div>
-                              ))}
-                            </div>
                           </div>
                         ) : (
                           <MarkdownRenderer
@@ -785,6 +775,16 @@ export function ChatView({
                   >
                     Copy
                   </button>
+                  {/* 添加文件按钮 */}
+                  {message.files?.length > 0 && (
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => openFileLocation(message.files[0])}
+                      title="打开文件位置"
+                    >
+                      文件
+                    </button>
+                  )}
                   {messages.indexOf(message) > 0 && (
                     <button
                       className="btn btn-ghost btn-xs"

@@ -1135,6 +1135,8 @@ export default function App() {
               onConversationSelect={handleConversationSelect}
               onConversationDelete={handleConversationDelete}
               onConversationRename={handleConversationRename}
+              window={window}
+              electron={window.electron}
             />
           </div>
         </div>

@@ -24,7 +24,9 @@ export const AIChat = ({
   conversations,
   onConversationSelect,
   onConversationDelete,
-  onConversationRename
+  onConversationRename,
+  window,
+  electron
 }) => {
   // 使用状态管理 hooks
   const messageState = useMessageState(currentConversation);
@@ -66,13 +68,17 @@ export const AIChat = ({
 
   // 在组件挂载时将创建新对话的函数绑定到 window.aichat
   useEffect(() => {
-    window.aichat = {
-      createNewConversation: handleCreateNewConversation,
-      setShowSettings: modelState.setShowSettings
-    };
+    if (typeof window !== 'undefined') {
+      window.aichat = window.aichat || {};
+      window.aichat.createNewConversation = handleCreateNewConversation;
+      window.aichat.setShowSettings = modelState.setShowSettings;
+    }
     
     return () => {
-      delete window.aichat;
+      if (typeof window !== 'undefined' && window.aichat) {
+        delete window.aichat.createNewConversation;
+        delete window.aichat.setShowSettings;
+      }
     };
   }, [createNewConversation, modelState.setShowSettings]);
 
@@ -129,6 +135,16 @@ export const AIChat = ({
     temperature
   });
 
+  // 添加 openFileLocation 函数
+  const openFileLocation = async (file) => {
+    try {
+      await electron.openFileLocation(file.path);
+    } catch (error) {
+      console.error('Failed to open file location:', error);
+      alert('打开文件位置失败');
+    }
+  };
+
   return (
     <div className="flex flex-col h-full w-full">
       {/* 顶部标题栏 */}
@@ -160,6 +176,7 @@ export const AIChat = ({
           handleDeleteMessage={messageHandlers.deleteMessage}
           handleRetry={messageHandlers.handleRetry}
           handleHistoryNavigation={messageHandlers.handleHistoryNavigation}
+          openFileLocation={openFileLocation}
         />
       </div>
 
