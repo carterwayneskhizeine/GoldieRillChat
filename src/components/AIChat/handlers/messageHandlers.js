@@ -79,6 +79,28 @@ export const createMessageHandlers = ({
 
       // 从消息列表中移除消息
       const newMessages = messages.filter(m => m.id !== id);
+      
+      // 保存更新后的消息列表到 messages.json
+      if (currentConversation?.path) {
+        try {
+          console.log('正在保存消息列表:', {
+            path: currentConversation.path,
+            id: currentConversation.id,
+            messages: newMessages
+          });
+          await window.electron.saveMessages(
+            currentConversation.path,
+            currentConversation.id,
+            newMessages
+          );
+          console.log('消息列表保存成功');
+        } catch (error) {
+          console.error('保存消息列表失败:', error);
+          throw error;
+        }
+      }
+
+      // 更新状态
       setMessages(newMessages);
     } catch (error) {
       console.error('删除消息失败:', error);

@@ -71,6 +71,7 @@ export const sendMessage = async (
   const newMessage = {
     id: Date.now().toString(),
     content: messageInput,
+    type: 'user',
     timestamp: new Date().toISOString(),
     files: selectedFiles,
   }

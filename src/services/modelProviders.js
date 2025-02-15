@@ -102,7 +102,7 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
         body: JSON.stringify({
           model,
           messages: messages.map(msg => ({
-            role: msg.type === 'user' ? 'user' : 'assistant',
+            role: msg.role || (msg.type === 'user' ? 'user' : 'assistant'),
             content: msg.content
           })),
           stream: true,  // 启用流式输出
@@ -116,24 +116,31 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
         signal
       });
 
-      // 处理速率限制错误
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : baseDelay * Math.pow(2, retryCount);
-        
-        if (retryCount < maxRetries) {
-          console.warn(`触发速率限制，等待 ${waitTime/1000} 秒后重试...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          retryCount++;
-          continue;
-        } else {
-          throw new Error('已达到速率限制，请稍后再试。如需更高速率限制，请考虑升级您的用量级别。');
-        }
-      }
-
+      // 处理错误响应
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || error.message || '请求失败');
+        const errorData = await response.json().catch(() => null);
+        let errorMessage = `请求失败 (${response.status})`;
+        
+        if (errorData) {
+          if (errorData.error?.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        }
+
+        // 特殊错误处理
+        if (response.status === 400) {
+          errorMessage = `请求参数错误: ${errorMessage}`;
+        } else if (response.status === 401) {
+          errorMessage = 'API 密钥无效或已过期，请检查设置';
+        } else if (response.status === 429) {
+          errorMessage = '已达到速率限制，请稍后再试';
+        } else if (response.status === 500) {
+          errorMessage = '服务器内部错误，请稍后重试';
+        }
+
+        throw new Error(errorMessage);
       }
 
       const reader = response.body.getReader();
@@ -210,6 +217,9 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
     } catch (error) {
       if (error.message.includes('速率限制') && retryCount < maxRetries) {
         retryCount++;
+        const waitTime = baseDelay * Math.pow(2, retryCount);
+        console.log(`触发速率限制，等待 ${waitTime/1000} 秒后重试...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }
       
@@ -218,7 +228,7 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
         throw new Error('网络连接失败，请检查网络连接或 API 地址是否正确');
       }
-      throw new Error(`SiliconFlow API 调用失败: ${error.message}`);
+      throw error;
     }
   }
 };

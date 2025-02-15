@@ -15,6 +15,180 @@ import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/thumbnails.css';
 import 'katex/dist/katex.min.css';
+import '../../styles/table.css';
+
+// 增强的表格组件
+const EnhancedTable = ({ node, children }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  
+  // 从表格中提取数据
+  const tableData = useMemo(() => {
+    const headers = [];
+    const rows = [];
+    let currentRow = [];
+    
+    React.Children.forEach(children, child => {
+      if (!child.props) return;
+      
+      if (child.type === 'thead') {
+        React.Children.forEach(child.props.children, headerRow => {
+          if (!headerRow.props) return;
+          React.Children.forEach(headerRow.props.children, header => {
+            if (!header.props?.children) return;
+            headers.push(header.props.children[0]);
+          });
+        });
+      } else if (child.type === 'tbody') {
+        React.Children.forEach(child.props.children, row => {
+          if (!row.props) return;
+          currentRow = [];
+          React.Children.forEach(row.props.children, cell => {
+            if (!cell.props?.children) return;
+            currentRow.push(cell.props.children[0]);
+          });
+          if (currentRow.length > 0) {
+            rows.push(currentRow);
+          }
+        });
+      }
+    });
+    
+    return { headers, rows };
+  }, [children]);
+  
+  // 处理排序
+  const handleSort = (columnIndex) => {
+    setSortConfig(prevConfig => ({
+      key: columnIndex,
+      direction: prevConfig.key === columnIndex && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+  
+  // 处理搜索和排序后的数据
+  const processedData = useMemo(() => {
+    let filteredRows = [...tableData.rows];
+    
+    // 搜索过滤
+    if (searchTerm) {
+      const searchTerms = searchTerm.toLowerCase().split(/\s+/);
+      filteredRows = filteredRows.filter(row =>
+        searchTerms.every(term =>
+          row.some(cell => 
+            cell.toString().toLowerCase().includes(term)
+          )
+        )
+      );
+    }
+    
+    // 排序
+    if (sortConfig.key !== null) {
+      filteredRows.sort((a, b) => {
+        if (!a[sortConfig.key] || !b[sortConfig.key]) return 0;
+        
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+        
+        // 检查是否为数字
+        const aNum = Number(aValue);
+        const bNum = Number(bValue);
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return sortConfig.direction === 'asc' ? aNum - bNum : bNum - aNum;
+        }
+        
+        // 日期格式检查
+        const aDate = new Date(aValue);
+        const bDate = new Date(bValue);
+        if (!isNaN(aDate) && !isNaN(bDate)) {
+          return sortConfig.direction === 'asc' ? aDate - bDate : bDate - aDate;
+        }
+        
+        // 字符串排序
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+        return sortConfig.direction === 'asc' ? 
+          aStr.localeCompare(bStr) : 
+          bStr.localeCompare(aStr);
+      });
+    }
+    
+    return filteredRows;
+  }, [tableData.rows, searchTerm, sortConfig]);
+
+  return (
+    <div className="markdown-table-container">
+      <div className="markdown-table-toolbar">
+        <div className="flex items-center gap-4">
+          <div className="markdown-table-search">
+            <input
+              type="text"
+              placeholder="搜索表格内容..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            <Search className="search-icon" size={16} />
+          </div>
+          <span className="text-sm font-medium opacity-70">
+            {processedData.length} 条结果
+          </span>
+        </div>
+      </div>
+      
+      <div className="table-responsive">
+        <table className="enhanced-table">
+          <thead>
+            <tr>
+              {tableData.headers.map((header, index) => (
+                <th
+                  key={index}
+                  onClick={() => handleSort(index)}
+                  className={`sortable-header ${
+                    sortConfig.key === index ? 'sorting' : ''
+                  }`}
+                >
+                  <div className="header-content">
+                    <span>{header}</span>
+                    <span className="sort-indicator">
+                      {sortConfig.key === index ? (
+                        sortConfig.direction === 'asc' ? (
+                          <ChevronUp size={16} />
+                        ) : (
+                          <ChevronDown size={16} />
+                        )
+                      ) : (
+                        <ArrowUpDown size={16} />
+                      )}
+                    </span>
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {processedData.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cell, cellIndex) => (
+                  <td key={cellIndex}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+            {processedData.length === 0 && (
+              <tr>
+                <td 
+                  colSpan={tableData.headers.length} 
+                  className="no-results"
+                >
+                  没有找到匹配的数据
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
 
 export const MarkdownRenderer = ({
   content,
@@ -205,150 +379,6 @@ export const MarkdownRenderer = ({
     "\\implies": "\\Rightarrow",
     "\\iff": "\\Leftrightarrow",
     "\\compose": "\\circ"
-  };
-
-  // 添加表格相关的工具函数
-  const sortData = (data, column, direction) => {
-    return [...data].sort((a, b) => {
-      const aValue = a[column];
-      const bValue = b[column];
-      
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return direction === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-      
-      const aStr = String(aValue).toLowerCase();
-      const bStr = String(bValue).toLowerCase();
-      return direction === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
-    });
-  };
-
-  // 添加表格组件
-  const EnhancedTable = ({ children, ...props }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
-    const [tableData, setTableData] = useState({ headers: [], rows: [] });
-
-    // 解析表格数据
-    useEffect(() => {
-      const headers = [];
-      const rows = [];
-      let currentRow = [];
-
-      React.Children.forEach(children, (child) => {
-        if (child.type === 'thead') {
-          React.Children.forEach(child.props.children, (tr) => {
-            React.Children.forEach(tr.props.children, (th) => {
-              headers.push(th.props.children);
-            });
-          });
-        } else if (child.type === 'tbody') {
-          React.Children.forEach(child.props.children, (tr) => {
-            currentRow = [];
-            React.Children.forEach(tr.props.children, (td) => {
-              currentRow.push(td.props.children);
-            });
-            rows.push(currentRow);
-          });
-        }
-      });
-
-      setTableData({ headers, rows });
-    }, [children]);
-
-    // 处理排序
-    const handleSort = (columnIndex) => {
-      setSortConfig((prevConfig) => {
-        if (prevConfig.column === columnIndex) {
-          if (prevConfig.direction === 'asc') {
-            return { column: columnIndex, direction: 'desc' };
-          }
-          return { column: null, direction: null };
-        }
-        return { column: columnIndex, direction: 'asc' };
-      });
-    };
-
-    // 处理搜索
-    const filteredData = useMemo(() => {
-      if (!searchTerm) return tableData.rows;
-      
-      return tableData.rows.filter(row =>
-        row.some(cell =>
-          String(cell).toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      );
-    }, [tableData.rows, searchTerm]);
-
-    // 处理排序后的数据
-    const sortedData = useMemo(() => {
-      if (!sortConfig.column) return filteredData;
-      
-      return sortData(filteredData, sortConfig.column, sortConfig.direction);
-    }, [filteredData, sortConfig]);
-
-    return (
-      <div className="table-container">
-        <div className="table-toolbar">
-          <div className="search-wrapper">
-            <Search className="search-icon" size={16} />
-            <input
-              type="text"
-              placeholder="搜索..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-          </div>
-        </div>
-        <div className="table-responsive">
-          <table {...props} className="enhanced-table">
-            <thead>
-              <tr>
-                {tableData.headers.map((header, index) => (
-                  <th
-                    key={index}
-                    onClick={() => handleSort(index)}
-                    className={`sortable-header ${
-                      sortConfig.column === index ? 'sorting' : ''
-                    }`}
-                  >
-                    <div className="header-content">
-                      <span>{header}</span>
-                      <span className="sort-indicator">
-                        {sortConfig.column === index ? (
-                          sortConfig.direction === 'asc' ? (
-                            <ChevronUp size={16} />
-                          ) : (
-                            <ChevronDown size={16} />
-                          )
-                        ) : (
-                          <ArrowUpDown size={16} />
-                        )}
-                      </span>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedData.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {row.map((cell, cellIndex) => (
-                    <td key={cellIndex}>{cell}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {sortedData.length === 0 && (
-          <div className="no-results">
-            没有找到匹配的数据
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -998,8 +1028,8 @@ export const MarkdownRenderer = ({
                       </>
                     )}
                   </button>
-                </div>
-                <div className="code-content">
+                  </div>
+                  <div className="code-content">
                   <SyntaxHighlighter
                     language={language}
                     style={{
@@ -1091,7 +1121,7 @@ export const MarkdownRenderer = ({
             };
 
             if (hasError) {
-              return (
+            return (
                 <div className="image-error">
                   <XIcon className="image-error-icon" size={24} />
                   <div className="image-error-text">
@@ -1122,11 +1152,11 @@ export const MarkdownRenderer = ({
                     <Loader2Icon className="spinner" size={24} />
                   </div>
                 )}
-                <img
-                  {...props}
+              <img
+                {...props}
                   className={`rounded-lg max-w-full ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                   style={{ transition: 'opacity 0.2s ease' }}
-                  loading="lazy"
+                loading="lazy"
                   onLoad={handleImageLoad}
                   onError={handleImageError}
                   key={`${props.src}-${retryCount}`}
