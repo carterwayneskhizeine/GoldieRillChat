@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -8,7 +8,12 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { CheckIcon, CopyIcon } from 'lucide-react';
+import { CheckIcon, CopyIcon, ImageIcon, Loader2Icon, XIcon, ArrowUpDown, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import Lightbox from 'yet-another-react-lightbox';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
+import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/thumbnails.css';
 import 'katex/dist/katex.min.css';
 
 export const MarkdownRenderer = ({
@@ -18,6 +23,27 @@ export const MarkdownRenderer = ({
   onCopyCode = () => {},
   onLinkClick = () => {},
 }) => {
+  const [openLightbox, setOpenLightbox] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [images, setImages] = useState([]);
+
+  // 收集文档中的所有图片
+  const collectImages = useCallback((content) => {
+    const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    const matches = [...content.matchAll(imgRegex)];
+    return matches.map(match => ({
+      src: match[2],
+      alt: match[1],
+      title: match[1]
+    }));
+  }, []);
+
+  // 在组件挂载时收集图片
+  useEffect(() => {
+    const collectedImages = collectImages(content);
+    setImages(collectedImages);
+  }, [content, collectImages]);
+
   // 预处理内容，修复有序列表格式和代码块
   const processContent = (text) => {
     // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
@@ -161,6 +187,150 @@ export const MarkdownRenderer = ({
     "\\implies": "\\Rightarrow",
     "\\iff": "\\Leftrightarrow",
     "\\compose": "\\circ"
+  };
+
+  // 添加表格相关的工具函数
+  const sortData = (data, column, direction) => {
+    return [...data].sort((a, b) => {
+      const aValue = a[column];
+      const bValue = b[column];
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      return direction === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    });
+  };
+
+  // 添加表格组件
+  const EnhancedTable = ({ children, ...props }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
+    const [tableData, setTableData] = useState({ headers: [], rows: [] });
+
+    // 解析表格数据
+    useEffect(() => {
+      const headers = [];
+      const rows = [];
+      let currentRow = [];
+
+      React.Children.forEach(children, (child) => {
+        if (child.type === 'thead') {
+          React.Children.forEach(child.props.children, (tr) => {
+            React.Children.forEach(tr.props.children, (th) => {
+              headers.push(th.props.children);
+            });
+          });
+        } else if (child.type === 'tbody') {
+          React.Children.forEach(child.props.children, (tr) => {
+            currentRow = [];
+            React.Children.forEach(tr.props.children, (td) => {
+              currentRow.push(td.props.children);
+            });
+            rows.push(currentRow);
+          });
+        }
+      });
+
+      setTableData({ headers, rows });
+    }, [children]);
+
+    // 处理排序
+    const handleSort = (columnIndex) => {
+      setSortConfig((prevConfig) => {
+        if (prevConfig.column === columnIndex) {
+          if (prevConfig.direction === 'asc') {
+            return { column: columnIndex, direction: 'desc' };
+          }
+          return { column: null, direction: null };
+        }
+        return { column: columnIndex, direction: 'asc' };
+      });
+    };
+
+    // 处理搜索
+    const filteredData = useMemo(() => {
+      if (!searchTerm) return tableData.rows;
+      
+      return tableData.rows.filter(row =>
+        row.some(cell =>
+          String(cell).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }, [tableData.rows, searchTerm]);
+
+    // 处理排序后的数据
+    const sortedData = useMemo(() => {
+      if (!sortConfig.column) return filteredData;
+      
+      return sortData(filteredData, sortConfig.column, sortConfig.direction);
+    }, [filteredData, sortConfig]);
+
+    return (
+      <div className="table-container">
+        <div className="table-toolbar">
+          <div className="search-wrapper">
+            <Search className="search-icon" size={16} />
+            <input
+              type="text"
+              placeholder="搜索..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+        </div>
+        <div className="table-responsive">
+          <table {...props} className="enhanced-table">
+            <thead>
+              <tr>
+                {tableData.headers.map((header, index) => (
+                  <th
+                    key={index}
+                    onClick={() => handleSort(index)}
+                    className={`sortable-header ${
+                      sortConfig.column === index ? 'sorting' : ''
+                    }`}
+                  >
+                    <div className="header-content">
+                      <span>{header}</span>
+                      <span className="sort-indicator">
+                        {sortConfig.column === index ? (
+                          sortConfig.direction === 'asc' ? (
+                            <ChevronUp size={16} />
+                          ) : (
+                            <ChevronDown size={16} />
+                          )
+                        ) : (
+                          <ArrowUpDown size={16} />
+                        )}
+                      </span>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedData.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {row.map((cell, cellIndex) => (
+                    <td key={cellIndex}>{cell}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {sortedData.length === 0 && (
+          <div className="no-results">
+            没有找到匹配的数据
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -417,6 +587,226 @@ export const MarkdownRenderer = ({
             font-family: monospace;
             white-space: pre-wrap;
           }
+
+          .markdown-content .image-wrapper {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            margin: 1rem 0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            background: var(--b2);
+            border: 1px solid var(--b3);
+            cursor: zoom-in;
+            transition: all 0.2s ease;
+          }
+
+          .markdown-content .image-wrapper:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+
+          .markdown-content .image-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--b2);
+            z-index: 1;
+          }
+
+          .markdown-content .image-loading .spinner {
+            animation: spin 1s linear infinite;
+            color: var(--p);
+          }
+
+          .markdown-content .image-error {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+            padding: 1rem;
+            background: var(--b2);
+            border: 1px dashed var(--b3);
+            border-radius: 0.5rem;
+            color: var(--bc);
+          }
+
+          .markdown-content .image-error-icon {
+            margin-bottom: 0.5rem;
+            color: var(--error);
+          }
+
+          .markdown-content .image-error-text {
+            font-size: 0.875rem;
+            text-align: center;
+            max-width: 200px;
+          }
+
+          .markdown-content .image-error-retry {
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+            color: var(--bc);
+            background: var(--b3);
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .markdown-content .image-error-retry:hover {
+            background: var(--b4);
+          }
+
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          .table-container {
+            margin: 1rem 0;
+            background: var(--b1);
+            border-radius: 0.5rem;
+            border: 1px solid var(--b3);
+            overflow: hidden;
+          }
+
+          .table-toolbar {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--b2);
+            border-bottom: 1px solid var(--b3);
+          }
+
+          .search-wrapper {
+            position: relative;
+            flex: 1;
+            max-width: 300px;
+          }
+
+          .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--bc);
+            opacity: 0.5;
+          }
+
+          .search-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+            border: 1px solid var(--b3);
+            border-radius: 0.25rem;
+            background: var(--b1);
+            color: var(--bc);
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+          }
+
+          .search-input:focus {
+            outline: none;
+            border-color: var(--p);
+            box-shadow: 0 0 0 2px var(--p-focus);
+          }
+
+          .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .enhanced-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+          }
+
+          .enhanced-table th {
+            background: var(--b2);
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            color: var(--bc);
+            border-bottom: 1px solid var(--b3);
+            white-space: nowrap;
+          }
+
+          .enhanced-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--b3);
+            transition: background-color 0.2s ease;
+          }
+
+          .enhanced-table tbody tr:hover {
+            background-color: var(--b2);
+          }
+
+          .sortable-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s ease;
+          }
+
+          .sortable-header:hover {
+            background-color: var(--b3);
+          }
+
+          .header-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .sort-indicator {
+            display: inline-flex;
+            align-items: center;
+            opacity: 0.5;
+            transition: opacity 0.2s ease;
+          }
+
+          .sorting .sort-indicator {
+            opacity: 1;
+            color: var(--p);
+          }
+
+          .no-results {
+            padding: 2rem;
+            text-align: center;
+            color: var(--bc);
+            font-size: 0.875rem;
+            opacity: 0.7;
+          }
+
+          @media (max-width: 640px) {
+            .enhanced-table {
+              font-size: 0.875rem;
+            }
+
+            .enhanced-table th,
+            .enhanced-table td {
+              padding: 0.5rem 0.75rem;
+            }
+
+            .table-toolbar {
+              flex-direction: column;
+              gap: 0.5rem;
+            }
+
+            .search-wrapper {
+              max-width: 100%;
+            }
+          }
         `}
       </style>
 
@@ -584,26 +974,81 @@ export const MarkdownRenderer = ({
 
           // 表格渲染
           table({node, children, ...props}) {
-            return (
-              <div className="overflow-x-auto">
-                <table className="table table-zebra w-full" {...props} onContextMenu={handleContextMenu}>
-                  {children}
-                </table>
-              </div>
-            );
+            return <EnhancedTable {...props}>{children}</EnhancedTable>;
           },
 
           // 图片渲染
           img({node, ...props}) {
+            const [isLoading, setIsLoading] = useState(true);
+            const [hasError, setHasError] = useState(false);
+            const [retryCount, setRetryCount] = useState(0);
+
+            const handleImageLoad = () => {
+              setIsLoading(false);
+              setHasError(false);
+            };
+
+            const handleImageError = () => {
+              setIsLoading(false);
+              setHasError(true);
+            };
+
+            const handleRetry = () => {
+              setIsLoading(true);
+              setHasError(false);
+              setRetryCount(prev => prev + 1);
+            };
+
+            const handleImageClick = () => {
+              const index = images.findIndex(img => img.src === props.src);
+              if (index !== -1) {
+                setLightboxIndex(index);
+                setOpenLightbox(true);
+              }
+            };
+
+            if (hasError) {
+              return (
+                <div className="image-error">
+                  <XIcon className="image-error-icon" size={24} />
+                  <div className="image-error-text">
+                    图片加载失败
+                    {props.alt && (
+                      <div className="text-sm opacity-75">
+                        {props.alt}
+                      </div>
+                    )}
+                  </div>
+                  {retryCount < 3 && (
+                    <button
+                      className="image-error-retry"
+                      onClick={handleRetry}
+                      aria-label="重试加载图片"
+                    >
+                      重试
+                    </button>
+                  )}
+                </div>
+              );
+            }
+
             return (
-              <img
-                {...props}
-                className="rounded-lg max-w-full"
-                loading="lazy"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
+              <div className="image-wrapper" onClick={handleImageClick}>
+                {isLoading && (
+                  <div className="image-loading">
+                    <Loader2Icon className="spinner" size={24} />
+                  </div>
+                )}
+                <img
+                  {...props}
+                  className={`rounded-lg max-w-full ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                  style={{ transition: 'opacity 0.2s ease' }}
+                  loading="lazy"
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                  key={`${props.src}-${retryCount}`}
+                />
+              </div>
             );
           },
 
@@ -670,6 +1115,22 @@ export const MarkdownRenderer = ({
       >
         {processContent(content)}
       </ReactMarkdown>
+
+      {/* 图片预览 Lightbox */}
+      <Lightbox
+        open={openLightbox}
+        close={() => setOpenLightbox(false)}
+        index={lightboxIndex}
+        slides={images}
+        plugins={[Zoom, Thumbnails]}
+        animation={{ fade: 300 }}
+        carousel={{ finite: images.length <= 1 }}
+        render={{
+          iconPrev: () => <ChevronLeftIcon size={24} />,
+          iconNext: () => <ChevronRightIcon size={24} />,
+          iconClose: () => <XIcon size={24} />
+        }}
+      />
     </div>
   );
 };
