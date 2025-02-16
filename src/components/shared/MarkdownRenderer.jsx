@@ -12,8 +12,10 @@ import { CheckIcon, CopyIcon, ImageIcon, Loader2Icon, XIcon, ArrowUpDown, Search
 import Lightbox from 'yet-another-react-lightbox';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/thumbnails.css';
+import 'yet-another-react-lightbox/plugins/captions.css';
 import 'katex/dist/katex.min.css';
 import '../../styles/table.css';
 
@@ -242,12 +244,13 @@ export const MarkdownRenderer = React.memo(({
 
   // 使用 useCallback 优化图片收集函数
   const collectImages = useCallback((content) => {
-    const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    const imgRegex = /!\[([^\]]*)\]\(([^)]+)(?:\s+"([^"]*)")?\)/g;
     const matches = [...content.matchAll(imgRegex)];
     return matches.map(match => ({
       src: match[2],
       alt: match[1],
-      title: match[1]
+      title: match[1],
+      description: match[3] || ''
     }));
   }, []);
 
@@ -1178,13 +1181,29 @@ export const MarkdownRenderer = React.memo(({
         close={() => setOpenLightbox(false)}
         index={lightboxIndex}
         slides={images}
-        plugins={[Zoom, Thumbnails]}
+        plugins={[Zoom, Thumbnails, Captions]}
         animation={{ fade: 300 }}
         carousel={{ finite: images.length <= 1 }}
         render={{
           iconPrev: () => <ChevronLeftIcon size={24} />,
           iconNext: () => <ChevronRightIcon size={24} />,
           iconClose: () => <XIcon size={24} />
+        }}
+        zoom={{
+          maxZoomPixelRatio: 5,
+          zoomInMultiplier: 2,
+          doubleTapDelay: 300,
+          doubleClickDelay: 300,
+          doubleClickMaxStops: 2,
+          keyboardMoveDistance: 50,
+          wheelZoomDistanceFactor: 100,
+          pinchZoomDistanceFactor: 100,
+          scrollToZoom: true
+        }}
+        captions={{
+          showToggle: true,
+          descriptionTextAlign: 'center',
+          descriptionMaxLines: 3,
         }}
       />
     </div>

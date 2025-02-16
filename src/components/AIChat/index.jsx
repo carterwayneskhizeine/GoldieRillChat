@@ -3,6 +3,13 @@ import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { InputArea } from './components/InputArea';
 import { SettingsModal } from './components/SettingsModal';
+import Lightbox from 'yet-another-react-lightbox';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/thumbnails.css';
+import 'yet-another-react-lightbox/plugins/captions.css';
 
 import { useMessageState } from './hooks/useMessageState';
 import { useModelState } from './hooks/useModelState';
@@ -244,6 +251,11 @@ export const AIChat = ({
     }
   };
 
+  // 更新 Lightbox 组件配置
+  const [openLightbox, setOpenLightbox] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [images, setImages] = useState([]);
+
   return (
     <div className="flex flex-col h-full w-full">
       {/* 只在 handlers 都准备好后渲染内容 */}
@@ -316,6 +328,33 @@ export const AIChat = ({
               onImageSettingsUpdate={handleImageSettingsUpdate}  // 添加回调
             />
           )}
+
+          {/* Lightbox 组件 */}
+          <Lightbox
+            open={openLightbox}
+            close={() => setOpenLightbox(false)}
+            index={lightboxIndex}
+            slides={images}
+            plugins={[Zoom, Thumbnails, Captions]}
+            animation={{ fade: 300 }}
+            carousel={{ finite: images.length <= 1 }}
+            zoom={{
+              maxZoomPixelRatio: 5,
+              zoomInMultiplier: 2,
+              doubleTapDelay: 300,
+              doubleClickDelay: 300,
+              doubleClickMaxStops: 2,
+              keyboardMoveDistance: 50,
+              wheelZoomDistanceFactor: 100,
+              pinchZoomDistanceFactor: 100,
+              scrollToZoom: true
+            }}
+            captions={{
+              showToggle: true,
+              descriptionTextAlign: 'center',
+              descriptionMaxLines: 3,
+            }}
+          />
         </>
       ) : (
         // 加载状态
