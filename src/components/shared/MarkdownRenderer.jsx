@@ -17,7 +17,170 @@ import 'yet-another-react-lightbox/plugins/thumbnails.css';
 import 'katex/dist/katex.min.css';
 import '../../styles/table.css';
 
-export const MarkdownRenderer = ({
+// 添加语言名称映射
+const languageNameMap = {
+  js: 'JavaScript',
+  jsx: 'React JSX',
+  ts: 'TypeScript',
+  tsx: 'React TSX',
+  html: 'HTML',
+  css: 'CSS',
+  scss: 'SCSS',
+  less: 'Less',
+  json: 'JSON',
+  md: 'Markdown',
+  yaml: 'YAML',
+  yml: 'YAML',
+  sql: 'SQL',
+  sh: 'Shell',
+  bash: 'Bash',
+  py: 'Python',
+  java: 'Java',
+  cpp: 'C++',
+  c: 'C',
+  cs: 'C#',
+  go: 'Go',
+  rs: 'Rust',
+  rb: 'Ruby',
+  php: 'PHP',
+  swift: 'Swift',
+  kt: 'Kotlin',
+  dart: 'Dart',
+  r: 'R',
+  matlab: 'MATLAB',
+  scala: 'Scala',
+  perl: 'Perl',
+  lua: 'Lua',
+  xml: 'XML',
+  graphql: 'GraphQL',
+  dockerfile: 'Dockerfile',
+  docker: 'Docker',
+  nginx: 'Nginx',
+  apache: 'Apache',
+  powershell: 'PowerShell',
+  plaintext: '纯文本'
+};
+
+// 预定义的 remarkPlugins 和 rehypePlugins 配置
+const remarkPluginsConfig = [remarkGfm, remarkMath, remarkBreaks];
+const rehypePluginsConfig = [rehypeKatex, rehypeRaw, rehypeSanitize];
+
+// 添加 processContent 函数
+const processContent = (content) => {
+  if (!content) return '';
+  
+  // 处理有序列表的格式
+  content = content.replace(/^(\d+)\.\s/gm, '$1\\. ');
+  
+  // 处理行内代码的格式
+  content = content.replace(/`([^`]+)`/g, (match, code) => {
+    return `\`${code.trim()}\``;
+  });
+  
+  // 处理代码块的格式
+  content = content.replace(/```(\w+)?\n([\s\S]+?)```/g, (match, lang, code) => {
+    return `\`\`\`${lang || ''}\n${code.trim()}\n\`\`\``;
+  });
+  
+  // 处理数学公式的格式
+  content = content.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+    return `$$${formula.trim()}$$`;
+  });
+  
+  content = content.replace(/\$([\s\S]+?)\$/g, (match, formula) => {
+    return `$${formula.trim()}$`;
+  });
+  
+  return content;
+};
+
+// 添加 TableWrapper 组件
+const TableWrapper = React.memo(({ children }) => {
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const tableRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  // 检测表格是否溢出
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (tableRef.current) {
+        const { scrollWidth, clientWidth } = tableRef.current;
+        setIsOverflowing(scrollWidth > clientWidth);
+      }
+    };
+
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, []);
+
+  // 处理搜索
+  const handleSearch = useCallback((e) => {
+    setSearchQuery(e.target.value);
+    if (tableRef.current) {
+      const table = tableRef.current;
+      const searchText = e.target.value.toLowerCase();
+      const rows = table.querySelectorAll('tbody tr');
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchText) ? '' : 'none';
+      });
+    }
+  }, []);
+
+  // 处理搜索快捷键
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.key === 'f' && isOverflowing) {
+        e.preventDefault();
+        setIsSearchOpen(true);
+        searchInputRef.current?.focus();
+      } else if (e.key === 'Escape' && isSearchOpen) {
+        setIsSearchOpen(false);
+        setSearchQuery('');
+        if (tableRef.current) {
+          const rows = tableRef.current.querySelectorAll('tbody tr');
+          rows.forEach(row => {
+            row.style.display = '';
+          });
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOverflowing, isSearchOpen]);
+
+  return (
+    <div className="table-container">
+      {isOverflowing && (
+        <div className="table-toolbar">
+          <div className="search-wrapper">
+            <Search className="search-icon w-4 h-4" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="search-input"
+              placeholder="搜索表格内容..."
+              value={searchQuery}
+              onChange={handleSearch}
+            />
+          </div>
+        </div>
+      )}
+      <div className="table-responsive" ref={tableRef}>
+        <table className="enhanced-table">
+          {children}
+        </table>
+      </div>
+    </div>
+  );
+});
+
+export const MarkdownRenderer = React.memo(({
   content,
   isCompact = false,
   className = '',
@@ -28,7 +191,7 @@ export const MarkdownRenderer = ({
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [images, setImages] = useState([]);
 
-  // 添加复制功能
+  // 使用 useCallback 优化复制功能
   const handleCopySelectedText = useCallback((e) => {
     if (e.ctrlKey && e.key === 'c') {
       const selectedText = window.getSelection().toString();
@@ -38,15 +201,7 @@ export const MarkdownRenderer = ({
     }
   }, []);
 
-  // 添加键盘事件监听
-  useEffect(() => {
-    document.addEventListener('keydown', handleCopySelectedText);
-    return () => {
-      document.removeEventListener('keydown', handleCopySelectedText);
-    };
-  }, [handleCopySelectedText]);
-
-  // 收集文档中的所有图片
+  // 使用 useCallback 优化图片收集
   const collectImages = useCallback((content) => {
     const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
     const matches = [...content.matchAll(imgRegex)];
@@ -57,65 +212,27 @@ export const MarkdownRenderer = ({
     }));
   }, []);
 
-  // 在组件挂载时收集图片
+  // 使用 useMemo 缓存处理后的内容
+  const processedContent = useMemo(() => {
+    return processContent(content);
+  }, [content]);
+
+  // 使用 useEffect 优化事件监听
+  useEffect(() => {
+    document.addEventListener('keydown', handleCopySelectedText);
+    return () => {
+      document.removeEventListener('keydown', handleCopySelectedText);
+    };
+  }, [handleCopySelectedText]);
+
+  // 使用 useEffect 优化图片收集
   useEffect(() => {
     const collectedImages = collectImages(content);
     setImages(collectedImages);
   }, [content, collectImages]);
 
-  // 预处理内容，修复有序列表格式和代码块
-  const processContent = (text) => {
-    // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
-    let processed = text.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
-
-    // 处理带有反引号的序号标题格式
-    processed = processed.replace(/^(#+\s*\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
-    processed = processed.replace(/^(\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
-
-    // 处理行内代码块，将非代码块的反引号去掉
-    processed = processed.replace(/`([^`\n]+)`/g, (match, content) => {
-      // 如果内容不包含代码特征，则去掉反引号
-      if (
-        // 如果是包名或技术名称（允许 @ - / . 字符）
-        /^[@a-zA-Z][\w\-\/.]*$/.test(content) ||
-        // 或者是多个单词（允许空格分隔的单词）
-        /^[\w\-\./\s]+$/.test(content)
-      ) {
-        return content;
-      }
-      // 如果包含代码关键字，保持代码块格式
-      if (content.includes('function') ||
-          content.includes('return') ||
-          content.includes('const') ||
-          content.includes('let') ||
-          content.includes('var') ||
-          content.includes('import') ||
-          content.includes('export') ||
-          content.includes('class') ||
-          content.includes('=>')) {
-        return match;
-      }
-      // 如果包含代码特征字符（除了 - . /），保持代码块格式
-      if (/[{}[\]()=+*<>!|&;$]/.test(content)) {
-        return match;
-      }
-      // 其他情况去掉反引号
-      return content;
-    });
-
-    // 保持缩进和换行
-    processed = processed.replace(/\n/g, '  \n');
-
-    // 确保标题前后有空行
-    processed = processed.replace(/^(#{1,6}\s.*)/gm, '\n$1\n');
-
-    // 确保列表项之间有正确的间距
-    processed = processed.replace(/^([*-]|\d+\.)\s/gm, '\n$&');
-
-    return processed;
-  };
-
-  const handleContextMenu = (e) => {
+  // 使用 useCallback 优化上下文菜单处理
+  const handleContextMenu = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -133,115 +250,63 @@ export const MarkdownRenderer = ({
       }
     });
     window.dispatchEvent(contextMenuEvent);
-  };
+  }, []);
 
-  // 添加语言名称映射
-  const languageNameMap = {
-    python: 'Python',
-    javascript: 'JavaScript',
-    typescript: 'TypeScript',
-    java: 'Java',
-    cpp: 'C++',
-    csharp: 'C#',
-    php: 'PHP',
-    ruby: 'Ruby',
-    go: 'Go',
-    rust: 'Rust',
-    swift: 'Swift',
-    kotlin: 'Kotlin',
-    scala: 'Scala',
-    html: 'HTML',
-    css: 'CSS',
-    sql: 'SQL',
-    shell: 'Shell',
-    bash: 'Bash',
-    powershell: 'PowerShell',
-    markdown: 'Markdown',
-    json: 'JSON',
-    yaml: 'YAML',
-    xml: 'XML',
-  };
+  // 使用 useMemo 缓存 Markdown 组件配置
+  const markdownComponents = useMemo(() => ({
+    code: ({ node, inline, className, children, ...props }) => {
+      const match = /language-(\w+)/.exec(className || '');
+      const language = match ? match[1] : '';
+      const displayName = languageNameMap[language] || language;
 
-  // 添加 KaTeX 宏定义
-  const katexMacros = {
-    "\\d": "\\mathrm{d}",
-    "\\partial": "\\partial",
-    // 常用数学符号
-    "\\eps": "\\varepsilon",
-    "\\phi": "\\varphi",
-    "\\ell": "\\ell",
-    // 集合和逻辑
-    "\\set": "\\{#1\\}",
-    "\\N": "\\mathbb{N}",
-    "\\Z": "\\mathbb{Z}",
-    "\\Q": "\\mathbb{Q}",
-    "\\R": "\\mathbb{R}",
-    "\\C": "\\mathbb{C}",
-    // 微积分和分析
-    "\\diff": "\\mathrm{d}#1",
-    "\\deriv": "\\frac{\\mathrm{d}#1}{\\mathrm{d}#2}",
-    "\\pderiv": "\\frac{\\partial #1}{\\partial #2}",
-    "\\limit": "\\lim_{#1 \\to #2}",
-    "\\infty": "\\infty",
-    // 线性代数
-    "\\matrix": "\\begin{pmatrix} #1 \\end{pmatrix}",
-    "\\vector": "\\begin{pmatrix} #1 \\end{pmatrix}",
-    "\\det": "\\mathrm{det}",
-    "\\tr": "\\mathrm{tr}",
-    // 概率论
-    "\\E": "\\mathbb{E}",
-    "\\P": "\\mathbb{P}",
-    "\\Var": "\\mathrm{Var}",
-    "\\Cov": "\\mathrm{Cov}",
-    // 常用函数和算子
-    "\\abs": "|#1|",
-    "\\norm": "\\|#1\\|",
-    "\\inner": "\\langle #1, #2 \\rangle",
-    "\\floor": "\\lfloor #1 \\rfloor",
-    "\\ceil": "\\lceil #1 \\rceil",
-    // 求和、积分等
-    "\\series": "\\sum_{#1}^{#2}",
-    "\\integral": "\\int_{#1}^{#2}",
-    // 箭头和关系
-    "\\implies": "\\Rightarrow",
-    "\\iff": "\\Leftrightarrow",
-    "\\compose": "\\circ"
-  };
-
-  // 表格相关组件
-  const TableWrapper = ({ children, ...props }) => {
-    const tableRef = useRef(null);
-    const [hasOverflow, setHasOverflow] = useState(false);
-    const [isCompact, setIsCompact] = useState(false);
-
-    // 检查表格是否需要滚动和响应式模式
-    useEffect(() => {
-      const checkTableState = () => {
-        if (tableRef.current) {
-          const { scrollWidth, clientWidth } = tableRef.current;
-          setHasOverflow(scrollWidth > clientWidth);
-          setIsCompact(window.innerWidth < 768);
-        }
-      };
-
-      checkTableState();
-      window.addEventListener('resize', checkTableState);
-      return () => window.removeEventListener('resize', checkTableState);
-    }, []);
-
-    return (
-      <div className={`markdown-table-wrapper ${isCompact ? 'compact' : ''}`}>
-        <div 
-          ref={tableRef}
-          className={`table-scroll ${hasOverflow ? 'has-overflow' : ''}`}
-        >
-          <table className="markdown-table" {...props}>
+      if (inline) {
+        return (
+          <code className={className} {...props}>
             {children}
-          </table>
+          </code>
+        );
+      }
+
+      return (
+        <div className="relative group">
+          {language && (
+            <div className="absolute right-2 top-2 flex items-center gap-2">
+              <span className="text-xs text-gray-400">{displayName}</span>
+              <button
+                onClick={() => onCopyCode(String(children))}
+                className="hidden group-hover:flex items-center gap-1 px-2 py-1 text-xs rounded bg-base-300 hover:bg-base-200 transition-colors"
+              >
+                <CopyIcon className="w-3 h-3" />
+                复制
+              </button>
+            </div>
+          )}
+          <SyntaxHighlighter
+            style={oneDark}
+            language={language}
+            PreTag="div"
+            {...props}
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
         </div>
-      </div>
-    );
-  };
+      );
+    },
+    table: TableWrapper,
+    a: ({ node, href, children, ...props }) => (
+      <a
+        href={href}
+        onClick={(e) => {
+          e.preventDefault();
+          onLinkClick(href);
+        }}
+        className="link link-primary"
+        {...props}
+      >
+        {children}
+      </a>
+    ),
+  }), [onCopyCode, onLinkClick]);
 
   return (
     <div 
@@ -776,387 +841,29 @@ export const MarkdownRenderer = ({
       </style>
 
       <ReactMarkdown
-        remarkPlugins={[
-          remarkGfm,
-          [remarkMath, { singleDollar: true }],
-          remarkBreaks
-        ]}
-        rehypePlugins={[
-          rehypeRaw,
-          [rehypeSanitize, {
-            attributes: {
-              '*': ['className', 'style', 'data-selectable'],
-              'math': ['display', 'inline']
-            }
-          }],
-          [rehypeKatex, {
-            strict: false,
-            output: 'html',
-            throwOnError: false,
-            displayMode: true,
-            trust: true,
-            macros: katexMacros,
-            errorColor: 'var(--error)',
-            colorIsTextColor: true,
-            maxSize: 500,
-            maxExpand: 1000,
-            minRuleThickness: 0.04,
-            strict: (handler, style) => {
-              if (style === 'display') {
-                return false;
-              }
-              return true;
-            }
-          }]
-        ]}
-        components={{
-          // 代码块渲染
-          code({node, inline, className, children, ...props}) {
-            const match = /language-(\w+)/.exec(className || '');
-            const [isCopied, setIsCopied] = useState(false);
-            
-            if (inline) {
-              const content = String(children).trim();
-              // 检查是否是带序号和反引号的标题格式
-              if (/^\d+\.\s+`.+`.*$/.test(content)) {
-                return <span>{content.replace(/`/g, '')}</span>;
-              }
-              
-              // 如果内容不包含代码特征，则不使用代码样式
-              if (
-                // 如果是包名或技术名称（允许 @ - / . 字符）
-                /^[@a-zA-Z][\w\-\/.]*$/.test(content) ||
-                // 或者是多个单词（允许空格分隔的单词）
-                /^[\w\-\./\s]+$/.test(content)
-              ) {
-                return <span>{content}</span>;
-              }
-              // 如果包含代码关键字，使用代码样式
-              if (content.includes('function') ||
-                  content.includes('return') ||
-                  content.includes('const') ||
-                  content.includes('let') ||
-                  content.includes('var') ||
-                  content.includes('import') ||
-                  content.includes('export') ||
-                  content.includes('class') ||
-                  content.includes('=>')) {
-                return (
-                  <code className="inline-code" {...props}>
-                    {content}
-                  </code>
-                );
-              }
-              // 如果包含代码特征字符（除了 - . /），保持代码块格式
-              if (/[{}[\]()=+*<>!|&;$]/.test(content)) {
-                return (
-                  <code className="inline-code" {...props}>
-                    {content}
-                  </code>
-                );
-              }
-              // 其他情况不使用代码样式
-              return <span>{content}</span>;
-            }
-
-            const language = match ? match[1].toLowerCase() : '';
-            const displayLanguage = languageNameMap[language] || language.toUpperCase() || 'TEXT';
-
-            const handleCopy = async () => {
-              const code = String(children).replace(/\n$/, '');
-              await navigator.clipboard.writeText(code);
-              setIsCopied(true);
-              setTimeout(() => setIsCopied(false), 2000);
-            };
-
-            return (
-              <div className="code-block">
-                <div className="code-header">
-                  <span className="language-label">{displayLanguage}</span>
-                  <button
-                    className="copy-button"
-                    onClick={handleCopy}
-                    aria-label={isCopied ? "已复制" : "复制代码"}
-                  >
-                    {isCopied ? (
-                      <>
-                        <CheckIcon className="icon" />
-                        已复制
-                      </>
-                    ) : (
-                      <>
-                        <CopyIcon className="icon" />
-                        复制
-                      </>
-                    )}
-                  </button>
-                  </div>
-                  <div className="code-content">
-                  <SyntaxHighlighter
-                    language={language}
-                    style={{
-                      ...oneDark,
-                      'pre[class*="language-"]': {
-                        ...oneDark['pre[class*="language-"]'],
-                        background: 'transparent',
-                      },
-                      'code[class*="language-"]': {
-                        ...oneDark['code[class*="language-"]'],
-                        background: 'transparent',
-                      }
-                    }}
-                    showLineNumbers={true}
-                    wrapLines={true}
-                    customStyle={{
-                      margin: 0,
-                      background: 'transparent',
-                      padding: '1rem',
-                    }}
-                    lineNumberStyle={{
-                      minWidth: '2.5em',
-                      paddingRight: '1em',
-                      color: 'var(--bc)',
-                      opacity: 0.3,
-                    }}
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
-                </div>
-              </div>
-            );
-          },
-
-          // 链接渲染
-          a({node, children, href, ...props}) {
-            return (
-              <a
-                href={href}
-                className="text-primary hover:text-primary-focus"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onLinkClick(href);
-                }}
-                onContextMenu={handleContextMenu}
-                {...props}
-              >
-                {children}
-              </a>
-            );
-          },
-
-          // 图片渲染
-          img({node, ...props}) {
-            const [isLoading, setIsLoading] = useState(true);
-            const [hasError, setHasError] = useState(false);
-            const [retryCount, setRetryCount] = useState(0);
-
-            const handleImageLoad = () => {
-              setIsLoading(false);
-              setHasError(false);
-            };
-
-            const handleImageError = () => {
-              setIsLoading(false);
-              setHasError(true);
-            };
-
-            const handleRetry = () => {
-              setIsLoading(true);
-              setHasError(false);
-              setRetryCount(prev => prev + 1);
-            };
-
-            const handleImageClick = () => {
-              const index = images.findIndex(img => img.src === props.src);
-              if (index !== -1) {
-                setLightboxIndex(index);
-                setOpenLightbox(true);
-              }
-            };
-
-            if (hasError) {
-            return (
-                <div className="image-error">
-                  <XIcon className="image-error-icon" size={24} />
-                  <div className="image-error-text">
-                    图片加载失败
-                    {props.alt && (
-                      <div className="text-sm opacity-75">
-                        {props.alt}
-                      </div>
-                    )}
-                  </div>
-                  {retryCount < 3 && (
-                    <button
-                      className="image-error-retry"
-                      onClick={handleRetry}
-                      aria-label="重试加载图片"
-                    >
-                      重试
-                    </button>
-                  )}
-                </div>
-              );
-            }
-
-            return (
-              <div className="image-wrapper" onClick={handleImageClick}>
-                {isLoading && (
-                  <div className="image-loading">
-                    <Loader2Icon className="spinner" size={24} />
-                  </div>
-                )}
-              <img
-                {...props}
-                  className={`rounded-lg max-w-full ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-                  style={{ transition: 'opacity 0.2s ease' }}
-                loading="lazy"
-                  onLoad={handleImageLoad}
-                  onError={handleImageError}
-                  key={`${props.src}-${retryCount}`}
-                />
-              </div>
-            );
-          },
-
-          // 数学公式块渲染
-          math: ({node, inline, children, ...props}) => {
-            const [error, setError] = useState(null);
-
-            const handleError = (err) => {
-              console.error('KaTeX error:', err);
-              setError(err.message);
-            };
-
-            if (error) {
-              return (
-                <div className="katex-error">
-                  Error rendering formula: {error}
-                  <br />
-                  Formula: {children}
-                </div>
-              );
-            }
-
-            return inline ? (
-              <span className="math-inline" {...props}>
-                {children}
-              </span>
-            ) : (
-              <div className="math-display" {...props}>
-                <div className="katex-wrapper">
-                  {children}
-                </div>
-              </div>
-            );
-          },
-
-          // 段落渲染
-          p({node, children, ...props}) {
-            return (
-              <p {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu}>
-                {children}
-              </p>
-            );
-          },
-
-          // 列表项渲染
-          li({node, children, ...props}) {
-            return (
-              <li {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu}>
-                {children}
-              </li>
-            );
-          },
-
-          // 添加有序列表组件
-          ol: ({node, ...props}) => (
-            <ol className="list-decimal pl-6 my-4" {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-
-          // 添加无序列表组件
-          ul: ({node, ...props}) => (
-            <ul className="list-disc pl-6 my-4" {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-
-          // 标题渲染
-          h1: ({node, ...props}) => (
-            <h1 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h2: ({node, ...props}) => (
-            <h2 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h3: ({node, ...props}) => (
-            <h3 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h4: ({node, ...props}) => (
-            <h4 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h5: ({node, ...props}) => (
-            <h5 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h6: ({node, ...props}) => (
-            <h6 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-
-          // 表格相关组件
-          table: ({node, children, ...props}) => (
-            <TableWrapper {...props}>{children}</TableWrapper>
-          ),
-          thead: ({node, children, ...props}) => (
-            <thead {...props}>{children}</thead>
-          ),
-          tbody: ({node, children, ...props}) => (
-            <tbody {...props}>{children}</tbody>
-          ),
-          tr: ({node, children, ...props}) => (
-            <tr {...props}>{children}</tr>
-          ),
-          th: ({node, children, ...props}) => (
-            <th {...props}>{children}</th>
-          ),
-          td: ({node, children, ...props}) => (
-            <td {...props}>{children}</td>
-          ),
-
-          // 其他内联元素
-          strong: ({node, ...props}) => (
-            <strong {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          em: ({node, ...props}) => (
-            <em {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          del: ({node, ...props}) => (
-            <del {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          blockquote: ({node, ...props}) => (
-            <blockquote {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-        }}
+        remarkPlugins={remarkPluginsConfig}
+        rehypePlugins={rehypePluginsConfig}
+        components={markdownComponents}
       >
-        {processContent(content)}
+        {processedContent}
       </ReactMarkdown>
 
-      {/* 图片预览 Lightbox */}
       <Lightbox
         open={openLightbox}
         close={() => setOpenLightbox(false)}
         index={lightboxIndex}
         slides={images}
         plugins={[Zoom, Thumbnails]}
-        animation={{ fade: 300 }}
-        carousel={{ finite: images.length <= 1 }}
-        render={{
-          iconPrev: () => <ChevronLeftIcon size={24} />,
-          iconNext: () => <ChevronRightIcon size={24} />,
-          iconClose: () => <XIcon size={24} />
-        }}
       />
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // 自定义比较函数，只在内容真正改变时重新渲染
+  return (
+    prevProps.content === nextProps.content &&
+    prevProps.isCompact === nextProps.isCompact &&
+    prevProps.className === nextProps.className
+  );
+});
 
 export default MarkdownRenderer; 
