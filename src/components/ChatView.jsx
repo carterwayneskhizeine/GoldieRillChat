@@ -749,7 +749,12 @@ export function ChatView({
                           <div className="flex flex-col gap-2">
                             {/* 显示文本内容 */}
                             <div className="whitespace-pre-wrap" onContextMenu={handleContextMenu}>
-                              {message.content}
+                              {message.seed ? (
+                                <>
+                                  <div className="font-medium mb-2">Prompt: {message.originalPrompt}</div>
+                                  <div className="font-medium mb-2">Seed: {message.seed}</div>
+                                </>
+                              ) : message.content}
                             </div>
                             
                             {/* 显示文件 */}

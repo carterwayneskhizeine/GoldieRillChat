@@ -128,7 +128,7 @@ export const createInputHandlers = ({
         });
 
         // 更新 AI 消息
-        const finalContent = `**提示词：** ${prompt}
+        const finalContent = `**Prompt：** ${prompt}
 
 **Seed：** ${result.seed}
 
