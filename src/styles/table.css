@@ -3,11 +3,12 @@
   position: relative;
   margin: 1.5rem 0;
   border-radius: 0.75rem;
-  overflow: hidden;
   border: 1px solid var(--b3);
   background: var(--b1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  display: block;
+  overflow-x: auto;
 }
 
 .markdown-table-wrapper:hover {
@@ -16,25 +17,27 @@
 
 /* 表格滚动容器 */
 .table-scroll {
-  overflow-x: auto;
-  max-width: 100%;
-  scrollbar-width: thin;
-  scrollbar-color: var(--b3) transparent;
-  -webkit-overflow-scrolling: touch; /* 提供iOS顺滑滚动 */
+  position: relative;
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  min-width: 100%;
 }
 
 /* 自定义滚动条样式 */
 .table-scroll::-webkit-scrollbar {
-  height: 6px;
+  height: 8px;
+  background-color: var(--b1);
 }
 
 .table-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  border-radius: 4px;
+  background-color: var(--b2);
 }
 
 .table-scroll::-webkit-scrollbar-thumb {
+  border-radius: 4px;
   background-color: var(--b3);
-  border-radius: 3px;
 }
 
 .table-scroll::-webkit-scrollbar-thumb:hover {
@@ -43,10 +46,10 @@
 
 /* 表格基础样式 */
 .markdown-table {
-  width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin: 0;
+  width: auto;
+  white-space: nowrap;
 }
 
 /* 表头样式 */
@@ -64,7 +67,7 @@
   border-bottom: 1px solid var(--b3);
   text-align: left;
   white-space: nowrap;
-  transition: background-color 0.2s ease;
+  background-color: var(--b2);
 }
 
 .markdown-table th:first-child {
@@ -79,7 +82,10 @@
 .markdown-table td {
   padding: 0.875rem 1rem;
   border-bottom: 1px solid var(--b3);
-  transition: background-color 0.2s ease;
+  white-space: nowrap; /* 防止内容换行 */
+  max-width: 300px; /* 限制单元格最大宽度 */
+  overflow: hidden;
+  text-overflow: ellipsis; /* 超出显示省略号 */
 }
 
 /* 表格行悬停效果 */
@@ -101,7 +107,7 @@
 
 @media (max-width: 768px) {
   .markdown-table {
-    font-size: 0.875rem;
+    min-width: 1200px; /* 保持移动设备的最小宽度 */
   }
 
   /* 允许表头文字换行 */
