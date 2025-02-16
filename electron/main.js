@@ -1073,7 +1073,7 @@ ipcMain.handle('load-messages', async (event, conversationPath) => {
 });
 
 // 添加图片生成相关的 IPC 处理
-ipcMain.handle('generate-image', async (event, { prompt, model, image_size, conversationPath, apiKey, apiHost }) => {
+ipcMain.handle('generate-image', async (event, { prompt, model, image_size, width, height, steps, guidance, safety_tolerance, interval, prompt_upsampling, conversationPath, apiKey, apiHost }) => {
   try {
     // 验证必要参数
     if (!prompt) throw new Error('提示词不能为空');
@@ -1081,6 +1081,21 @@ ipcMain.handle('generate-image', async (event, { prompt, model, image_size, conv
     if (!apiHost) throw new Error('API Host 不能为空');
     if (!conversationPath) throw new Error('对话路径不能为空');
     if (!model) throw new Error('模型不能为空');
+
+    // 添加参数日志
+    console.log('接收到的图片生成参数:', {
+      model,
+      width,
+      height,
+      steps,
+      guidance,
+      safety_tolerance,
+      interval,
+      prompt_upsampling,
+      image_size,
+      width_type: typeof width,
+      height_type: typeof height
+    });
 
     // 确保存在图片存储目录
     const imagesDir = path.join(conversationPath, 'images');
@@ -1090,6 +1105,39 @@ ipcMain.handle('generate-image', async (event, { prompt, model, image_size, conv
       await fs.mkdir(imagesDir, { recursive: true });
     }
 
+    // 构建请求体
+    const requestBody = {
+      model,
+      prompt,
+      seed: Math.floor(Math.random() * 9999999999)
+    };
+
+    // 根据模型添加不同的参数
+    if (model === 'black-forest-labs/FLUX.1-pro') {
+      // 直接使用传入的参数，因为已经在 inputHandlers.js 中验证过了
+      Object.assign(requestBody, {
+        width,
+        height,
+        steps,
+        guidance,
+        safety_tolerance,
+        interval,
+        prompt_upsampling
+      });
+
+      // 添加最终请求体日志
+      console.log('发送到 API 的请求体:', {
+        ...requestBody,
+        width_type: typeof requestBody.width,
+        height_type: typeof requestBody.height,
+        width_value: requestBody.width,
+        height_value: requestBody.height
+      });
+    } else {
+      // 其他模型使用 image_size
+      requestBody.image_size = image_size;
+    }
+
     // 调用 SiliconFlow API
     const response = await fetch(`${apiHost}/v1/images/generations`, {
       method: 'POST',
@@ -1097,12 +1145,7 @@ ipcMain.handle('generate-image', async (event, { prompt, model, image_size, conv
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model,
-        prompt,
-        image_size,
-        seed: Math.floor(Math.random() * 9999999999)
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {

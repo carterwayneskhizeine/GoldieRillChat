@@ -49,6 +49,49 @@ export const AIChat = ({
   // 添加 AbortController 状态
   const [abortController, setAbortController] = useState(null);
 
+  // 添加图片生成参数的全局状态
+  const [imageSettings, setImageSettings] = useState(() => {
+    const model = localStorage.getItem('aichat_image_model') || 'black-forest-labs/FLUX.1-schnell';
+    
+    if (model === 'black-forest-labs/FLUX.1-pro') {
+      return {
+        model,
+        width: Math.floor(parseInt(localStorage.getItem('aichat_image_width')) || 1024),
+        height: Math.floor(parseInt(localStorage.getItem('aichat_image_height')) || 768),
+        steps: parseInt(localStorage.getItem('aichat_image_steps')) || 20,
+        guidance: parseFloat(localStorage.getItem('aichat_image_guidance')) || 3,
+        safety_tolerance: parseInt(localStorage.getItem('aichat_image_safety')) || 2,
+        interval: parseFloat(localStorage.getItem('aichat_image_interval')) || 2,
+        prompt_upsampling: localStorage.getItem('aichat_prompt_upsampling') === 'true'
+      };
+    } else {
+      return {
+        model,
+        image_size: localStorage.getItem('aichat_image_size') || '1024x576'
+      };
+    }
+  });
+
+  // 处理图片设置更新
+  const handleImageSettingsUpdate = (newSettings) => {
+    setImageSettings(newSettings);
+    
+    // 同时更新 localStorage
+    if (newSettings.model === 'black-forest-labs/FLUX.1-pro') {
+      localStorage.setItem('aichat_image_model', newSettings.model);
+      localStorage.setItem('aichat_image_width', newSettings.width.toString());
+      localStorage.setItem('aichat_image_height', newSettings.height.toString());
+      localStorage.setItem('aichat_image_steps', newSettings.steps.toString());
+      localStorage.setItem('aichat_image_guidance', newSettings.guidance.toString());
+      localStorage.setItem('aichat_image_safety', newSettings.safety_tolerance.toString());
+      localStorage.setItem('aichat_image_interval', newSettings.interval.toString());
+      localStorage.setItem('aichat_prompt_upsampling', newSettings.prompt_upsampling.toString());
+    } else {
+      localStorage.setItem('aichat_image_model', newSettings.model);
+      localStorage.setItem('aichat_image_size', newSettings.image_size);
+    }
+  };
+
   // 创建输入处理函数的引用
   const [inputHandlers, setInputHandlers] = useState(null);
   const [messageHandlers, setMessageHandlers] = useState(null);
@@ -82,7 +125,8 @@ export const AIChat = ({
       setAbortController,
       isNetworkEnabled,
       updateMessage: messageState.updateMessage,
-      deleteMessage: messageState.deleteMessage
+      deleteMessage: messageState.deleteMessage,
+      imageSettings  // 添加图片设置参数
     });
 
     const msgHandlers = createMessageHandlers({
@@ -131,7 +175,8 @@ export const AIChat = ({
     messageState.messages,
     inputState.messageInput,
     inputState.setMessageInput,
-    window
+    window,
+    imageSettings  // 添加新的依赖
   ]);
 
   // 初始化处理函数
@@ -268,6 +313,7 @@ export const AIChat = ({
               setShowApiKey={modelState.setShowApiKey}
               handleSettingsClose={settingsHandlers.handleSettingsClose}
               MODEL_PROVIDERS={MODEL_PROVIDERS}
+              onImageSettingsUpdate={handleImageSettingsUpdate}  // 添加回调
             />
           )}
         </>

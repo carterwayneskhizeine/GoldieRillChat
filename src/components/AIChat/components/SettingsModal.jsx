@@ -14,7 +14,8 @@ export const SettingsModal = ({
   showApiKey,
   setShowApiKey,
   handleSettingsClose,
-  MODEL_PROVIDERS
+  MODEL_PROVIDERS,
+  onImageSettingsUpdate
 }) => {
   // 确保 selectedProvider 是有效的
   const currentProvider = MODEL_PROVIDERS[selectedProvider] || MODEL_PROVIDERS.openai;
@@ -51,6 +52,29 @@ export const SettingsModal = ({
   const [imageSize, setImageSize] = useState(() => {
     return localStorage.getItem('aichat_image_size') || '1024x576';
   });
+
+  // 添加 FLUX.1-pro 模型的参数状态
+  const [imageWidth, setImageWidth] = useState(() => 
+    parseInt(localStorage.getItem('aichat_image_width')) || 1024
+  );
+  const [imageHeight, setImageHeight] = useState(() => 
+    parseInt(localStorage.getItem('aichat_image_height')) || 768
+  );
+  const [imageSteps, setImageSteps] = useState(() => 
+    parseInt(localStorage.getItem('aichat_image_steps')) || 20
+  );
+  const [imageGuidance, setImageGuidance] = useState(() => 
+    parseFloat(localStorage.getItem('aichat_image_guidance')) || 3
+  );
+  const [imageSafety, setImageSafety] = useState(() => 
+    parseInt(localStorage.getItem('aichat_image_safety')) || 2
+  );
+  const [imageInterval, setImageInterval] = useState(() => 
+    parseFloat(localStorage.getItem('aichat_image_interval')) || 2
+  );
+  const [promptUpsampling, setPromptUpsampling] = useState(() => 
+    localStorage.getItem('aichat_prompt_upsampling') === 'true'
+  );
 
   // 生图模型列表
   const IMAGE_MODELS = [
@@ -165,6 +189,37 @@ export const SettingsModal = ({
     }
   };
 
+  // 添加一个函数来收集所有图片生成参数
+  const collectImageSettings = () => {
+    if (imageModel === 'black-forest-labs/FLUX.1-pro') {
+      return {
+        model: imageModel,
+        width: Math.floor(imageWidth / 32) * 32,  // 确保是32的倍数
+        height: Math.floor(imageHeight / 32) * 32, // 确保是32的倍数
+        steps: imageSteps,
+        guidance: imageGuidance,
+        safety_tolerance: imageSafety,
+        interval: imageInterval,
+        prompt_upsampling: promptUpsampling
+      };
+    } else {
+      return {
+        model: imageModel,
+        image_size: imageSize
+      };
+    }
+  };
+
+  // 修改关闭处理函数
+  const handleClose = () => {
+    // 收集并更新图片设置
+    const imageSettings = collectImageSettings();
+    onImageSettingsUpdate?.(imageSettings);
+    
+    // 调用原有的关闭处理函数
+    handleSettingsClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-base-100 rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto settings-panel">
@@ -174,7 +229,7 @@ export const SettingsModal = ({
           <button 
             type="button"
             className="btn btn-ghost btn-circle"
-            onClick={handleSettingsClose}
+            onClick={handleClose}
           >
             ✕
           </button>
@@ -239,7 +294,7 @@ export const SettingsModal = ({
                 {availableModels
                   .filter(model => !IMAGE_MODELS.includes(model))
                   .map(model => (
-                    <option key={model} value={model}>{model}</option>
+                  <option key={model} value={model}>{model}</option>
                   ))
                 }
               </select>
@@ -481,22 +536,183 @@ export const SettingsModal = ({
                   </div>
                 </div>
 
-                {/* 图片分辨率选择 */}
-                <div>
-                  <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
-                  <select 
-                    className="select select-bordered w-full"
-                    value={imageSize}
-                    onChange={(e) => handleImageSizeChange(e.target.value)}
-                  >
-                    {IMAGE_SIZES.map(size => (
-                      <option key={size.value} value={size.value}>{size.label}</option>
-                    ))}
-                  </select>
-                  <div className="text-xs opacity-70 mt-2">
-                    选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                {/* 根据不同的模型显示不同的设置选项 */}
+                {imageModel === 'black-forest-labs/FLUX.1-pro' ? (
+                  <>
+                    {/* 宽度设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">宽度 (Width)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="256"
+                          max="1440"
+                          step="32"
+                          value={imageWidth}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            if (value % 32 === 0) {
+                              setImageWidth(value);
+                              localStorage.setItem('aichat_image_width', value.toString());
+                            }
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <span className="text-lg font-medium min-w-[4ch]">{imageWidth}</span>
+                      </div>
+                      <div className="text-xs opacity-70">宽度必须是 32 的倍数，范围：256-1440</div>
+                    </div>
+
+                    {/* 高度设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">高度 (Height)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="256"
+                          max="1440"
+                          step="32"
+                          value={imageHeight}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            if (value % 32 === 0) {
+                              setImageHeight(value);
+                              localStorage.setItem('aichat_image_height', value.toString());
+                            }
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <span className="text-lg font-medium min-w-[4ch]">{imageHeight}</span>
+                      </div>
+                      <div className="text-xs opacity-70">高度必须是 32 的倍数，范围：256-1440</div>
+                    </div>
+
+                    {/* 步数设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">步数 (Steps)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="2"
+                          max="50"
+                          step="1"
+                          value={imageSteps}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            setImageSteps(value);
+                            localStorage.setItem('aichat_image_steps', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <span className="text-lg font-medium min-w-[3ch]">{imageSteps}</span>
+                      </div>
+                      <div className="text-xs opacity-70">生成步数范围：2-50</div>
+                    </div>
+
+                    {/* 引导系数设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">引导系数 (Guidance)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="1.5"
+                          max="5"
+                          step="0.1"
+                          value={imageGuidance}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setImageGuidance(value);
+                            localStorage.setItem('aichat_image_guidance', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <span className="text-lg font-medium min-w-[3ch]">{imageGuidance}</span>
+                      </div>
+                      <div className="text-xs opacity-70">值越高越严格遵循提示词，值越低创造性越强</div>
+                    </div>
+
+                    {/* 安全容忍度设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">安全容忍度 (Safety Tolerance)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="0"
+                          max="6"
+                          step="1"
+                          value={imageSafety}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            setImageSafety(value);
+                            localStorage.setItem('aichat_image_safety', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <span className="text-lg font-medium min-w-[3ch]">{imageSafety}</span>
+                      </div>
+                      <div className="text-xs opacity-70">0 最严格，6 最宽松</div>
+                    </div>
+
+                    {/* 间隔参数设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">间隔参数 (Interval)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="1"
+                          max="4"
+                          step="0.1"
+                          value={imageInterval}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setImageInterval(value);
+                            localStorage.setItem('aichat_image_interval', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <span className="text-lg font-medium min-w-[3ch]">{imageInterval}</span>
+                      </div>
+                      <div className="text-xs opacity-70">引导控制的间隔参数，范围：1-4</div>
+                    </div>
+
+                    {/* 提示词上采样开关 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">提示词上采样</h3>
+                      <div className="form-control">
+                        <label className="label cursor-pointer">
+                          <span className="label-text">启用提示词上采样</span>
+                          <input
+                            type="checkbox"
+                            className="toggle toggle-primary"
+                            checked={promptUpsampling}
+                            onChange={(e) => {
+                              setPromptUpsampling(e.target.checked);
+                              localStorage.setItem('aichat_prompt_upsampling', e.target.checked.toString());
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <div className="text-xs opacity-70">启用后将自动调整提示词以生成更具创意的内容</div>
+                    </div>
+                  </>
+                ) : (
+                  // 其他模型的默认分辨率设置
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                    <select 
+                      className="select select-bordered w-full"
+                      value={imageSize}
+                      onChange={(e) => handleImageSizeChange(e.target.value)}
+                    >
+                      {IMAGE_SIZES.map(size => (
+                        <option key={size.value} value={size.value}>{size.label}</option>
+                      ))}
+                    </select>
+                    <div className="text-xs opacity-70 mt-2">
+                      选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}

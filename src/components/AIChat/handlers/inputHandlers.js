@@ -30,7 +30,8 @@ export const createInputHandlers = ({
   setAbortController,
   isNetworkEnabled,
   updateMessage,
-  deleteMessage
+  deleteMessage,
+  imageSettings
 }) => {
   // 处理发送消息
   const handleSendMessage = async (isRetry = false, retryContent = null, forceNetworkSearch = false) => {
@@ -45,10 +46,27 @@ export const createInputHandlers = ({
 
     // 检查是否是图片生成命令或图片重试
     if (content.startsWith('/image ') || (isRetry && retryContent.originalPrompt)) {
+      // 添加全局设置日志
+      console.log('全局图片设置状态:', {
+        imageSettings,
+        typeof_width: typeof imageSettings.width,
+        width_value: imageSettings.width,
+        is_width_multiple_of_32: imageSettings.width % 32 === 0
+      });
+
       const args = content.startsWith('/image ') ? content.slice(7).trim().split('--') : [];
       const prompt = content.startsWith('/image ') ? args[0].trim() : retryContent.originalPrompt;
-      let model = localStorage.getItem('aichat_image_model') || 'black-forest-labs/FLUX.1-schnell';
-      let image_size = localStorage.getItem('aichat_image_size') || '1024x576';
+      let model = imageSettings.model;
+      let params = { ...imageSettings };
+
+      // 添加参数复制日志
+      console.log('初始参数复制:', {
+        model,
+        params,
+        typeof_width: typeof params.width,
+        width_value: params.width,
+        is_width_multiple_of_32: params.width % 32 === 0
+      });
 
       // 如果是新的图片生成命令，解析参数
       if (content.startsWith('/image ')) {
@@ -57,12 +75,43 @@ export const createInputHandlers = ({
           const [key, value] = args[i].trim().split(' ');
           if (key === 'model' && value) {
             model = value;
+            // 如果切换到了不同的模型，使用该模型的默认参数
+            if (model !== imageSettings.model) {
+              if (model === 'black-forest-labs/FLUX.1-pro') {
+                // 确保宽度和高度是32的倍数
+                params = {
+                  model,
+                  width: Math.floor(1024 / 32) * 32,
+                  height: Math.floor(768 / 32) * 32,
+                  steps: 20,
+                  guidance: 3,
+                  safety_tolerance: 2,
+                  interval: 2,
+                  prompt_upsampling: false
+                };
+                // 添加模型切换日志
+                console.log('切换到 FLUX.1-pro 模型:', {
+                  params,
+                  typeof_width: typeof params.width,
+                  width_value: params.width,
+                  is_width_multiple_of_32: params.width % 32 === 0
+                });
+              } else {
+                params = {
+                  model,
+                  image_size: '1024x576'
+                };
+                // 添加模型切换日志
+                console.log('切换到其他模型:', params);
+              }
+            }
           }
-          if (key === 'size' && value) {
+          if (key === 'size' && value && model !== 'black-forest-labs/FLUX.1-pro') {
             // 验证尺寸是否有效
             const validSizes = ['1024x1024', '512x1024', '768x512', '768x1024', '1024x576', '576x1024', '512x768'];
             if (validSizes.includes(value)) {
-              image_size = value;
+              params.image_size = value;
+              console.log('更新图片尺寸:', value);
             }
           }
         }
@@ -122,15 +171,69 @@ export const createInputHandlers = ({
       setMessages(prev => [...prev, aiMessage]);
 
       try {
+        // 在构建 API 参数之前添加日志
+        console.log('构建 API 参数前的状态:', {
+          model,
+          params,
+          typeof_width: typeof params.width,
+          width_value: params.width,
+          is_width_multiple_of_32: params.width % 32 === 0
+        });
+
+        // 预处理宽度和高度，确保是32的倍数
+        const finalWidth = Number(Math.floor(Number(params.width) / 32) * 32);
+        const finalHeight = Number(Math.floor(Number(params.height) / 32) * 32);
+
+        // 添加预处理后的参数日志
+        console.log('预处理后的宽度和高度:', {
+          finalWidth,
+          finalHeight,
+          finalWidth_is_multiple: finalWidth % 32 === 0,
+          finalHeight_is_multiple: finalHeight % 32 === 0,
+          finalWidth_type: typeof finalWidth,
+          finalHeight_type: typeof finalHeight
+        });
+
+        // 验证预处理后的参数
+        if (finalWidth < 256 || finalWidth > 1440 || finalWidth % 32 !== 0) {
+          throw new Error(`宽度 ${finalWidth} 必须是32的倍数，且在256-1440之间`);
+        }
+        if (finalHeight < 256 || finalHeight > 1440 || finalHeight % 32 !== 0) {
+          throw new Error(`高度 ${finalHeight} 必须是32的倍数，且在256-1440之间`);
+        }
+
         // 调用图片生成 API
-        const result = await window.electron.generateImage({
+        const apiParams = {
           prompt,
-          model,  // 确保传递模型参数
-          image_size,  // 添加尺寸参数
+          model,
+          ...(model === 'black-forest-labs/FLUX.1-pro' ? {
+            width: finalWidth,
+            height: finalHeight,
+            steps: Number(params.steps),
+            guidance: Number(params.guidance),
+            safety_tolerance: Number(params.safety_tolerance),
+            interval: Number(params.interval),
+            prompt_upsampling: params.prompt_upsampling
+          } : {
+            image_size: params.image_size
+          }),
           conversationPath: currentConversation.path,
           apiKey,
           apiHost
+        };
+
+        // 添加最终 API 参数日志
+        console.log('最终 API 参数:', {
+          ...apiParams,
+          typeof_width: typeof apiParams.width,
+          width_value: apiParams.width,
+          is_width_multiple_of_32: model === 'black-forest-labs/FLUX.1-pro' ? apiParams.width % 32 === 0 : null,
+          typeof_height: typeof apiParams.height,
+          height_value: apiParams.height,
+          is_height_multiple_of_32: model === 'black-forest-labs/FLUX.1-pro' ? apiParams.height % 32 === 0 : null
         });
+
+        const result = await window.electron.generateImage(apiParams);
 
         // 更新 AI 消息
         const finalContent = `**Prompt：** ${prompt}
