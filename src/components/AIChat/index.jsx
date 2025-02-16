@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { InputArea } from './components/InputArea';
@@ -49,6 +49,106 @@ export const AIChat = ({
   // 添加 AbortController 状态
   const [abortController, setAbortController] = useState(null);
 
+  // 创建输入处理函数的引用
+  const [inputHandlers, setInputHandlers] = useState(null);
+  const [messageHandlers, setMessageHandlers] = useState(null);
+
+  // 使用 useCallback 创建稳定的处理函数
+  const createHandlers = useCallback(() => {
+    const handlers = createInputHandlers({
+      messageInput: inputState.messageInput,
+      setMessageInput: inputState.setMessageInput,
+      setIsGenerating: inputState.setIsGenerating,
+      selectedFile: inputState.selectedFile,
+      setSelectedFile: inputState.setSelectedFile,
+      addToHistory: inputState.addToHistory,
+      handleHistoryNavigation: inputState.handleHistoryNavigation,
+      addMessage: messageState.addMessage,
+      currentConversation,
+      messages: messageState.messages,
+      setMessages: messageState.setMessages,
+      selectedProvider: modelState.selectedProvider,
+      selectedModel: modelState.selectedModel,
+      apiKey: modelState.apiKey,
+      apiHost: modelState.apiHost,
+      setMessageStates: messageState.setMessageStates,
+      setAnimationStates: messageState.setAnimationStates,
+      setFailedMessages: messageState.setFailedMessages,
+      setRetryingMessageId: messageState.setRetryingMessageId,
+      maxTokens,
+      temperature,
+      setError: modelState.setError,
+      abortController,
+      setAbortController,
+      isNetworkEnabled,
+      updateMessage: messageState.updateMessage,
+      deleteMessage: messageState.deleteMessage
+    });
+
+    const msgHandlers = createMessageHandlers({
+      messages: messageState.messages,
+      setMessages: messageState.setMessages,
+      setEditingMessageId: messageState.setEditingMessageId,
+      setEditContent: messageState.setEditContent,
+      setRetryingMessageId: messageState.setRetryingMessageId,
+      setFailedMessages: messageState.setFailedMessages,
+      selectedModel: modelState.selectedModel,
+      selectedProvider: modelState.selectedProvider,
+      apiKey: modelState.apiKey,
+      apiHost: modelState.apiHost,
+      setMessageStates: messageState.setMessageStates,
+      currentConversation,
+      window,
+      maxTokens,
+      temperature,
+      editContent: messageState.editContent,
+      abortController,
+      setAbortController,
+      isNetworkEnabled,
+      handleSendMessage: handlers.handleSendMessage
+    });
+
+    return { inputHandlers: handlers, messageHandlers: msgHandlers };
+  }, [
+    // 只包含必要的原始值和函数引用
+    currentConversation?.id,
+    currentConversation?.path,
+    modelState.selectedModel,
+    modelState.selectedProvider,
+    modelState.apiKey,
+    modelState.apiHost,
+    maxTokens,
+    temperature,
+    isNetworkEnabled,
+    abortController,
+    // 添加必要的函数引用
+    messageState.setMessages,
+    messageState.setMessageStates,
+    messageState.setAnimationStates,
+    messageState.setEditingMessageId,
+    messageState.setEditContent,
+    messageState.addMessage,
+    messageState.messages,
+    inputState.messageInput,
+    inputState.setMessageInput,
+    window
+  ]);
+
+  // 初始化处理函数
+  useEffect(() => {
+    const { inputHandlers: newInputHandlers, messageHandlers: newMessageHandlers } = createHandlers();
+    setInputHandlers(newInputHandlers);
+    setMessageHandlers(newMessageHandlers);
+  }, [createHandlers]);
+
+  // 创建设置处理函数
+  const settingsHandlers = createSettingsHandlers({
+    setSelectedProvider: modelState.setSelectedProvider,
+    setSelectedModel: modelState.setSelectedModel,
+    setApiHost: modelState.setApiHost,
+    setShowSettings: modelState.setShowSettings
+  });
+
   // 添加创建新对话的函数
   const handleCreateNewConversation = async () => {
     try {
@@ -89,68 +189,6 @@ export const AIChat = ({
     };
   }, [createNewConversation, modelState.setShowSettings]);
 
-  // 创建消息处理函数
-  const messageHandlers = createMessageHandlers({
-    messages: messageState.messages,
-    setMessages: messageState.setMessages,
-    setEditingMessageId: messageState.setEditingMessageId,
-    setEditContent: messageState.setEditContent,
-    setRetryingMessageId: messageState.setRetryingMessageId,
-    setFailedMessages: messageState.setFailedMessages,
-    selectedModel: modelState.selectedModel,
-    selectedProvider: modelState.selectedProvider,
-    apiKey: modelState.apiKey,
-    apiHost: modelState.apiHost,
-    setMessageStates: messageState.setMessageStates,
-    currentConversation,
-    window,
-    maxTokens,
-    temperature,
-    editContent: messageState.editContent,
-    abortController,
-    setAbortController,
-    isNetworkEnabled
-  });
-
-  // 创建设置处理函数
-  const settingsHandlers = createSettingsHandlers({
-    setSelectedProvider: modelState.setSelectedProvider,
-    setSelectedModel: modelState.setSelectedModel,
-    setApiHost: modelState.setApiHost,
-    setShowSettings: modelState.setShowSettings
-  });
-
-  // 创建输入处理函数
-  const inputHandlers = createInputHandlers({
-    messageInput: inputState.messageInput,
-    setMessageInput: inputState.setMessageInput,
-    setIsGenerating: inputState.setIsGenerating,
-    selectedFile: inputState.selectedFile,
-    setSelectedFile: inputState.setSelectedFile,
-    addToHistory: inputState.addToHistory,
-    handleHistoryNavigation: inputState.handleHistoryNavigation,
-    addMessage: messageHandlers.addMessage,
-    currentConversation,
-    messages: messageState.messages,
-    setMessages: messageState.setMessages,
-    selectedProvider: modelState.selectedProvider,
-    selectedModel: modelState.selectedModel,
-    apiKey: modelState.apiKey,
-    apiHost: modelState.apiHost,
-    setMessageStates: messageState.setMessageStates,
-    setAnimationStates: messageState.setAnimationStates,
-    setFailedMessages: messageState.setFailedMessages,
-    setRetryingMessageId: messageState.setRetryingMessageId,
-    maxTokens,
-    temperature,
-    isNetworkEnabled,
-    setError: (error) => console.error(error),
-    updateMessage: messageHandlers.updateMessage,
-    deleteMessage: messageHandlers.deleteMessage,
-    abortController,
-    setAbortController
-  });
-
   // 添加 openFileLocation 函数
   const openFileLocation = async (file) => {
     try {
@@ -163,71 +201,81 @@ export const AIChat = ({
 
   return (
     <div className="flex flex-col h-full w-full">
-      {/* 顶部标题栏 */}
-      <div className="flex-none">
-        <Header
-          selectedModel={modelState.selectedModel}
-          setSelectedModel={modelState.setSelectedModel}
-          availableModels={modelState.availableModels}
-          currentConversation={currentConversation}
-          setShowSettings={modelState.setShowSettings}
-          maxTokens={maxTokens}
-          setMaxTokens={setMaxTokens}
-          temperature={temperature}
-          setTemperature={setTemperature}
-        />
-      </div>
+      {/* 只在 handlers 都准备好后渲染内容 */}
+      {inputHandlers && messageHandlers ? (
+        <>
+          {/* 顶部标题栏 */}
+          <div className="flex-none">
+            <Header
+              selectedModel={modelState.selectedModel}
+              setSelectedModel={modelState.setSelectedModel}
+              availableModels={modelState.availableModels}
+              currentConversation={currentConversation}
+              setShowSettings={modelState.setShowSettings}
+              maxTokens={maxTokens}
+              setMaxTokens={setMaxTokens}
+              temperature={temperature}
+              setTemperature={setTemperature}
+            />
+          </div>
 
-      {/* 消息列表区域 */}
-      <div className="flex-1 overflow-auto">
-        <MessageList
-          messages={messageState.messages}
-          selectedModel={modelState.selectedModel}
-          editingMessageId={messageState.editingMessageId}
-          editContent={messageState.editContent}
-          setEditContent={messageState.setEditContent}
-          handleEditStart={messageHandlers.startEditing}
-          handleEditCancel={messageHandlers.cancelEditing}
-          handleEditSave={messageHandlers.saveEdit}
-          handleDeleteMessage={messageHandlers.deleteMessage}
-          handleRetry={messageHandlers.handleRetry}
-          handleStop={messageHandlers.handleStop}
-          handleHistoryNavigation={messageHandlers.handleHistoryNavigation}
-          openFileLocation={openFileLocation}
-          openInBrowserTab={openInBrowserTab}
-        />
-      </div>
+          {/* 消息列表区域 */}
+          <div className="flex-1 overflow-auto">
+            <MessageList
+              messages={messageState.messages}
+              selectedModel={modelState.selectedModel}
+              editingMessageId={messageState.editingMessageId}
+              editContent={messageState.editContent}
+              setEditContent={messageState.setEditContent}
+              handleEditStart={messageHandlers.startEditing}
+              handleEditCancel={messageHandlers.cancelEditing}
+              handleEditSave={messageHandlers.saveEdit}
+              handleDeleteMessage={messageHandlers.deleteMessage}
+              handleRetry={messageHandlers.handleRetry}
+              handleStop={messageHandlers.handleStop}
+              handleHistoryNavigation={messageHandlers.handleHistoryNavigation}
+              openFileLocation={openFileLocation}
+              openInBrowserTab={openInBrowserTab}
+            />
+          </div>
 
-      {/* 底部输入区域 */}
-      <div className="flex-none">
-        <InputArea
-          messageInput={inputState.messageInput}
-          setMessageInput={inputState.setMessageInput}
-          handleSendMessage={inputHandlers.handleSendMessage}
-          handleKeyDown={inputHandlers.handleKeyDown}
-          fileInputRef={inputState.fileInputRef}
-          isNetworkEnabled={isNetworkEnabled}
-          setIsNetworkEnabled={setIsNetworkEnabled}
-        />
-      </div>
+          {/* 底部输入区域 */}
+          <div className="flex-none">
+            <InputArea
+              messageInput={inputState.messageInput}
+              setMessageInput={inputState.setMessageInput}
+              handleSendMessage={inputHandlers.handleSendMessage}
+              handleKeyDown={inputHandlers.handleKeyDown}
+              fileInputRef={inputState.fileInputRef}
+              isNetworkEnabled={isNetworkEnabled}
+              setIsNetworkEnabled={setIsNetworkEnabled}
+            />
+          </div>
 
-      {/* 设置弹窗 */}
-      {modelState.showSettings && (
-        <SettingsModal
-          selectedProvider={modelState.selectedProvider}
-          setSelectedProvider={modelState.setSelectedProvider}
-          selectedModel={modelState.selectedModel}
-          handleModelChange={settingsHandlers.handleModelChange}
-          availableModels={modelState.availableModels}
-          apiHost={modelState.apiHost}
-          handleApiHostChange={settingsHandlers.handleApiHostChange}
-          apiKey={modelState.apiKey}
-          setApiKey={modelState.setApiKey}
-          showApiKey={modelState.showApiKey}
-          setShowApiKey={modelState.setShowApiKey}
-          handleSettingsClose={settingsHandlers.handleSettingsClose}
-          MODEL_PROVIDERS={MODEL_PROVIDERS}
-        />
+          {/* 设置弹窗 */}
+          {modelState.showSettings && (
+            <SettingsModal
+              selectedProvider={modelState.selectedProvider}
+              setSelectedProvider={modelState.setSelectedProvider}
+              selectedModel={modelState.selectedModel}
+              handleModelChange={settingsHandlers.handleModelChange}
+              availableModels={modelState.availableModels}
+              apiHost={modelState.apiHost}
+              handleApiHostChange={settingsHandlers.handleApiHostChange}
+              apiKey={modelState.apiKey}
+              setApiKey={modelState.setApiKey}
+              showApiKey={modelState.showApiKey}
+              setShowApiKey={modelState.setShowApiKey}
+              handleSettingsClose={settingsHandlers.handleSettingsClose}
+              MODEL_PROVIDERS={MODEL_PROVIDERS}
+            />
+          )}
+        </>
+      ) : (
+        // 加载状态
+        <div className="flex-1 flex items-center justify-center">
+          <div className="loading loading-spinner loading-lg"></div>
+        </div>
       )}
     </div>
   );

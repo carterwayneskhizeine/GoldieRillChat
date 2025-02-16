@@ -34,7 +34,8 @@ export const createMessageHandlers = ({
   editContent,
   abortController,
   setAbortController,
-  isNetworkEnabled
+  isNetworkEnabled,
+  handleSendMessage
 }) => {
   // 添加新消息
   const addMessage = (content, type = 'user') => {
@@ -204,6 +205,17 @@ export const createMessageHandlers = ({
       if (userMessageIndex < 0) return;
       const userMessage = messages[userMessageIndex];
 
+      // 检查是否是图片生成消息
+      if (aiMessage.originalPrompt) {
+        // 如果是图片消息，构建命令字符串
+        const imageCommand = `/image ${aiMessage.originalPrompt}`;
+        
+        // 使用原始提示词重试，传递字符串作为内容
+        await handleSendMessage(true, imageCommand);
+        return;
+      }
+
+      // 如果是文字消息，继续原有的重试逻辑
       // 尝试进行网络搜索
       let systemMessage = '';
       let searchResults = null;

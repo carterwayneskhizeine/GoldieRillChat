@@ -43,24 +43,27 @@ export const createInputHandlers = ({
     // 获取要发送的内容
     const content = isRetry ? retryContent : messageInput;
 
-    // 检查是否是图片生成命令
-    if (content.startsWith('/image ')) {
-      const args = content.slice(7).trim().split('--');  // 使用 -- 分割参数
-      const prompt = args[0].trim();
-      let model = 'black-forest-labs/FLUX.1-schnell';  // 默认模型
-      let image_size = '1024x576';  // 默认尺寸
+    // 检查是否是图片生成命令或图片重试
+    if (content.startsWith('/image ') || (isRetry && retryContent.originalPrompt)) {
+      const args = content.startsWith('/image ') ? content.slice(7).trim().split('--') : [];
+      const prompt = content.startsWith('/image ') ? args[0].trim() : retryContent.originalPrompt;
+      let model = localStorage.getItem('aichat_image_model') || 'black-forest-labs/FLUX.1-schnell';
+      let image_size = localStorage.getItem('aichat_image_size') || '1024x576';
 
-      // 解析其他参数
-      for (let i = 1; i < args.length; i++) {
-        const [key, value] = args[i].trim().split(' ');
-        if (key === 'model' && value) {
-          model = value;
-        }
-        if (key === 'size' && value) {
-          // 验证尺寸是否有效
-          const validSizes = ['1024x1024', '512x1024', '768x512', '768x1024', '1024x576', '576x1024'];
-          if (validSizes.includes(value)) {
-            image_size = value;
+      // 如果是新的图片生成命令，解析参数
+      if (content.startsWith('/image ')) {
+        // 解析其他参数
+        for (let i = 1; i < args.length; i++) {
+          const [key, value] = args[i].trim().split(' ');
+          if (key === 'model' && value) {
+            model = value;
+          }
+          if (key === 'size' && value) {
+            // 验证尺寸是否有效
+            const validSizes = ['1024x1024', '512x1024', '768x512', '768x1024', '1024x576', '576x1024', '512x768'];
+            if (validSizes.includes(value)) {
+              image_size = value;
+            }
           }
         }
       }
@@ -73,7 +76,7 @@ export const createInputHandlers = ({
       // 添加用户消息
       const userMessage = {
         id: Date.now(),
-        content,
+        content: isRetry && retryContent.originalPrompt ? `/image ${retryContent.originalPrompt}` : content,
         type: 'user',
         timestamp: new Date()
       };
@@ -89,11 +92,13 @@ export const createInputHandlers = ({
       setMessages(prev => [...prev, userMessage]);
 
       // 清空输入框
-      setMessageInput('');
-      const textarea = document.querySelector('.aichat-input');
-      if (textarea) {
-        textarea.style.height = '64px';
-        textarea.style.overflowY = 'hidden';
+      if (!isRetry) {
+        setMessageInput('');
+        const textarea = document.querySelector('.aichat-input');
+        if (textarea) {
+          textarea.style.height = '64px';
+          textarea.style.overflowY = 'hidden';
+        }
       }
 
       // 创建 AI 消息对象
@@ -120,7 +125,7 @@ export const createInputHandlers = ({
         // 调用图片生成 API
         const result = await window.electron.generateImage({
           prompt,
-          model,
+          model,  // 确保传递模型参数
           image_size,  // 添加尺寸参数
           conversationPath: currentConversation.path,
           apiKey,
@@ -129,6 +134,8 @@ export const createInputHandlers = ({
 
         // 更新 AI 消息
         const finalContent = `**Prompt：** ${prompt}
+
+**Model：** ${model}
 
 **Seed：** ${result.seed}
 
@@ -143,6 +150,7 @@ export const createInputHandlers = ({
             type: 'image/png'
           }],
           seed: result.seed,
+          model: model,  // 添加模型信息
           originalPrompt: prompt  // 保存原始提示词，方便重新生成
         };
 
@@ -204,7 +212,7 @@ export const createInputHandlers = ({
       // 添加用户消息
       const userMessage = {
         id: Date.now(),
-        content: content,
+        content: isRetry && retryContent.originalPrompt ? `/image ${retryContent.originalPrompt}` : content,
         type: 'user',
         timestamp: new Date()
       };

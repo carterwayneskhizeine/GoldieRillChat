@@ -1073,13 +1073,14 @@ ipcMain.handle('load-messages', async (event, conversationPath) => {
 });
 
 // 添加图片生成相关的 IPC 处理
-ipcMain.handle('generate-image', async (event, { prompt, seed, conversationPath, apiKey, apiHost, model = 'black-forest-labs/FLUX.1-schnell', image_size = '1024x576' }) => {
+ipcMain.handle('generate-image', async (event, { prompt, model, image_size, conversationPath, apiKey, apiHost }) => {
   try {
     // 验证必要参数
     if (!prompt) throw new Error('提示词不能为空');
     if (!apiKey) throw new Error('API Key 不能为空');
     if (!apiHost) throw new Error('API Host 不能为空');
     if (!conversationPath) throw new Error('对话路径不能为空');
+    if (!model) throw new Error('模型不能为空');
 
     // 确保存在图片存储目录
     const imagesDir = path.join(conversationPath, 'images');
@@ -1100,7 +1101,7 @@ ipcMain.handle('generate-image', async (event, { prompt, seed, conversationPath,
         model,
         prompt,
         image_size,
-        seed: seed || Math.floor(Math.random() * 9999999999)
+        seed: Math.floor(Math.random() * 9999999999)
       })
     });
 
@@ -1138,7 +1139,7 @@ ipcMain.handle('generate-image', async (event, { prompt, seed, conversationPath,
       localPath: filePath,
       fileName: fileName,
       timestamp: timestamp,
-      seed: seed || Math.floor(Math.random() * 9999999999)
+      seed: data.seed || Math.floor(Math.random() * 9999999999)
     };
 
   } catch (error) {

@@ -170,6 +170,6 @@ contextBridge.exposeInMainWorld('electron', {
   },
 
   // 添加 AI 图片生成相关功能
-  generateImage: ({ prompt, seed, conversationPath, apiKey, apiHost }) => 
-    ipcRenderer.invoke('generate-image', { prompt, seed, conversationPath, apiKey, apiHost }),
+  generateImage: ({ prompt, model, image_size, conversationPath, apiKey, apiHost }) => 
+    ipcRenderer.invoke('generate-image', { prompt, model, image_size, conversationPath, apiKey, apiHost }),
 }) 

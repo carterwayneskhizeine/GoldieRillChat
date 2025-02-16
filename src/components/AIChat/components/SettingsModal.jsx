@@ -42,6 +42,41 @@ export const SettingsModal = ({
     return saved ? parseInt(saved) : 5;  // 默认5条
   });
 
+  // 添加生图模型状态
+  const [imageModel, setImageModel] = useState(() => {
+    return localStorage.getItem('aichat_image_model') || 'black-forest-labs/FLUX.1-schnell';
+  });
+
+  // 添加图片分辨率状态
+  const [imageSize, setImageSize] = useState(() => {
+    return localStorage.getItem('aichat_image_size') || '1024x576';
+  });
+
+  // 生图模型列表
+  const IMAGE_MODELS = [
+    'black-forest-labs/FLUX.1-schnell',
+    'black-forest-labs/FLUX.1-dev',
+    'black-forest-labs/FLUX.1-pro',
+    'stabilityai/stable-diffusion-xl-base-1.0',
+    'stabilityai/stable-diffusion-3-5-large',
+    'stabilityai/stable-diffusion-3-5-large-turbo',
+    'deepseek-ai/Janus-Pro-7B',
+    'stabilityai/stable-diffusion-3-medium',
+    'stabilityai/stable-diffusion-2-1',
+    'Pro/black-forest-labs/FLUX.1-schnell',
+    'LoRA/black-forest-labs/FLUX.1-dev'
+  ];
+
+  // 图片分辨率列表
+  const IMAGE_SIZES = [
+    { value: '1024x576', label: '1024×576 (16:9 横版)' },
+    { value: '576x1024', label: '576×1024 (9:16 竖版)' },
+    { value: '1024x1024', label: '1024×1024 (1:1 方形)' },
+    { value: '768x512', label: '768×512 (3:2 横版)' },
+    { value: '512x768', label: '512×768 (2:3 竖版)' },
+    { value: '768x1024', label: '768×1024 (3:4 竖版)' }
+  ];
+
   // 处理 Google API 密钥变更
   const handleGoogleApiKeyChange = (value) => {
     setGoogleApiKey(value);
@@ -101,6 +136,18 @@ export const SettingsModal = ({
     localStorage.setItem('aichat_max_history_messages', numValue.toString());
   };
 
+  // 处理生图模型变更
+  const handleImageModelChange = (value) => {
+    setImageModel(value);
+    localStorage.setItem('aichat_image_model', value);
+  };
+
+  // 处理图片分辨率变更
+  const handleImageSizeChange = (value) => {
+    setImageSize(value);
+    localStorage.setItem('aichat_image_size', value);
+  };
+
   const openExternalLink = (url) => {
     try {
       // 首选使用 electron 的 shell.openExternal
@@ -149,6 +196,14 @@ export const SettingsModal = ({
             >
               搜索
             </a>
+            {selectedProvider === 'siliconflow' && (
+              <a 
+                className={`tab ${activeTab === 'image' ? 'tab-active' : ''}`}
+                onClick={() => setActiveTab('image')}
+              >
+                图片
+              </a>
+            )}
             <a 
               className={`tab ${activeTab === 'other' ? 'tab-active' : ''}`}
               onClick={() => setActiveTab('other')}
@@ -181,9 +236,12 @@ export const SettingsModal = ({
                 value={selectedModel}
                 onChange={(e) => handleModelChange(e.target.value)}
               >
-                {availableModels.map(model => (
-                  <option key={model} value={model}>{model}</option>
-                ))}
+                {availableModels
+                  .filter(model => !IMAGE_MODELS.includes(model))
+                  .map(model => (
+                    <option key={model} value={model}>{model}</option>
+                  ))
+                }
               </select>
             </div>
 
@@ -402,7 +460,48 @@ export const SettingsModal = ({
             </div>
           </div>
 
-          {/* Tab 3: 其它设置 */}
+          {/* Tab 3: 图片设置 */}
+          {selectedProvider === 'siliconflow' && (
+            <div className={activeTab === 'image' ? '' : 'hidden'}>
+              <div className="space-y-4">
+                {/* 生图模型选择 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">生图模型</h3>
+                  <select 
+                    className="select select-bordered w-full"
+                    value={imageModel}
+                    onChange={(e) => handleImageModelChange(e.target.value)}
+                  >
+                    {IMAGE_MODELS.map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                  <div className="text-xs opacity-70 mt-2">
+                    选择用于图片生成的模型，使用 /image 命令时会使用此模型
+                  </div>
+                </div>
+
+                {/* 图片分辨率选择 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                  <select 
+                    className="select select-bordered w-full"
+                    value={imageSize}
+                    onChange={(e) => handleImageSizeChange(e.target.value)}
+                  >
+                    {IMAGE_SIZES.map(size => (
+                      <option key={size.value} value={size.value}>{size.label}</option>
+                    ))}
+                  </select>
+                  <div className="text-xs opacity-70 mt-2">
+                    选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 4: 其他设置 */}
           <div className={activeTab === 'other' ? '' : 'hidden'}>
             <div className="space-y-4">
               {/* 消息历史记录数量设置 */}
