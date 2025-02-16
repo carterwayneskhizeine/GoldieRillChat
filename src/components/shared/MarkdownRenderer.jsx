@@ -687,15 +687,39 @@ export const MarkdownRenderer = React.memo(({
             right: 0;
             bottom: 0;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             background: var(--b2);
             z-index: 1;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
           }
 
-          .markdown-content .image-loading .spinner {
-            animation: spin 1s linear infinite;
-            color: var(--p);
+          .markdown-content .image-loading .icon {
+            width: 24px;
+            height: 24px;
+            stroke: var(--p);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+
+          .markdown-content .image-loading .text {
+            font-size: 0.875rem;
+            color: var(--bc);
+            opacity: 0.7;
+          }
+
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.5;
+            }
           }
 
           .markdown-content .image-error {
@@ -737,15 +761,6 @@ export const MarkdownRenderer = React.memo(({
 
           .markdown-content .image-error-retry:hover {
             background: var(--b4);
-          }
-
-          @keyframes spin {
-            from {
-              transform: rotate(0deg);
-            }
-            to {
-              transform: rotate(360deg);
-            }
           }
 
           .table-container {
@@ -1108,7 +1123,50 @@ export const MarkdownRenderer = React.memo(({
           ),
           td: ({node, children, ...props}) => (
             <td {...props}>{children}</td>
-          )
+          ),
+          img: ({node, src, alt, ...props}) => {
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState(false);
+
+            return (
+              <div className="image-wrapper">
+                {isLoading && !error && (
+                  <div className="image-loading">
+                    <svg className="icon" viewBox="0 0 24 24" fill="none">
+                      <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path d="M9 9l.01 0" />
+                      <path d="M15 9l.01 0" />
+                      <path d="M8 13h8a4 4 0 01-8 0z" />
+                    </svg>
+                    <span className="text">加载图片中...</span>
+                  </div>
+                )}
+                <img
+                  src={src}
+                  alt={alt}
+                  onLoad={() => setIsLoading(false)}
+                  onError={() => {
+                    setIsLoading(false);
+                    setError(true);
+                  }}
+                  style={{
+                    display: isLoading ? 'none' : 'block',
+                    maxWidth: '100%',
+                    height: 'auto'
+                  }}
+                  {...props}
+                />
+                {error && (
+                  <div className="image-error">
+                    <svg className="icon" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text">图片加载失败</span>
+                  </div>
+                )}
+              </div>
+            );
+          }
         }}
       >
         {processedContent}

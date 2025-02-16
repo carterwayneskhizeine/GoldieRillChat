@@ -1070,4 +1070,79 @@ ipcMain.handle('load-messages', async (event, conversationPath) => {
     console.error('加载消息失败:', error);
     throw error;
   }
+});
+
+// 添加图片生成相关的 IPC 处理
+ipcMain.handle('generate-image', async (event, { prompt, seed, conversationPath, apiKey, apiHost, model = 'black-forest-labs/FLUX.1-schnell', image_size = '1024x576' }) => {
+  try {
+    // 验证必要参数
+    if (!prompt) throw new Error('提示词不能为空');
+    if (!apiKey) throw new Error('API Key 不能为空');
+    if (!apiHost) throw new Error('API Host 不能为空');
+    if (!conversationPath) throw new Error('对话路径不能为空');
+
+    // 确保存在图片存储目录
+    const imagesDir = path.join(conversationPath, 'images');
+    try {
+      await fs.access(imagesDir);
+    } catch {
+      await fs.mkdir(imagesDir, { recursive: true });
+    }
+
+    // 调用 SiliconFlow API
+    const response = await fetch(`${apiHost}/v1/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model,
+        prompt,
+        image_size,
+        seed: seed || Math.floor(Math.random() * 9999999999)
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || '图片生成失败');
+    }
+
+    const data = await response.json();
+    if (!data.images?.[0]?.url) {
+      throw new Error('未获取到生成的图片 URL');
+    }
+
+    // 下载图片
+    const imageUrl = data.images[0].url;
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error('图片下载失败');
+    }
+
+    // 读取图片数据
+    const imageBuffer = await imageResponse.arrayBuffer();
+
+    // 生成文件名和保存路径
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `image_${timestamp}.png`;
+    const filePath = path.join(imagesDir, fileName);
+
+    // 保存图片到本地
+    await fs.writeFile(filePath, Buffer.from(imageBuffer));
+
+    // 返回结果
+    return {
+      url: imageUrl,
+      localPath: filePath,
+      fileName: fileName,
+      timestamp: timestamp,
+      seed: seed || Math.floor(Math.random() * 9999999999)
+    };
+
+  } catch (error) {
+    console.error('图片生成失败:', error);
+    throw new Error(`图片生成失败: ${error.message}`);
+  }
 }); 

@@ -39,13 +39,165 @@ export const createInputHandlers = ({
       alert('请先创建或选择一个会话');
       return;
     }
-    
+
+    // 获取要发送的内容
+    const content = isRetry ? retryContent : messageInput;
+
+    // 检查是否是图片生成命令
+    if (content.startsWith('/image ')) {
+      const args = content.slice(7).trim().split('--');  // 使用 -- 分割参数
+      const prompt = args[0].trim();
+      let model = 'black-forest-labs/FLUX.1-schnell';  // 默认模型
+      let image_size = '1024x576';  // 默认尺寸
+
+      // 解析其他参数
+      for (let i = 1; i < args.length; i++) {
+        const [key, value] = args[i].trim().split(' ');
+        if (key === 'model' && value) {
+          model = value;
+        }
+        if (key === 'size' && value) {
+          // 验证尺寸是否有效
+          const validSizes = ['1024x1024', '512x1024', '768x512', '768x1024', '1024x576', '576x1024'];
+          if (validSizes.includes(value)) {
+            image_size = value;
+          }
+        }
+      }
+
+      if (!prompt) {
+        alert('请输入图片生成提示词');
+        return;
+      }
+
+      // 添加用户消息
+      const userMessage = {
+        id: Date.now(),
+        content,
+        type: 'user',
+        timestamp: new Date()
+      };
+
+      // 保存用户消息到txt文件
+      const txtFile = await window.electron.saveMessageAsTxt(
+        currentConversation.path, 
+        userMessage
+      );
+      userMessage.txtFile = txtFile;
+      
+      // 更新消息列表
+      setMessages(prev => [...prev, userMessage]);
+
+      // 清空输入框
+      setMessageInput('');
+      const textarea = document.querySelector('.aichat-input');
+      if (textarea) {
+        textarea.style.height = '64px';
+        textarea.style.overflowY = 'hidden';
+      }
+
+      // 创建 AI 消息对象
+      const aiMessage = {
+        id: Date.now() + 1,
+        content: '',
+        type: 'assistant',
+        timestamp: new Date(),
+        generating: true,
+        thinking: true,  // 添加 thinking 标记来触发动画效果
+        thinkingText: '正在生成图片'  // 自定义思考文本
+      };
+
+      // 设置消息状态
+      setMessageStates(prev => ({
+        ...prev,
+        [aiMessage.id]: MESSAGE_STATES.THINKING
+      }));
+
+      // 更新消息列表
+      setMessages(prev => [...prev, aiMessage]);
+
+      try {
+        // 调用图片生成 API
+        const result = await window.electron.generateImage({
+          prompt,
+          model,
+          image_size,  // 添加尺寸参数
+          conversationPath: currentConversation.path,
+          apiKey,
+          apiHost
+        });
+
+        // 更新 AI 消息
+        const finalContent = `**提示词：** ${prompt}
+
+**Seed：** ${result.seed}
+
+![${prompt}](local-file://${result.localPath})`;
+        const updatedAiMessage = {
+          ...aiMessage,
+          content: finalContent,
+          generating: false,
+          files: [{
+            name: result.fileName,
+            path: result.localPath,
+            type: 'image/png'
+          }],
+          seed: result.seed,
+          originalPrompt: prompt  // 保存原始提示词，方便重新生成
+        };
+
+        // 更新消息列表
+        setMessages(prev => prev.map(msg => 
+          msg.id === aiMessage.id ? updatedAiMessage : msg
+        ));
+
+        // 保存消息到文件
+        const aiTxtFile = await window.electron.saveMessageAsTxt(
+          currentConversation.path,
+          {
+            ...updatedAiMessage,
+            fileName: `${formatAIChatTime(aiMessage.timestamp)} • 图片生成 • Seed: ${result.seed}`
+          }
+        );
+
+        // 更新最终消息
+        setMessages(prev => prev.map(msg => 
+          msg.id === aiMessage.id ? { ...updatedAiMessage, txtFile: aiTxtFile } : msg
+        ));
+
+        // 更新消息状态
+        setMessageStates(prev => ({
+          ...prev,
+          [aiMessage.id]: MESSAGE_STATES.COMPLETED
+        }));
+
+      } catch (error) {
+        console.error('图片生成失败:', error);
+        
+        // 更新消息内容为错误信息
+        setMessages(prev => prev.map(msg => 
+          msg.id === aiMessage.id ? {
+            ...msg,
+            content: `图片生成失败: ${error.message}`,
+            generating: false,
+            error: true
+          } : msg
+        ));
+
+        // 更新消息状态
+        setMessageStates(prev => ({
+          ...prev,
+          [aiMessage.id]: MESSAGE_STATES.ERROR
+        }));
+      }
+
+      return;
+    }
+
     // 创建新的 AbortController
     const controller = new AbortController();
     setAbortController(controller);
 
-    // 获取要发送的内容
-    const content = isRetry ? retryContent : messageInput;
     let aiMessage = null;
 
     try {
