@@ -458,7 +458,7 @@ export function ChatView({
         id="ai-chat-messages"
         className={`flex-1 overflow-y-auto p-4 ${isCompact ? 'compact-scroll' : ''} chat-view-messages`}
         style={{
-          paddingBottom: isCompact ? '205px' : '145px',
+          paddingBottom: isCompact ? '100px' : '140px',
           marginBottom: isCompact ? '60px' : '0px'
         }}
         onDragEnter={handleDragEnter}

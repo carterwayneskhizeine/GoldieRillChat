@@ -95,7 +95,7 @@ export const MessageList = ({
         id="ai-chat-messages-main"
         className="h-full overflow-y-auto" 
         style={{ 
-          paddingBottom: '145px',
+          paddingBottom: '45px',
           isolation: 'isolate',
           position: 'relative',
           scrollBehavior: 'smooth'

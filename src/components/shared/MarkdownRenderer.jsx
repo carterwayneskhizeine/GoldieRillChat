@@ -65,11 +65,8 @@ export const MarkdownRenderer = ({
 
   // 预处理内容，修复有序列表格式和代码块
   const processContent = (text) => {
-    // 保留原始分隔线语法（使用更精确的正则匹配）
-    let processed = text.replace(/^([*_-]{3,})\s*$/gm, (match) => `\n\n${match}\n\n`);
-
     // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
-    processed = processed.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
+    let processed = text.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
 
     // 处理带有反引号的序号标题格式
     processed = processed.replace(/^(#+\s*\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
@@ -775,13 +772,6 @@ export const MarkdownRenderer = ({
               max-width: 100%;
             }
           }
-
-          .markdown-content hr {
-            border: none !important;
-            border-bottom: 1px solid var(--b3) !important;
-            margin: 2em 0 !important;
-            opacity: 0.5 !important;
-          }
         `}
       </style>
 
@@ -1144,20 +1134,6 @@ export const MarkdownRenderer = ({
           ),
           blockquote: ({node, ...props}) => (
             <blockquote {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-
-          // 添加水平分隔线组件
-          hr: ({node, ...props}) => (
-            <hr 
-              {...props}
-              className="markdown-hr"
-              style={{
-                border: 'none',
-                borderBottom: '1px solid var(--b3)',
-                margin: '2em 0',
-                opacity: 0.5
-              }}
-            />
           ),
         }}
       >
