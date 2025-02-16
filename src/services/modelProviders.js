@@ -87,9 +87,11 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
     try {
       // 发送初始状态
       onUpdate?.({
-        type: 'content',
+        type: 'assistant',
         content: '',
-        done: false
+        reasoning_content: '',
+        done: false,
+        generating: true
       });
 
       const response = await fetch(`${apiHost}/v1/chat/completions`, {
@@ -152,12 +154,13 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
       while (true) {
         const { value, done } = await reader.read();
         if (done) {
-          // 发送完成信号
+          // 发送完成信号，包含所有内容
           onUpdate?.({
-            type: 'content',
+            type: 'assistant',
             content: content,
+            reasoning_content: reasoning_content,
             done: true,
-            reasoning_content: reasoning_content
+            generating: false
           });
           break;
         }
@@ -174,29 +177,34 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
             if (jsonStr === '[DONE]') continue;
             
             const json = JSON.parse(jsonStr);
-            console.log('收到的数据块:', json); // 添加日志
+            console.log('收到的数据块:', json);
             
             if (json.choices && json.choices[0] && json.choices[0].delta) {
               const delta = json.choices[0].delta;
+              let shouldUpdate = false;
               
-              // 处理推理过程
+              // 处理推理内容
               if (delta.reasoning_content !== undefined) {
                 reasoning_content += delta.reasoning_content || '';
                 console.log('收到推理内容:', delta.reasoning_content);
                 console.log('当前推理内容:', reasoning_content);
-                onUpdate?.({
-                  type: 'reasoning',
-                  content: reasoning_content
-                });
+                shouldUpdate = true;
               }
               
               // 处理普通内容
               if (delta.content !== undefined) {
                 content += delta.content || '';
+                shouldUpdate = true;
+              }
+
+              // 只在有更新时发送
+              if (shouldUpdate) {
                 onUpdate?.({
-                  type: 'content',
+                  type: 'assistant',
                   content: content,
-                  done: false
+                  reasoning_content: reasoning_content,
+                  done: false,
+                  generating: true
                 });
               }
             }
@@ -210,6 +218,8 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
       return {
         content: content,
         reasoning_content: reasoning_content,
+        type: 'assistant',
+        generating: false,
         usage: {
           total_tokens: Math.ceil((content.length + reasoning_content.length) / 4)
         }
@@ -287,9 +297,11 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate,
       if (done) {
         // 发送完成信号
         onUpdate?.({
-          type: 'complete',
+          type: 'assistant',
           content,
-          reasoning_content
+          reasoning_content,
+          done: true,
+          generating: false
         });
         break;
       }
@@ -402,7 +414,17 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
 
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) {
+        // 发送最终完成信号
+        onUpdate?.({
+          type: 'assistant',
+          content: content,
+          reasoning_content: reasoning_content,
+          done: true,
+          generating: false
+        });
+        break;
+      }
 
       buffer += decoder.decode(value, { stream: true });
       const chunks = buffer.split('\n');
@@ -448,14 +470,6 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
         }
       }
     }
-
-    // 发送最终完成信号
-    onUpdate?.({
-      type: 'content',
-      content: content,
-      done: true,
-      reasoning_content: reasoning_content
-    });
 
     return {
       content: content,

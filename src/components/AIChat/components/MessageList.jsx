@@ -1,39 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageItem } from './MessageItem';
 import { useMessageCollapse } from '../hooks/useMessageCollapse';
 import '../styles/messages.css';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
-
-// 使用 React.memo 优化 MessageRow 组件
-const MessageRow = React.memo(({ data, index, style }) => {
-  const message = data.messages[index];
-  return (
-    <div style={style}>
-      <MessageItem
-        message={message}
-        selectedModel={data.selectedModel}
-        editingMessageId={data.editingMessageId}
-        editContent={data.editContent}
-        setEditContent={data.setEditContent}
-        handleEditStart={data.handleEditStart}
-        handleEditCancel={data.handleEditCancel}
-        handleEditSave={data.handleEditSave}
-        handleDeleteMessage={data.onDeleteMessage}
-        handleRetry={data.handleRetry}
-        handleStop={data.handleStop}
-        handleHistoryNavigation={data.handleHistoryNavigation}
-        isCollapsed={data.isMessageCollapsed(message.id)}
-        onToggleCollapse={data.toggleMessageCollapse}
-        onImageClick={data.handleImageClick}
-        openFileLocation={data.openFileLocation}
-        openInBrowserTab={data.openInBrowserTab}
-      />
-    </div>
-  );
-});
 
 export const MessageList = ({
   messages,
@@ -51,118 +21,114 @@ export const MessageList = ({
   openFileLocation,
   openInBrowserTab
 }) => {
-  const listRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  // 删除确认状态
   const [deletingMessageId, setDeletingMessageId] = useState(null);
+
+  // 使用折叠状态 hook
   const { isMessageCollapsed, toggleMessageCollapse } = useMessageCollapse();
+
+  // 添加 Lightbox 相关状态
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxImages, setLightboxImages] = useState([]);
 
-  // 使用 useCallback 优化滚动处理
-  const scrollToBottom = useCallback(() => {
-    if (listRef.current) {
-      listRef.current.scrollToItem(messages.length - 1);
-    }
-  }, [messages.length]);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  // 使用 useEffect 优化滚动时机
+  // 监听消息变化，自动滚动到底部
   useEffect(() => {
-    const timeoutId = setTimeout(scrollToBottom, 100);
-    return () => clearTimeout(timeoutId);
-  }, [messages, scrollToBottom]);
+    setTimeout(scrollToBottom, 100);
+  }, [messages]);
 
-  // 使用 useCallback 优化消息删除处理
-  const onDeleteMessage = useCallback(async (messageId) => {
+  // 处理删除消息
+  const onDeleteMessage = async (messageId) => {
     setDeletingMessageId(messageId);
-  }, []);
+  };
 
-  const cancelDeleteMessage = useCallback(() => {
+  // 取消删除
+  const cancelDeleteMessage = () => {
     setDeletingMessageId(null);
-  }, []);
+  };
 
-  const confirmDeleteMessage = useCallback(async () => {
+  // 确认删除
+  const confirmDeleteMessage = async () => {
     if (deletingMessageId) {
       await handleDeleteMessage(deletingMessageId);
       setDeletingMessageId(null);
     }
-  }, [deletingMessageId, handleDeleteMessage]);
+  };
 
-  // 使用 useCallback 优化图片点击处理
-  const handleImageClick = useCallback((images, index) => {
-    if (images && images.length > 0) {
-      setLightboxImages(images);
-      setLightboxIndex(index);
-      setLightboxOpen(true);
-    }
-  }, []);
-
-  // 使用 useMemo 缓存列表数据
-  const listData = useMemo(() => ({
-    messages,
-    selectedModel,
-    editingMessageId,
-    editContent,
-    setEditContent,
-    handleEditStart,
-    handleEditCancel,
-    handleEditSave,
-    onDeleteMessage,
-    handleRetry,
-    handleStop,
-    handleHistoryNavigation,
-    isMessageCollapsed,
-    toggleMessageCollapse,
-    handleImageClick,
-    openFileLocation,
-    openInBrowserTab
-  }), [
-    messages,
-    selectedModel,
-    editingMessageId,
-    editContent,
-    setEditContent,
-    handleEditStart,
-    handleEditCancel,
-    handleEditSave,
-    onDeleteMessage,
-    handleRetry,
-    handleStop,
-    handleHistoryNavigation,
-    isMessageCollapsed,
-    toggleMessageCollapse,
-    handleImageClick,
-    openFileLocation,
-    openInBrowserTab
-  ]);
+  // 处理图片点击
+  const handleImageClick = (e, file) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // 获取所有消息中的图片
+    const allImages = messages.reduce((acc, message) => {
+      if (message.files) {
+        const images = message.files
+          .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+          .map(file => ({
+            src: `local-file://${file.path}`,
+            alt: file.name
+          }));
+        return [...acc, ...images];
+      }
+      return acc;
+    }, []);
+    
+    // 找到当前图片的索引
+    const currentImage = { src: `local-file://${file.path}` };
+    const imageIndex = allImages.findIndex(img => img.src === currentImage.src);
+    
+    setLightboxImages(allImages);
+    setLightboxIndex(imageIndex);
+    setLightboxOpen(true);
+  };
 
   return (
     <div className="flex-1 overflow-hidden bg-base-100">
       <div 
         id="ai-chat-messages-main"
-        className="h-full" 
+        className="h-full overflow-y-auto" 
         style={{ 
+          paddingBottom: '45px',
           isolation: 'isolate',
-          position: 'relative'
+          position: 'relative',
+          scrollBehavior: 'smooth'
         }}
       >
-        <AutoSizer>
-          {({ height, width }) => (
-            <List
-              ref={listRef}
-              height={height}
-              width={width}
-              itemCount={messages.length}
-              itemSize={150}
-              itemData={listData}
-              overscanCount={5}
-              className="space-y-4 max-w-[1200px] mx-auto p-4"
-            >
-              {MessageRow}
-            </List>
-          )}
-        </AutoSizer>
+        <div className="space-y-4 max-w-[1200px] mx-auto p-4">
+          {messages.map(message => (
+            <MessageItem
+              key={message.id}
+              message={message}
+              selectedModel={selectedModel}
+              editingMessageId={editingMessageId}
+              editContent={editContent}
+              setEditContent={setEditContent}
+              handleEditStart={handleEditStart}
+              handleEditCancel={handleEditCancel}
+              handleEditSave={handleEditSave}
+              handleDeleteMessage={onDeleteMessage}
+              handleRetry={handleRetry}
+              handleStop={handleStop}
+              handleHistoryNavigation={handleHistoryNavigation}
+              isCollapsed={isMessageCollapsed(message.id)}
+              onToggleCollapse={toggleMessageCollapse}
+              onImageClick={handleImageClick}
+              openFileLocation={openFileLocation}
+              openInBrowserTab={openInBrowserTab}
+            />
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
+      {/* 删除确认对话框 */}
       {deletingMessageId && (
         <div className="modal modal-open flex items-center justify-center">
           <div role="alert" className="alert w-[400px]">
@@ -179,6 +145,7 @@ export const MessageList = ({
         </div>
       )}
 
+      {/* Lightbox 组件 */}
       <Lightbox
         open={lightboxOpen}
         close={() => setLightboxOpen(false)}

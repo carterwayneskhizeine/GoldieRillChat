@@ -170,23 +170,22 @@ export const createInputHandlers = ({
         temperature,
         signal: controller.signal,
         onUpdate: (update) => {
-          if (update.type === 'content') {
-            setMessages(prev => {
-              const newMessages = [...prev];
-              const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
-              if (aiMessageIndex === -1) return prev;
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
+            if (aiMessageIndex === -1) return prev;
 
-              const updatedAiMessage = {
-                ...newMessages[aiMessageIndex],
-                content: update.content,
-                generating: !update.done,
-                searchResults: searchResults
-              };
+            const updatedAiMessage = {
+              ...newMessages[aiMessageIndex],
+              content: update.content,
+              reasoning_content: update.reasoning_content,
+              generating: !update.done,
+              searchResults: searchResults
+            };
 
-              newMessages[aiMessageIndex] = updatedAiMessage;
-              return newMessages;
-            });
-          }
+            newMessages[aiMessageIndex] = updatedAiMessage;
+            return newMessages;
+          });
         }
       });
 
@@ -195,7 +194,7 @@ export const createInputHandlers = ({
         currentConversation.path,
         {
           ...aiMessage,
-          content: response.content,
+          content: `${response.reasoning_content ? `推理过程:\n${response.reasoning_content}\n\n回答:\n` : ''}${response.content}`,
           fileName: `${formatAIChatTime(aiMessage.timestamp)} • 模型: ${selectedModel} • Token: ${response.usage?.total_tokens || 0}`
         }
       );
@@ -204,6 +203,7 @@ export const createInputHandlers = ({
       const finalAiMessage = {
         ...aiMessage,
         content: response.content,
+        reasoning_content: response.reasoning_content,
         generating: false,
         usage: response.usage,
         txtFile: aiTxtFile,

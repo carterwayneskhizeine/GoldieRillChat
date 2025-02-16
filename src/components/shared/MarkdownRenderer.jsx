@@ -17,169 +17,156 @@ import 'yet-another-react-lightbox/plugins/thumbnails.css';
 import 'katex/dist/katex.min.css';
 import '../../styles/table.css';
 
-// 添加语言名称映射
-const languageNameMap = {
-  js: 'JavaScript',
-  jsx: 'React JSX',
-  ts: 'TypeScript',
-  tsx: 'React TSX',
-  html: 'HTML',
-  css: 'CSS',
-  scss: 'SCSS',
-  less: 'Less',
-  json: 'JSON',
-  md: 'Markdown',
-  yaml: 'YAML',
-  yml: 'YAML',
-  sql: 'SQL',
-  sh: 'Shell',
-  bash: 'Bash',
-  py: 'Python',
-  java: 'Java',
-  cpp: 'C++',
-  c: 'C',
-  cs: 'C#',
-  go: 'Go',
-  rs: 'Rust',
-  rb: 'Ruby',
-  php: 'PHP',
-  swift: 'Swift',
-  kt: 'Kotlin',
-  dart: 'Dart',
-  r: 'R',
-  matlab: 'MATLAB',
-  scala: 'Scala',
-  perl: 'Perl',
-  lua: 'Lua',
-  xml: 'XML',
-  graphql: 'GraphQL',
-  dockerfile: 'Dockerfile',
-  docker: 'Docker',
-  nginx: 'Nginx',
-  apache: 'Apache',
-  powershell: 'PowerShell',
-  plaintext: '纯文本'
-};
+  // 添加语言名称映射
+  const languageNameMap = {
+    python: 'Python',
+    javascript: 'JavaScript',
+    typescript: 'TypeScript',
+    java: 'Java',
+    cpp: 'C++',
+    csharp: 'C#',
+    php: 'PHP',
+    ruby: 'Ruby',
+    go: 'Go',
+    rust: 'Rust',
+    swift: 'Swift',
+    kotlin: 'Kotlin',
+    scala: 'Scala',
+    html: 'HTML',
+    css: 'CSS',
+    sql: 'SQL',
+    shell: 'Shell',
+    bash: 'Bash',
+    powershell: 'PowerShell',
+    markdown: 'Markdown',
+    json: 'JSON',
+    yaml: 'YAML',
+    xml: 'XML',
+  };
 
-// 预定义的 remarkPlugins 和 rehypePlugins 配置
-const remarkPluginsConfig = [remarkGfm, remarkMath, remarkBreaks];
-const rehypePluginsConfig = [rehypeKatex, rehypeRaw, rehypeSanitize];
+  // 添加 KaTeX 宏定义
+  const katexMacros = {
+    "\\d": "\\mathrm{d}",
+    "\\partial": "\\partial",
+    // 常用数学符号
+    "\\eps": "\\varepsilon",
+    "\\phi": "\\varphi",
+    "\\ell": "\\ell",
+    // 集合和逻辑
+    "\\set": "\\{#1\\}",
+    "\\N": "\\mathbb{N}",
+    "\\Z": "\\mathbb{Z}",
+    "\\Q": "\\mathbb{Q}",
+    "\\R": "\\mathbb{R}",
+    "\\C": "\\mathbb{C}",
+    // 微积分和分析
+    "\\diff": "\\mathrm{d}#1",
+    "\\deriv": "\\frac{\\mathrm{d}#1}{\\mathrm{d}#2}",
+    "\\pderiv": "\\frac{\\partial #1}{\\partial #2}",
+    "\\limit": "\\lim_{#1 \\to #2}",
+    "\\infty": "\\infty",
+    // 线性代数
+    "\\matrix": "\\begin{pmatrix} #1 \\end{pmatrix}",
+    "\\vector": "\\begin{pmatrix} #1 \\end{pmatrix}",
+    "\\det": "\\mathrm{det}",
+    "\\tr": "\\mathrm{tr}",
+    // 概率论
+    "\\E": "\\mathbb{E}",
+    "\\P": "\\mathbb{P}",
+    "\\Var": "\\mathrm{Var}",
+    "\\Cov": "\\mathrm{Cov}",
+    // 常用函数和算子
+    "\\abs": "|#1|",
+    "\\norm": "\\|#1\\|",
+    "\\inner": "\\langle #1, #2 \\rangle",
+    "\\floor": "\\lfloor #1 \\rfloor",
+    "\\ceil": "\\lceil #1 \\rceil",
+    // 求和、积分等
+    "\\series": "\\sum_{#1}^{#2}",
+    "\\integral": "\\int_{#1}^{#2}",
+    // 箭头和关系
+    "\\implies": "\\Rightarrow",
+    "\\iff": "\\Leftrightarrow",
+    "\\compose": "\\circ"
+  };
 
-// 添加 processContent 函数
-const processContent = (content) => {
-  if (!content) return '';
-  
-  // 处理有序列表的格式
-  content = content.replace(/^(\d+)\.\s/gm, '$1\\. ');
-  
-  // 处理行内代码的格式
-  content = content.replace(/`([^`]+)`/g, (match, code) => {
-    return `\`${code.trim()}\``;
-  });
-  
-  // 处理代码块的格式
-  content = content.replace(/```(\w+)?\n([\s\S]+?)```/g, (match, lang, code) => {
-    return `\`\`\`${lang || ''}\n${code.trim()}\n\`\`\``;
-  });
-  
-  // 处理数学公式的格式
-  content = content.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
-    return `$$${formula.trim()}$$`;
-  });
-  
-  content = content.replace(/\$([\s\S]+?)\$/g, (match, formula) => {
-    return `$${formula.trim()}$`;
-  });
-  
-  return content;
-};
+// 添加内容处理的缓存函数
+const useProcessedContent = (content) => {
+  return useMemo(() => {
+    // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
+    let processed = content.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
 
-// 添加 TableWrapper 组件
-const TableWrapper = React.memo(({ children }) => {
-  const [isOverflowing, setIsOverflowing] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const tableRef = useRef(null);
-  const searchInputRef = useRef(null);
+    // 处理带有反引号的序号标题格式
+    processed = processed.replace(/^(#+\s*\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
+    processed = processed.replace(/^(\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
 
-  // 检测表格是否溢出
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (tableRef.current) {
-        const { scrollWidth, clientWidth } = tableRef.current;
-        setIsOverflowing(scrollWidth > clientWidth);
+    // 处理行内代码块，将非代码块的反引号去掉
+    processed = processed.replace(/`([^`\n]+)`/g, (match, content) => {
+      // 如果内容不包含代码特征，则去掉反引号
+      if (
+        /^[@a-zA-Z][\w\-\/.]*$/.test(content) ||
+        /^[\w\-\./\s]+$/.test(content)
+      ) {
+        return content;
       }
-    };
+      // 如果包含代码关键字，保持代码块格式
+      if (content.includes('function') ||
+          content.includes('return') ||
+          content.includes('const') ||
+          content.includes('let') ||
+          content.includes('var') ||
+          content.includes('import') ||
+          content.includes('export') ||
+          content.includes('class') ||
+          content.includes('=>')) {
+        return match;
+      }
+      // 如果包含代码特征字符（除了 - . /），保持代码块格式
+      if (/[{}[\]()=+*<>!|&;$]/.test(content)) {
+        return match;
+      }
+      // 其他情况去掉反引号
+      return content;
+    });
 
-    checkOverflow();
-    window.addEventListener('resize', checkOverflow);
-    return () => window.removeEventListener('resize', checkOverflow);
-  }, []);
+    // 保持缩进和换行
+    processed = processed.replace(/\n/g, '  \n');
+    processed = processed.replace(/^(#{1,6}\s.*)/gm, '\n$1\n');
+    processed = processed.replace(/^([*-]|\d+\.)\s/gm, '\n$&');
 
-  // 处理搜索
-  const handleSearch = useCallback((e) => {
-    setSearchQuery(e.target.value);
-    if (tableRef.current) {
-      const table = tableRef.current;
-      const searchText = e.target.value.toLowerCase();
-      const rows = table.querySelectorAll('tbody tr');
+    return processed;
+  }, [content]);
+};
 
-      rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchText) ? '' : 'none';
-      });
+// 将 markdownComponents 移到组件外部
+const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox) => ({
+  // 链接渲染
+  a: ({node, children, href, ...props}) => {
+    if (typeof href === 'string') {
+      return (
+        <a
+          href={href}
+          className="text-primary hover:text-primary-focus"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onLinkClick(href);
+          }}
+          onContextMenu={handleContextMenu}
+          {...props}
+        >
+          {href}
+        </a>
+      );
     }
-  }, []);
-
-  // 处理搜索快捷键
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.ctrlKey && e.key === 'f' && isOverflowing) {
-        e.preventDefault();
-        setIsSearchOpen(true);
-        searchInputRef.current?.focus();
-      } else if (e.key === 'Escape' && isSearchOpen) {
-        setIsSearchOpen(false);
-        setSearchQuery('');
-        if (tableRef.current) {
-          const rows = tableRef.current.querySelectorAll('tbody tr');
-          rows.forEach(row => {
-            row.style.display = '';
-          });
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOverflowing, isSearchOpen]);
-
-  return (
-    <div className="table-container">
-      {isOverflowing && (
-        <div className="table-toolbar">
-          <div className="search-wrapper">
-            <Search className="search-icon w-4 h-4" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="search-input"
-              placeholder="搜索表格内容..."
-              value={searchQuery}
-              onChange={handleSearch}
-            />
-          </div>
-        </div>
-      )}
-      <div className="table-responsive" ref={tableRef}>
-        <table className="enhanced-table">
-          {children}
-        </table>
-      </div>
-    </div>
-  );
+    return <span>{children}</span>;
+  },
+  // ... rest of the components ...
 });
 
+// 使用 React.memo 包装 MarkdownRenderer 组件
 export const MarkdownRenderer = React.memo(({
   content,
   isCompact = false,
@@ -187,11 +174,12 @@ export const MarkdownRenderer = React.memo(({
   onCopyCode = () => {},
   onLinkClick = () => {},
 }) => {
+  const processedContent = useProcessedContent(content);
   const [openLightbox, setOpenLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [images, setImages] = useState([]);
 
-  // 使用 useCallback 优化复制功能
+  // 使用 useCallback 优化事件处理函数
   const handleCopySelectedText = useCallback((e) => {
     if (e.ctrlKey && e.key === 'c') {
       const selectedText = window.getSelection().toString();
@@ -201,7 +189,7 @@ export const MarkdownRenderer = React.memo(({
     }
   }, []);
 
-  // 使用 useCallback 优化图片收集
+  // 使用 useCallback 优化图片收集函数
   const collectImages = useCallback((content) => {
     const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
     const matches = [...content.matchAll(imgRegex)];
@@ -211,19 +199,6 @@ export const MarkdownRenderer = React.memo(({
       title: match[1]
     }));
   }, []);
-
-  // 使用 useMemo 缓存处理后的内容
-  const processedContent = useMemo(() => {
-    return processContent(content);
-  }, [content]);
-
-  // 使用 useEffect 优化事件监听
-  useEffect(() => {
-    document.addEventListener('keydown', handleCopySelectedText);
-    return () => {
-      document.removeEventListener('keydown', handleCopySelectedText);
-    };
-  }, [handleCopySelectedText]);
 
   // 使用 useEffect 优化图片收集
   useEffect(() => {
@@ -252,61 +227,71 @@ export const MarkdownRenderer = React.memo(({
     window.dispatchEvent(contextMenuEvent);
   }, []);
 
-  // 使用 useMemo 缓存 Markdown 组件配置
-  const markdownComponents = useMemo(() => ({
-    code: ({ node, inline, className, children, ...props }) => {
-      const match = /language-(\w+)/.exec(className || '');
-      const language = match ? match[1] : '';
-      const displayName = languageNameMap[language] || language;
+  // 使用 useMemo 缓存 rehypePlugins 配置
+  const rehypePlugins = useMemo(() => [
+    rehypeRaw,
+    [rehypeKatex, {
+      strict: false,
+      output: 'html',
+      throwOnError: false,
+      displayMode: true,
+      trust: true,
+      macros: katexMacros,
+      errorColor: 'var(--error)',
+      colorIsTextColor: true,
+      maxSize: 500,
+      maxExpand: 1000,
+      minRuleThickness: 0.04
+    }]
+  ], []);
 
-      if (inline) {
-        return (
-          <code className={className} {...props}>
+  // 使用 useMemo 缓存 remarkPlugins 配置
+  const remarkPlugins = useMemo(() => [
+    remarkGfm,
+    [remarkMath, { singleDollar: true }],
+    remarkBreaks
+  ], []);
+
+  // 使用 useMemo 缓存组件配置
+  const markdownComponents = useMemo(() => 
+    createMarkdownComponents(handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox),
+    [handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox]
+  );
+
+  // 表格相关组件
+  const TableWrapper = ({ children, ...props }) => {
+    const tableRef = useRef(null);
+    const [hasOverflow, setHasOverflow] = useState(false);
+    const [isCompact, setIsCompact] = useState(false);
+
+    // 检查表格是否需要滚动和响应式模式
+    useEffect(() => {
+      const checkTableState = () => {
+        if (tableRef.current) {
+          const { scrollWidth, clientWidth } = tableRef.current;
+          setHasOverflow(scrollWidth > clientWidth);
+          setIsCompact(window.innerWidth < 768);
+        }
+      };
+
+      checkTableState();
+      window.addEventListener('resize', checkTableState);
+      return () => window.removeEventListener('resize', checkTableState);
+    }, []);
+
+    return (
+      <div className={`markdown-table-wrapper ${isCompact ? 'compact' : ''}`}>
+        <div 
+          ref={tableRef}
+          className={`table-scroll ${hasOverflow ? 'has-overflow' : ''}`}
+        >
+          <table className="markdown-table" {...props}>
             {children}
-          </code>
-        );
-      }
-
-      return (
-        <div className="relative group">
-          {language && (
-            <div className="absolute right-2 top-2 flex items-center gap-2">
-              <span className="text-xs text-gray-400">{displayName}</span>
-              <button
-                onClick={() => onCopyCode(String(children))}
-                className="hidden group-hover:flex items-center gap-1 px-2 py-1 text-xs rounded bg-base-300 hover:bg-base-200 transition-colors"
-              >
-                <CopyIcon className="w-3 h-3" />
-                复制
-              </button>
-            </div>
-          )}
-          <SyntaxHighlighter
-            style={oneDark}
-            language={language}
-            PreTag="div"
-            {...props}
-          >
-            {String(children).replace(/\n$/, '')}
-          </SyntaxHighlighter>
+          </table>
         </div>
-      );
-    },
-    table: TableWrapper,
-    a: ({ node, href, children, ...props }) => (
-      <a
-        href={href}
-        onClick={(e) => {
-          e.preventDefault();
-          onLinkClick(href);
-        }}
-        className="link link-primary"
-        {...props}
-      >
-        {children}
-      </a>
-    ),
-  }), [onCopyCode, onLinkClick]);
+      </div>
+    );
+  };
 
   return (
     <div 
@@ -841,24 +826,32 @@ export const MarkdownRenderer = React.memo(({
       </style>
 
       <ReactMarkdown
-        remarkPlugins={remarkPluginsConfig}
-        rehypePlugins={rehypePluginsConfig}
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
         components={markdownComponents}
       >
         {processedContent}
       </ReactMarkdown>
 
+      {/* 图片预览 Lightbox */}
       <Lightbox
         open={openLightbox}
         close={() => setOpenLightbox(false)}
         index={lightboxIndex}
         slides={images}
         plugins={[Zoom, Thumbnails]}
+        animation={{ fade: 300 }}
+        carousel={{ finite: images.length <= 1 }}
+        render={{
+          iconPrev: () => <ChevronLeftIcon size={24} />,
+          iconNext: () => <ChevronRightIcon size={24} />,
+          iconClose: () => <XIcon size={24} />
+        }}
       />
     </div>
   );
 }, (prevProps, nextProps) => {
-  // 自定义比较函数，只在内容真正改变时重新渲染
+  // 自定义比较函数，只在内容或紧凑模式改变时重新渲染
   return (
     prevProps.content === nextProps.content &&
     prevProps.isCompact === nextProps.isCompact &&

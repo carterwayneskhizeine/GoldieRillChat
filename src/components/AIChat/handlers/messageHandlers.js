@@ -270,37 +270,22 @@ export const createMessageHandlers = ({
         temperature,
         signal: controller.signal,
         onUpdate: (update) => {
-          if (update.type === 'content') {
-            setMessages(prev => {
-              const newMessages = [...prev];
-              const index = newMessages.findIndex(msg => msg.id === messageId);
-              if (index === -1) return prev;
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const index = newMessages.findIndex(msg => msg.id === messageId);
+            if (index === -1) return prev;
 
-              // 更新消息内容
-              newMessages[index] = {
-                ...newMessages[index],
-                content: update.content,
-                generating: !update.done,
-                searchResults: searchResults // 添加搜索结果
-              };
+            // 更新消息内容
+            newMessages[index] = {
+              ...newMessages[index],
+              content: update.content,
+              reasoning_content: update.reasoning_content,
+              generating: !update.done,
+              searchResults: searchResults
+            };
 
-              return newMessages;
-            });
-          } else if (update.type === 'reasoning') {
-            // 更新推理内容
-            setMessages(prev => {
-              const newMessages = [...prev];
-              const index = newMessages.findIndex(msg => msg.id === messageId);
-              if (index === -1) return prev;
-
-              newMessages[index] = {
-                ...newMessages[index],
-                reasoning_content: update.content
-              };
-
-              return newMessages;
-            });
-          }
+            return newMessages;
+          });
         }
       });
 
