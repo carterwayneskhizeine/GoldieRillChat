@@ -163,6 +163,32 @@ const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLig
     }
     return <span>{children}</span>;
   },
+  // 段落渲染
+  p: ({node, children, ...props}) => {
+    const text = String(children).trim();
+    // 如果内容是纯文本，直接渲染
+    if (!text.includes('`') && !text.includes('*') && !text.includes('_')) {
+      return (
+        <p {...props} style={{ 
+          whiteSpace: 'pre-wrap', 
+          wordBreak: 'break-word',
+          margin: '0.5em 0'
+        }}>
+          {text}
+        </p>
+      );
+    }
+    return (
+      <p {...props} data-selectable="true" style={{ 
+        userSelect: 'text',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        margin: '0.5em 0'
+      }} onContextMenu={handleContextMenu}>
+        {children}
+      </p>
+    );
+  },
   // ... rest of the components ...
 });
 
