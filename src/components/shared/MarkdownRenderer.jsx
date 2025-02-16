@@ -189,6 +189,31 @@ const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLig
       </p>
     );
   },
+  // 添加加粗文本渲染
+  strong: ({node, children, ...props}) => (
+    <strong {...props} style={{ fontWeight: 'bold', userSelect: 'text' }}>
+      {children}
+    </strong>
+  ),
+  // 修改列表项渲染
+  li: ({node, children, ordered, ...props}) => {
+    // 处理 children 中的文本内容
+    const content = React.Children.map(children, child => {
+      // 如果是字符串，直接返回
+      if (typeof child === 'string') return child;
+      // 如果是 React 元素，返回其内容
+      if (React.isValidElement(child)) {
+        return child;
+      }
+      return child;
+    });
+
+    return (
+      <li {...props} style={{ userSelect: 'text' }} onContextMenu={handleContextMenu}>
+        {content}
+      </li>
+    );
+  },
   // ... rest of the components ...
 });
 
@@ -256,6 +281,14 @@ export const MarkdownRenderer = React.memo(({
   // 使用 useMemo 缓存 rehypePlugins 配置
   const rehypePlugins = useMemo(() => [
     rehypeRaw,
+    [rehypeSanitize, {
+      attributes: {
+        '*': ['className', 'style'],
+        'a': ['href', 'target', 'rel'],
+        'img': ['src', 'alt', 'title'],
+        'strong': ['style']
+      }
+    }],
     [rehypeKatex, {
       strict: false,
       output: 'html',
@@ -854,7 +887,229 @@ export const MarkdownRenderer = React.memo(({
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}
-        components={markdownComponents}
+        components={{
+          // 代码块渲染
+          code({node, inline, className, children, ...props}) {
+            const match = /language-(\w+)/.exec(className || '');
+            const [isCopied, setIsCopied] = useState(false);
+            
+            if (inline) {
+              const content = String(children).trim();
+              // 检查是否是带序号和反引号的标题格式
+              if (/^\d+\.\s+`.+`.*$/.test(content)) {
+                return <span>{content.replace(/`/g, '')}</span>;
+              }
+              
+              // 如果内容不包含代码特征，则不使用代码样式
+              if (
+                // 如果是包名或技术名称（允许 @ - / . 字符）
+                /^[@a-zA-Z][\w\-\/.]*$/.test(content) ||
+                // 或者是多个单词（允许空格分隔的单词）
+                /^[\w\-\./\s]+$/.test(content)
+              ) {
+                return <span>{content}</span>;
+              }
+              // 如果包含代码关键字，使用代码样式
+              if (content.includes('function') ||
+                  content.includes('return') ||
+                  content.includes('const') ||
+                  content.includes('let') ||
+                  content.includes('var') ||
+                  content.includes('import') ||
+                  content.includes('export') ||
+                  content.includes('class') ||
+                  content.includes('=>')) {
+                return (
+                  <code className="inline-code" {...props}>
+                    {content}
+                  </code>
+                );
+              }
+              // 如果包含代码特征字符（除了 - . /），保持代码块格式
+              if (/[{}[\]()=+*<>!|&;$]/.test(content)) {
+                return (
+                  <code className="inline-code" {...props}>
+                    {content}
+                  </code>
+                );
+              }
+              // 其他情况不使用代码样式
+              return <span>{content}</span>;
+            }
+
+            const language = match ? match[1].toLowerCase() : '';
+            const displayLanguage = languageNameMap[language] || language.toUpperCase() || 'TEXT';
+
+            const handleCopy = async () => {
+              const code = String(children).replace(/\n$/, '');
+              await navigator.clipboard.writeText(code);
+              setIsCopied(true);
+              setTimeout(() => setIsCopied(false), 2000);
+            };
+
+            return (
+              <div className="code-block">
+                <div className="code-header">
+                  <span className="language-label">{displayLanguage}</span>
+                  <button
+                    className="copy-button"
+                    onClick={handleCopy}
+                    aria-label={isCopied ? "已复制" : "复制代码"}
+                  >
+                    {isCopied ? (
+                      <>
+                        <CheckIcon className="icon" />
+                        已复制
+                      </>
+                    ) : (
+                      <>
+                        <CopyIcon className="icon" />
+                        复制
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="code-content">
+                  <SyntaxHighlighter
+                    language={language}
+                    style={{
+                      ...oneDark,
+                      'pre[class*="language-"]': {
+                        ...oneDark['pre[class*="language-"]'],
+                        background: 'transparent',
+                      },
+                      'code[class*="language-"]': {
+                        ...oneDark['code[class*="language-"]'],
+                        background: 'transparent',
+                      }
+                    }}
+                    showLineNumbers={true}
+                    wrapLines={true}
+                    customStyle={{
+                      margin: 0,
+                      background: 'transparent',
+                      padding: '1rem',
+                    }}
+                    lineNumberStyle={{
+                      minWidth: '2.5em',
+                      paddingRight: '1em',
+                      color: 'var(--bc)',
+                      opacity: 0.3,
+                    }}
+                  >
+                    {String(children).replace(/\n$/, '')}
+                  </SyntaxHighlighter>
+                </div>
+              </div>
+            );
+          },
+
+          // 链接渲染
+          a({node, children, href, ...props}) {
+            return (
+              <a
+                href={href}
+                className="text-primary hover:text-primary-focus"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onLinkClick(href);
+                }}
+                onContextMenu={handleContextMenu}
+                {...props}
+              >
+                {children}
+              </a>
+            );
+          },
+
+          // 段落渲染
+          p({node, children, ...props}) {
+            return (
+              <p {...props} data-selectable="true" style={{ 
+                userSelect: 'text',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                margin: '0.5em 0'
+              }} onContextMenu={handleContextMenu}>
+                {children}
+              </p>
+            );
+          },
+
+          // 列表项渲染
+          li({node, children, ...props}) {
+            return (
+              <li {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu}>
+                {children}
+              </li>
+            );
+          },
+
+          // 添加有序列表组件
+          ol: ({node, ...props}) => (
+            <ol className="list-decimal pl-6 my-4" {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+
+          // 添加无序列表组件
+          ul: ({node, ...props}) => (
+            <ul className="list-disc pl-6 my-4" {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+
+          // 标题渲染
+          h1: ({node, ...props}) => (
+            <h1 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h2: ({node, ...props}) => (
+            <h2 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h3: ({node, ...props}) => (
+            <h3 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h4: ({node, ...props}) => (
+            <h4 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h5: ({node, ...props}) => (
+            <h5 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          h6: ({node, ...props}) => (
+            <h6 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+
+          // 其他内联元素
+          strong: ({node, ...props}) => (
+            <strong {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          em: ({node, ...props}) => (
+            <em {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          del: ({node, ...props}) => (
+            <del {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+          blockquote: ({node, ...props}) => (
+            <blockquote {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+
+          // 表格相关组件
+          table: TableWrapper,
+          thead: ({node, children, ...props}) => (
+            <thead {...props}>{children}</thead>
+          ),
+          tbody: ({node, children, ...props}) => (
+            <tbody {...props}>{children}</tbody>
+          ),
+          tr: ({node, children, ...props}) => (
+            <tr {...props}>{children}</tr>
+          ),
+          th: ({node, children, ...props}) => (
+            <th {...props}>{children}</th>
+          ),
+          td: ({node, children, ...props}) => (
+            <td {...props}>{children}</td>
+          )
+        }}
       >
         {processedContent}
       </ReactMarkdown>

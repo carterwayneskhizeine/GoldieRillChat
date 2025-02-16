@@ -109,45 +109,32 @@ ipcMain.handle('create-chat-folder', async (event, basePath) => {
   }
 })
 
-// Create new AI chat folder (专门用于 AI Chat 的文件夹创建)
-ipcMain.handle('create-aichat-folder', async (event, folderPath) => {
+// Create AI Chat folder
+ipcMain.handle('create-aichat-folder', async (event, basePath) => {
   try {
-    // 确保基础目录存在
-    const baseDir = path.dirname(folderPath);
-    await fs.mkdir(baseDir, { recursive: true });
+    // 生成文件夹名称
+    const timestamp = new Date();
+    const folderName = `${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}_${timestamp.getHours().toString().padStart(2, '0')}${timestamp.getMinutes().toString().padStart(2, '0')}${timestamp.getSeconds().toString().padStart(2, '0')}`;
     
-    // 检查目标文件夹是否已存在
-    try {
-      await fs.access(folderPath);
-      // 如果文件夹已存在，先删除它
-      await fs.rm(folderPath, { recursive: true, force: true });
-    } catch (error) {
-      // 文件夹不存在，这是正常的，继续创建
-    }
-    
-    // 创建 AI Chat 文件夹
+    // 创建文件夹
+    const folderPath = path.join(basePath, 'aichat', folderName);
     await fs.mkdir(folderPath, { recursive: true });
     
-    // 创建空的 messages.json 文件
-    const messagesPath = path.join(folderPath, 'messages.json');
-    try {
-      // 检查文件是否已存在
-      await fs.access(messagesPath);
-      // 如果存在，先删除它
-      await fs.unlink(messagesPath);
-    } catch (error) {
-      // 文件不存在，这是正常的，继续创建
-    }
-    
-    // 写入新的空数组
-    await fs.writeFile(messagesPath, '[]', 'utf8');
+    // 创建空的 messages.json
+    await fs.writeFile(
+      path.join(folderPath, 'messages.json'),
+      '[]',
+      'utf8'
+    );
     
     return {
+      id: Date.now().toString(),
+      name: folderName,
       path: folderPath,
-      name: path.basename(folderPath)
+      timestamp: timestamp.toISOString()
     };
   } catch (error) {
-    console.error('创建 AI Chat 文件夹失败:', error);
+    console.error('Failed to create AI Chat folder:', error);
     throw error;
   }
 });

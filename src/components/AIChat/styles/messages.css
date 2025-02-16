@@ -278,41 +278,33 @@
   }
 }
 
-/* AI Chat 折叠按钮样式 */
+/* 折叠按钮样式 */
 .aichat-collapse-btn {
-  position: absolute;
-  top: -15px;
-  right: 4px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  position: sticky;
+  top: 320px;
+  float: right;
+  z-index: 100;
+  pointer-events: all;
   background-color: var(--b1);
   border: 1px solid var(--b3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
+  border-radius: 4px;
+  padding: 4px;
+  margin-left: 8px;
+  margin-right: 8px;
+  margin-bottom: 4px;
+  opacity: 0.7;
   transition: all 0.2s ease;
-  z-index: 20;
-}
-
-.chat-bubble:hover .aichat-collapse-btn {
-  opacity: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .aichat-collapse-btn:hover {
-  transform: scale(1.1);
-  background-color: var(--b2);
+  opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* AI Chat 折叠状态样式 */
-.aichat-message-collapsed .response-content {
-  max-height: 100px;
-  overflow: hidden;
-  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
-  transition: max-height 0.3s ease-out;
+.aichat-message-collapsed .message-content {
+  position: relative;
 }
 
 /* 媒体容器样式 */

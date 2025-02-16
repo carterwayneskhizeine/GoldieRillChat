@@ -816,7 +816,42 @@ export function ChatView({
                       <button
                         className="btn btn-ghost btn-xs"
                         onClick={() => {
-                          console.log('AI button clicked', message);
+                          // 创建新的 AI Chat 对话
+                          const createAndSendMessage = async () => {
+                            try {
+                              // 创建新的对话文件夹
+                              const result = await window.electron.createAIChatFolder(currentConversation.path);
+                              
+                              // 发送消息到新对话
+                              await window.electron.saveMessages(
+                                result.path,
+                                result.id,
+                                [{
+                                  id: Date.now().toString(),
+                                  content: message.content,
+                                  type: 'user',
+                                  timestamp: new Date().toISOString()
+                                }]
+                              );
+                              
+                              // 切换到 AI Chat 工具
+                              window.dispatchEvent(new CustomEvent('switchTool', {
+                                detail: {
+                                  tool: 'aichat',
+                                  conversation: {
+                                    id: result.id,
+                                    name: result.name,
+                                    path: result.path,
+                                    timestamp: new Date().toISOString()
+                                  }
+                                }
+                              }));
+                            } catch (error) {
+                              console.error('创建 AI Chat 对话失败:', error);
+                              alert('创建 AI Chat 对话失败: ' + error.message);
+                            }
+                          };
+                          createAndSendMessage();
                         }}
                       >
                         AI

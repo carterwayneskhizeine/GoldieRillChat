@@ -952,6 +952,32 @@ export default function App() {
     window.electron.browser.newTab(url);
   };
 
+  useEffect(() => {
+    // 监听工具切换事件
+    const handleSwitchTool = (event) => {
+      const { tool, conversation } = event.detail;
+      
+      // 切换工具
+      setActiveTool(tool);
+      
+      // 如果提供了对话信息，创建并加载对话
+      if (conversation) {
+        handleConversationCreate(conversation)
+          .then(() => {
+            // 加载对话消息
+            loadConversation(conversation.id);
+          })
+          .catch(error => {
+            console.error('切换对话失败:', error);
+            alert('切换对话失败: ' + error.message);
+          });
+      }
+    };
+
+    window.addEventListener('switchTool', handleSwitchTool);
+    return () => window.removeEventListener('switchTool', handleSwitchTool);
+  }, []);
+
   return (
     <div className="h-screen flex flex-col bg-base-100">
       <ThreeBackground />
