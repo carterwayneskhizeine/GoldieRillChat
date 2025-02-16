@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -16,179 +16,6 @@ import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/thumbnails.css';
 import 'katex/dist/katex.min.css';
 import '../../styles/table.css';
-
-// 增强的表格组件
-const EnhancedTable = ({ node, children }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  
-  // 从表格中提取数据
-  const tableData = useMemo(() => {
-    const headers = [];
-    const rows = [];
-    let currentRow = [];
-    
-    React.Children.forEach(children, child => {
-      if (!child.props) return;
-      
-      if (child.type === 'thead') {
-        React.Children.forEach(child.props.children, headerRow => {
-          if (!headerRow.props) return;
-          React.Children.forEach(headerRow.props.children, header => {
-            if (!header.props?.children) return;
-            headers.push(header.props.children[0]);
-          });
-        });
-      } else if (child.type === 'tbody') {
-        React.Children.forEach(child.props.children, row => {
-          if (!row.props) return;
-          currentRow = [];
-          React.Children.forEach(row.props.children, cell => {
-            if (!cell.props?.children) return;
-            currentRow.push(cell.props.children[0]);
-          });
-          if (currentRow.length > 0) {
-            rows.push(currentRow);
-          }
-        });
-      }
-    });
-    
-    return { headers, rows };
-  }, [children]);
-  
-  // 处理排序
-  const handleSort = (columnIndex) => {
-    setSortConfig(prevConfig => ({
-      key: columnIndex,
-      direction: prevConfig.key === columnIndex && prevConfig.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-  
-  // 处理搜索和排序后的数据
-  const processedData = useMemo(() => {
-    let filteredRows = [...tableData.rows];
-    
-    // 搜索过滤
-    if (searchTerm) {
-      const searchTerms = searchTerm.toLowerCase().split(/\s+/);
-      filteredRows = filteredRows.filter(row =>
-        searchTerms.every(term =>
-          row.some(cell => 
-            cell.toString().toLowerCase().includes(term)
-          )
-        )
-      );
-    }
-    
-    // 排序
-    if (sortConfig.key !== null) {
-      filteredRows.sort((a, b) => {
-        if (!a[sortConfig.key] || !b[sortConfig.key]) return 0;
-        
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
-        
-        // 检查是否为数字
-        const aNum = Number(aValue);
-        const bNum = Number(bValue);
-        if (!isNaN(aNum) && !isNaN(bNum)) {
-          return sortConfig.direction === 'asc' ? aNum - bNum : bNum - aNum;
-        }
-        
-        // 日期格式检查
-        const aDate = new Date(aValue);
-        const bDate = new Date(bValue);
-        if (!isNaN(aDate) && !isNaN(bDate)) {
-          return sortConfig.direction === 'asc' ? aDate - bDate : bDate - aDate;
-        }
-        
-        // 字符串排序
-        const aStr = String(aValue).toLowerCase();
-        const bStr = String(bValue).toLowerCase();
-        return sortConfig.direction === 'asc' ? 
-          aStr.localeCompare(bStr) : 
-          bStr.localeCompare(aStr);
-      });
-    }
-    
-    return filteredRows;
-  }, [tableData.rows, searchTerm, sortConfig]);
-
-  return (
-    <div className="markdown-table-container">
-      <div className="markdown-table-toolbar">
-        <div className="flex items-center gap-4">
-          <div className="markdown-table-search">
-            <input
-              type="text"
-              placeholder="搜索表格内容..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-            <Search className="search-icon" size={16} />
-          </div>
-          <span className="text-sm font-medium opacity-70">
-            {processedData.length} 条结果
-          </span>
-        </div>
-      </div>
-      
-      <div className="table-responsive">
-        <table className="enhanced-table">
-          <thead>
-            <tr>
-              {tableData.headers.map((header, index) => (
-                <th
-                  key={index}
-                  onClick={() => handleSort(index)}
-                  className={`sortable-header ${
-                    sortConfig.key === index ? 'sorting' : ''
-                  }`}
-                >
-                  <div className="header-content">
-                    <span>{header}</span>
-                    <span className="sort-indicator">
-                      {sortConfig.key === index ? (
-                        sortConfig.direction === 'asc' ? (
-                          <ChevronUp size={16} />
-                        ) : (
-                          <ChevronDown size={16} />
-                        )
-                      ) : (
-                        <ArrowUpDown size={16} />
-                      )}
-                    </span>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {processedData.map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                {row.map((cell, cellIndex) => (
-                  <td key={cellIndex}>{cell}</td>
-                ))}
-              </tr>
-            ))}
-            {processedData.length === 0 && (
-              <tr>
-                <td 
-                  colSpan={tableData.headers.length} 
-                  className="no-results"
-                >
-                  没有找到匹配的数据
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
 
 export const MarkdownRenderer = ({
   content,
@@ -238,8 +65,11 @@ export const MarkdownRenderer = ({
 
   // 预处理内容，修复有序列表格式和代码块
   const processContent = (text) => {
+    // 保留原始分隔线语法（使用更精确的正则匹配）
+    let processed = text.replace(/^([*_-]{3,})\s*$/gm, (match) => `\n\n${match}\n\n`);
+
     // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
-    let processed = text.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
+    processed = processed.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
 
     // 处理带有反引号的序号标题格式
     processed = processed.replace(/^(#+\s*\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
@@ -379,6 +209,41 @@ export const MarkdownRenderer = ({
     "\\implies": "\\Rightarrow",
     "\\iff": "\\Leftrightarrow",
     "\\compose": "\\circ"
+  };
+
+  // 表格相关组件
+  const TableWrapper = ({ children, ...props }) => {
+    const tableRef = useRef(null);
+    const [hasOverflow, setHasOverflow] = useState(false);
+    const [isCompact, setIsCompact] = useState(false);
+
+    // 检查表格是否需要滚动和响应式模式
+    useEffect(() => {
+      const checkTableState = () => {
+        if (tableRef.current) {
+          const { scrollWidth, clientWidth } = tableRef.current;
+          setHasOverflow(scrollWidth > clientWidth);
+          setIsCompact(window.innerWidth < 768);
+        }
+      };
+
+      checkTableState();
+      window.addEventListener('resize', checkTableState);
+      return () => window.removeEventListener('resize', checkTableState);
+    }, []);
+
+    return (
+      <div className={`markdown-table-wrapper ${isCompact ? 'compact' : ''}`}>
+        <div 
+          ref={tableRef}
+          className={`table-scroll ${hasOverflow ? 'has-overflow' : ''}`}
+        >
+          <table className="markdown-table" {...props}>
+            {children}
+          </table>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -910,6 +775,13 @@ export const MarkdownRenderer = ({
               max-width: 100%;
             }
           }
+
+          .markdown-content hr {
+            border: none !important;
+            border-bottom: 1px solid var(--b3) !important;
+            margin: 2em 0 !important;
+            opacity: 0.5 !important;
+          }
         `}
       </style>
 
@@ -1085,11 +957,6 @@ export const MarkdownRenderer = ({
             );
           },
 
-          // 表格渲染
-          table({node, children, ...props}) {
-            return <EnhancedTable {...props}>{children}</EnhancedTable>;
-          },
-
           // 图片渲染
           img({node, ...props}) {
             const [isLoading, setIsLoading] = useState(true);
@@ -1246,23 +1113,23 @@ export const MarkdownRenderer = ({
           ),
 
           // 表格相关组件
-          table: ({node, ...props}) => (
-            <table {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          table: ({node, children, ...props}) => (
+            <TableWrapper {...props}>{children}</TableWrapper>
           ),
-          thead: ({node, ...props}) => (
-            <thead {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          thead: ({node, children, ...props}) => (
+            <thead {...props}>{children}</thead>
           ),
-          tbody: ({node, ...props}) => (
-            <tbody {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          tbody: ({node, children, ...props}) => (
+            <tbody {...props}>{children}</tbody>
           ),
-          tr: ({node, ...props}) => (
-            <tr {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          tr: ({node, children, ...props}) => (
+            <tr {...props}>{children}</tr>
           ),
-          td: ({node, ...props}) => (
-            <td {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          th: ({node, children, ...props}) => (
+            <th {...props}>{children}</th>
           ),
-          th: ({node, ...props}) => (
-            <th {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          td: ({node, children, ...props}) => (
+            <td {...props}>{children}</td>
           ),
 
           // 其他内联元素
@@ -1277,6 +1144,20 @@ export const MarkdownRenderer = ({
           ),
           blockquote: ({node, ...props}) => (
             <blockquote {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
+          ),
+
+          // 添加水平分隔线组件
+          hr: ({node, ...props}) => (
+            <hr 
+              {...props}
+              className="markdown-hr"
+              style={{
+                border: 'none',
+                borderBottom: '1px solid var(--b3)',
+                margin: '2em 0',
+                opacity: 0.5
+              }}
+            />
           ),
         }}
       >

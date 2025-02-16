@@ -1,125 +1,245 @@
-.markdown-table-container {
+/* 表格容器 */
+.markdown-table-wrapper {
   position: relative;
-  margin: 1rem 0;
-  border-radius: 0.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0.75rem;
   overflow: hidden;
-  border: 2px solid var(--p);
+  border: 1px solid var(--b3);
   background: var(--b1);
-}
-
-.markdown-table-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--b1);
-  padding: 1rem;
-  border-bottom: 2px solid var(--p);
-}
-
-.markdown-table-search {
-  position: relative;
-  width: 100%;
-  max-width: 300px;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.5rem 2.5rem;
-  height: 2.5rem;
-  border: 2px solid var(--p);
-  border-radius: 0.5rem;
-  background: var(--b1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
-.search-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--pf);
+.markdown-table-wrapper:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.search-icon {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--p);
-  pointer-events: none;
-}
-
-.table-responsive {
+/* 表格滚动容器 */
+.table-scroll {
   overflow-x: auto;
   max-width: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: var(--b3) transparent;
+  -webkit-overflow-scrolling: touch; /* 提供iOS顺滑滚动 */
 }
 
-.enhanced-table {
+/* 自定义滚动条样式 */
+.table-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--b3);
+  border-radius: 3px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--b4);
+}
+
+/* 表格基础样式 */
+.markdown-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  margin: 0;
 }
 
-.sortable-header {
-  background: var(--b2);
-  padding: 0.75rem 1rem;
-  border-bottom: 2px solid var(--p);
-  cursor: pointer;
+/* 表头样式 */
+.markdown-table thead {
+  background-color: var(--b2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.markdown-table th {
+  padding: 0.875rem 1rem;
+  font-weight: 600;
+  color: var(--bc);
+  border-bottom: 1px solid var(--b3);
+  text-align: left;
+  white-space: nowrap;
   transition: background-color 0.2s ease;
 }
 
-.sortable-header:hover {
-  background: var(--b3);
+.markdown-table th:first-child {
+  border-top-left-radius: 0.5rem;
 }
 
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+.markdown-table th:last-child {
+  border-top-right-radius: 0.5rem;
 }
 
-.sort-indicator {
-  display: inline-flex;
-  color: var(--p);
-  opacity: 0.5;
-  transition: opacity 0.2s ease;
-}
-
-.sorting .sort-indicator {
-  opacity: 1;
-}
-
-.enhanced-table td {
-  padding: 0.75rem 1rem;
+/* 表格单元格样式 */
+.markdown-table td {
+  padding: 0.875rem 1rem;
   border-bottom: 1px solid var(--b3);
+  transition: background-color 0.2s ease;
 }
 
-.enhanced-table tr:nth-child(even) {
-  background: var(--b2);
+/* 表格行悬停效果 */
+.markdown-table tbody tr:hover {
+  background-color: var(--b2);
 }
 
-.enhanced-table tr:hover {
-  background: var(--b3);
+/* 响应式布局 */
+@media (max-width: 1024px) {
+  .markdown-table {
+    font-size: 0.9375rem;
+  }
+
+  .markdown-table th,
+  .markdown-table td {
+    padding: 0.75rem;
+  }
 }
 
-.no-results {
-  text-align: center;
-  padding: 2rem;
-  color: var(--bc);
-  opacity: 0.7;
+@media (max-width: 768px) {
+  .markdown-table {
+    font-size: 0.875rem;
+  }
+
+  /* 允许表头文字换行 */
+  .markdown-table th {
+    white-space: normal;
+    word-wrap: break-word;
+    min-width: 120px;
+  }
+
+  /* 允许单元格文字换行 */
+  .markdown-table td {
+    white-space: normal;
+    word-wrap: break-word;
+  }
+
+  /* 添加水平滚动提示 */
+  .table-scroll::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, transparent, rgba(var(--b1), 0.1));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .table-scroll:hover::after {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 640px) {
-  .markdown-table-toolbar {
-    padding: 0.75rem;
+  .markdown-table {
+    font-size: 0.8125rem;
   }
-  
-  .search-input {
-    height: 2rem;
-    font-size: 0.875rem;
+
+  .markdown-table th,
+  .markdown-table td {
+    padding: 0.625rem;
   }
-  
-  .enhanced-table th,
-  .enhanced-table td {
+
+  /* 紧凑模式 */
+  .markdown-table-wrapper.compact {
+    border-radius: 0.5rem;
+  }
+
+  .markdown-table-wrapper.compact .markdown-table th,
+  .markdown-table-wrapper.compact .markdown-table td {
     padding: 0.5rem;
-    font-size: 0.875rem;
+  }
+
+  /* 列表视图模式 */
+  .markdown-table-wrapper.list-view .markdown-table,
+  .markdown-table-wrapper.list-view .markdown-table tbody,
+  .markdown-table-wrapper.list-view .markdown-table tr,
+  .markdown-table-wrapper.list-view .markdown-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .markdown-table-wrapper.list-view .markdown-table thead {
+    display: none;
+  }
+
+  .markdown-table-wrapper.list-view .markdown-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--b3);
+    border-radius: 0.5rem;
+    background-color: var(--b1);
+  }
+
+  .markdown-table-wrapper.list-view .markdown-table td {
+    display: flex;
+    padding: 0.75rem;
+    border: none;
+    border-bottom: 1px solid var(--b3);
+  }
+
+  .markdown-table-wrapper.list-view .markdown-table td:last-child {
+    border-bottom: none;
+  }
+
+  .markdown-table-wrapper.list-view .markdown-table td::before {
+    content: attr(data-label);
+    flex: 0 0 30%;
+    font-weight: 600;
+    color: var(--bc);
+    opacity: 0.7;
+    padding-right: 1rem;
+  }
+
+  /* 滚动阴影指示器 */
+  .table-scroll.has-overflow::before,
+  .table-scroll.has-overflow::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .table-scroll.has-overflow::before {
+    left: 0;
+    background: linear-gradient(to right, var(--b1), transparent);
+  }
+
+  .table-scroll.has-overflow::after {
+    right: 0;
+    background: linear-gradient(to left, var(--b1), transparent);
+  }
+
+  .table-scroll.has-overflow.scroll-start::before {
+    opacity: 0;
+  }
+
+  .table-scroll.has-overflow.scroll-end::after {
+    opacity: 0;
+  }
+
+  .table-scroll.has-overflow:not(.scroll-start)::before,
+  .table-scroll.has-overflow:not(.scroll-end)::after {
+    opacity: 1;
+  }
+}
+
+/* 暗色主题适配 */
+@media (prefers-color-scheme: dark) {
+  .markdown-table-wrapper {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .markdown-table-wrapper:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 } 
