@@ -177,29 +177,36 @@ export const createInputHandlers = ({
           params,
           typeof_width: typeof params.width,
           width_value: params.width,
-          is_width_multiple_of_32: params.width % 32 === 0
+          is_width_multiple_of_32: model === 'black-forest-labs/FLUX.1-pro' ? params.width % 32 === 0 : null
         });
 
-        // 预处理宽度和高度，确保是32的倍数
-        const finalWidth = Number(Math.floor(Number(params.width) / 32) * 32);
-        const finalHeight = Number(Math.floor(Number(params.height) / 32) * 32);
+        // 只有在使用 FLUX.1-pro 模型时才进行宽度和高度的预处理
+        if (model === 'black-forest-labs/FLUX.1-pro') {
+          // 预处理宽度和高度，确保是32的倍数
+          const finalWidth = Number(Math.floor(Number(params.width) / 32) * 32);
+          const finalHeight = Number(Math.floor(Number(params.height) / 32) * 32);
 
-        // 添加预处理后的参数日志
-        console.log('预处理后的宽度和高度:', {
-          finalWidth,
-          finalHeight,
-          finalWidth_is_multiple: finalWidth % 32 === 0,
-          finalHeight_is_multiple: finalHeight % 32 === 0,
-          finalWidth_type: typeof finalWidth,
-          finalHeight_type: typeof finalHeight
-        });
+          // 添加预处理后的参数日志
+          console.log('预处理后的宽度和高度:', {
+            finalWidth,
+            finalHeight,
+            finalWidth_is_multiple: finalWidth % 32 === 0,
+            finalHeight_is_multiple: finalHeight % 32 === 0,
+            finalWidth_type: typeof finalWidth,
+            finalHeight_type: typeof finalHeight
+          });
 
-        // 验证预处理后的参数
-        if (finalWidth < 256 || finalWidth > 1440 || finalWidth % 32 !== 0) {
-          throw new Error(`宽度 ${finalWidth} 必须是32的倍数，且在256-1440之间`);
-        }
-        if (finalHeight < 256 || finalHeight > 1440 || finalHeight % 32 !== 0) {
-          throw new Error(`高度 ${finalHeight} 必须是32的倍数，且在256-1440之间`);
+          // 验证预处理后的参数
+          if (finalWidth < 256 || finalWidth > 1440 || finalWidth % 32 !== 0) {
+            throw new Error(`宽度 ${finalWidth} 必须是32的倍数，且在256-1440之间`);
+          }
+          if (finalHeight < 256 || finalHeight > 1440 || finalHeight % 32 !== 0) {
+            throw new Error(`高度 ${finalHeight} 必须是32的倍数，且在256-1440之间`);
+          }
+
+          // 更新参数
+          params.width = finalWidth;
+          params.height = finalHeight;
         }
 
         // 调用图片生成 API
@@ -207,8 +214,8 @@ export const createInputHandlers = ({
           prompt,
           model,
           ...(model === 'black-forest-labs/FLUX.1-pro' ? {
-            width: finalWidth,
-            height: finalHeight,
+            width: params.width,
+            height: params.height,
             steps: Number(params.steps),
             guidance: Number(params.guidance),
             safety_tolerance: Number(params.safety_tolerance),
