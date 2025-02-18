@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { STORAGE_KEYS } from '../constants/storageKeys';
+import { MESSAGE_STATES } from '../constants';
 
 export const useMessageState = (currentConversation) => {
   // 消息列表状态
@@ -17,47 +18,29 @@ export const useMessageState = (currentConversation) => {
   const [messageStates, setMessageStates] = useState({});
   const [animationStates, setAnimationStates] = useState({});
 
-  // 当 currentConversation 改变时加载对应的消息
+  // 当对话改变时重置状态
   useEffect(() => {
-    if (currentConversation) {
-      const loadMessages = async () => {
-        try {
-          const loadedMessages = await window.electron.loadMessages(
-            currentConversation.path,
-            currentConversation.id
-          );
-          
-          // 确保 loadedMessages 是数组
-          if (!Array.isArray(loadedMessages)) {
-            console.error('加载的消息不是数组:', loadedMessages);
-            setMessages([]);
-            return;
+    setMessages([]);
+    setEditingMessageId(null);
+    setEditContent('');  // 重置为空字符串
+    setRetryingMessageId(null);
+    setFailedMessages(new Set());
+    setMessageStates({});
+    setAnimationStates({});
+
+    // 如果有当前对话，加载消息
+    if (currentConversation?.path) {
+      window.electron.loadMessages(currentConversation.path)
+        .then(loadedMessages => {
+          if (Array.isArray(loadedMessages)) {
+            setMessages(loadedMessages);
           }
-          
-          // 确保每个 AI 消息都有必要的历史记录字段
-          const processedMessages = loadedMessages.map(msg => {
-            if (msg.type === 'assistant') {
-              return {
-                ...msg,
-                history: msg.history || [],
-                currentHistoryIndex: msg.history?.length || 0, // 默认显示最新的回复
-                currentContent: msg.content // 保存当前内容
-              };
-            }
-            return msg;
-          });
-          
-          setMessages(processedMessages);
-        } catch (error) {
+        })
+        .catch(error => {
           console.error('加载消息失败:', error);
-          setMessages([]);
-        }
-      };
-      loadMessages();
-    } else {
-      setMessages([]);
+        });
     }
-  }, [currentConversation]);
+  }, [currentConversation?.path]);
 
   // 消息持久化
   useEffect(() => {

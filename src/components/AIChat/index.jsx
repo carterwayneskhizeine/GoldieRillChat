@@ -183,7 +183,8 @@ export const AIChat = ({
     inputState.messageInput,
     inputState.setMessageInput,
     window,
-    imageSettings  // 添加新的依赖
+    imageSettings,  // 添加新的依赖
+    messageState.editContent  // 添加到依赖数组
   ]);
 
   // 初始化处理函数

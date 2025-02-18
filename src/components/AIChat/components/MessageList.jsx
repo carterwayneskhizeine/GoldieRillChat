@@ -4,6 +4,9 @@ import { useMessageCollapse } from '../hooks/useMessageCollapse';
 import '../styles/messages.css';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import 'yet-another-react-lightbox/plugins/captions.css';
 
 export const MessageList = ({
   messages,
@@ -30,9 +33,9 @@ export const MessageList = ({
   const { isMessageCollapsed, toggleMessageCollapse } = useMessageCollapse();
 
   // 添加 Lightbox 相关状态
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [openLightbox, setOpenLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [lightboxImages, setLightboxImages] = useState([]);
+  const [images, setImages] = useState([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -65,28 +68,13 @@ export const MessageList = ({
   const handleImageClick = (e, file) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // 获取所有消息中的图片
-    const allImages = messages.reduce((acc, message) => {
-      if (message.files) {
-        const images = message.files
-          .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
-          .map(file => ({
-            src: `local-file://${file.path}`,
-            alt: file.name
-          }));
-        return [...acc, ...images];
-      }
-      return acc;
-    }, []);
-    
-    // 找到当前图片的索引
-    const currentImage = { src: `local-file://${file.path}` };
-    const imageIndex = allImages.findIndex(img => img.src === currentImage.src);
-    
-    setLightboxImages(allImages);
-    setLightboxIndex(imageIndex);
-    setLightboxOpen(true);
+    setImages([{
+      src: `local-file://${file.path}`,
+      alt: file.name,
+      title: file.name
+    }]);
+    setLightboxIndex(0);
+    setOpenLightbox(true);
   };
 
   return (
@@ -147,10 +135,29 @@ export const MessageList = ({
 
       {/* Lightbox 组件 */}
       <Lightbox
-        open={lightboxOpen}
-        close={() => setLightboxOpen(false)}
+        open={openLightbox}
+        close={() => setOpenLightbox(false)}
         index={lightboxIndex}
-        slides={lightboxImages}
+        slides={images}
+        plugins={[Zoom, Captions]}
+        animation={{ fade: 300 }}
+        carousel={{ finite: images.length <= 1 }}
+        zoom={{
+          maxZoomPixelRatio: 5,
+          zoomInMultiplier: 2,
+          doubleTapDelay: 300,
+          doubleClickDelay: 300,
+          doubleClickMaxStops: 2,
+          keyboardMoveDistance: 50,
+          wheelZoomDistanceFactor: 100,
+          pinchZoomDistanceFactor: 100,
+          scrollToZoom: true
+        }}
+        captions={{
+          showToggle: true,
+          descriptionTextAlign: 'center',
+          descriptionMaxLines: 3,
+        }}
       />
     </div>
   );

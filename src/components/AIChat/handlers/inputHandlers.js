@@ -58,6 +58,7 @@ export const createInputHandlers = ({
       const prompt = content.startsWith('/image ') ? args[0].trim() : retryContent.originalPrompt;
       let model = imageSettings.model;
       let params = { ...imageSettings };
+      let seed = Math.floor(Math.random() * 9999999999); // 默认随机种子
 
       // 添加参数复制日志
       console.log('初始参数复制:', {
@@ -114,7 +115,16 @@ export const createInputHandlers = ({
               console.log('更新图片尺寸:', value);
             }
           }
+          if (key === 'seed' && value) {
+            seed = parseInt(value);
+            if (isNaN(seed)) {
+              throw new Error('seed 必须是数字');
+            }
+          }
         }
+      } else if (isRetry && retryContent.seed) {
+        // 如果是重试，使用原始的 seed
+        seed = retryContent.seed;
       }
 
       if (!prompt) {
@@ -213,6 +223,7 @@ export const createInputHandlers = ({
         const apiParams = {
           prompt,
           model,
+          seed,  // 添加 seed 参数
           ...(model === 'black-forest-labs/FLUX.1-pro' ? {
             width: params.width,
             height: params.height,
