@@ -48,6 +48,16 @@ export const SettingsModal = ({
     return localStorage.getItem('aichat_image_model') || 'black-forest-labs/FLUX.1-schnell';
   });
 
+  // 添加视频模型状态
+  const [videoModel, setVideoModel] = useState(() => {
+    return localStorage.getItem('aichat_video_model') || 'Lightricks/LTX-Video';
+  });
+
+  // 添加视频随机种子状态
+  const [videoSeed, setVideoSeed] = useState(() => 
+    parseInt(localStorage.getItem('aichat_video_seed')) || Math.floor(Math.random() * 9999999999)
+  );
+
   // 添加图片分辨率状态
   const [imageSize, setImageSize] = useState(() => {
     return localStorage.getItem('aichat_image_size') || '1024x576';
@@ -105,6 +115,13 @@ export const SettingsModal = ({
     'stabilityai/stable-diffusion-2-1',
     'Pro/black-forest-labs/FLUX.1-schnell',
     'LoRA/black-forest-labs/FLUX.1-dev'
+  ];
+
+  // 视频模型列表
+  const VIDEO_MODELS = [
+    'Lightricks/LTX-Video',
+    'tencent/HunyuanVideo',
+    'genmo/mochi-1-preview'
   ];
 
   // 图片分辨率列表
@@ -208,51 +225,49 @@ export const SettingsModal = ({
     }
   };
 
-  // 修改 collectImageSettings 函数
-  const collectImageSettings = () => {
-    if (imageModel === 'black-forest-labs/FLUX.1-pro') {
-      return {
-        model: imageModel,
-        width: 1024,  // 修改固定宽度
-        height: 768,  // 修改固定高度
+  // 修改 collectMediaSettings 函数
+  const collectMediaSettings = () => {
+    const imageSettings = {
+      model: imageModel,
+      ...(imageModel === 'black-forest-labs/FLUX.1-pro' ? {
+        width: 1024,
+        height: 768,
         steps: imageSteps,
         guidance: imageGuidance,
         safety_tolerance: imageSafety,
         interval: imageInterval,
         prompt_upsampling: promptUpsampling
-      };
-    } else if (imageModel === 'black-forest-labs/FLUX.1-dev') {
-      return {
-        model: imageModel,
+      } : imageModel === 'black-forest-labs/FLUX.1-dev' ? {
         image_size: imageSize,
         num_inference_steps: devImageSteps,
         prompt_enhancement: devPromptEnhancement
-      };
-    } else if (imageModel.includes('stable-diffusion-3')) {
-      return {
-        model: imageModel,
+      } : imageModel.includes('stable-diffusion-3') ? {
         image_size: imageSize,
         prompt_enhancement: sdPromptEnhancement
-      };
-    } else if (imageModel.includes('FLUX.1-schnell')) {
-      return {
-        model: imageModel,
+      } : imageModel.includes('FLUX.1-schnell') ? {
         image_size: imageSize,
         prompt_enhancement: schnellPromptEnhancement
-      };
-    } else {
-      return {
-        model: imageModel,
+      } : {
         image_size: imageSize
-      };
-    }
+      })
+    };
+
+    const videoSettings = {
+      model: videoModel,
+      seed: videoSeed
+    };
+    
+    return {
+      image: imageSettings,
+      video: videoSettings
+    };
   };
 
   // 修改关闭处理函数
   const handleClose = () => {
-    // 收集并更新图片设置
-    const imageSettings = collectImageSettings();
-    onImageSettingsUpdate?.(imageSettings);
+    // 收集并更新媒体设置
+    const mediaSettings = collectMediaSettings();
+    onImageSettingsUpdate?.(mediaSettings);
     
     // 调用原有的关闭处理函数
     handleSettingsClose();
@@ -290,12 +305,20 @@ export const SettingsModal = ({
               搜索
             </a>
             {selectedProvider === 'siliconflow' && (
-              <a 
-                className={`tab ${activeTab === 'image' ? 'tab-active' : ''}`}
-                onClick={() => setActiveTab('image')}
-              >
-                图片
-              </a>
+              <>
+                <a 
+                  className={`tab ${activeTab === 'image' ? 'tab-active' : ''}`}
+                  onClick={() => setActiveTab('image')}
+                >
+                  图片
+                </a>
+                <a 
+                  className={`tab ${activeTab === 'video' ? 'tab-active' : ''}`}
+                  onClick={() => setActiveTab('video')}
+                >
+                  视频
+                </a>
+              </>
             )}
             <a 
               className={`tab ${activeTab === 'other' ? 'tab-active' : ''}`}
@@ -851,7 +874,90 @@ export const SettingsModal = ({
             </div>
           )}
 
-          {/* Tab 4: 其他设置 */}
+          {/* Tab 4: 视频设置 */}
+          {selectedProvider === 'siliconflow' && (
+            <div className={activeTab === 'video' ? '' : 'hidden'}>
+              <div className="space-y-4">
+                {/* 视频模型选择 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">视频生成模型</h3>
+                  <select 
+                    className="select select-bordered w-full"
+                    value={videoModel}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setVideoModel(value);
+                      localStorage.setItem('aichat_video_model', value);
+                    }}
+                  >
+                    {VIDEO_MODELS.map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                  <div className="text-xs opacity-70 mt-2">
+                    选择用于视频生成的模型，使用 /video 命令时会使用此模型
+                  </div>
+                </div>
+
+                {/* 随机种子设置 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">随机种子 (Seed)</h3>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="number"
+                      min="0"
+                      max="9999999999"
+                      value={videoSeed}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (value >= 0 && value <= 9999999999) {
+                          setVideoSeed(value);
+                          localStorage.setItem('aichat_video_seed', value.toString());
+                        }
+                      }}
+                      className="input input-bordered w-full"
+                    />
+                    <button
+                      className="btn btn-square"
+                      onClick={() => {
+                        const newSeed = Math.floor(Math.random() * 9999999999);
+                        setVideoSeed(newSeed);
+                        localStorage.setItem('aichat_video_seed', newSeed.toString());
+                      }}
+                      title="生成新的随机种子"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="text-xs opacity-70">设置随机种子以获得可重复的结果（0-9999999999），留空则随机生成</div>
+                </div>
+
+                {/* 帮助信息 */}
+                <div className="text-xs opacity-70 space-y-2">
+                  <div className="settings-help-text">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      生成的视频链接有效期为1小时，请及时下载保存
+                    </span>
+                  </div>
+                  <div className="settings-help-text">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      使用 /video 命令生成视频，可选参数：--model 指定模型，--image 添加参考图片
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 5: 其他设置 */}
           <div className={activeTab === 'other' ? '' : 'hidden'}>
             <div className="space-y-4">
               {/* 消息历史记录数量设置 */}

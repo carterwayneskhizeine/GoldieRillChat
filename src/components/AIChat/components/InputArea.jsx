@@ -59,6 +59,7 @@ export const InputArea = ({
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               handleSendMessage();
+              setMessageInput('');
               e.target.style.height = '64px';
               e.target.style.overflowY = 'hidden';
             }
@@ -92,7 +93,15 @@ export const InputArea = ({
           </button>
           <button 
             className="btn btn-ghost btn-sm btn-circle"
-            onClick={() => handleSendMessage()}
+            onClick={() => {
+              handleSendMessage();
+              setMessageInput('');
+              const textarea = document.querySelector('.aichat-input');
+              if (textarea) {
+                textarea.style.height = '64px';
+                textarea.style.overflowY = 'hidden';
+              }
+            }}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />

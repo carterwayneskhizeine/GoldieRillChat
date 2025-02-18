@@ -1189,4 +1189,163 @@ ipcMain.handle('generate-image', async (event, { prompt, model, image_size, widt
     console.error('图片生成失败:', error);
     throw new Error(`图片生成失败: ${error.message}`);
   }
+});
+
+// 添加视频生成相关的 IPC 处理
+ipcMain.handle('generate-video', async (event, { prompt, model, image, seed, conversationPath, apiKey, apiHost }) => {
+  try {
+    // 验证必要参数
+    if (!prompt) throw new Error('提示词不能为空');
+    if (!apiKey) throw new Error('API Key 不能为空');
+    if (!apiHost) throw new Error('API Host 不能为空');
+    if (!conversationPath) throw new Error('对话路径不能为空');
+    if (!model) throw new Error('模型不能为空');
+
+    // 确保存在视频存储目录
+    const videosDir = path.join(conversationPath, 'videos');
+    try {
+      await fs.access(videosDir);
+    } catch {
+      await fs.mkdir(videosDir, { recursive: true });
+    }
+
+    // 构建请求体
+    const requestBody = {
+      prompt,
+      model,
+      seed: seed || Math.floor(Math.random() * 9999999999)
+    };
+
+    // 如果提供了参考图片，添加到请求体
+    if (image) {
+      requestBody.image = image;
+    }
+
+    // 发送请求
+    const response = await fetch(`${apiHost}/video/submit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      let errorMessage = `视频生成请求失败 (${response.status})`;
+      
+      if (errorData) {
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    
+    // 返回请求ID和种子
+    return {
+      requestId: data.requestId,
+      seed: requestBody.seed
+    };
+
+  } catch (error) {
+    console.error('视频生成失败:', error);
+    throw new Error(`视频生成请求失败: ${error.message}`);
+  }
+});
+
+// 添加获取视频状态的 IPC 处理
+ipcMain.handle('get-video-status', async (event, { requestId, apiKey, apiHost }) => {
+  try {
+    // 验证必要参数
+    if (!requestId) throw new Error('请求ID不能为空');
+    if (!apiKey) throw new Error('API Key 不能为空');
+    if (!apiHost) throw new Error('API Host 不能为空');
+
+    // 发送请求
+    const response = await fetch(`${apiHost}/video/status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({ request_id: requestId })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      let errorMessage = `获取视频状态失败 (${response.status})`;
+      
+      if (errorData) {
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return {
+      status: data.status,
+      url: data.url,
+      position: data.position,
+      reason: data.reason
+    };
+
+  } catch (error) {
+    console.error('获取视频状态失败:', error);
+    throw new Error(`获取视频状态失败: ${error.message}`);
+  }
+});
+
+// 添加下载视频的 IPC 处理
+ipcMain.handle('download-video', async (event, { url, conversationPath }) => {
+  try {
+    // 验证必要参数
+    if (!url) throw new Error('视频URL不能为空');
+    if (!conversationPath) throw new Error('对话路径不能为空');
+
+    // 确保存在视频存储目录
+    const videosDir = path.join(conversationPath, 'videos');
+    try {
+      await fs.access(videosDir);
+    } catch {
+      await fs.mkdir(videosDir, { recursive: true });
+    }
+
+    // 下载视频
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`下载视频失败: ${response.status}`);
+    }
+
+    // 生成文件名
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '');
+    const fileName = `video_${timestamp}.mp4`;
+    const filePath = path.join(videosDir, fileName);
+
+    // 保存视频文件
+    const buffer = await response.arrayBuffer();
+    await fs.writeFile(filePath, Buffer.from(buffer));
+
+    // 返回结果
+    return {
+      path: filePath,
+      fileName: fileName,
+      timestamp: timestamp
+    };
+
+  } catch (error) {
+    console.error('下载视频失败:', error);
+    throw new Error(`下载视频失败: ${error.message}`);
+  }
 }); 

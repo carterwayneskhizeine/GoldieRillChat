@@ -172,4 +172,11 @@ contextBridge.exposeInMainWorld('electron', {
   // 添加 AI 图片生成相关功能
   generateImage: ({ prompt, model, image_size, conversationPath, apiKey, apiHost }) => 
     ipcRenderer.invoke('generate-image', { prompt, model, image_size, conversationPath, apiKey, apiHost }),
-}) 
+})
+
+// 添加视频生成相关的 API
+contextBridge.exposeInMainWorld('video', {
+  generate: (params) => ipcRenderer.invoke('generate-video', params),
+  getStatus: (params) => ipcRenderer.invoke('get-video-status', params),
+  download: (params) => ipcRenderer.invoke('download-video', params)
+}); 

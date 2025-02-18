@@ -122,26 +122,33 @@ export const createMessageHandlers = ({
   };
 
   // 保存编辑
-  const saveEdit = async (messageId) => {
+  const saveEdit = async (messageId, newContent) => {
     try {
       // 获取要编辑的消息
       const message = messages.find(msg => msg.id === messageId);
       if (!message) return;
 
       // 检查编辑内容
-      if (editContent === undefined || editContent === null || editContent.trim() === '') {
-        console.log('编辑内容验证失败:', {
-          editContent,
-          typeof_editContent: typeof editContent,
-          messageId,
-          message
-        });
+      if (newContent === undefined || newContent === null) {
         throw new Error('编辑内容不能为空');
       }
 
-      // 更新消息
+      // 创建更新后的消息对象，保留所有原始属性
+      const updatedMessage = {
+        ...message,
+        content: newContent,
+        timestamp: new Date().toISOString(),  // 更新时间戳
+        history: message.history || [],
+        currentHistoryIndex: message.currentHistoryIndex || 0,
+        reasoning_content: message.reasoning_content || '',
+        files: message.files || [],
+        model: message.model,
+        type: message.type
+      };
+
+      // 更新消息列表
       const updatedMessages = messages.map(msg =>
-        msg.id === messageId ? { ...msg, content: editContent.trim() } : msg
+        msg.id === messageId ? updatedMessage : msg
       );
 
       // 保存到本地文件
@@ -151,39 +158,29 @@ export const createMessageHandlers = ({
           const txtFile = await window.electron.saveMessageAsTxt(
             currentConversation.path,
             {
-              ...message,
-              content: editContent.trim(),
+              ...updatedMessage,
               fileName: message.txtFile?.displayName || `message_${message.id}`
             }
           );
 
-          // 更新消息对象
-          const finalMessage = {
-            ...message,
-            content: editContent.trim(),
-            txtFile
-          };
+          // 更新消息对象的 txtFile 属性
+          updatedMessage.txtFile = txtFile;
 
           // 保存到 messages.json
           await window.electron.saveMessages(
             currentConversation.path,
             currentConversation.id,
-            updatedMessages.map(msg => 
-              msg.id === messageId ? finalMessage : msg
-            )
+            updatedMessages
           );
 
-          // 更新状态
-          setMessages(updatedMessages.map(msg => 
-            msg.id === messageId ? finalMessage : msg
-          ));
         } catch (error) {
           console.error('保存文件失败:', error);
           throw new Error('保存文件失败: ' + error.message);
         }
-      } else {
-        setMessages(updatedMessages);
       }
+
+      // 更新状态
+      setMessages(updatedMessages);
 
       // 退出编辑模式
       setEditingMessageId(null);
@@ -191,7 +188,7 @@ export const createMessageHandlers = ({
 
     } catch (error) {
       console.error('保存编辑失败:', error, {
-        editContent,
+        newContent,
         messageId,
         currentConversation
       });

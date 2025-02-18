@@ -177,6 +177,56 @@ export const MessageItem = ({
     return null;
   };
 
+  // 添加视频消息渲染函数
+  const renderVideoMessage = (message) => {
+    const videoFile = message.files?.find(file => file.type === 'video/mp4');
+    if (!videoFile) return null;
+
+    return (
+      <div className="video-container">
+        <div className="video-info mb-4">
+          <div className="font-medium mb-2">提示词：{message.originalPrompt}</div>
+          <div className="text-sm opacity-70">
+            <span className="mr-4">模型：{message.model}</span>
+            <span>种子：{message.seed}</span>
+          </div>
+        </div>
+        <div className="video-player relative rounded-lg overflow-hidden bg-base-200">
+          <video
+            controls
+            className="w-full max-h-[70vh] object-contain"
+            preload="metadata"
+          >
+            <source src={`local-file://${videoFile.path}`} type="video/mp4" />
+            您的浏览器不支持视频播放。
+          </video>
+        </div>
+        <div className="video-actions mt-2 flex justify-end gap-2">
+          <button
+            className="btn btn-sm btn-ghost"
+            onClick={() => openFileLocation(videoFile)}
+            title="打开文件位置"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+            </svg>
+            <span className="ml-1">打开位置</span>
+          </button>
+          <button
+            className="btn btn-sm btn-ghost"
+            onClick={() => handleRetry(message.id)}
+            title="重新生成"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="ml-1">重新生成</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div
@@ -285,30 +335,51 @@ export const MessageItem = ({
                           </div>
                         </div>
                       )}
-                      {/* 显示最终内容 */}
-                      <div className={message.type === 'assistant' && message.reasoning_content ? 'mt-4' : ''}>
-                        {message.generating ? (
-                          <div className="typing-effect">
-                            {message.content}
-                          </div>
-                        ) : (
-                          <MarkdownRenderer
-                            content={message.content || ''}
-                            isCompact={false}
-                            onCopyCode={(code) => {
-                              console.log('Code copied:', code);
-                            }}
-                            onLinkClick={(href) => {
-                              window.electron.openExternal(href);
-                            }}
-                          />
-                        )}
-                      </div>
-
-                      {/* 显示媒体文件 */}
-                      {message.files?.length > 0 && (
+                      {/* 判断是否是视频消息 */}
+                      {message.files?.some(file => file.type === 'video/mp4') ? (
+                        renderVideoMessage(message)
+                      ) : message.files?.some(file => 
+                        file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                      ) ? (
                         <div className="media-content">
                           {message.files.map(file => renderMediaContent(file))}
+                        </div>
+                      ) : message.files?.some(file => 
+                        !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                      ) ? (
+                        <div className="file-message">
+                          {/* 显示文件消息 */}
+                          {message.files.map((file, index) => (
+                            <div key={index} className="file-item">
+                              <span className="file-name">{file.name}</span>
+                              <button
+                                className="btn btn-ghost btn-xs"
+                                onClick={() => openFileLocation(file)}
+                                title="打开文件位置"
+                              >
+                                打开
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className={message.type === 'assistant' && message.reasoning_content ? 'mt-4' : ''}>
+                          {message.generating ? (
+                            <div className="typing-effect">
+                              {message.content}
+                            </div>
+                          ) : (
+                            <MarkdownRenderer
+                              content={message.content || ''}
+                              isCompact={false}
+                              onCopyCode={(code) => {
+                                console.log('Code copied:', code);
+                              }}
+                              onLinkClick={(href) => {
+                                window.electron.openExternal(href);
+                              }}
+                            />
+                          )}
                         </div>
                       )}
                     </>
@@ -469,7 +540,11 @@ export const MessageItem = ({
                   language={editorLanguage}
                   theme={editorTheme}
                   value={editContent}
-                  onChange={(value) => setEditContent(value)}
+                  onChange={(value) => {
+                    if (value !== undefined) {
+                      setEditContent(value);
+                    }
+                  }}
                   onMount={handleEditorDidMount}
                   options={{
                     fontSize: fontSize,
@@ -492,7 +567,7 @@ export const MessageItem = ({
                 </button>
                 <button 
                   className="btn btn-primary btn-sm"
-                  onClick={() => handleEditSave(message.id)}
+                  onClick={() => handleEditSave(message.id, editContent)}
                 >
                   保存
                 </button>

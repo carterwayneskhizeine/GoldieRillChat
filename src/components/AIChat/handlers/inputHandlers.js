@@ -1,7 +1,9 @@
+import { v4 as uuidv4 } from 'uuid';
 import { callModelAPI } from '../../../services/modelProviders';
 import { formatAIChatTime } from '../../../utils/AIChatTimeFormat';
 import { MESSAGE_STATES } from '../constants';
 import { searchService } from '../../../services/searchService';
+import { handleVideoCommand } from './videoCommandHandler';
 
 export const createInputHandlers = ({
   messageInput,
@@ -31,7 +33,8 @@ export const createInputHandlers = ({
   isNetworkEnabled,
   updateMessage,
   deleteMessage,
-  imageSettings
+  imageSettings,
+  videoSettings  // 添加视频设置参数
 }) => {
   // 处理发送消息
   const handleSendMessage = async (isRetry = false, retryContent = null, forceNetworkSearch = false) => {
@@ -44,20 +47,54 @@ export const createInputHandlers = ({
     // 获取要发送的内容
     const content = isRetry ? retryContent : messageInput;
 
+    // 检查是否是视频生成命令
+    if (content.startsWith('/video ')) {
+      try {
+        await handleVideoCommand({
+          content,
+          currentConversation,
+          videoSettings,
+          apiKey,
+          apiHost,
+          addMessage,
+          setMessages,
+          window
+        });
+        
+        // 清空输入框
+        if (!isRetry) {
+          setMessageInput('');
+          const textarea = document.querySelector('.aichat-input');
+          if (textarea) {
+            textarea.style.height = '64px';
+            textarea.style.overflowY = 'hidden';
+          }
+        }
+        return;
+      } catch (error) {
+        console.error('视频生成失败:', error);
+        alert('视频生成失败: ' + error.message);
+        return;
+      }
+    }
+
     // 检查是否是图片生成命令或图片重试
     if (content.startsWith('/image ') || (isRetry && retryContent.originalPrompt)) {
       // 添加全局设置日志
-      console.log('全局图片设置状态:', {
-        imageSettings,
-        typeof_width: typeof imageSettings.width,
-        width_value: imageSettings.width,
-        is_width_multiple_of_32: imageSettings.width % 32 === 0
-      });
+      console.log('全局图片设置状态:', imageSettings);
 
       const args = content.startsWith('/image ') ? content.slice(7).trim().split('--') : [];
       const prompt = content.startsWith('/image ') ? args[0].trim() : retryContent.originalPrompt;
-      let model = imageSettings.model;
-      let params = { ...imageSettings };
+      
+      // 深度复制图片设置
+      let params = JSON.parse(JSON.stringify(imageSettings));
+      let model = params.model;
+
+      // 验证模型参数
+      if (!model) {
+        model = 'black-forest-labs/FLUX.1-schnell';
+        params.model = model;
+      }
 
       // 添加参数复制日志
       console.log('初始参数复制:', {
@@ -65,7 +102,7 @@ export const createInputHandlers = ({
         params,
         typeof_width: typeof params.width,
         width_value: params.width,
-        is_width_multiple_of_32: params.width % 32 === 0
+        is_width_multiple_of_32: params.width ? params.width % 32 === 0 : null
       });
 
       // 如果是新的图片生成命令，解析参数
@@ -76,7 +113,7 @@ export const createInputHandlers = ({
           if (key === 'model' && value) {
             model = value;
             // 如果切换到了不同的模型，使用该模型的默认参数
-            if (model !== imageSettings.model) {
+            if (model !== params.model) {
               if (model === 'black-forest-labs/FLUX.1-pro') {
                 // 确保宽度和高度是32的倍数
                 params = {
@@ -89,20 +126,13 @@ export const createInputHandlers = ({
                   interval: 2,
                   prompt_upsampling: false
                 };
-                // 添加模型切换日志
-                console.log('切换到 FLUX.1-pro 模型:', {
-                  params,
-                  typeof_width: typeof params.width,
-                  width_value: params.width,
-                  is_width_multiple_of_32: params.width % 32 === 0
-                });
+                console.log('切换到 FLUX.1-pro 模型，新参数:', params);
               } else {
                 params = {
                   model,
                   image_size: '1024x576'
                 };
-                // 添加模型切换日志
-                console.log('切换到其他模型:', params);
+                console.log('切换到其他模型，新参数:', params);
               }
             }
           }
@@ -121,6 +151,34 @@ export const createInputHandlers = ({
         alert('请输入图片生成提示词');
         return;
       }
+
+      // 构建 API 参数
+      const apiParams = {
+        prompt,
+        model: params.model,
+        ...(params.model === 'black-forest-labs/FLUX.1-pro' ? {
+          width: Number(params.width),
+          height: Number(params.height),
+          steps: Number(params.steps),
+          guidance: Number(params.guidance),
+          safety_tolerance: Number(params.safety_tolerance),
+          interval: Number(params.interval),
+          prompt_upsampling: Boolean(params.prompt_upsampling)
+        } : {
+          image_size: params.image_size
+        }),
+        conversationPath: currentConversation.path,
+        apiKey,
+        apiHost
+      };
+
+      // 添加最终 API 参数日志
+      console.log('最终 API 参数:', {
+        ...apiParams,
+        typeof_width: typeof apiParams.width,
+        width_value: apiParams.width,
+        is_width_multiple_of_32: params.model === 'black-forest-labs/FLUX.1-pro' ? apiParams.width % 32 === 0 : null
+      });
 
       // 添加用户消息
       const userMessage = {
@@ -210,36 +268,6 @@ export const createInputHandlers = ({
         }
 
         // 调用图片生成 API
-        const apiParams = {
-          prompt,
-          model,
-          ...(model === 'black-forest-labs/FLUX.1-pro' ? {
-            width: params.width,
-            height: params.height,
-            steps: Number(params.steps),
-            guidance: Number(params.guidance),
-            safety_tolerance: Number(params.safety_tolerance),
-            interval: Number(params.interval),
-            prompt_upsampling: params.prompt_upsampling
-          } : {
-            image_size: params.image_size
-          }),
-          conversationPath: currentConversation.path,
-          apiKey,
-          apiHost
-        };
-
-        // 添加最终 API 参数日志
-        console.log('最终 API 参数:', {
-          ...apiParams,
-          typeof_width: typeof apiParams.width,
-          width_value: apiParams.width,
-          is_width_multiple_of_32: model === 'black-forest-labs/FLUX.1-pro' ? apiParams.width % 32 === 0 : null,
-          typeof_height: typeof apiParams.height,
-          height_value: apiParams.height,
-          is_height_multiple_of_32: model === 'black-forest-labs/FLUX.1-pro' ? apiParams.height % 32 === 0 : null
-        });
-
         const result = await window.electron.generateImage(apiParams);
 
         // 更新 AI 消息
