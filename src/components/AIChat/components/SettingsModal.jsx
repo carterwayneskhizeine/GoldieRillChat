@@ -76,6 +76,11 @@ export const SettingsModal = ({
     localStorage.getItem('aichat_prompt_upsampling') === 'true'
   );
 
+  // 添加 seed 状态
+  const [imageSeed, setImageSeed] = useState(() => 
+    parseInt(localStorage.getItem('aichat_image_seed')) || 100000
+  );
+
   // 生图模型列表
   const IMAGE_MODELS = [
     'black-forest-labs/FLUX.1-schnell',
@@ -93,13 +98,45 @@ export const SettingsModal = ({
 
   // 图片分辨率列表
   const IMAGE_SIZES = [
-    { value: '1024x576', label: '1024×576 (16:9 横版)' },
-    { value: '576x1024', label: '576×1024 (9:16 竖版)' },
-    { value: '1024x1024', label: '1024×1024 (1:1 方形)' },
-    { value: '768x512', label: '768×512 (3:2 横版)' },
-    { value: '512x768', label: '512×768 (2:3 竖版)' },
-    { value: '768x1024', label: '768×1024 (3:4 竖版)' }
+    { value: '1024x576', label: '1024×576 (16:9 横版)', pro: false },
+    { value: '576x1024', label: '576×1024 (9:16 竖版)', pro: false },
+    { value: '1280x720', label: '1280×720 (16:9 横版)', pro: true },
+    { value: '1024x1024', label: '1024×1024 (1:1 方形)', pro: true },
+    { value: '960x1280', label: '960×1280 (3:4 竖版)', pro: true },
+    { value: '768x1024', label: '768×1024 (3:4 竖版)', pro: true },
+    { value: '720x1440', label: '720×1440 (1:2 竖版)', pro: true },
+    { value: '720x1280', label: '720×1280 (9:16 竖版)', pro: true },
+    { value: '768x512', label: '768×512 (3:2 横版)', pro: false },
+    { value: '512x768', label: '512×768 (2:3 竖版)', pro: false }
   ];
+
+  // 添加 useEffect 来处理初始化
+  useEffect(() => {
+    // 如果是 FLUX.1-pro 模型，确保使用正确的分辨率
+    if (imageModel === 'black-forest-labs/FLUX.1-pro') {
+      // 检查当前分辨率是否是 pro 支持的分辨率
+      if (!IMAGE_SIZES.find(size => size.pro && size.value === imageSize)) {
+        // 如果不是，设置为默认的 1280x720
+        const defaultSize = '1280x720';
+        setImageSize(defaultSize);
+        localStorage.setItem('aichat_image_size', defaultSize);
+        
+        // 更新宽高
+        const [width, height] = defaultSize.split('x').map(Number);
+        setImageWidth(width);
+        setImageHeight(height);
+        localStorage.setItem('aichat_image_width', width.toString());
+        localStorage.setItem('aichat_image_height', height.toString());
+      } else {
+        // 如果是，确保宽高与分辨率一致
+        const [width, height] = imageSize.split('x').map(Number);
+        setImageWidth(width);
+        setImageHeight(height);
+        localStorage.setItem('aichat_image_width', width.toString());
+        localStorage.setItem('aichat_image_height', height.toString());
+      }
+    }
+  }, []); // 仅在组件挂载时运行一次
 
   // 处理 Google API 密钥变更
   const handleGoogleApiKeyChange = (value) => {
@@ -164,12 +201,49 @@ export const SettingsModal = ({
   const handleImageModelChange = (value) => {
     setImageModel(value);
     localStorage.setItem('aichat_image_model', value);
+
+    // 当切换到 FLUX.1-pro 模型时，根据当前选择的分辨率设置宽高
+    if (value === 'black-forest-labs/FLUX.1-pro') {
+      const [width, height] = imageSize.split('x').map(Number);
+      // 确保是32的倍数
+      const adjustedWidth = Math.floor(width / 32) * 32;
+      const adjustedHeight = Math.floor(height / 32) * 32;
+      setImageWidth(adjustedWidth);
+      setImageHeight(adjustedHeight);
+      localStorage.setItem('aichat_image_width', adjustedWidth.toString());
+      localStorage.setItem('aichat_image_height', adjustedHeight.toString());
+
+      // 如果当前分辨率不是 pro 支持的分辨率，设置为默认的 1280x720
+      if (!IMAGE_SIZES.find(size => size.pro && size.value === imageSize)) {
+        const defaultSize = '1280x720';
+        setImageSize(defaultSize);
+        localStorage.setItem('aichat_image_size', defaultSize);
+        // 更新宽高
+        const [defaultWidth, defaultHeight] = defaultSize.split('x').map(Number);
+        setImageWidth(defaultWidth);
+        setImageHeight(defaultHeight);
+        localStorage.setItem('aichat_image_width', defaultWidth.toString());
+        localStorage.setItem('aichat_image_height', defaultHeight.toString());
+      }
+    }
   };
 
   // 处理图片分辨率变更
   const handleImageSizeChange = (value) => {
     setImageSize(value);
     localStorage.setItem('aichat_image_size', value);
+
+    // 如果是 FLUX.1-pro 模型，自动设置宽度和高度
+    if (imageModel === 'black-forest-labs/FLUX.1-pro') {
+      const [width, height] = value.split('x').map(Number);
+      // 确保是32的倍数
+      const adjustedWidth = Math.floor(width / 32) * 32;
+      const adjustedHeight = Math.floor(height / 32) * 32;
+      setImageWidth(adjustedWidth);
+      setImageHeight(adjustedHeight);
+      localStorage.setItem('aichat_image_width', adjustedWidth.toString());
+      localStorage.setItem('aichat_image_height', adjustedHeight.toString());
+    }
   };
 
   const openExternalLink = (url) => {
@@ -200,12 +274,14 @@ export const SettingsModal = ({
         guidance: imageGuidance,
         safety_tolerance: imageSafety,
         interval: imageInterval,
-        prompt_upsampling: promptUpsampling
+        prompt_upsampling: promptUpsampling,
+        seed: imageSeed
       };
     } else {
       return {
         model: imageModel,
-        image_size: imageSize
+        image_size: imageSize,
+        seed: imageSeed
       };
     }
   };
@@ -536,55 +612,61 @@ export const SettingsModal = ({
                   </div>
                 </div>
 
+                {/* Seed 设置 - 所有模型都显示 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Seed 值</h3>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="0"
+                      max="9999999999"
+                      step="1"
+                      value={imageSeed}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        setImageSeed(value);
+                        localStorage.setItem('aichat_image_seed', value.toString());
+                      }}
+                      className="range range-primary flex-1"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      max="9999999999"
+                      value={imageSeed}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (!isNaN(value) && value >= 0 && value <= 9999999999) {
+                          setImageSeed(value);
+                          localStorage.setItem('aichat_image_seed', value.toString());
+                        }
+                      }}
+                      className="input input-bordered w-[150px] text-right"
+                    />
+                  </div>
+                  <div className="text-xs opacity-70">
+                    设置图片生成的随机种子（0-9999999999），相同的种子会生成相似的图片
+                  </div>
+                </div>
+
                 {/* 根据不同的模型显示不同的设置选项 */}
                 {imageModel === 'black-forest-labs/FLUX.1-pro' ? (
                   <>
-                    {/* 宽度设置 */}
+                    {/* 分辨率设置 */}
                     <div>
-                      <h3 className="text-lg font-medium mb-2">宽度 (Width)</h3>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="256"
-                          max="1440"
-                          step="32"
-                          value={imageWidth}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value);
-                            if (value % 32 === 0) {
-                              setImageWidth(value);
-                              localStorage.setItem('aichat_image_width', value.toString());
-                            }
-                          }}
-                          className="range range-primary flex-1"
-                        />
-                        <span className="text-lg font-medium min-w-[4ch]">{imageWidth}</span>
+                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                      <select 
+                        className="select select-bordered w-full"
+                        value={imageSize}
+                        onChange={(e) => handleImageSizeChange(e.target.value)}
+                      >
+                        {IMAGE_SIZES.filter(size => size.pro).map(size => (
+                          <option key={size.value} value={size.value}>{size.label}</option>
+                        ))}
+                      </select>
+                      <div className="text-xs opacity-70 mt-2">
+                        选择图片生成的默认分辨率，所有尺寸都会自动调整为32的倍数
                       </div>
-                      <div className="text-xs opacity-70">宽度必须是 32 的倍数，范围：256-1440</div>
-                    </div>
-
-                    {/* 高度设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">高度 (Height)</h3>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="256"
-                          max="1440"
-                          step="32"
-                          value={imageHeight}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value);
-                            if (value % 32 === 0) {
-                              setImageHeight(value);
-                              localStorage.setItem('aichat_image_height', value.toString());
-                            }
-                          }}
-                          className="range range-primary flex-1"
-                        />
-                        <span className="text-lg font-medium min-w-[4ch]">{imageHeight}</span>
-                      </div>
-                      <div className="text-xs opacity-70">高度必须是 32 的倍数，范围：256-1440</div>
                     </div>
 
                     {/* 步数设置 */}
@@ -696,7 +778,7 @@ export const SettingsModal = ({
                     </div>
                   </>
                 ) : (
-                  // 其他模型的默认分辨率设置
+                  // 其他模型的分辨率设置
                   <div>
                     <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
                     <select 
@@ -704,7 +786,7 @@ export const SettingsModal = ({
                       value={imageSize}
                       onChange={(e) => handleImageSizeChange(e.target.value)}
                     >
-                      {IMAGE_SIZES.map(size => (
+                      {IMAGE_SIZES.filter(size => !size.pro).map(size => (
                         <option key={size.value} value={size.value}>{size.label}</option>
                       ))}
                     </select>

@@ -58,7 +58,6 @@ export const createInputHandlers = ({
       const prompt = content.startsWith('/image ') ? args[0].trim() : retryContent.originalPrompt;
       let model = imageSettings.model;
       let params = { ...imageSettings };
-      let seed = Math.floor(Math.random() * 9999999999); // 默认随机种子
 
       // 添加参数复制日志
       console.log('初始参数复制:', {
@@ -88,7 +87,8 @@ export const createInputHandlers = ({
                   guidance: 3,
                   safety_tolerance: 2,
                   interval: 2,
-                  prompt_upsampling: false
+                  prompt_upsampling: false,
+                  seed: imageSettings.seed  // 保持使用全局设置的 seed
                 };
                 // 添加模型切换日志
                 console.log('切换到 FLUX.1-pro 模型:', {
@@ -100,7 +100,8 @@ export const createInputHandlers = ({
               } else {
                 params = {
                   model,
-                  image_size: '1024x576'
+                  image_size: '1024x576',
+                  seed: imageSettings.seed  // 保持使用全局设置的 seed
                 };
                 // 添加模型切换日志
                 console.log('切换到其他模型:', params);
@@ -115,16 +116,10 @@ export const createInputHandlers = ({
               console.log('更新图片尺寸:', value);
             }
           }
-          if (key === 'seed' && value) {
-            seed = parseInt(value);
-            if (isNaN(seed)) {
-              throw new Error('seed 必须是数字');
-            }
-          }
         }
       } else if (isRetry && retryContent.seed) {
         // 如果是重试，使用原始的 seed
-        seed = retryContent.seed;
+        params.seed = retryContent.seed;
       }
 
       if (!prompt) {
@@ -223,7 +218,7 @@ export const createInputHandlers = ({
         const apiParams = {
           prompt,
           model,
-          seed,  // 添加 seed 参数
+          seed: params.seed,  // 使用全局设置中的 seed
           ...(model === 'black-forest-labs/FLUX.1-pro' ? {
             width: params.width,
             height: params.height,
@@ -258,7 +253,7 @@ export const createInputHandlers = ({
 
 **Model：** ${model}
 
-**Seed：** ${result.seed}
+**Seed：** ${params.seed}
 
 ![${prompt}](local-file://${result.localPath})`;
         const updatedAiMessage = {
@@ -270,9 +265,9 @@ export const createInputHandlers = ({
             path: result.localPath,
             type: 'image/png'
           }],
-          seed: result.seed,
-          model: model,  // 添加模型信息
-          originalPrompt: prompt  // 保存原始提示词，方便重新生成
+          seed: params.seed,
+          model: model,
+          originalPrompt: prompt
         };
 
         // 更新消息列表
@@ -285,7 +280,7 @@ export const createInputHandlers = ({
           currentConversation.path,
           {
             ...updatedAiMessage,
-            fileName: `${formatAIChatTime(aiMessage.timestamp)} • 图片生成 • Seed: ${result.seed}`
+            fileName: `${formatAIChatTime(aiMessage.timestamp)} • 图片生成 • Seed: ${params.seed}`
           }
         );
 
