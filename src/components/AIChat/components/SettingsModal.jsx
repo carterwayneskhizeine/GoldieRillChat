@@ -76,9 +76,20 @@ export const SettingsModal = ({
     localStorage.getItem('aichat_prompt_upsampling') === 'true'
   );
 
-  // 添加 seed 状态
-  const [imageSeed, setImageSeed] = useState(() => 
-    parseInt(localStorage.getItem('aichat_image_seed')) || 100000
+  // 添加 FLUX.1-dev 模型的参数状态
+  const [devImageSteps, setDevImageSteps] = useState(() => 
+    parseInt(localStorage.getItem('aichat_dev_image_steps')) || 20
+  );
+  const [devPromptEnhancement, setDevPromptEnhancement] = useState(() => 
+    localStorage.getItem('aichat_dev_prompt_enhancement') === 'true'
+  );
+
+  // 添加其他模型的提示增强状态
+  const [sdPromptEnhancement, setSdPromptEnhancement] = useState(() => 
+    localStorage.getItem('aichat_sd_prompt_enhancement') === 'true'
+  );
+  const [schnellPromptEnhancement, setSchnellPromptEnhancement] = useState(() => 
+    localStorage.getItem('aichat_schnell_prompt_enhancement') === 'true'
   );
 
   // 生图模型列表
@@ -98,45 +109,16 @@ export const SettingsModal = ({
 
   // 图片分辨率列表
   const IMAGE_SIZES = [
-    { value: '1024x576', label: '1024×576 (16:9 横版)', pro: false },
-    { value: '576x1024', label: '576×1024 (9:16 竖版)', pro: false },
-    { value: '1280x720', label: '1280×720 (16:9 横版)', pro: true },
-    { value: '1024x1024', label: '1024×1024 (1:1 方形)', pro: true },
-    { value: '960x1280', label: '960×1280 (3:4 竖版)', pro: true },
-    { value: '768x1024', label: '768×1024 (3:4 竖版)', pro: true },
-    { value: '720x1440', label: '720×1440 (1:2 竖版)', pro: true },
-    { value: '720x1280', label: '720×1280 (9:16 竖版)', pro: true },
-    { value: '768x512', label: '768×512 (3:2 横版)', pro: false },
-    { value: '512x768', label: '512×768 (2:3 竖版)', pro: false }
+    // 16:9 分辨率选项
+    { value: '1024x576', label: '1024×576 (16:9 横版)' },
+    { value: '1280x720', label: '1280×720 (16:9 横版)' },
+    // FLUX.1-dev 官方支持的分辨率
+    { value: '1024x1024', label: '1024×1024 (1:1 方形)' },
+    { value: '960x1280', label: '960×1280 (3:4 竖版)' },
+    { value: '768x1024', label: '768×1024 (3:4 竖版)' },
+    { value: '720x1440', label: '720×1440 (1:2 竖版)' },
+    { value: '720x1280', label: '720×1280 (9:16 竖版)' }
   ];
-
-  // 添加 useEffect 来处理初始化
-  useEffect(() => {
-    // 如果是 FLUX.1-pro 模型，确保使用正确的分辨率
-    if (imageModel === 'black-forest-labs/FLUX.1-pro') {
-      // 检查当前分辨率是否是 pro 支持的分辨率
-      if (!IMAGE_SIZES.find(size => size.pro && size.value === imageSize)) {
-        // 如果不是，设置为默认的 1280x720
-        const defaultSize = '1280x720';
-        setImageSize(defaultSize);
-        localStorage.setItem('aichat_image_size', defaultSize);
-        
-        // 更新宽高
-        const [width, height] = defaultSize.split('x').map(Number);
-        setImageWidth(width);
-        setImageHeight(height);
-        localStorage.setItem('aichat_image_width', width.toString());
-        localStorage.setItem('aichat_image_height', height.toString());
-      } else {
-        // 如果是，确保宽高与分辨率一致
-        const [width, height] = imageSize.split('x').map(Number);
-        setImageWidth(width);
-        setImageHeight(height);
-        localStorage.setItem('aichat_image_width', width.toString());
-        localStorage.setItem('aichat_image_height', height.toString());
-      }
-    }
-  }, []); // 仅在组件挂载时运行一次
 
   // 处理 Google API 密钥变更
   const handleGoogleApiKeyChange = (value) => {
@@ -201,49 +183,12 @@ export const SettingsModal = ({
   const handleImageModelChange = (value) => {
     setImageModel(value);
     localStorage.setItem('aichat_image_model', value);
-
-    // 当切换到 FLUX.1-pro 模型时，根据当前选择的分辨率设置宽高
-    if (value === 'black-forest-labs/FLUX.1-pro') {
-      const [width, height] = imageSize.split('x').map(Number);
-      // 确保是32的倍数
-      const adjustedWidth = Math.floor(width / 32) * 32;
-      const adjustedHeight = Math.floor(height / 32) * 32;
-      setImageWidth(adjustedWidth);
-      setImageHeight(adjustedHeight);
-      localStorage.setItem('aichat_image_width', adjustedWidth.toString());
-      localStorage.setItem('aichat_image_height', adjustedHeight.toString());
-
-      // 如果当前分辨率不是 pro 支持的分辨率，设置为默认的 1280x720
-      if (!IMAGE_SIZES.find(size => size.pro && size.value === imageSize)) {
-        const defaultSize = '1280x720';
-        setImageSize(defaultSize);
-        localStorage.setItem('aichat_image_size', defaultSize);
-        // 更新宽高
-        const [defaultWidth, defaultHeight] = defaultSize.split('x').map(Number);
-        setImageWidth(defaultWidth);
-        setImageHeight(defaultHeight);
-        localStorage.setItem('aichat_image_width', defaultWidth.toString());
-        localStorage.setItem('aichat_image_height', defaultHeight.toString());
-      }
-    }
   };
 
   // 处理图片分辨率变更
   const handleImageSizeChange = (value) => {
     setImageSize(value);
     localStorage.setItem('aichat_image_size', value);
-
-    // 如果是 FLUX.1-pro 模型，自动设置宽度和高度
-    if (imageModel === 'black-forest-labs/FLUX.1-pro') {
-      const [width, height] = value.split('x').map(Number);
-      // 确保是32的倍数
-      const adjustedWidth = Math.floor(width / 32) * 32;
-      const adjustedHeight = Math.floor(height / 32) * 32;
-      setImageWidth(adjustedWidth);
-      setImageHeight(adjustedHeight);
-      localStorage.setItem('aichat_image_width', adjustedWidth.toString());
-      localStorage.setItem('aichat_image_height', adjustedHeight.toString());
-    }
   };
 
   const openExternalLink = (url) => {
@@ -263,25 +208,42 @@ export const SettingsModal = ({
     }
   };
 
-  // 添加一个函数来收集所有图片生成参数
+  // 修改 collectImageSettings 函数
   const collectImageSettings = () => {
     if (imageModel === 'black-forest-labs/FLUX.1-pro') {
       return {
         model: imageModel,
-        width: Math.floor(imageWidth / 32) * 32,  // 确保是32的倍数
-        height: Math.floor(imageHeight / 32) * 32, // 确保是32的倍数
+        width: 1024,  // 修改固定宽度
+        height: 768,  // 修改固定高度
         steps: imageSteps,
         guidance: imageGuidance,
         safety_tolerance: imageSafety,
         interval: imageInterval,
-        prompt_upsampling: promptUpsampling,
-        seed: imageSeed
+        prompt_upsampling: promptUpsampling
+      };
+    } else if (imageModel === 'black-forest-labs/FLUX.1-dev') {
+      return {
+        model: imageModel,
+        image_size: imageSize,
+        num_inference_steps: devImageSteps,
+        prompt_enhancement: devPromptEnhancement
+      };
+    } else if (imageModel.includes('stable-diffusion-3')) {
+      return {
+        model: imageModel,
+        image_size: imageSize,
+        prompt_enhancement: sdPromptEnhancement
+      };
+    } else if (imageModel.includes('FLUX.1-schnell')) {
+      return {
+        model: imageModel,
+        image_size: imageSize,
+        prompt_enhancement: schnellPromptEnhancement
       };
     } else {
       return {
         model: imageModel,
-        image_size: imageSize,
-        seed: imageSeed
+        image_size: imageSize
       };
     }
   };
@@ -609,66 +571,17 @@ export const SettingsModal = ({
                   </select>
                   <div className="text-xs opacity-70 mt-2">
                     选择用于图片生成的模型，使用 /image 命令时会使用此模型
-                  </div>
-                </div>
-
-                {/* Seed 设置 - 所有模型都显示 */}
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Seed 值</h3>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="0"
-                      max="9999999999"
-                      step="1"
-                      value={imageSeed}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        setImageSeed(value);
-                        localStorage.setItem('aichat_image_seed', value.toString());
-                      }}
-                      className="range range-primary flex-1"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max="9999999999"
-                      value={imageSeed}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (!isNaN(value) && value >= 0 && value <= 9999999999) {
-                          setImageSeed(value);
-                          localStorage.setItem('aichat_image_seed', value.toString());
-                        }
-                      }}
-                      className="input input-bordered w-[150px] text-right"
-                    />
-                  </div>
-                  <div className="text-xs opacity-70">
-                    设置图片生成的随机种子（0-9999999999），相同的种子会生成相似的图片
+                    {imageModel === 'black-forest-labs/FLUX.1-pro' && (
+                      <div className="mt-1 text-info">
+                        使用固定分辨率：1024×768
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* 根据不同的模型显示不同的设置选项 */}
                 {imageModel === 'black-forest-labs/FLUX.1-pro' ? (
                   <>
-                    {/* 分辨率设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
-                      <select 
-                        className="select select-bordered w-full"
-                        value={imageSize}
-                        onChange={(e) => handleImageSizeChange(e.target.value)}
-                      >
-                        {IMAGE_SIZES.filter(size => size.pro).map(size => (
-                          <option key={size.value} value={size.value}>{size.label}</option>
-                        ))}
-                      </select>
-                      <div className="text-xs opacity-70 mt-2">
-                        选择图片生成的默认分辨率，所有尺寸都会自动调整为32的倍数
-                      </div>
-                    </div>
-
                     {/* 步数设置 */}
                     <div>
                       <h3 className="text-lg font-medium mb-2">步数 (Steps)</h3>
@@ -777,8 +690,147 @@ export const SettingsModal = ({
                       <div className="text-xs opacity-70">启用后将自动调整提示词以生成更具创意的内容</div>
                     </div>
                   </>
+                ) : imageModel === 'black-forest-labs/FLUX.1-dev' ? (
+                  <>
+                    {/* 默认分辨率设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                      <select 
+                        className="select select-bordered w-full"
+                        value={imageSize}
+                        onChange={(e) => handleImageSizeChange(e.target.value)}
+                      >
+                        {IMAGE_SIZES.map(size => (
+                          <option key={size.value} value={size.value}>{size.label}</option>
+                        ))}
+                      </select>
+                      <div className="text-xs opacity-70 mt-2">
+                        选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                      </div>
+                    </div>
+
+                    {/* 推理步骤数设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">推理步骤数 (Steps)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="2"
+                          max="29"
+                          step="1"
+                          value={devImageSteps}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            setDevImageSteps(value);
+                            localStorage.setItem('aichat_dev_image_steps', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <span className="text-lg font-medium min-w-[3ch]">{devImageSteps}</span>
+                      </div>
+                      <div className="text-xs opacity-70">推理步骤数范围：2-29</div>
+                    </div>
+
+                    {/* 提示增强开关 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">提示增强</h3>
+                      <div className="form-control">
+                        <label className="label cursor-pointer">
+                          <span className="label-text">启用提示增强</span>
+                          <input
+                            type="checkbox"
+                            className="toggle toggle-primary"
+                            checked={devPromptEnhancement}
+                            onChange={(e) => {
+                              setDevPromptEnhancement(e.target.checked);
+                              localStorage.setItem('aichat_dev_prompt_enhancement', e.target.checked.toString());
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <div className="text-xs opacity-70">启用后将自动优化提示词以生成更好的结果</div>
+                    </div>
+                  </>
+                ) : imageModel.includes('stable-diffusion-3') ? (
+                  <>
+                    {/* 默认分辨率设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                      <select 
+                        className="select select-bordered w-full"
+                        value={imageSize}
+                        onChange={(e) => handleImageSizeChange(e.target.value)}
+                      >
+                        {IMAGE_SIZES.map(size => (
+                          <option key={size.value} value={size.value}>{size.label}</option>
+                        ))}
+                      </select>
+                      <div className="text-xs opacity-70 mt-2">
+                        选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                      </div>
+                    </div>
+
+                    {/* 提示增强开关 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">提示增强</h3>
+                      <div className="form-control">
+                        <label className="label cursor-pointer">
+                          <span className="label-text">启用提示增强</span>
+                          <input
+                            type="checkbox"
+                            className="toggle toggle-primary"
+                            checked={sdPromptEnhancement}
+                            onChange={(e) => {
+                              setSdPromptEnhancement(e.target.checked);
+                              localStorage.setItem('aichat_sd_prompt_enhancement', e.target.checked.toString());
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <div className="text-xs opacity-70">启用后将自动优化提示词以生成更好的结果</div>
+                    </div>
+                  </>
+                ) : imageModel.includes('FLUX.1-schnell') ? (
+                  <>
+                    {/* 默认分辨率设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                      <select 
+                        className="select select-bordered w-full"
+                        value={imageSize}
+                        onChange={(e) => handleImageSizeChange(e.target.value)}
+                      >
+                        {IMAGE_SIZES.map(size => (
+                          <option key={size.value} value={size.value}>{size.label}</option>
+                        ))}
+                      </select>
+                      <div className="text-xs opacity-70 mt-2">
+                        选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                      </div>
+                    </div>
+
+                    {/* 提示增强开关 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">提示增强</h3>
+                      <div className="form-control">
+                        <label className="label cursor-pointer">
+                          <span className="label-text">启用提示增强</span>
+                          <input
+                            type="checkbox"
+                            className="toggle toggle-primary"
+                            checked={schnellPromptEnhancement}
+                            onChange={(e) => {
+                              setSchnellPromptEnhancement(e.target.checked);
+                              localStorage.setItem('aichat_schnell_prompt_enhancement', e.target.checked.toString());
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <div className="text-xs opacity-70">启用后将自动优化提示词以生成更好的结果</div>
+                    </div>
+                  </>
                 ) : (
-                  // 其他模型的分辨率设置
+                  // 其他模型的默认分辨率设置
                   <div>
                     <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
                     <select 
@@ -786,7 +838,7 @@ export const SettingsModal = ({
                       value={imageSize}
                       onChange={(e) => handleImageSizeChange(e.target.value)}
                     >
-                      {IMAGE_SIZES.filter(size => !size.pro).map(size => (
+                      {IMAGE_SIZES.map(size => (
                         <option key={size.value} value={size.value}>{size.label}</option>
                       ))}
                     </select>

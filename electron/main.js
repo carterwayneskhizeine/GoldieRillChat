@@ -1072,8 +1072,8 @@ ipcMain.handle('load-messages', async (event, conversationPath) => {
   }
 });
 
-// 修改图片生成相关的 IPC 处理
-ipcMain.handle('generate-image', async (event, { prompt, model, image_size, width, height, steps, guidance, safety_tolerance, interval, prompt_upsampling, seed, conversationPath, apiKey, apiHost }) => {
+// 添加图片生成相关的 IPC 处理
+ipcMain.handle('generate-image', async (event, { prompt, model, image_size, width, height, steps, guidance, safety_tolerance, interval, prompt_upsampling, conversationPath, apiKey, apiHost }) => {
   try {
     // 验证必要参数
     if (!prompt) throw new Error('提示词不能为空');
@@ -1093,7 +1093,6 @@ ipcMain.handle('generate-image', async (event, { prompt, model, image_size, widt
       interval,
       prompt_upsampling,
       image_size,
-      seed,  // 添加 seed 日志
       width_type: typeof width,
       height_type: typeof height
     });
@@ -1110,7 +1109,7 @@ ipcMain.handle('generate-image', async (event, { prompt, model, image_size, widt
     const requestBody = {
       model,
       prompt,
-      seed: seed || Math.floor(Math.random() * 9999999999)  // 使用传入的 seed 或生成随机值
+      seed: Math.floor(Math.random() * 9999999999)
     };
 
     // 根据模型添加不同的参数
@@ -1132,8 +1131,7 @@ ipcMain.handle('generate-image', async (event, { prompt, model, image_size, widt
         width_type: typeof requestBody.width,
         height_type: typeof requestBody.height,
         width_value: requestBody.width,
-        height_value: requestBody.height,
-        seed_value: requestBody.seed  // 添加 seed 值日志
+        height_value: requestBody.height
       });
     } else {
       // 其他模型使用 image_size
