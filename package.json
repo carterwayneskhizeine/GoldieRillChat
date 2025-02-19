@@ -26,7 +26,8 @@
             },
             "files": [
                   "dist/**/*",
-                  "dist-electron/**/*"
+                  "dist-electron/**/*",
+                  "resources/**/*"
             ],
             "extraResources": [
                   {
@@ -35,19 +36,21 @@
                         "filter": [
                               "*.ico",
                               "*.icns",
-                              "*.png"
+                              "*.png",
+                              "*.svg"
                         ]
                   }
             ],
             "asar": true,
             "win": {
                   "target": "nsis",
-                  "icon": "./resources/GoldieRillicon.ico",
+                  "icon": "resources/GoldieRillicon.ico",
                   "signingHashAlgorithms": [
                         "sha256"
                   ],
                   "signAndEditExecutable": false,
-                  "requestedExecutionLevel": "asInvoker"
+                  "requestedExecutionLevel": "asInvoker",
+                  "artifactName": "GoldieRillChat-Setup-${version}.${ext}"
             },
             "nsis": {
                   "oneClick": false,
@@ -56,8 +59,8 @@
                   "createDesktopShortcut": true,
                   "createStartMenuShortcut": true,
                   "shortcutName": "GoldieRillChat",
-                  "installerIcon": "./resources/GoldieRillicon.ico",
-                  "uninstallerIcon": "./resources/GoldieRillicon.ico",
+                  "installerIcon": "resources/GoldieRillicon.ico",
+                  "uninstallerIcon": "resources/GoldieRillicon.ico",
                   "uninstallDisplayName": "GoldieRillChat",
                   "artifactName": "GoldieRillChat-Setup-${version}.${ext}"
             },

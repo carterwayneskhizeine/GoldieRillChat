@@ -24,27 +24,85 @@ if (process.platform === 'win32') {
 
 // 获取图标路径
 function getIconPath() {
-  const iconPath = process.env.NODE_ENV === 'development'
-    ? path.join(__dirname, '../resources/GoldieRillicon.ico')
-    : path.join(process.resourcesPath, 'GoldieRillicon.ico')
-  
-  // 添加日志输出
-  console.log('Icon path:', iconPath)
-  console.log('Icon exists:', require('fs').existsSync(iconPath))
-  
-  return iconPath
+  if (process.platform === 'win32') {
+    const iconPath = process.env.NODE_ENV === 'development'
+      ? path.join(process.cwd(), 'resources/GoldieRillicon.ico')
+      : path.join(process.resourcesPath, 'GoldieRillicon.ico');
+    
+    // 检查图标文件是否存在
+    if (require('fs').existsSync(iconPath)) {
+      console.log('Icon found at:', iconPath);
+      return iconPath;
+    } else {
+      console.error('Icon not found at:', iconPath);
+      // 尝试备用路径
+      const backupPath = path.join(__dirname, '../resources/GoldieRillicon.ico');
+      if (require('fs').existsSync(backupPath)) {
+        console.log('Icon found at backup path:', backupPath);
+        return backupPath;
+      }
+      console.error('Icon not found at backup path:', backupPath);
+    }
+  } else if (process.platform === 'darwin') {
+    return process.env.NODE_ENV === 'development'
+      ? path.join(process.cwd(), 'resources/GoldieRillicon.icns')
+      : path.join(process.resourcesPath, 'GoldieRillicon.icns');
+  } else {
+    return process.env.NODE_ENV === 'development'
+      ? path.join(process.cwd(), 'resources/GoldieRillicon.png')
+      : path.join(process.resourcesPath, 'GoldieRillicon.png');
+  }
+}
+
+// 确保开发环境下图标文件可用
+async function ensureIconAvailable() {
+  if (process.env.NODE_ENV === 'development') {
+    const fs = require('fs').promises;
+    const iconPath = path.join(process.cwd(), 'resources/GoldieRillicon.ico');
+    const backupPath = path.join(__dirname, '../resources/GoldieRillicon.ico');
+    
+    try {
+      // 检查目标路径是否存在
+      await fs.access(iconPath);
+      console.log('Icon already exists at:', iconPath);
+    } catch {
+      try {
+        // 检查备用路径是否存在
+        await fs.access(backupPath);
+        console.log('Icon found at backup path:', backupPath);
+        
+        // 确保目标目录存在
+        await fs.mkdir(path.dirname(iconPath), { recursive: true });
+        
+        // 复制图标文件
+        await fs.copyFile(backupPath, iconPath);
+        console.log('Icon copied to:', iconPath);
+      } catch (error) {
+        console.error('Failed to ensure icon availability:', error);
+      }
+    }
+  }
 }
 
 // Register file protocol
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // 确保图标文件可用
+  await ensureIconAvailable();
+  
   // 设置应用程序图标
-  const iconPath = getIconPath()
+  const iconPath = getIconPath();
   try {
-    const icon = nativeImage.createFromPath(iconPath)
-    app.setIcon(icon)
-    console.log('Icon set successfully')
+    if (iconPath) {
+      const icon = nativeImage.createFromPath(iconPath);
+      if (process.platform === 'win32') {
+        // 设置任务栏图标
+        app.setTaskbarIcon(icon);
+      }
+      app.setIcon(icon);
+      console.log('Icon set successfully');
+    }
   } catch (error) {
-    console.error('Failed to set app icon:', error)
+    console.error('Failed to set app icon:', error);
   }
 
   // 注册本地文件协议
@@ -540,8 +598,21 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
 
 // Create the browser window
 function createWindow() {
-  const iconPath = getIconPath()
-  console.log('Creating window with icon path:', iconPath)
+  const iconPath = getIconPath();
+  console.log('Creating window with icon path:', iconPath);
+
+  // 创建图标对象
+  let icon = null;
+  try {
+    if (iconPath) {
+      icon = nativeImage.createFromPath(iconPath);
+      if (process.platform === 'win32') {
+        icon.setTemplateImage(false);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to create icon:', error);
+  }
 
   mainWindow = new BrowserWindow({
     width: 1270,
@@ -556,7 +627,10 @@ function createWindow() {
       webSecurity: true,
       additionalArguments: ['--js-flags=--max-old-space-size=4096'],
     },
-    icon: iconPath
+    ...(icon ? { 
+      icon,
+      taskbarIcon: icon
+    } : {})
   })
 
   let browserView = null
