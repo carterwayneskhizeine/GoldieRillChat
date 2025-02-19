@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageItem } from './MessageItem';
 import { useMessageCollapse } from '../hooks/useMessageCollapse';
 import '../styles/messages.css';
@@ -7,6 +7,7 @@ import "yet-another-react-lightbox/styles.css";
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import 'yet-another-react-lightbox/plugins/captions.css';
+import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
 export const MessageList = ({
   messages,
@@ -37,6 +38,20 @@ export const MessageList = ({
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [images, setImages] = useState([]);
 
+  // 收集所有图片
+  const collectImages = useCallback(() => {
+    return messages
+      .filter(msg => msg.files?.some(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)))
+      .flatMap(msg => msg.files
+        .filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+        .map(f => ({
+          src: `local-file://${f.path}`,
+          alt: f.name,
+          title: f.name
+        }))
+      );
+  }, [messages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -65,17 +80,17 @@ export const MessageList = ({
   };
 
   // 处理图片点击
-  const handleImageClick = (e, file) => {
+  const handleImageClick = useCallback((e, file) => {
     e.preventDefault();
     e.stopPropagation();
-    setImages([{
-      src: `local-file://${file.path}`,
-      alt: file.name,
-      title: file.name
-    }]);
-    setLightboxIndex(0);
+    
+    const allImages = collectImages();
+    const currentIndex = allImages.findIndex(img => img.src === `local-file://${file.path}`);
+    
+    setImages(allImages);
+    setLightboxIndex(currentIndex);
     setOpenLightbox(true);
-  };
+  }, [collectImages]);
 
   return (
     <div className="flex-1 overflow-hidden bg-base-100">
@@ -139,7 +154,7 @@ export const MessageList = ({
         close={() => setOpenLightbox(false)}
         index={lightboxIndex}
         slides={images}
-        plugins={[Zoom, Captions]}
+        plugins={[Zoom, Thumbnails, Captions]}
         animation={{ fade: 300 }}
         carousel={{ finite: images.length <= 1 }}
         zoom={{
@@ -157,6 +172,22 @@ export const MessageList = ({
           showToggle: true,
           descriptionTextAlign: 'center',
           descriptionMaxLines: 3,
+        }}
+        render={{
+          iconPrev: () => (
+            <button className="btn btn-circle btn-ghost">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          ),
+          iconNext: () => (
+            <button className="btn btn-circle btn-ghost">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )
         }}
       />
     </div>

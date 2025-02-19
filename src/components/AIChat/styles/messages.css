@@ -382,12 +382,17 @@
   .media-container video {
     max-height: 200px;
   }
+  
+  .yarl__thumbnails_container {
+    height: 80px;
+  }
 }
 
 /* Lightbox 自定义样式 */
 .yarl__root {
   --yarl__color_backdrop: rgba(0, 0, 0, 0.9);
   --yarl__slide_title_color: #fff;
+  --yarl__thumbnails_container_height: 100px;
 }
 
 .yarl__slide_title {
@@ -395,4 +400,18 @@
   padding: 0.5rem 1rem;
   background-color: rgba(0, 0, 0, 0.6);
   border-radius: 0.25rem;
+}
+
+.yarl__thumbnails_thumbnail {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.yarl__thumbnails_thumbnail:hover {
+  transform: scale(1.05);
+}
+
+.yarl__thumbnails_thumbnail_active {
+  border: 2px solid var(--p);
 } 

@@ -147,7 +147,7 @@ export const MessageItem = ({
   const contentStyle = getMessageContentStyle(isCollapsed);
 
   // 渲染媒体文件
-  const renderMediaContent = (file) => {
+  const renderMediaContent = (file, onImageClick) => {
     if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
       return (
         <div key={file.path} className="media-container my-2">
@@ -157,6 +157,7 @@ export const MessageItem = ({
             className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
             onClick={(e) => onImageClick(e, file)}
             style={{ maxHeight: '300px', objectFit: 'contain' }}
+            loading="lazy"
           />
         </div>
       );
@@ -168,6 +169,7 @@ export const MessageItem = ({
             controls
             className="max-w-full rounded-lg"
             style={{ maxHeight: '300px' }}
+            preload="metadata"
           >
             您的浏览器不支持视频播放。
           </video>
@@ -342,7 +344,10 @@ export const MessageItem = ({
                         file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
                       ) ? (
                         <div className="media-content">
-                          {message.files.map(file => renderMediaContent(file))}
+                          {message.files
+                            .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+                            .map(file => renderMediaContent(file, onImageClick))
+                        }
                         </div>
                       ) : message.files?.some(file => 
                         !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
