@@ -335,6 +335,38 @@ export const MessageItem = ({
                     </div>
                   ) : (
                     <>
+                      {/* 显示推理过程 */}
+                      {message.type === 'assistant' && message.reasoning_content && (
+                        <div className="mb-4 p-4 bg-base-200 rounded-lg border border-base-300 reasoning-bubble relative">
+                          <div className={`typing-content ${message.generating ? 'generating' : ''} ${
+                            isReasoningCollapsed ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
+                          }`}>
+                            {message.reasoning_content}
+                          </div>
+                          <div className="flex justify-center mt-2">
+                            <button 
+                              className="btn btn-xs btn-ghost bg-base-100 hover:bg-base-200 min-w-[80px]"
+                              onClick={() => setIsReasoningCollapsed(!isReasoningCollapsed)}
+                            >
+                              {isReasoningCollapsed ? (
+                                <div className="flex items-center gap-1">
+                                  <span>展开</span>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <span>收起</span>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                  </svg>
+                                </div>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {/* 判断是否是音频消息 */}
                       {message.files?.some(file => file.type.startsWith('audio/')) ? (
                         renderAudioMessage(message)

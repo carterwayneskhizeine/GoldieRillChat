@@ -181,6 +181,7 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
             
             if (json.choices && json.choices[0] && json.choices[0].delta) {
               const delta = json.choices[0].delta;
+              console.log('Delta 对象:', delta); // 添加调试日志
               let shouldUpdate = false;
               
               // 处理推理内容
