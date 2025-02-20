@@ -4,6 +4,7 @@ import { formatAIChatTime } from '../../../utils/AIChatTimeFormat';
 import { MESSAGE_STATES } from '../constants';
 import { searchService } from '../../../services/searchService';
 import { handleVideoCommand } from './videoCommandHandler';
+import { handleAudioCommand } from './audioCommandHandler';
 
 export const createInputHandlers = ({
   messageInput,
@@ -46,6 +47,36 @@ export const createInputHandlers = ({
 
     // 获取要发送的内容
     const content = isRetry ? retryContent : messageInput;
+
+    // 检查是否是语音生成命令
+    if (content.startsWith('/tts ')) {
+      try {
+        await handleAudioCommand({
+          content,
+          currentConversation,
+          apiKey,
+          apiHost,
+          addMessage,
+          setMessages,
+          window
+        });
+        
+        // 清空输入框
+        if (!isRetry) {
+          setMessageInput('');
+          const textarea = document.querySelector('.aichat-input');
+          if (textarea) {
+            textarea.style.height = '64px';
+            textarea.style.overflowY = 'hidden';
+          }
+        }
+        return;
+      } catch (error) {
+        console.error('语音生成失败:', error);
+        alert('语音生成失败: ' + error.message);
+        return;
+      }
+    }
 
     // 检查是否是视频生成命令
     if (content.startsWith('/video ')) {

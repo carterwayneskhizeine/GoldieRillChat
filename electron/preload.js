@@ -172,6 +172,28 @@ contextBridge.exposeInMainWorld('electron', {
   // 添加 AI 图片生成相关功能
   generateImage: ({ prompt, model, image_size, conversationPath, apiKey, apiHost }) => 
     ipcRenderer.invoke('generate-image', { prompt, model, image_size, conversationPath, apiKey, apiHost }),
+
+  // 添加音频文件处理
+  saveAudioFile: async ({ conversationPath, fileName, data }) => {
+    try {
+      // 创建音频文件夹
+      const audioDir = path.join(conversationPath, 'audio');
+      await fs.mkdir(audioDir, { recursive: true });
+
+      // 保存音频文件
+      const filePath = path.join(audioDir, fileName);
+      await fs.writeFile(filePath, Buffer.from(data));
+
+      return {
+        fileName,
+        path: filePath,
+        displayName: fileName
+      };
+    } catch (error) {
+      console.error('保存音频文件失败:', error);
+      throw error;
+    }
+  },
 })
 
 // 添加视频生成相关的 API

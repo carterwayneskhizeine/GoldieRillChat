@@ -8,6 +8,7 @@ import { toggleMessageCollapse } from './messageCollapse';
 import { handleFileSelect, removeFile, handleFileDrop } from './fileHandlers';
 import { SidebarCollapseButton, shouldShowCollapseButton, getMessageContentStyle } from './sidebarMessageCollapse.jsx';
 import { MarkdownRenderer } from './shared/MarkdownRenderer';
+import ReactAudioPlayer from 'react-audio-player';
 import '../styles/markdown-preview.css';
 import { createPortal } from 'react-dom';
 import Editor from "@monaco-editor/react";
@@ -293,6 +294,68 @@ export function ChatView({
       // 最后的回退方案
       window.open(url, '_blank');
     }
+  };
+
+  // 添加音频消息渲染函数
+  const renderAudioMessage = (message) => {
+    const audioFile = message.files?.find(file => file.type.startsWith('audio/'));
+    if (!audioFile) return null;
+
+    return (
+      <div className="audio-message">
+        <div className="audio-info mb-4">
+          <div className="font-medium mb-2">文本：{message.audioParams?.text}</div>
+          <div className="text-sm opacity-70">
+            <span className="mr-4">音色：{message.audioParams?.voice}</span>
+            <span className="mr-4">音量：{message.audioParams?.volume}</span>
+            <span>语速：{message.audioParams?.speed}</span>
+          </div>
+        </div>
+        <div className="audio-player relative rounded-lg overflow-hidden bg-base-100/50 p-4">
+          <ReactAudioPlayer
+            src={`local-file://${audioFile.path}`}
+            controls
+            autoPlay={false}
+            className="w-full"
+            controlsList="nodownload"
+            preload="metadata"
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // 添加 renderMediaContent 函数
+  const renderMediaContent = (file, onImageClick) => {
+    if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      return (
+        <div key={file.path} className="media-container my-2">
+          <img
+            src={`local-file://${file.path}`}
+            alt={file.name}
+            className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={(e) => onImageClick(e, file)}
+            style={{ maxHeight: '300px', objectFit: 'contain' }}
+            loading="lazy"
+          />
+        </div>
+      );
+    } else if (file.name.match(/\.mp4$/i)) {
+      return (
+        <div key={file.path} className="media-container my-2">
+          <video
+            src={`local-file://${file.path}`}
+            controls
+            className="max-w-full rounded-lg"
+            style={{ maxHeight: '300px' }}
+            preload="metadata"
+          >
+            您的浏览器不支持视频播放。
+          </video>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -649,168 +712,75 @@ export function ChatView({
                 message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
               }`}>
                 <div className="message-content">
-                  {/* 折叠按钮 */}
-                  {message.content && (message.content.split('\n').length > 6 || message.content.length > 300) && (
-                    <div className="collapse-button">
-                      <button 
-                        className="btn btn-xs btn-ghost btn-circle bg-base-100 hover:bg-base-200"
-                        onClick={() => {
-                          const isCollapsed = collapsedMessages.has(message.id);
-                          const newSet = new Set([...collapsedMessages]);
-                          const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-                          
-                          if (isCollapsed) {
-                            // 展开消息
-                            newSet.delete(message.id);
-                            setCollapsedMessages(newSet);
-                            // 等待状态更新后滚动
-                            setTimeout(() => {
-                              messageElement?.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'start'
-                              });
-                            }, 100);
-                          } else {
-                            // 折叠消息
-                            newSet.add(message.id);
-                            setCollapsedMessages(newSet);
-                            // 等待状态更新后滚动
-                            setTimeout(() => {
-                              messageElement?.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center'
-                              });
-                            }, 100);
-                          }
-                        }}
-                      >
-                        {collapsedMessages.has(message.id) ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                          </svg>
-                        )}
-                      </button>
+                  {editingMessage?.id === message.id ? (
+                    null // 不在这里渲染编辑框
+                  ) : (
+                    <div className={`prose max-w-none`}>
+                      {message.generating && !message.content ? (
+                        <div className="thinking-animation">
+                          <span className="thinking-text">Thinking</span>
+                          <div className="thinking-dots">
+                            <div className="thinking-dot"></div>
+                            <div className="thinking-dot"></div>
+                            <div className="thinking-dot"></div>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {/* 判断是否是音频消息 */}
+                          {message.files?.some(file => file.type.startsWith('audio/')) ? (
+                            renderAudioMessage(message)
+                          ) : message.files?.some(file => 
+                            file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                          ) ? (
+                            <div className="media-content">
+                              {message.files
+                                .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+                                .map(file => renderMediaContent(file, handleImageClick))
+                              }
+                            </div>
+                          ) : message.files?.some(file => 
+                            !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                          ) ? (
+                            <div className="file-message">
+                              {/* 显示文件消息 */}
+                              {message.files.map((file, index) => (
+                                <div key={index} className="file-item">
+                                  <span className="file-name">{file.name}</span>
+                                  <button
+                                    className="btn btn-ghost btn-xs"
+                                    onClick={() => openFileLocation(file)}
+                                    title="打开文件位置"
+                                  >
+                                    打开
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className={message.type === 'assistant' && message.reasoning_content ? 'mt-4' : ''}>
+                              {message.generating ? (
+                                <div className="typing-effect">
+                                  {message.content}
+                                </div>
+                              ) : (
+                                <MarkdownRenderer
+                                  content={message.content || ''}
+                                  isCompact={false}
+                                  onCopyCode={(code) => {
+                                    console.log('Code copied:', code);
+                                  }}
+                                  onLinkClick={(href) => {
+                                    window.electron.openExternal(href);
+                                  }}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
-
-                  <div className={`response-content ${collapsedMessages.has(message.id) ? 'message-collapsed' : ''}`}>
-                    {editingMessage?.id === message.id ? (
-                      <div className="flex flex-col gap-2 w-full max-w-[1200px] mx-auto">
-                        <div className="mockup-code min-w-[800px] bg-base-300 relative">
-                          <textarea
-                            value={messageInput}
-                            onChange={(e) => {
-                              setMessageInput(e.target.value);
-                              // 自动调整高度
-                              e.target.style.height = 'auto';
-                              e.target.style.height = `${Math.min(e.target.scrollHeight, 800)}px`;
-                            }}
-                            onContextMenu={handleContextMenu}
-                            className="w-full min-h-[300px] max-h-[800px] p-4 bg-transparent text-current font-mono text-sm leading-relaxed resize-none focus:outline-none"
-                            placeholder="编辑消息..."
-                            style={{
-                              overflowY: 'auto',
-                              whiteSpace: 'pre-wrap',
-                              wordBreak: 'break-word',
-                              minWidth: '800px'
-                            }}
-                          />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={exitEditMode}
-                          >
-                            取消
-                          </button>
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => updateMessage(message.id, messageInput)}
-                          >
-                            保存
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div 
-                        className={`prose max-w-none ${
-                          collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
-                        }`}
-                        onContextMenu={handleContextMenu}
-                      >
-                        {/* 判断是否是图片/视频消息或包含图片/视频的消息 */}
-                        {message.files?.some(file => 
-                          file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
-                        ) ? (
-                          <div className="flex flex-col gap-2">
-                            {/* 显示文本内容 */}
-                            <div className="whitespace-pre-wrap" onContextMenu={handleContextMenu}>
-                              {message.seed ? (
-                                <>
-                                  <div className="font-medium mb-2">Prompt: {message.originalPrompt}</div>
-                                  <div className="font-medium mb-2">Seed: {message.seed}</div>
-                                </>
-                              ) : message.content}
-                            </div>
-                            
-                            {/* 显示文件 */}
-                            {message.files?.length > 0 && (
-                              <div className="chat-media-content">
-                                {message.files.map(file => {
-                                  if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-                                    return (
-                                      <div key={file.path} className="chat-media-container">
-                                        <img 
-                                          src={`local-file://${file.path}`} 
-                                          alt={file.name}
-                                          className="rounded-lg object-cover cursor-pointer"
-                                          onClick={(e) => handleImageClick(e, file)}
-                                        />
-                                      </div>
-                                    );
-                                  } else if (file.name.match(/\.mp4$/i)) {
-                                    return (
-                                      <div key={file.path} className="chat-media-container">
-                                        <video
-                                          src={`local-file://${file.path}`}
-                                          controls
-                                          className="rounded-lg"
-                                        >
-                                          您的浏览器不支持视频播放。
-                                        </video>
-                                      </div>
-                                    );
-                                  }
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        ) : message.files?.some(file => 
-                          !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
-                        ) ? (
-                          <div className="flex flex-col gap-2">
-                            {/* 显示文本内容 */}
-                            <div className="whitespace-pre-wrap" onContextMenu={handleContextMenu}>
-                              {message.content}
-                            </div>
-                          </div>
-                        ) : (
-                          <MarkdownRenderer
-                            content={message.content || ''}
-                            isCompact={false}
-                            onCopyCode={(code) => {
-                              console.log('Code copied:', code);
-                            }}
-                            onLinkClick={(href) => openExternalLink(href)}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
               {editingMessage?.id !== message.id && (

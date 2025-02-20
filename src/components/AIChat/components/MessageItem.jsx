@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Editor from "@monaco-editor/react";
+import ReactAudioPlayer from 'react-audio-player';
 import { MarkdownRenderer } from '../../shared/MarkdownRenderer';
 import { shouldCollapseMessage, getMessageContentStyle } from '../utils/messageCollapse';
 import '../styles/messages.css';
@@ -229,6 +230,35 @@ export const MessageItem = ({
     );
   };
 
+  // 添加音频消息渲染函数
+  const renderAudioMessage = (message) => {
+    const audioFile = message.files?.find(file => file.type.startsWith('audio/'));
+    if (!audioFile) return null;
+
+    return (
+      <div className="audio-message">
+        <div className="audio-info mb-4">
+          <div className="font-medium mb-2">文本：{message.audioParams?.text}</div>
+          <div className="text-sm opacity-70">
+            <span className="mr-4">音色：{message.audioParams?.voice}</span>
+            <span className="mr-4">音量：{message.audioParams?.volume}</span>
+            <span>语速：{message.audioParams?.speed}</span>
+          </div>
+        </div>
+        <div className="audio-player relative rounded-lg overflow-hidden bg-base-200 p-4">
+          <ReactAudioPlayer
+            src={`local-file://${audioFile.path}`}
+            controls
+            autoPlay={false}
+            className="w-full"
+            controlsList="nodownload"
+            preload="metadata"
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div
@@ -305,41 +335,9 @@ export const MessageItem = ({
                     </div>
                   ) : (
                     <>
-                      {/* 显示推理过程 */}
-                      {message.type === 'assistant' && message.reasoning_content && (
-                        <div className="mb-4 p-4 bg-base-200 rounded-lg border border-base-300 reasoning-bubble relative">
-                          <div className={`typing-content ${message.generating ? 'generating' : ''} ${
-                            isReasoningCollapsed ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
-                          }`}>
-                            {message.reasoning_content}
-                          </div>
-                          <div className="flex justify-center mt-2">
-                            <button 
-                              className="btn btn-xs btn-ghost bg-base-100 hover:bg-base-200 min-w-[80px]"
-                              onClick={() => setIsReasoningCollapsed(!isReasoningCollapsed)}
-                            >
-                              {isReasoningCollapsed ? (
-                                <div className="flex items-center gap-1">
-                                  <span>展开</span>
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-1">
-                                  <span>收起</span>
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                  </svg>
-                                </div>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      {/* 判断是否是视频消息 */}
-                      {message.files?.some(file => file.type === 'video/mp4') ? (
-                        renderVideoMessage(message)
+                      {/* 判断是否是音频消息 */}
+                      {message.files?.some(file => file.type.startsWith('audio/')) ? (
+                        renderAudioMessage(message)
                       ) : message.files?.some(file => 
                         file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
                       ) ? (

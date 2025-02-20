@@ -115,8 +115,37 @@ export const MODEL_PROVIDERS = {
       'step-1-128k', // 千亿参数超长文本版
       'step-1-256k', // 千亿参数超长文本增强版
       'step-1v-8k',  // 视觉识别基础版
-      'step-1v-32k'  // 视觉识别长文本版
-    ]
+      'step-1v-32k',  // 视觉识别长文本版
+      'step-tts-mini' // 语音合成模型
+    ],
+    tts: {
+      voices: {
+        cixingnansheng: '磁性男声',
+        zhengpaiqingnian: '正派青年', 
+        yuanqinansheng: '元气男声',
+        qingniandaxuesheng: '青年大学生',
+        boyinnansheng: '播音男声',
+        ruyananshi: '儒雅男士',
+        shenchennanyin: '深沉男音',
+        qinqienvsheng: '亲切女声',
+        wenrounvsheng: '温柔女声',
+        jilingshaonv: '机灵少女',
+        yuanqishaonv: '元气少女',
+        ruanmengnvsheng: '软萌女声',
+        youyanvsheng: '优雅女声',
+        lengyanyujie: '冷艳御姐',
+        shuangkuaijiejie: '爽快姐姐',
+        wenjingxuejie: '文静学姐',
+        linjiajiejie: '邻家姐姐',
+        linjiameimei: '邻家妹妹',
+        zhixingjiejie: '知性姐姐'
+      },
+      formats: ['mp3', 'wav', 'flac', 'opus'],
+      defaultFormat: 'mp3',
+      defaultVoice: 'cixingnansheng',
+      defaultVolume: 1.0,
+      defaultSpeed: 1.0
+    }
   }
 };
 

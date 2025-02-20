@@ -187,4 +187,58 @@
 
 .prose .copy-button:hover {
   opacity: 1;
+}
+
+/* 音频播放器样式 */
+.audio-message {
+  background: hsl(var(--b1));
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.audio-info {
+  margin-bottom: 1rem;
+}
+
+.audio-player {
+  background: transparent;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.audio-player audio,
+.audio-player .react-audio-player {
+  width: 100%;
+  outline: none;
+}
+
+/* 音频播放器控件样式 */
+audio::-webkit-media-controls-panel,
+.react-audio-player::-webkit-media-controls-panel {
+  background-color: transparent;
+}
+
+audio::-webkit-media-controls-current-time-display,
+audio::-webkit-media-controls-time-remaining-display,
+.react-audio-player::-webkit-media-controls-current-time-display,
+.react-audio-player::-webkit-media-controls-time-remaining-display {
+  color: hsl(var(--bc));
+}
+
+audio::-webkit-media-controls-play-button,
+.react-audio-player::-webkit-media-controls-play-button {
+  background-color: transparent;
+  border-radius: 50%;
+}
+
+audio::-webkit-media-controls-timeline,
+.react-audio-player::-webkit-media-controls-timeline {
+  background-color: hsl(var(--b2));
+}
+
+audio::-webkit-media-controls-volume-slider,
+.react-audio-player::-webkit-media-controls-volume-slider {
+  background-color: hsl(var(--b2));
 } 
