@@ -102,14 +102,29 @@ export const MODEL_PROVIDERS = {
       'anthropic/claude-3.5-sonnet',
       'openai/gpt-4o'
     ]
+  },
+  stepfun: {
+    name: '阶跃星辰',
+    apiHost: 'https://api.stepfun.com',
+    needsApiKey: true,
+    apiKeyHelp: '获取 API Key: https://platform.stepfun.com',
+    models: [
+      'step-2-16k',  // 万亿参数大模型
+      'step-1-8k',   // 千亿参数基础版
+      'step-1-32k',  // 千亿参数长文本版
+      'step-1-128k', // 千亿参数超长文本版
+      'step-1-256k', // 千亿参数超长文本增强版
+      'step-1v-8k',  // 视觉识别基础版
+      'step-1v-32k'  // 视觉识别长文本版
+    ]
   }
 };
 
 // 默认设置常量
 export const DEFAULT_SETTINGS = {
-  PROVIDER: 'openai',
-  MODEL: 'gpt-3.5-turbo',
-  API_HOST: 'https://api.openai.com/v1'
+  PROVIDER: 'siliconflow',
+  MODEL: 'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B',
+  API_HOST: 'https://api.siliconflow.cn'
 };
 
 // 键盘快捷键常量

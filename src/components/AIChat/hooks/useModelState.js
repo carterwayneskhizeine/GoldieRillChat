@@ -78,6 +78,9 @@ export const useModelState = () => {
         let response;
         let data;
 
+        // 移除可能重复的 v1 路径
+        const baseUrl = apiHost.endsWith('/v1') ? apiHost : `${apiHost}/v1`;
+
         if (selectedProvider === 'openrouter') {
           // OpenRouter的apiHost已经包含了api/v1，所以直接拼接models
           response = await fetch(`${apiHost}/models`, {
@@ -88,7 +91,7 @@ export const useModelState = () => {
             }
           });
         } else {
-          response = await fetch(`${apiHost}/v1/models`, {
+          response = await fetch(`${baseUrl}/models`, {
             headers: {
               'Authorization': `Bearer ${apiKey}`,
               'Content-Type': 'application/json'
@@ -97,7 +100,7 @@ export const useModelState = () => {
         }
 
         if (!response.ok) {
-          console.error('获取模型列表失败:', response.status, response.statusText);
+          console.error('获取模型列表失败:', response.status);
           // 如果获取失败，使用默认的模型列表
           setAvailableModels(MODEL_PROVIDERS[selectedProvider]?.models || []);
           return;
@@ -118,6 +121,7 @@ export const useModelState = () => {
             break;
           case 'siliconflow':
           case 'deepseek':
+          case 'stepfun':
             models = data.data.map(model => model.id);
             break;
           default:

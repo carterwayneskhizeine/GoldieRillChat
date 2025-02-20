@@ -416,7 +416,6 @@ export const createInputHandlers = ({
           console.log('搜索结果:', searchResponse);
           
           if (searchResponse.results && searchResponse.results.length > 0) {
-            // 构建搜索结果上下文
             systemMessage = `以下是与问题相关的网络搜索结果：\n\n${
               searchResponse.results.map((result, index) => (
                 `[${index + 1}] ${result.title}\n${result.snippet}\n${result.content}\n---\n`
@@ -428,7 +427,6 @@ export const createInputHandlers = ({
           }
         } catch (error) {
           console.error('搜索失败:', error);
-          // 搜索失败时继续对话，但不使用搜索结果
         }
       }
 
@@ -522,7 +520,6 @@ export const createInputHandlers = ({
         return;
       }
       console.error('发送消息失败:', error);
-      setError(error.message);
       
       if (aiMessage) {
         // 更新消息状态
@@ -530,6 +527,21 @@ export const createInputHandlers = ({
           ...prev,
           [aiMessage.id]: MESSAGE_STATES.ERROR
         }));
+
+        // 更新消息内容为错误信息
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const index = newMessages.findIndex(msg => msg.id === aiMessage.id);
+          if (index === -1) return prev;
+
+          newMessages[index] = {
+            ...newMessages[index],
+            content: `**错误信息**:\n\`\`\`\n${error.message}\n\`\`\``,
+            generating: false,
+            error: true
+          };
+          return newMessages;
+        });
       }
     } finally {
       setAbortController(null);

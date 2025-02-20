@@ -484,6 +484,130 @@ export const callOpenRouter = async ({ apiKey, apiHost, model, messages, onUpdat
   }
 };
 
+// StepFun API 调用实现
+export const callStepFun = async ({ apiKey, apiHost, model, messages, maxTokens = 2000, temperature = 0.7, onUpdate, signal }) => {
+  try {
+    // 发送初始状态
+    onUpdate?.({
+      type: 'assistant',
+      content: '',
+      done: false,
+      generating: true
+    });
+
+    // 构建消息数组，确保角色格式正确
+    const formattedMessages = messages.map(msg => ({
+      role: msg.role || (msg.type === 'user' ? 'user' : 'assistant'),
+      content: msg.content || ''
+    }));
+
+    // 如果第一条消息不是 system，添加默认的 system 消息
+    if (formattedMessages.length > 0 && formattedMessages[0].role !== 'system') {
+      formattedMessages.unshift({
+        role: 'system',
+        content: '你是阶跃星辰大模型助手'
+      });
+    }
+
+    // 移除可能重复的 v1 路径
+    const baseUrl = apiHost.endsWith('/v1') ? apiHost : `${apiHost}/v1`;
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        messages: formattedMessages,
+        stream: true,
+        temperature,
+        max_tokens: maxTokens,
+        top_p: 0.95
+      }),
+      signal
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      let errorMessage = `请求失败 (${response.status})`;
+      
+      if (errorData) {
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let content = '';
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        onUpdate?.({
+          type: 'assistant',
+          content: content,
+          done: true,
+          generating: false
+        });
+        break;
+      }
+      
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split('\n');
+      buffer = chunks.pop() || '';
+      
+      for (const chunk of chunks) {
+        if (!chunk.trim() || chunk.includes('keep-alive')) continue;
+        
+        try {
+          const jsonStr = chunk.replace(/^data:\s*/, '').trim();
+          if (jsonStr === '[DONE]') continue;
+          
+          const json = JSON.parse(jsonStr);
+          
+          if (json.choices && json.choices[0]) {
+            const delta = json.choices[0].delta;
+            
+            if (delta.content !== undefined) {
+              content += delta.content || '';
+              onUpdate?.({
+                type: 'assistant',
+                content: content,
+                done: false,
+                generating: true
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('解析数据块失败:', e, '数据块:', chunk);
+          continue;
+        }
+      }
+    }
+
+    return {
+      content: content,
+      type: 'assistant',
+      generating: false,
+      usage: {
+        total_tokens: Math.ceil(content.length / 4)
+      }
+    };
+  } catch (error) {
+    console.error('StepFun API 调用失败:', error);
+    throw error;
+  }
+};
+
 // 统一的 API 调用函数
 export const callModelAPI = async ({
   provider,
@@ -530,6 +654,8 @@ export const callModelAPI = async ({
       return callOpenRouter({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature });
     case 'deepseek':
       return callDeepSeek({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature });
+    case 'stepfun':
+      return callStepFun({ apiKey, apiHost, model, messages, maxTokens, temperature, onUpdate, signal });
     default:
       throw new Error(`不支持的模型提供方: ${provider}`);
   }
