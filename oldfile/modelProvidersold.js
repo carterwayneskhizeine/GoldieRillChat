@@ -657,6 +657,6 @@ export const callOpenAI = async ({ apiKey, apiHost, model, messages, maxTokens =
       case 'stepfun':
         return callStepFun({ apiKey, apiHost, model, messages, maxTokens, temperature, onUpdate, signal });
       default:
-        throw new Error(`不支持的模型提供方: ${provider}`);
+        throw new Error(`不支持的模型提供方: ${provider}`);//
     }
   }; 
