@@ -711,6 +711,14 @@ export function ChatView({
                 message.type === 'user' ? 'chat-bubble-primary' : 
                 message.error ? 'chat-bubble-error' : 'chat-bubble-secondary'
               }`}>
+                {/* 添加折叠按钮 */}
+                {shouldShowCollapseButton(message.content, message) && (
+                  <SidebarCollapseButton
+                    messageId={message.id}
+                    collapsedMessages={collapsedMessages}
+                    setCollapsedMessages={setCollapsedMessages}
+                  />
+                )}
                 <div className="message-content">
                   {editingMessage?.id === message.id ? (
                     null // 不在这里渲染编辑框
@@ -764,16 +772,18 @@ export function ChatView({
                                   {message.content}
                                 </div>
                               ) : (
-                                <MarkdownRenderer
-                                  content={message.content || ''}
-                                  isCompact={false}
-                                  onCopyCode={(code) => {
-                                    console.log('Code copied:', code);
-                                  }}
-                                  onLinkClick={(href) => {
-                                    window.electron.openExternal(href);
-                                  }}
-                                />
+                                <div className={collapsedMessages.has(message.id) ? 'max-h-[100px] overflow-hidden mask-bottom' : ''}>
+                                  <MarkdownRenderer
+                                    content={message.content || ''}
+                                    isCompact={false}
+                                    onCopyCode={(code) => {
+                                      console.log('Code copied:', code);
+                                    }}
+                                    onLinkClick={(href) => {
+                                      window.electron.openExternal(href);
+                                    }}
+                                  />
+                                </div>
                               )}
                             </div>
                           )}

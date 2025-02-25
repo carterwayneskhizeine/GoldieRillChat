@@ -33,13 +33,10 @@ export const toggleSidebarMessageCollapse = (messageId, collapsedMessages, setCo
  */
 export const SidebarCollapseButton = ({ messageId, collapsedMessages, setCollapsedMessages }) => {
   if (!messageId || !collapsedMessages || typeof setCollapsedMessages !== 'function') {
-    console.error('必需的属性缺失或类型错误:', {
-      messageId,
-      hasCollapsedMessages: !!collapsedMessages,
-      setCollapsedMessagesType: typeof setCollapsedMessages
-    });
     return null;
   }
+  
+  const isCollapsed = collapsedMessages.has(messageId);
   
   return (
     <div
@@ -65,7 +62,6 @@ export const SidebarCollapseButton = ({ messageId, collapsedMessages, setCollaps
         onClick={(e) => {
           e.stopPropagation();
           const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-          const isCollapsed = collapsedMessages.has(messageId);
           
           if (isCollapsed) {
             // 展开时，先滚动到消息顶部
@@ -82,7 +78,7 @@ export const SidebarCollapseButton = ({ messageId, collapsedMessages, setCollaps
           }
         }}
       >
-        {collapsedMessages.has(messageId) ? (
+        {isCollapsed ? (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -99,10 +95,30 @@ export const SidebarCollapseButton = ({ messageId, collapsedMessages, setCollaps
 /**
  * 判断消息是否应该显示折叠按钮
  * @param {string} content - 消息内容
+ * @param {Object} message - 消息对象
  * @returns {boolean} - 是否应该显示折叠按钮
  */
-export const shouldShowCollapseButton = (content) => {
-  return content && (content.split('\n').length > 6 || content.length > 300);
+export const shouldShowCollapseButton = (content, message) => {
+  // 如果内容为空，不显示折叠按钮
+  if (!content) {
+    return false;
+  }
+  
+  // 如果消息包含图片文件，不显示折叠按钮
+  if (message && message.files && message.files.some(file => 
+    file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+  )) {
+    return false;
+  }
+  
+  // 计算行数和长度
+  const lines = content.split('\n').length;
+  const length = content.length;
+  
+  // 判断是否应该显示折叠按钮
+  const shouldShow = lines > 6 || length > 300;
+  
+  return shouldShow;
 };
 
 /**
