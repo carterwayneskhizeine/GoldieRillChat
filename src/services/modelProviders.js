@@ -253,27 +253,15 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate,
     // 检查消息列表的最后一条消息
     const lastMessage = messages[messages.length - 1];
     
-    // 如果是 reasoner 模型且最后一条消息不是用户消息，则需要调整
-    if (isReasonerModel && lastMessage && lastMessage.type !== 'user' && lastMessage.role !== 'user') {
-      console.log('使用 deepseek-reasoner 模型时，最后一条消息必须是用户消息');
-      
-      // 添加一个默认的用户消息，而不是过滤掉最后一条消息
-      messages = [...messages, {
-        type: 'user',
-        role: 'user',
-        content: '请继续'
-      }];
-      
-      console.log('已添加默认用户消息，新的消息列表:', JSON.stringify(messages, null, 2));
-    }
-    
     // 构建请求体
     const requestBody = {
       model,
       messages: messages.map(msg => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content: msg.content,
-        ...(msg.reasoning_content ? {} : {})
+        ...(msg.reasoning_content ? {} : {}),
+        // 如果是 reasoner 模型且最后一条消息是 assistant，添加 prefix 参数
+        ...(isReasonerModel && msg === lastMessage && msg.type === 'assistant' ? { prefix: true } : {})
       })),
       stream: true,
       temperature: temperature,
