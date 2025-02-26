@@ -13,8 +13,10 @@ import '../styles/markdown-preview.css';
 import { createPortal } from 'react-dom';
 import Editor from "@monaco-editor/react";
 import '../styles/chat.css';
-import { ReactPhotoEditor } from 'react-photo-editor';
-import 'react-photo-editor/dist/style.css';
+// 导入自定义图像编辑器
+import { ReactPhotoEditor } from '../components/CustomPhotoEditor';
+// 不再需要导入原始的样式
+// import 'react-photo-editor/dist/style.css';
 
 // 添加辅助函数，使用 Electron API 加载图片
 const loadImageFromPath = async (filePath, fileName, fileType) => {
@@ -650,6 +652,44 @@ export function ChatView({
           .video-wrapper {
             position: relative;
             margin: 0.5rem 0;
+          }
+          
+          /* 图片编辑器样式 */
+          .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--b3);
+          }
+          
+          .editor-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+          }
+          
+          .resolution-info {
+            font-size: 0.875rem;
+            color: var(--bc);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+          
+          .resolution-inputs {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+          
+          .editor-content {
+            flex: 1;
+            overflow: auto;
+            border-radius: 0.5rem;
+            background-color: var(--b2);
+            padding: 1rem;
           }
         `}
       </style>
@@ -1351,17 +1391,19 @@ export function ChatView({
       {showInlineEditor && editingImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
           <div className="bg-base-100 rounded-lg p-4 max-w-4xl w-full max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 editor-header">
               <h3 className="text-lg font-bold">编辑图片</h3>
-              <button 
-                className="btn btn-sm btn-circle"
-                onClick={handleCancelEdit}
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2 editor-controls">
+                <button 
+                  className="btn btn-sm btn-circle"
+                  onClick={handleCancelEdit}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto editor-content">
               <ReactPhotoEditor
                 open={true}
                 onClose={handleCancelEdit}
@@ -1371,7 +1413,35 @@ export function ChatView({
                 allowRotate={true}
                 allowFlip={true}
                 allowZoom={true}
+                allowResolutionSettings={true}
+                allowAspectRatioSettings={true}
                 downloadOnSave={false}
+                resolution={{ width: 512, height: 512 }}
+                resolutionOptions={[
+                  { width: 512, height: 512 },
+                  { width: 512, height: 288 },
+                  { width: 768, height: 320 },
+                  { width: 768, height: 512 },
+                  { width: 1024, height: 576 }
+                ]}
+                aspectRatioOptions={['16:9', '9:16', '21:9', '4:3', '1:1']}
+                labels={{
+                  close: '关闭',
+                  save: '保存',
+                  rotate: '旋转',
+                  brightness: '亮度',
+                  contrast: '对比度',
+                  saturate: '饱和度',
+                  grayscale: '灰度',
+                  reset: '重置',
+                  flipHorizontal: '水平翻转',
+                  flipVertical: '垂直翻转',
+                  zoomIn: '放大',
+                  zoomOut: '缩小',
+                  resolution: '分辨率',
+                  aspectRatio: '宽高比',
+                  apply: '应用'
+                }}
               />
             </div>
           </div>
