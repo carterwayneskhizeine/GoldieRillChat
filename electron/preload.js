@@ -109,6 +109,17 @@ contextBridge.exposeInMainWorld('electron', {
     }
   },
   
+  // 读取二进制文件内容
+  readBinaryFile: async (filePath) => {
+    try {
+      const content = await fs.readFile(filePath);
+      return content;
+    } catch (error) {
+      console.error('读取二进制文件失败:', error);
+      throw error;
+    }
+  },
+  
   // 写入文件内容
   writeFile: async (filePath, content) => {
     try {

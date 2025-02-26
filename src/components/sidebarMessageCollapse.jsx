@@ -106,7 +106,7 @@ export const shouldShowCollapseButton = (content, message) => {
   
   // 如果消息包含图片文件，不显示折叠按钮
   if (message && message.files && message.files.some(file => 
-    file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+    file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
   )) {
     return false;
   }

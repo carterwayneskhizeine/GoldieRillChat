@@ -1,9 +1,9 @@
 export const copyMessageContent = async (message) => {
   try {
     // 如果消息包含图片文件
-    if (message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+    if (message.files?.some(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
       // 获取第一个图片文件
-      const imageFile = message.files.find(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
+      const imageFile = message.files.find(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
       if (imageFile) {
         // 创建一个 img 元素来加载图片
         const img = new Image();

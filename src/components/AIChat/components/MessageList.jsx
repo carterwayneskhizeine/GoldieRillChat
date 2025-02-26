@@ -2,12 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageItem } from './MessageItem';
 import { useMessageCollapse } from '../hooks/useMessageCollapse';
 import '../styles/messages.css';
-import Lightbox from "yet-another-react-lightbox";
-import "yet-another-react-lightbox/styles.css";
-import Zoom from 'yet-another-react-lightbox/plugins/zoom';
-import Captions from 'yet-another-react-lightbox/plugins/captions';
-import 'yet-another-react-lightbox/plugins/captions.css';
-import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
+import { ImageLightbox } from '../../ImageLightbox';
 
 export const MessageList = ({
   messages,
@@ -34,20 +29,21 @@ export const MessageList = ({
   const { isMessageCollapsed, toggleMessageCollapse } = useMessageCollapse();
 
   // 添加 Lightbox 相关状态
-  const [openLightbox, setOpenLightbox] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [images, setImages] = useState([]);
+  const [lightboxImages, setLightboxImages] = useState([]);
 
-  // 收集所有图片
-  const collectImages = useCallback(() => {
+  // 收集所有媒体文件（图片和视频）
+  const collectMedia = useCallback(() => {
     return messages
-      .filter(msg => msg.files?.some(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)))
+      .filter(msg => msg.files?.some(f => f.name && f.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)))
       .flatMap(msg => msg.files
-        .filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+        .filter(f => f.name && f.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i))
         .map(f => ({
           src: `local-file://${f.path}`,
-          alt: f.name,
-          title: f.name
+          title: f.name,
+          description: `发送时间: ${new Date(msg.timestamp).toLocaleString()}\n文件路径: ${f.path}`,
+          type: f.name.match(/\.mp4$/i) ? 'video' : 'image'
         }))
       );
   }, [messages]);
@@ -79,18 +75,18 @@ export const MessageList = ({
     }
   };
 
-  // 处理图片点击
+  // 处理媒体文件点击
   const handleImageClick = useCallback((e, file) => {
     e.preventDefault();
     e.stopPropagation();
     
-    const allImages = collectImages();
-    const currentIndex = allImages.findIndex(img => img.src === `local-file://${file.path}`);
+    const allMedia = collectMedia();
+    const currentIndex = allMedia.findIndex(media => media.src === `local-file://${file.path}`);
     
-    setImages(allImages);
+    setLightboxImages(allMedia);
     setLightboxIndex(currentIndex);
-    setOpenLightbox(true);
-  }, [collectImages]);
+    setLightboxOpen(true);
+  }, [collectMedia]);
 
   return (
     <div className="flex-1 overflow-hidden bg-base-100">
@@ -148,47 +144,12 @@ export const MessageList = ({
         </div>
       )}
 
-      {/* Lightbox 组件 */}
-      <Lightbox
-        open={openLightbox}
-        close={() => setOpenLightbox(false)}
-        index={lightboxIndex}
-        slides={images}
-        plugins={[Zoom, Thumbnails, Captions]}
-        animation={{ fade: 300 }}
-        carousel={{ finite: images.length <= 1 }}
-        zoom={{
-          maxZoomPixelRatio: 5,
-          zoomInMultiplier: 2,
-          doubleTapDelay: 300,
-          doubleClickDelay: 300,
-          doubleClickMaxStops: 2,
-          keyboardMoveDistance: 50,
-          wheelZoomDistanceFactor: 100,
-          pinchZoomDistanceFactor: 100,
-          scrollToZoom: true
-        }}
-        captions={{
-          showToggle: true,
-          descriptionTextAlign: 'center',
-          descriptionMaxLines: 3,
-        }}
-        render={{
-          iconPrev: () => (
-            <button className="btn btn-circle btn-ghost">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          ),
-          iconNext: () => (
-            <button className="btn btn-circle btn-ghost">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          )
-        }}
+      {/* 使用 ImageLightbox 组件 */}
+      <ImageLightbox
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={lightboxImages}
+        startIndex={lightboxIndex}
       />
     </div>
   );

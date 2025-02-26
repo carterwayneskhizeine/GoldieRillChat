@@ -245,6 +245,17 @@ ipcMain.handle('load-message-txt', async (event, filePath) => {
   }
 })
 
+// 读取二进制文件
+ipcMain.handle('readBinaryFile', async (event, filePath) => {
+  try {
+    const content = await fs.readFile(filePath);
+    return content;
+  } catch (error) {
+    console.error('读取二进制文件失败:', error);
+    throw error;
+  }
+});
+
 // Rename message file
 ipcMain.handle('rename-message-file', async (event, folderPath, oldFileName, newFileName) => {
   try {

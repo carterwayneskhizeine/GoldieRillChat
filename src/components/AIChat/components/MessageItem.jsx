@@ -149,7 +149,7 @@ export const MessageItem = ({
 
   // 渲染媒体文件
   const renderMediaContent = (file, onImageClick) => {
-    if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+    if (file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
       return (
         <div key={file.path} className="media-container my-2">
           <img
@@ -162,15 +162,24 @@ export const MessageItem = ({
           />
         </div>
       );
-    } else if (file.name.match(/\.mp4$/i)) {
+    } else if (file.name && file.name.match(/\.mp4$/i)) {
       return (
-        <div key={file.path} className="media-container my-2">
+        <div key={file.path} className="chat-media-container my-2">
+          <div className="video-info mb-2">
+            <div className="text-sm opacity-70">
+              视频文件: {file.name}
+            </div>
+          </div>
           <video
             src={`local-file://${file.path}`}
             controls
-            className="max-w-full rounded-lg"
+            className="rounded-lg max-w-full"
             style={{ maxHeight: '300px' }}
             preload="metadata"
+            onError={(e) => {
+              console.error('视频加载失败:', e);
+              e.target.outerHTML = `<div class="p-2 bg-error text-error-content rounded-lg">视频加载失败: ${file.path}</div>`;
+            }}
           >
             您的浏览器不支持视频播放。
           </video>
@@ -232,7 +241,7 @@ export const MessageItem = ({
 
   // 添加音频消息渲染函数
   const renderAudioMessage = (message) => {
-    const audioFile = message.files?.find(file => file.type.startsWith('audio/'));
+    const audioFile = message.files?.find(file => file.type && file.type.startsWith('audio/'));
     if (!audioFile) return null;
 
     return (
@@ -368,19 +377,28 @@ export const MessageItem = ({
                         </div>
                       )}
                       {/* 判断是否是音频消息 */}
-                      {message.files?.some(file => file.type.startsWith('audio/')) ? (
+                      {message.files?.some(file => file.type && file.type.startsWith('audio/')) ? (
                         renderAudioMessage(message)
                       ) : message.files?.some(file => 
-                        file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                        file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
                       ) ? (
                         <div className="media-content">
                           {message.files
-                            .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+                            .filter(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
                             .map(file => renderMediaContent(file, onImageClick))
                         }
                         </div>
                       ) : message.files?.some(file => 
-                        !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                        file.name && file.name.match(/\.mp4$/i)
+                      ) ? (
+                        <div className="media-content">
+                          {message.files
+                            .filter(file => file.name && file.name.match(/\.mp4$/i))
+                            .map(file => renderMediaContent(file, onImageClick))
+                          }
+                        </div>
+                      ) : message.files?.some(file => 
+                        file.name && !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
                       ) ? (
                         <div className="file-message">
                           {/* 显示文件消息 */}

@@ -13,6 +13,27 @@ import '../styles/markdown-preview.css';
 import { createPortal } from 'react-dom';
 import Editor from "@monaco-editor/react";
 import '../styles/chat.css';
+import { ReactPhotoEditor } from 'react-photo-editor';
+import 'react-photo-editor/dist/style.css';
+
+// 添加辅助函数，使用 Electron API 加载图片
+const loadImageFromPath = async (filePath, fileName, fileType) => {
+  try {
+    // 使用 Electron 的 readBinaryFile API 读取二进制文件
+    const fileData = await window.electron.readBinaryFile(filePath);
+    
+    // 将 ArrayBuffer 转换为 Blob
+    const blob = new Blob([fileData], { type: fileType || 'image/png' });
+    
+    // 创建 File 对象
+    const file = new File([blob], fileName || 'image.png', { type: fileType || 'image/png' });
+    
+    return file;
+  } catch (error) {
+    console.error('加载图片失败:', error);
+    throw error;
+  }
+};
 
 export function ChatView({
   messages = [],
@@ -59,6 +80,9 @@ export function ChatView({
   const [fontSize, setFontSize] = useState(14);
   const editorRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showInlineEditor, setShowInlineEditor] = useState(false);
+  const [editingImage, setEditingImage] = useState(null);
+  const [editingImageMessage, setEditingImageMessage] = useState(null);
 
   // 添加复制功能
   const handleCopySelectedText = (e) => {
@@ -94,6 +118,20 @@ export function ChatView({
       }, 50);
     }
   }, [messages, isCompact, shouldScrollToBottom, setShouldScrollToBottom]);
+
+  // 添加对 editImage 事件的监听
+  useEffect(() => {
+    const handleEditImageEvent = (e) => {
+      const { message, file } = e.detail;
+      handleEditImage(message, file);
+    };
+    
+    window.addEventListener('editImage', handleEditImageEvent);
+    
+    return () => {
+      window.removeEventListener('editImage', handleEditImageEvent);
+    };
+  }, []);
 
   const handleContextMenu = (e) => {
     e.preventDefault();
@@ -298,7 +336,7 @@ export function ChatView({
 
   // 添加音频消息渲染函数
   const renderAudioMessage = (message) => {
-    const audioFile = message.files?.find(file => file.type.startsWith('audio/'));
+    const audioFile = message.files?.find(file => file.type && file.type.startsWith('audio/'));
     if (!audioFile) return null;
 
     return (
@@ -327,7 +365,7 @@ export function ChatView({
 
   // 添加 renderMediaContent 函数
   const renderMediaContent = (file, onImageClick) => {
-    if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+    if (file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
       return (
         <div key={file.path} className="media-container my-2">
           <img
@@ -340,15 +378,28 @@ export function ChatView({
           />
         </div>
       );
-    } else if (file.name.match(/\.mp4$/i)) {
+    } else if (file.name && file.name.match(/\.mp4$/i)) {
       return (
-        <div key={file.path} className="media-container my-2">
+        <div key={file.path} className="chat-media-container my-2">
+          <div className="video-info mb-2">
+            <div className="text-sm opacity-70">
+              视频文件: {file.name}
+            </div>
+          </div>
           <video
             src={`local-file://${file.path}`}
             controls
-            className="max-w-full rounded-lg"
+            className="rounded-lg max-w-full"
             style={{ maxHeight: '300px' }}
-            preload="metadata"
+            preload="none"
+            onClick={(e) => {
+              e.stopPropagation();
+              onImageClick(e, file);
+            }}
+            onError={(e) => {
+              console.error('视频加载失败:', e);
+              e.target.outerHTML = `<div class="p-2 bg-error text-error-content rounded-lg">视频加载失败: ${file.path}</div>`;
+            }}
           >
             您的浏览器不支持视频播放。
           </video>
@@ -356,6 +407,104 @@ export function ChatView({
       );
     }
     return null;
+  };
+
+  // 添加处理内联图片编辑的函数
+  const handleEditImage = (message, file) => {
+    console.log('开始编辑图片:', file.path);
+    
+    // 检查文件是否存在于文件系统中
+    window.electron.access(file.path)
+      .then(async () => {
+        try {
+          console.log('文件存在，开始加载图片');
+          // 使用辅助函数加载图片
+          const fileObj = await loadImageFromPath(file.path, file.name, file.type);
+          console.log('图片加载成功:', fileObj);
+          setEditingImage(fileObj);
+          setEditingImageMessage(message);
+          setShowInlineEditor(true);
+        } catch (error) {
+          console.error('加载图片失败:', error);
+          alert('无法编辑图片: 加载图片失败 - ' + error.message);
+        }
+      })
+      .catch(error => {
+        console.error('读取图片文件失败:', error);
+        alert('无法编辑图片: 文件不存在或无法访问 - ' + error.message);
+      });
+  };
+  
+  // 添加保存编辑后图片的函数
+  const handleSaveEditedImage = (editedImage) => {
+    if (!editedImage || !editingImageMessage || !currentConversation) return;
+    
+    // 将 File 对象转换为 ArrayBuffer，然后转换为可序列化的数组
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const arrayBuffer = e.target.result;
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      try {
+        // 生成新的文件名，添加 edited_ 前缀和时间戳后缀
+        const originalFileName = editedImage.name || '';
+        const fileExt = originalFileName.split('.').pop() || 'png';
+        const baseName = originalFileName.replace(/\.[^/.]+$/, "") || 'image';
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+        const newFileName = `edited_${baseName}_${timestamp}.${fileExt}`;
+        
+        // 先保存文件到磁盘
+        const savedFile = await window.electron.saveFile(currentConversation.path, {
+          name: newFileName,
+          data: Array.from(uint8Array)
+        });
+        
+        // 创建新消息对象，使用保存后的文件信息
+        const newMessage = {
+          id: Date.now().toString(),
+          type: 'user',
+          content: `编辑后的图片: ${savedFile.name}`,
+          files: [savedFile], // 使用保存后的文件信息
+          timestamp: new Date().toISOString()
+        };
+        
+        // 添加到消息列表
+        setMessages(prev => [...prev, newMessage]);
+        
+        // 保存消息到存储
+        await window.electron.saveMessages(
+          currentConversation.path,
+          currentConversation.id,
+          [...messages, newMessage]
+        );
+        
+        // 关闭编辑器
+        setShowInlineEditor(false);
+        setEditingImage(null);
+        setEditingImageMessage(null);
+        
+        // 滚动到底部
+        setShouldScrollToBottom(true);
+      } catch (error) {
+        console.error('保存消息失败:', error);
+        alert('保存消息失败: ' + error.message);
+      }
+    };
+    
+    reader.onerror = (error) => {
+      console.error('读取文件失败:', error);
+      alert('读取文件失败');
+    };
+    
+    // 开始读取文件
+    reader.readAsArrayBuffer(editedImage);
+  };
+  
+  // 添加取消编辑的函数
+  const handleCancelEdit = () => {
+    setShowInlineEditor(false);
+    setEditingImage(null);
+    setEditingImageMessage(null);
   };
 
   return (
@@ -496,6 +645,12 @@ export function ChatView({
               animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
             }
           }
+
+          /* 视频容器样式 */
+          .video-wrapper {
+            position: relative;
+            margin: 0.5rem 0;
+          }
         `}
       </style>
 
@@ -626,7 +781,7 @@ export function ChatView({
                           onClick={() => {
                             // 找到第一个非图片/视频文件
                             const firstFileIndex = message.files.findIndex(file => 
-                              !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                              file.name && !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
                             );
                             if (firstFileIndex !== -1) {
                               setEditingFileName(message.id);
@@ -643,7 +798,7 @@ export function ChatView({
                     )}
                   </div>
                 ) : message.files?.some(file => 
-                  file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                  file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
                 ) ? (
                   <div className="flex items-center gap-2">
                     {editingFileName?.startsWith(message.id) ? (
@@ -685,7 +840,7 @@ export function ChatView({
                           onClick={() => {
                             // 找到第一个图片或视频文件的索引
                             const firstMediaIndex = message.files.findIndex(file => 
-                              file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                              file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
                             );
                             if (firstMediaIndex !== -1) {
                               setEditingFileName(`${message.id}_${firstMediaIndex}`);
@@ -736,19 +891,36 @@ export function ChatView({
                       ) : (
                         <>
                           {/* 判断是否是音频消息 */}
-                          {message.files?.some(file => file.type.startsWith('audio/')) ? (
+                          {message.files?.some(file => file.type && file.type.startsWith('audio/')) ? (
                             renderAudioMessage(message)
                           ) : message.files?.some(file => 
-                            file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                            file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
                           ) ? (
                             <div className="media-content">
                               {message.files
-                                .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+                                .filter(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
                                 .map(file => renderMediaContent(file, handleImageClick))
                               }
                             </div>
                           ) : message.files?.some(file => 
-                            !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
+                            file.name && file.name.match(/\.mp4$/i)
+                          ) ? (
+                            <div className="media-content">
+                              {console.log('渲染视频文件:', message.files.filter(file => file.name && file.name.match(/\.mp4$/i)))}
+                              {message.files
+                                .filter(file => file.name && file.name.match(/\.mp4$/i))
+                                .map(file => {
+                                  console.log('处理视频文件:', file);
+                                  return (
+                                    <div key={file.path} className="video-wrapper relative">
+                                      {renderMediaContent(file, handleImageClick)}
+                                    </div>
+                                  );
+                                })
+                              }
+                            </div>
+                          ) : message.files?.some(file => 
+                            file.name && !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
                           ) ? (
                             <div className="file-message">
                               {/* 显示文件消息 */}
@@ -936,16 +1108,24 @@ export function ChatView({
                   <button
                     className="btn btn-ghost btn-xs"
                     onClick={() => {
-                      // 如果消息包含图片，发送到图片编辑器
-                      if (message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
-                        sendToEditor(message);
+                      // 如果消息包含图片，打开内联编辑器
+                      if (message.files?.some(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+                        // 获取第一个图片文件
+                        const imageFile = message.files.find(file => 
+                          file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                        );
+                        if (imageFile) {
+                          handleEditImage(message, imageFile);
+                        }
                       } else {
                         // 否则发送到 Monaco 编辑器
                         sendToMonaco(message);
                       }
                     }}
                   >
-                    Send
+                    {message.files?.some(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) 
+                      ? "Edit" 
+                      : "Send"}
                   </button>
                 </div>
               )}
@@ -1166,6 +1346,37 @@ export function ChatView({
           </div>,
           document.body
         )}
+
+      {/* 内联图片编辑器 */}
+      {showInlineEditor && editingImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+          <div className="bg-base-100 rounded-lg p-4 max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">编辑图片</h3>
+              <button 
+                className="btn btn-sm btn-circle"
+                onClick={handleCancelEdit}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-auto">
+              <ReactPhotoEditor
+                open={true}
+                onClose={handleCancelEdit}
+                file={editingImage}
+                onSaveImage={handleSaveEditedImage}
+                allowColorEditing={true}
+                allowRotate={true}
+                allowFlip={true}
+                allowZoom={true}
+                downloadOnSave={false}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

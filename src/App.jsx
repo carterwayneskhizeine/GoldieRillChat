@@ -33,7 +33,7 @@ import { handleSelectFolder } from './components/folderHandlers'
 import { handleUpdateFolders } from './components/folderUpdateHandlers'
 import { toggleTheme, themes, initializeTheme, useThemeEffect } from './components/themeHandlers'
 import { ImageLightbox } from './components/ImageLightbox'
-import { getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
+import { getAllMessageMedia, findMediaIndex, getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
 import './styles/lightbox.css'
 import { ChatView } from './components/ChatView'
 import './styles/chatview.css'
@@ -49,7 +49,6 @@ import {
   initializeEditorState
 } from './components/stateInitializers'
 import Sidebar from './components/Sidebar'
-import PhotoEditor from './components/PhotoEditor'
 import { AIChat } from './components/AIChat'
 import './styles/aichat.css'
 import { generateRandomTheme } from './utils/themeGenerator'
@@ -148,41 +147,23 @@ export default function App() {
 
   // 添加 sendToEditor 函数
   const sendToEditor = async (message) => {
-    if (!message.files?.some(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+    if (!message.files?.some(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
       return;
     }
 
-    // 切换到编辑器工具
-    setActiveTool('editor');
-    
     // 获取第一个图片文件
     const imageFile = message.files.find(file => 
-      file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+      file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
     );
 
     if (imageFile) {
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = `local-file://${imageFile.path}`;
-      });
-      
-      setEditorState(prev => ({
-        ...prev,
-        image: img,
-        scale: 1,
-        rotation: 0,
-        flipH: false,
-        flipV: false,
-        offsetX: 0,
-        offsetY: 0
+      // 触发自定义事件，让 ChatView 组件处理图片编辑
+      window.dispatchEvent(new CustomEvent('editImage', {
+        detail: {
+          message,
+          file: imageFile
+        }
       }));
-      
-      setImageSize({
-        width: img.naturalWidth,
-        height: img.naturalHeight
-      });
     }
   };
 
@@ -693,12 +674,13 @@ export default function App() {
     e.preventDefault()
     e.stopPropagation()
     
-    const allImages = getAllMessageImages(messages)
-    const currentImage = { src: `local-file://${file.path}` }
-    const imageIndex = findImageIndex(messages, currentImage)
+    // 使用新的媒体处理函数
+    const allMedia = getAllMessageMedia(messages)
+    const currentMedia = { src: `local-file://${file.path}` }
+    const mediaIndex = findMediaIndex(messages, currentMedia)
     
-    setLightboxImages(allImages)
-    setLightboxIndex(imageIndex)
+    setLightboxImages(allMedia)
+    setLightboxIndex(mediaIndex)
     setLightboxOpen(true)
   }
 
@@ -1100,17 +1082,6 @@ export default function App() {
               sendToEditor={sendToEditor}
               shouldScrollToBottom={shouldScrollToBottom}
               setShouldScrollToBottom={setShouldScrollToBottom}
-            />
-          </div>
-
-          {/* Editor content */}
-          <div style={{ display: activeTool === 'editor' ? 'flex' : 'none' }} className="flex-1 flex flex-col">
-            <PhotoEditor
-              currentConversation={currentConversation}
-              messages={messages}
-              setMessages={setMessages}
-              setActiveTool={setActiveTool}
-              window={window}
             />
           </div>
 
