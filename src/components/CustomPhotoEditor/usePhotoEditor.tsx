@@ -70,30 +70,55 @@ export const usePhotoEditor = ({
 
   // 应用滤镜和变换
   const applyFilter = useCallback(() => {
-    const canvas = canvasRef.current;
-    const image = imageRef.current;
+    if (!canvasRef.current || !imageRef.current || !imageRef.current.complete) return;
 
-    if (!canvas || !image || !image.complete) return;
-
-    const ctx = canvas.getContext('2d');
+    const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
 
     // 设置画布尺寸为当前分辨率
-    canvas.width = resolution.width;
-    canvas.height = resolution.height;
+    canvasRef.current.width = resolution.width;
+    canvasRef.current.height = resolution.height;
 
     // 清除画布
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // 填充白色背景
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+    // 填充白色背景 - 始终填充整个画布
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+    // 获取画布和图像的宽高信息
+    const canvasWidth = canvasRef.current.width;
+    const canvasHeight = canvasRef.current.height;
+    const imgWidth = imageRef.current.naturalWidth;
+    const imgHeight = imageRef.current.naturalHeight;
+
+    // 计算原始图像的宽高比
+    const imageAspectRatio = imgWidth / imgHeight;
+    // 计算画布的宽高比
+    const canvasAspectRatio = canvasWidth / canvasHeight;
+
+    // 计算绘制尺寸和位置，保持图像宽高比
+    let drawWidth, drawHeight, drawX, drawY;
+
+    if (imageAspectRatio > canvasAspectRatio) {
+      // 图像比画布更宽，以宽度为基准
+      drawWidth = canvasWidth;
+      drawHeight = canvasWidth / imageAspectRatio;
+      drawX = 0;
+      drawY = (canvasHeight - drawHeight) / 2;
+    } else {
+      // 图像比画布更高，以高度为基准
+      drawHeight = canvasHeight;
+      drawWidth = canvasHeight * imageAspectRatio;
+      drawX = (canvasWidth - drawWidth) / 2;
+      drawY = 0;
+    }
 
     // 保存当前状态
     ctx.save();
 
     // 移动到画布中心
-    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
     // 应用旋转
     ctx.rotate((rotate * Math.PI) / 180);
@@ -104,42 +129,24 @@ export const usePhotoEditor = ({
       flipVertical ? -1 : 1
     );
 
-    // 应用缩放
+    // 应用缩放和平移
     ctx.scale(zoom, zoom);
-
-    // 应用平移
-    ctx.translate(position.x, position.y);
+    ctx.translate(position.x / zoom, position.y / zoom);
 
     // 绘制图像，居中
     ctx.drawImage(
-      image,
-      -image.width / 2,
-      -image.height / 2,
-      image.width,
-      image.height
+      imageRef.current,
+      -drawWidth / 2,
+      -drawHeight / 2,
+      drawWidth,
+      drawHeight
     );
 
     // 恢复状态
     ctx.restore();
-
+    
     // 应用滤镜
     ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%)`;
-    
-    // 重新绘制带滤镜的图像
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (tempCtx) {
-      tempCtx.drawImage(canvas, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // 再次填充白色背景
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      ctx.drawImage(tempCanvas, 0, 0);
-    }
   }, [
     brightness,
     contrast,
@@ -164,6 +171,11 @@ export const usePhotoEditor = ({
     }
   }, [imageSrc, applyFilter]);
 
+  // 当缩放或位置变化时重新应用滤镜
+  useEffect(() => {
+    applyFilter();
+  }, [zoom, position, rotate, flipHorizontal, flipVertical]);
+
   // 生成编辑后的文件
   const generateEditedFile = useCallback(
     async (fileName = 'edited-image.png', fileType = 'image/png'): Promise<File> => {
@@ -172,6 +184,15 @@ export const usePhotoEditor = ({
         if (!canvas) {
           reject(new Error('Canvas not found'));
           return;
+        }
+
+        // 确保最终导出前重新应用一次滤镜和背景
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          // 确保白色背景被正确应用到整个画布
+          ctx.globalCompositeOperation = 'destination-over';
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
         canvas.toBlob((blob) => {
@@ -284,28 +305,19 @@ export const usePhotoEditor = ({
     setResolution(preset);
   }, []);
 
-  // 按画布高度匹配图片高度
+  // 自动调整图像高度填满画布
   const fitToHeight = useCallback(() => {
-    const canvas = canvasRef.current;
-    const image = imageRef.current;
+    if (!canvasRef.current || !imageRef.current || !imageRef.current.complete) return;
     
-    if (!canvas || !image || !image.complete) return;
-    
-    // 计算当前画布高度与图片高度的比例
-    const canvasHeight = canvas.height;
-    const imageHeight = image.height;
-    
-    if (imageHeight <= 0) return;
-    
-    // 计算新的缩放比例，使图片高度与画布高度匹配
-    const newZoom = canvasHeight / (imageHeight * zoom);
-    
-    // 应用新的缩放比例
-    setZoom(newZoom);
-    
-    // 重置位置，使图片居中
+    // 重置缩放和位置
+    setZoom(1);
     setPosition({ x: 0, y: 0 });
-  }, [zoom]);
+    
+    // 等待状态更新后再应用滤镜
+    setTimeout(() => {
+      applyFilter();
+    }, 50);
+  }, [applyFilter]);
 
   return {
     canvasRef,
@@ -343,6 +355,8 @@ export const usePhotoEditor = ({
     downloadImage,
     resetEdits,
     applyFilter,
-    fitToHeight
+    fitToHeight,
+    position,
+    setPosition
   };
 }; 

@@ -100,7 +100,9 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
     downloadImage,
     resetEdits,
     applyFilter,
-    fitToHeight
+    fitToHeight,
+    position,
+    setPosition
   } = usePhotoEditor({
     file,
     defaultResolution: resolution
@@ -145,8 +147,8 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
       const containerHeight = canvasContainerRef.current.clientHeight;
       
       // 计算适合容器的缩放比例
-      const scaleX = (containerWidth * 0.9) / currentResolution.width;
-      const scaleY = (containerHeight * 0.9) / currentResolution.height;
+      const scaleX = containerWidth / currentResolution.width;
+      const scaleY = containerHeight / currentResolution.height;
       
       // 使用较小的缩放比例，确保画布完全显示在容器内
       const scale = Math.min(scaleX, scaleY, 1); // 最大不超过原始大小
@@ -155,16 +157,34 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
     }
   }, [currentResolution, canvasContainerRef.current]);
 
-  // 处理缩放
+  // 处理缩放按钮
   const handleZoom = (value: number) => {
-    setZoom(prev => Math.max(0.1, prev + value));
+    setZoom(prev => {
+      const newZoom = Math.max(0.1, prev + value);
+      return newZoom;
+    });
+    
+    // 重新应用滤镜以更新显示
+    setTimeout(() => {
+      applyFilter();
+    }, 10);
   };
 
   // 处理鼠标滚轮缩放
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.01 : 0.01;
-    setZoom(prev => Math.max(0.1, prev + delta));
+    
+    if (!canvasRef.current) return;
+    
+    // 计算缩放因子（使用更小的增量使缩放更平滑）
+    const delta = e.deltaY < 0 ? 0.05 : -0.05;
+    const newZoom = Math.max(0.1, Math.min(10, zoom + delta));
+    
+    // 更新缩放
+    setZoom(newZoom);
+    
+    // 立即应用滤镜以更新显示
+    applyFilter();
   };
 
   // 处理Ctrl+点击旋转
@@ -268,13 +288,68 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
     const newWidth = Math.min(width, maxWidth);
     const newHeight = Math.min(height, maxHeight);
     
+    // 应用新分辨率
     handleResolutionChange({ width: newWidth, height: newHeight });
+    
+    // 短暂延迟后自动调整图片以适应新分辨率
+    setTimeout(() => {
+      // 重置位置
+      fitToCanvas();
+    }, 100);
+  };
+
+  // 添加新函数：自动调整图片以适应画布
+  const fitToCanvas = () => {
+    if (!canvasRef.current || !imageRef.current || !imageRef.current.complete) return;
+    
+    // 获取画布和图片尺寸
+    const canvasWidth = canvasRef.current.width;
+    const canvasHeight = canvasRef.current.height;
+    const imageWidth = imageRef.current.naturalWidth;
+    const imageHeight = imageRef.current.naturalHeight;
+    
+    if (imageWidth <= 0 || imageHeight <= 0) return;
+    
+    // 计算图像和画布的宽高比
+    const imageAspect = imageWidth / imageHeight;
+    const canvasAspect = canvasWidth / canvasHeight;
+    
+    // 确定最佳缩放比例，考虑画布和图像比例
+    let newZoom = 1.0;
+    
+    // 对于极端宽高比（宽度/高度 > 4 或 < 0.25）进行特殊处理
+    const isExtremeAspect = (imageAspect > 4 || imageAspect < 0.25) || 
+                          (canvasAspect > 4 || canvasAspect < 0.25);
+    
+    if (isExtremeAspect) {
+      // 对极端宽高比，使用较保守的缩放
+      newZoom = 0.8;
+    }
+    
+    // 应用新的缩放比例
+    setZoom(newZoom);
+    
+    // 重置位置，使图片居中
+    setPosition({ x: 0, y: 0 });
+    
+    // 再次应用滤镜，确保图像正确渲染
+    setTimeout(() => {
+      applyFilter();
+    }, 50);
   };
 
   const handleAspectRatioSelect = (ratio: string) => {
     setSelectedAspectRatio(ratio);
     handleAspectRatioChange(ratio);
   };
+
+  // 在分辨率变化后自动调整图片
+  useEffect(() => {
+    // 当分辨率变化时，自动调整图片
+    if (imageRef.current && imageRef.current.complete) {
+      fitToCanvas();
+    }
+  }, [currentResolution]);
 
   if (!isOpen) {
     return null;
@@ -517,8 +592,9 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                 className="rpe-canvas-preview" 
                 style={{
                   transform: `scale(${previewScale})`,
+                  transformOrigin: 'center',
                   width: currentResolution.width,
-                  height: currentResolution.height
+                  height: currentResolution.height,
                 }}
               >
                 <canvas
