@@ -95,6 +95,7 @@
             "react-audio-player": "^0.17.0",
             "react-dom": "^18.2.0",
             "react-markdown": "^9.0.3",
+            "react-photo-editor": "^2.1.4",
             "react-syntax-highlighter": "^15.6.1",
             "react-virtualized-auto-sizer": "^1.0.25",
             "react-window": "^1.8.11",

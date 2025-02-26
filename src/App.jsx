@@ -43,16 +43,13 @@ import { useKeyboardEvents } from './components/keyboardHandlers'
 import { globalStyles } from './styles/globalStyles'
 import {
   initializeChatState,
-  initializeEditorState,
-  initializeImagePreviewState,
   initializeUIState,
-  initializeCanvasState,
   initializeStoragePath,
-  initializeSidebarState
+  initializeSidebarState,
+  initializeEditorState
 } from './components/stateInitializers'
 import Sidebar from './components/Sidebar'
-import Editor from './components/Editor'
-import { MonacoEditor } from './components/MonacoEditor'
+import PhotoEditor from './components/PhotoEditor'
 import { AIChat } from './components/AIChat'
 import './styles/aichat.css'
 import { generateRandomTheme } from './utils/themeGenerator'
@@ -61,6 +58,7 @@ import {
   handleRenameConversation,
   handleContextMenu
 } from './components/conversationHandlers'
+import { MonacoEditor } from './components/MonacoEditor'
 
 export default function App() {
   // 修改初始工具为 chat
@@ -108,40 +106,28 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(initialBrowserState.isLoading)
   const [pageTitle, setPageTitle] = useState(initialBrowserState.pageTitle)
 
-  // 编辑器状态
-  const [editorState, setEditorState] = useState(initializeEditorState())
-
-  // 画布状态
-  const initialCanvasState = initializeCanvasState()
-  const [canvasSize, setCanvasSize] = useState(initialCanvasState.canvasSize)
-  const [tempCanvasSize, setTempCanvasSize] = useState(initialCanvasState.tempCanvasSize)
-  const [imageSize, setImageSize] = useState(initialCanvasState.imageSize)
-
-  // 图片预览状态
-  const initialPreviewState = initializeImagePreviewState()
-  const [lightboxOpen, setLightboxOpen] = useState(initialPreviewState.lightboxOpen)
-  const [lightboxImages, setLightboxImages] = useState(initialPreviewState.lightboxImages)
-  const [lightboxIndex, setLightboxIndex] = useState(initialPreviewState.lightboxIndex)
-
+  // 使用初始化函数替换原有的主题状态声明
+  const [currentTheme, setCurrentTheme] = useState(initializeTheme())
+  
+  // 使用主题效果
+  useThemeEffect(currentTheme)
+  
   // Refs
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
   const canvasRef = useRef(null)
   const canvasSizeTimeoutRef = useRef(null)
-
-  // Add new state variables for mouse rotation
-  const [startAngle, setStartAngle] = useState(0)
-  const [lastRotation, setLastRotation] = useState(0)
-  const [isRotating, setIsRotating] = useState(false)
-
-  // Add state for collapsed messages
+  
+  // 在其他状态变量声明后添加 editorState
+  const initialEditorState = initializeEditorState()
+  const [editorState, setEditorState] = useState(initialEditorState)
+  const [canvasSize, setCanvasSize] = useState({ width: 1920, height: 1080 })
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
   const [collapsedMessages, setCollapsedMessages] = useState(new Set())
-
-  // 使用初始化函数替换原有的主题状态声明
-  const [currentTheme, setCurrentTheme] = useState(initializeTheme())
-
-  // 使用新的主题持久化Hook
-  useThemeEffect(currentTheme)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxImages, setLightboxImages] = useState([])
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [isRotating, setIsRotating] = useState(false)
 
   // 添加发送到Monaco的处理函数
   const sendToMonaco = (message) => {
@@ -1119,30 +1105,12 @@ export default function App() {
 
           {/* Editor content */}
           <div style={{ display: activeTool === 'editor' ? 'flex' : 'none' }} className="flex-1 flex flex-col">
-            <Editor
-              editorState={editorState}
-              setEditorState={setEditorState}
-              canvasSize={canvasSize}
-              setCanvasSize={setCanvasSize}
-              tempCanvasSize={tempCanvasSize}
-              setTempCanvasSize={setTempCanvasSize}
-              imageSize={imageSize}
-              setImageSize={setImageSize}
-              isCtrlPressed={isCtrlPressed}
-              setIsCtrlPressed={setIsCtrlPressed}
-              canvasRef={canvasRef}
-              canvasSizeTimeoutRef={canvasSizeTimeoutRef}
+            <PhotoEditor
               currentConversation={currentConversation}
               messages={messages}
               setMessages={setMessages}
               setActiveTool={setActiveTool}
               window={window}
-              startAngle={startAngle}
-              setStartAngle={setStartAngle}
-              lastRotation={lastRotation}
-              setLastRotation={setLastRotation}
-              isRotating={isRotating}
-              setIsRotating={setIsRotating}
             />
           </div>
 
