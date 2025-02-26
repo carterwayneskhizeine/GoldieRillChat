@@ -80,13 +80,19 @@ export const MODEL_PROVIDERS = {
   },
   deepseek: {
     name: 'DeepSeek',
-    apiHost: 'https://api.deepseek.com/v1',
+    apiHost: 'https://api.deepseek.com',
     needsApiKey: true,
     apiKeyHelp: '在 DeepSeek 官网获取 API 密钥: https://platform.deepseek.com/',
     models: [
       'deepseek-chat',
       'deepseek-reasoner'
-    ]
+    ],
+    modelInfo: {
+      'deepseek-reasoner': {
+        description: '推理增强模型，需要使用特殊的消息格式',
+        requiresUserLastMessage: true
+      }
+    }
   },
   openrouter: {
     name: 'OpenRouter',

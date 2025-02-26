@@ -54,13 +54,19 @@ export const MODEL_PROVIDERS = {
   },
   deepseek: {
     name: 'DeepSeek',
-    apiHost: 'https://api.deepseek.com/v1',
+    apiHost: 'https://api.deepseek.com',
     needsApiKey: true,
     apiKeyHelp: '在 DeepSeek 官网获取 API 密钥: https://platform.deepseek.ai/settings',
     models: [
       'deepseek-chat',
       'deepseek-reasoner'
-    ]
+    ],
+    modelInfo: {
+      'deepseek-reasoner': {
+        description: '推理增强模型，需要使用特殊的消息格式',
+        requiresUserLastMessage: true
+      }
+    }
   },
   openrouter: {
     name: 'OpenRouter',
@@ -104,9 +110,20 @@ export async function fetchModels(provider, apiKey, apiHost) {
             'Content-Type': 'application/json'
           }
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+          // 如果 API 调用失败，返回预定义的模型列表
+          console.warn(`获取 DeepSeek 模型列表失败: ${response.status} ${response.statusText}`);
+          return MODEL_PROVIDERS[provider]?.models || [];
+        }
         const data = await response.json();
-        return data.data.map(model => model.id);
+        
+        // 确保 deepseek-reasoner 模型始终在列表中
+        const models = data.data.map(model => model.id);
+        if (!models.includes('deepseek-reasoner')) {
+          models.push('deepseek-reasoner');
+        }
+        
+        return models;
       }
       
       case 'claude': {

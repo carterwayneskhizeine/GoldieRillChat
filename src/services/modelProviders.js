@@ -250,32 +250,34 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate,
     // 检查是否是 reasoner 模型
     const isReasonerModel = model === 'deepseek-reasoner';
     
-    // 检查消息列表的最后一条消息
-    const lastMessage = messages[messages.length - 1];
+    // 确保消息列表中有 system 消息
+    let processedMessages = [...messages];
+    if (!processedMessages.some(msg => msg.role === 'system' || msg.type === 'system')) {
+      processedMessages.unshift({
+        role: 'system',
+        content: 'You are a helpful assistant.'
+      });
+    }
     
     // 构建请求体
     const requestBody = {
       model,
-      messages: messages.map(msg => ({
-        role: msg.type === 'user' ? 'user' : 'assistant',
+      messages: processedMessages.map(msg => ({
+        role: msg.role || (msg.type === 'user' ? 'user' : 'assistant'),
         content: msg.content,
         ...(msg.reasoning_content ? {} : {}),
         // 如果是 reasoner 模型且最后一条消息是 assistant，添加 prefix 参数
-        ...(isReasonerModel && msg === lastMessage && msg.type === 'assistant' ? { prefix: true } : {})
+        ...(isReasonerModel && msg === processedMessages[processedMessages.length - 1] && 
+            (msg.type === 'assistant' || msg.role === 'assistant') ? { prefix: true } : {})
       })),
       stream: true,
       temperature: temperature,
       max_tokens: maxTokens
     };
     
-    // 如果是 reasoner 模型，使用 beta 端点
-    const endpoint = isReasonerModel ? 
-      (apiHost.replace('/v1', '') + '/beta/chat/completions') : 
-      (apiHost + '/chat/completions');
+    // 使用标准端点，不添加 /beta 或 /v1
+    const endpoint = `${apiHost}/chat/completions`;
     
-    console.log('DeepSeek API 请求端点:', endpoint);
-    console.log('DeepSeek API 请求体:', JSON.stringify(requestBody, null, 2));
-
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
