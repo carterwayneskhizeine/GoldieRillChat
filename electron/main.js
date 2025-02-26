@@ -94,10 +94,6 @@ app.whenReady().then(async () => {
   try {
     if (iconPath) {
       const icon = nativeImage.createFromPath(iconPath);
-      if (process.platform === 'win32') {
-        // 设置任务栏图标
-        app.setTaskbarIcon(icon);
-      }
       app.setIcon(icon);
       console.log('Icon set successfully');
     }
@@ -639,8 +635,7 @@ function createWindow() {
       additionalArguments: ['--js-flags=--max-old-space-size=4096'],
     },
     ...(icon ? { 
-      icon,
-      taskbarIcon: icon
+      icon
     } : {})
   })
 
