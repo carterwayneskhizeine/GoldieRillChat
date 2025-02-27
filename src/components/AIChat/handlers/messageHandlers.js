@@ -35,7 +35,9 @@ export const createMessageHandlers = ({
   abortController,
   setAbortController,
   isNetworkEnabled,
-  handleSendMessage
+  handleSendMessage,
+  systemPrompt,
+  systemPromptEnabled
 }) => {
   // 添加新消息
   const addMessage = (content, type = 'user') => {
@@ -291,7 +293,15 @@ export const createMessageHandlers = ({
       // 构建消息历史
       const messagesHistory = [];
       
-      // 如果有系统消息，添加到消息列表开头
+      // 如果启用了系统提示词，添加到消息列表开头
+      if (systemPromptEnabled && systemPrompt) {
+        messagesHistory.push({
+          role: 'system',
+          content: systemPrompt
+        });
+      }
+      
+      // 如果有搜索系统消息，添加到消息列表
       if (systemMessage) {
         messagesHistory.push({
           role: 'system',

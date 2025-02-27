@@ -9,6 +9,7 @@ import 'yet-another-react-lightbox/plugins/captions.css';
 import { useMessageState } from './hooks/useMessageState';
 import { useModelState } from './hooks/useModelState';
 import { useInputState } from './hooks/useInputState';
+import { useSystemPrompt } from './hooks/useSystemPrompt';
 
 import { createMessageHandlers } from './handlers/messageHandlers';
 import { createSettingsHandlers } from './handlers/settingsHandlers';
@@ -35,6 +36,7 @@ export const AIChat = ({
   const messageState = useMessageState(currentConversation);
   const modelState = useModelState();
   const inputState = useInputState();
+  const systemPromptState = useSystemPrompt();
 
   // 添加新的状态
   const [maxTokens, setMaxTokens] = useState(() => {
@@ -179,7 +181,9 @@ export const AIChat = ({
       updateMessage: messageState.updateMessage,
       deleteMessage: messageState.deleteMessage,
       imageSettings,
-      videoSettings  // 添加视频设置参数
+      videoSettings,  // 添加视频设置参数
+      systemPrompt: systemPromptState.systemPrompt,
+      systemPromptEnabled: systemPromptState.systemPromptEnabled
     });
 
     const msgHandlers = createMessageHandlers({
@@ -202,7 +206,9 @@ export const AIChat = ({
       abortController,
       setAbortController,
       isNetworkEnabled,
-      handleSendMessage: handlers.handleSendMessage
+      handleSendMessage: handlers.handleSendMessage,
+      systemPrompt: systemPromptState.systemPrompt,
+      systemPromptEnabled: systemPromptState.systemPromptEnabled
     });
 
     return { inputHandlers: handlers, messageHandlers: msgHandlers };
@@ -229,7 +235,9 @@ export const AIChat = ({
     window,
     imageSettings,
     videoSettings,
-    messageState.editContent
+    messageState.editContent,
+    systemPromptState.systemPrompt,
+    systemPromptState.systemPromptEnabled
   ]);
 
   // 初始化处理函数
@@ -314,6 +322,7 @@ export const AIChat = ({
               setMaxTokens={setMaxTokens}
               temperature={temperature}
               setTemperature={setTemperature}
+              systemPromptEnabled={systemPromptState.systemPromptEnabled}
             />
           </div>
 
@@ -366,7 +375,21 @@ export const AIChat = ({
               setShowApiKey={modelState.setShowApiKey}
               handleSettingsClose={settingsHandlers.handleSettingsClose}
               MODEL_PROVIDERS={MODEL_PROVIDERS}
-              onImageSettingsUpdate={handleMediaSettingsUpdate}  // 修改回调函数名
+              onImageSettingsUpdate={handleMediaSettingsUpdate}
+              // 添加系统提示词相关的 props
+              systemPrompt={systemPromptState.systemPrompt}
+              setSystemPrompt={systemPromptState.setSystemPrompt}
+              systemPromptEnabled={systemPromptState.systemPromptEnabled}
+              setSystemPromptEnabled={systemPromptState.setSystemPromptEnabled}
+              systemPromptTemplates={systemPromptState.systemPromptTemplates}
+              setSystemPromptTemplates={systemPromptState.setSystemPromptTemplates}
+              selectedTemplateId={systemPromptState.selectedTemplateId}
+              setSelectedTemplateId={systemPromptState.setSelectedTemplateId}
+              applyTemplate={systemPromptState.applyTemplate}
+              addTemplate={systemPromptState.addTemplate}
+              updateTemplate={systemPromptState.updateTemplate}
+              deleteTemplate={systemPromptState.deleteTemplate}
+              resetTemplates={systemPromptState.resetTemplates}
             />
           )}
         </>

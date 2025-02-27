@@ -5,5 +5,8 @@ export const STORAGE_KEYS = {
   PROVIDER: 'aichat_provider',
   MODEL: 'aichat_model',
   MESSAGES: 'aichat_messages',
-  CURRENT_CONVERSATION: 'aichat_current_conversation'
+  CURRENT_CONVERSATION: 'aichat_current_conversation',
+  SYSTEM_PROMPT: 'aichat_system_prompt',
+  SYSTEM_PROMPT_ENABLED: 'aichat_system_prompt_enabled',
+  SYSTEM_PROMPT_TEMPLATES: 'aichat_system_prompt_templates'
 }; 

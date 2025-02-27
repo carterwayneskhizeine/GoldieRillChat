@@ -5,7 +5,10 @@ export const STORAGE_KEYS = {
   SELECTED_PROVIDER: 'aichat_provider',
   SELECTED_MODEL: 'aichat_model',
   MESSAGES: 'aichat_messages',
-  CURRENT_CONVERSATION: 'aichat_current_conversation'
+  CURRENT_CONVERSATION: 'aichat_current_conversation',
+  SYSTEM_PROMPT: 'aichat_system_prompt',
+  SYSTEM_PROMPT_ENABLED: 'aichat_system_prompt_enabled',
+  SYSTEM_PROMPT_TEMPLATES: 'aichat_system_prompt_templates'
 };
 
 // 显示阶段常量
@@ -36,6 +39,9 @@ export const MESSAGE_TYPES = {
   USER: 'user',
   ASSISTANT: 'assistant'
 };
+
+// 从系统提示词模板文件导入
+export * from './systemPromptTemplates';
 
 // 模型提供商配置
 export const MODEL_PROVIDERS = {

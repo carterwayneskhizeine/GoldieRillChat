@@ -9,7 +9,8 @@ export const Header = ({
   maxTokens,
   setMaxTokens,
   temperature,
-  setTemperature
+  setTemperature,
+  systemPromptEnabled
 }) => {
   return (
     <div className="p-4 border-b border-base-300 flex justify-between items-center bg-base-100">
@@ -30,9 +31,11 @@ export const Header = ({
       </div>
 
       {/* 中间对话名称 */}
-      <h2 className="text-xs opacity-70 flex-1 text-center">
-        {currentConversation?.name || '当前会话'}
-      </h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-xs opacity-70">
+          {currentConversation?.name || '当前会话'}
+        </h2>
+      </div>
 
       {/* 右侧设置区域 */}
       <div className="flex flex-col gap-2">

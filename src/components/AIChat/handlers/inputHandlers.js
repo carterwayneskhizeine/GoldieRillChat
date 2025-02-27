@@ -35,7 +35,9 @@ export const createInputHandlers = ({
   updateMessage,
   deleteMessage,
   imageSettings,
-  videoSettings  // 添加视频设置参数
+  videoSettings,  // 添加视频设置参数
+  systemPrompt,
+  systemPromptEnabled
 }) => {
   // 处理发送消息
   const handleSendMessage = async (isRetry = false, retryContent = null, forceNetworkSearch = false) => {
@@ -462,28 +464,42 @@ export const createInputHandlers = ({
       }
 
       // 构建消息历史
+      const messagesHistory = [];
+      
+      // 如果启用了系统提示词，添加到消息列表开头
+      if (systemPromptEnabled && systemPrompt) {
+        messagesHistory.push({
+          role: 'system',
+          content: systemPrompt
+        });
+      }
+      
+      // 如果有搜索系统消息，添加到消息列表
+      if (systemMessage) {
+        messagesHistory.push({
+          role: 'system',
+          content: systemMessage
+        });
+      }
+
+      // 获取历史消息数量设置
       const maxHistoryMessages = parseInt(localStorage.getItem('aichat_max_history_messages')) || 5;
       
       // 获取历史消息
       const recentMessages = messages
         .slice(maxHistoryMessages === 21 ? 0 : Math.max(0, messages.length - maxHistoryMessages))
+        .filter(msg => msg.type === 'user' || msg.type === 'assistant')
         .map(msg => ({
-          role: msg.type,
-          content: msg.content,
+          role: msg.type === 'user' ? 'user' : 'assistant',
+          content: msg.content || ''
         }));
 
-      // 如果有系统消息，添加到消息列表开头
-      if (systemMessage) {
-        recentMessages.unshift({
-          role: 'system',
-          content: systemMessage,
-        });
-      }
+      messagesHistory.push(...recentMessages);
 
       // 添加新的用户消息
-      recentMessages.push({
+      messagesHistory.push({
         role: 'user',
-        content: content,
+        content: content
       });
 
       // 调用AI接口
@@ -492,7 +508,7 @@ export const createInputHandlers = ({
         apiKey,
         apiHost,
         model: selectedModel,
-        messages: recentMessages,
+        messages: messagesHistory,
         maxTokens,
         temperature,
         signal: controller.signal,
@@ -545,6 +561,12 @@ export const createInputHandlers = ({
       );
       setMessages(finalMessages);
 
+      // 更新消息状态
+      setMessageStates(prev => ({
+        ...prev,
+        [aiMessage.id]: MESSAGE_STATES.COMPLETED
+      }));
+
     } catch (error) {
       if (error.name === 'AbortError') {
         console.log('生成已被用户中止');
@@ -576,6 +598,7 @@ export const createInputHandlers = ({
       }
     } finally {
       setAbortController(null);
+      setIsGenerating(false);
     }
   };
 

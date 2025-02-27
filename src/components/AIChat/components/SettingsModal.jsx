@@ -15,7 +15,20 @@ export const SettingsModal = ({
   setShowApiKey,
   handleSettingsClose,
   MODEL_PROVIDERS,
-  onImageSettingsUpdate
+  onImageSettingsUpdate,
+  systemPrompt,
+  setSystemPrompt,
+  systemPromptEnabled,
+  setSystemPromptEnabled,
+  systemPromptTemplates,
+  setSystemPromptTemplates,
+  selectedTemplateId,
+  setSelectedTemplateId,
+  applyTemplate,
+  addTemplate,
+  updateTemplate,
+  deleteTemplate,
+  resetTemplates
 }) => {
   // 确保 selectedProvider 是有效的
   const currentProvider = MODEL_PROVIDERS[selectedProvider] || MODEL_PROVIDERS.openai;
@@ -42,6 +55,12 @@ export const SettingsModal = ({
     const saved = localStorage.getItem('aichat_max_history_messages');
     return saved ? parseInt(saved) : 5;  // 默认5条
   });
+
+  // 添加系统提示词模板编辑状态
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
+  const [templateName, setTemplateName] = useState('');
+  const [templateContent, setTemplateContent] = useState('');
+  const [isAddingTemplate, setIsAddingTemplate] = useState(false);
 
   // 添加生图模型状态
   const [imageModel, setImageModel] = useState(() => {
@@ -225,6 +244,68 @@ export const SettingsModal = ({
     }
   };
 
+  // 处理模板选择
+  const handleTemplateSelect = (templateId) => {
+    applyTemplate(templateId);
+  };
+
+  // 处理添加模板
+  const handleAddTemplate = () => {
+    setIsAddingTemplate(true);
+    setTemplateName('');
+    setTemplateContent(systemPrompt || '');
+    setEditingTemplateId(null);
+  };
+
+  // 处理编辑模板
+  const handleEditTemplate = (template) => {
+    setIsAddingTemplate(false);
+    setEditingTemplateId(template.id);
+    setTemplateName(template.name);
+    setTemplateContent(template.content);
+  };
+
+  // 处理保存模板
+  const handleSaveTemplate = () => {
+    if (!templateName.trim()) {
+      alert('请输入模板名称');
+      return;
+    }
+
+    if (!templateContent.trim()) {
+      alert('请输入模板内容');
+      return;
+    }
+
+    if (isAddingTemplate) {
+      const newTemplateId = addTemplate(templateName, templateContent);
+      setSelectedTemplateId(newTemplateId);
+    } else if (editingTemplateId) {
+      updateTemplate(editingTemplateId, templateName, templateContent);
+    }
+
+    // 重置编辑状态
+    setIsAddingTemplate(false);
+    setEditingTemplateId(null);
+    setTemplateName('');
+    setTemplateContent('');
+  };
+
+  // 处理取消编辑模板
+  const handleCancelEditTemplate = () => {
+    setIsAddingTemplate(false);
+    setEditingTemplateId(null);
+    setTemplateName('');
+    setTemplateContent('');
+  };
+
+  // 处理删除模板
+  const handleDeleteTemplate = (templateId) => {
+    if (confirm('确定要删除此模板吗？')) {
+      deleteTemplate(templateId);
+    }
+  };
+
   // 修改 collectMediaSettings 函数
   const collectMediaSettings = () => {
     const imageSettings = {
@@ -303,6 +384,12 @@ export const SettingsModal = ({
               onClick={() => setActiveTab('search')}
             >
               搜索
+            </a>
+            <a 
+              className={`tab ${activeTab === 'system' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('system')}
+            >
+              系统提示词
             </a>
             {selectedProvider === 'siliconflow' && (
               <>
@@ -576,7 +663,111 @@ export const SettingsModal = ({
             </div>
           </div>
 
-          {/* Tab 3: 图片设置 */}
+          {/* Tab 3: 系统提示词设置 */}
+          <div className={activeTab === 'system' ? '' : 'hidden'}>
+            <div className="space-y-4">
+              {/* 系统提示词启用开关 */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">系统提示词</h3>
+                <div className="form-control">
+                  <label className="label cursor-pointer">
+                    <span className="label-text">启用系统提示词</span>
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-primary"
+                      checked={systemPromptEnabled}
+                      onChange={(e) => setSystemPromptEnabled(e.target.checked)}
+                    />
+                  </label>
+                </div>
+                <div className="text-xs opacity-70">
+                  启用后，系统提示词将应用于所有对话，帮助AI更好地理解你的需求
+                </div>
+              </div>
+
+              {/* 当前使用的模板信息 */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">当前模板</h3>
+                <div className="bg-base-200 p-3 rounded-lg">
+                  <div className="font-medium">
+                    {selectedTemplateId ? 
+                      systemPromptTemplates.find(t => t.id === selectedTemplateId)?.name || '小葵女友模式' 
+                      : '小葵女友模式'}
+                  </div>
+                </div>
+              </div>
+
+              {/* 系统提示词编辑 */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-medium">系统提示词内容</h3>
+                </div>
+                <textarea
+                  className="textarea textarea-bordered w-full h-32"
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  placeholder="输入系统提示词..."
+                  disabled={!systemPromptEnabled}
+                />
+                <div className="text-xs opacity-70 mt-2">
+                  系统提示词会在每次对话开始时发送给AI，用于设定AI的行为和回答方式
+                </div>
+              </div>
+
+              {/* 模板管理 */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-medium">模板管理</h3>
+                  <button 
+                    className="btn btn-sm btn-primary"
+                    onClick={handleAddTemplate}
+                    disabled={!systemPromptEnabled}
+                  >
+                    添加新模板
+                  </button>
+                </div>
+                
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {systemPromptTemplates.map(template => (
+                    <div key={template.id} className="flex justify-between items-center p-2 bg-base-200 rounded-lg">
+                      <div className="flex-1 truncate">{template.name}</div>
+                      <div className="flex gap-2">
+                        <button 
+                          className="btn btn-xs btn-outline"
+                          onClick={() => handleTemplateSelect(template.id)}
+                          disabled={selectedTemplateId === template.id}
+                        >
+                          使用
+                        </button>
+                        <button 
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => handleEditTemplate(template)}
+                        >
+                          编辑
+                        </button>
+                        <button 
+                          className="btn btn-xs btn-ghost text-error"
+                          onClick={() => handleDeleteTemplate(template.id)}
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2">
+                  <button 
+                    className="btn btn-sm btn-outline"
+                    onClick={resetTemplates}
+                  >
+                    重置为默认模板
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab 4: 图片设置 */}
           {selectedProvider === 'siliconflow' && (
             <div className={activeTab === 'image' ? '' : 'hidden'}>
               <div className="space-y-4">
@@ -874,7 +1065,7 @@ export const SettingsModal = ({
             </div>
           )}
 
-          {/* Tab 4: 视频设置 */}
+          {/* Tab 5: 视频设置 */}
           {selectedProvider === 'siliconflow' && (
             <div className={activeTab === 'video' ? '' : 'hidden'}>
               <div className="space-y-4">
@@ -957,7 +1148,7 @@ export const SettingsModal = ({
             </div>
           )}
 
-          {/* Tab 5: 其他设置 */}
+          {/* Tab 6: 其他设置 */}
           <div className={activeTab === 'other' ? '' : 'hidden'}>
             <div className="space-y-4">
               {/* 消息历史记录数量设置 */}
@@ -987,6 +1178,57 @@ export const SettingsModal = ({
           </div>
         </div>
       </div>
+
+      {/* 模板编辑对话框 */}
+      {(isAddingTemplate || editingTemplateId) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-base-100 rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">{isAddingTemplate ? '添加新模板' : '编辑模板'}</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="label">
+                  <span className="label-text">模板名称</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="输入模板名称..."
+                />
+              </div>
+              
+              <div>
+                <label className="label">
+                  <span className="label-text">模板内容</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered w-full h-48"
+                  value={templateContent}
+                  onChange={(e) => setTemplateContent(e.target.value)}
+                  placeholder="输入模板内容..."
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <button 
+                  className="btn btn-ghost"
+                  onClick={handleCancelEditTemplate}
+                >
+                  取消
+                </button>
+                <button 
+                  className="btn btn-primary"
+                  onClick={handleSaveTemplate}
+                >
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }; 
