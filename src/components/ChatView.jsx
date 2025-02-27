@@ -1039,7 +1039,7 @@ export function ChatView({
                       onClick={() => openFileLocation(message.files[0])}
                       title="打开文件位置"
                     >
-                      文件
+                      File
                     </button>
                   )}
                   {messages.indexOf(message) > 0 && (

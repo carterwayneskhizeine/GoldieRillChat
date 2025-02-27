@@ -30,7 +30,7 @@ import { handleDragStart, handleDragOver, handleDrop } from './components/conver
 import { renameChatFolder } from './components/conversationRenameHandlers'
 import { deleteConversation } from './components/conversationDeleteHandlers'
 import { handleSelectFolder } from './components/folderHandlers'
-import { handleUpdateFolders } from './components/folderUpdateHandlers'
+import { handleUpdateFolders, mergeConversations } from './components/folderUpdateHandlers'
 import { toggleTheme, themes, initializeTheme, useThemeEffect } from './components/themeHandlers'
 import { ImageLightbox } from './components/ImageLightbox'
 import { getAllMessageMedia, findMediaIndex, getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
@@ -173,12 +173,29 @@ export default function App() {
       try {
         const savedConversations = await loadConversations()
         setConversations(savedConversations)
+        
+        // 如果有存储路径，自动扫描文件夹以更新对话列表
+        if (storagePath) {
+          console.log('自动扫描对话文件夹:', storagePath)
+          try {
+            const folders = await window.electron.scanFolders(storagePath)
+            if (folders && folders.length > 0) {
+              // 使用handleUpdateFolders中导出的mergeConversations函数
+              const mergedConversations = await handleUpdateFolders(storagePath, setConversations, window, false)
+              console.log('自动更新文件夹成功:', mergedConversations.length)
+            }
+          } catch (scanError) {
+            console.error('自动扫描文件夹失败:', scanError)
+            // 扫描失败不中断应用程序启动
+          }
+        }
       } catch (error) {
+        console.error('初始化对话失败:', error)
         alert(error.message)
       }
     }
     initializeConversations()
-  }, [])
+  }, [storagePath])
 
   // Scroll to bottom when messages change
   useEffect(() => {

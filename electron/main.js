@@ -25,28 +25,49 @@ if (process.platform === 'win32') {
 // 获取图标路径
 function getIconPath() {
   if (process.platform === 'win32') {
-    const iconPath = process.env.NODE_ENV === 'development'
-      ? path.join(process.cwd(), 'resources/GoldieRillicon.ico')
-      : path.join(process.resourcesPath, 'GoldieRillicon.ico');
-    
-    // 检查图标文件是否存在
-    if (require('fs').existsSync(iconPath)) {
-      console.log('Icon found at:', iconPath);
-      return iconPath;
-    } else {
-      console.error('Icon not found at:', iconPath);
-      // 尝试备用路径
-      const backupPath = path.join(__dirname, '../resources/GoldieRillicon.ico');
-      if (require('fs').existsSync(backupPath)) {
-        console.log('Icon found at backup path:', backupPath);
-        return backupPath;
+    // 尝试多个可能的路径
+    const possiblePaths = [
+      // 标准路径
+      path.join(process.cwd(), 'resources/GoldieRillicon.ico'),
+      path.join(process.resourcesPath, 'GoldieRillicon.ico'),
+      path.join(__dirname, '../resources/GoldieRillicon.ico'),
+      // 备用 .ico 文件名格式
+      path.join(process.cwd(), 'resources/GoldieRillIcon.ico'),
+      path.join(process.resourcesPath, 'GoldieRillIcon.ico'),
+      path.join(__dirname, '../resources/GoldieRillIcon.ico'),
+      // 使用 PNG 作为备选
+      path.join(process.cwd(), 'resources/GoldieRillIcon.png'),
+      path.join(process.resourcesPath, 'GoldieRillIcon.png'),
+      path.join(__dirname, '../resources/GoldieRillIcon.png'),
+      // 其他可能的目录
+      path.join(__dirname, 'resources/GoldieRillicon.ico'),
+      path.join(__dirname, 'resources/GoldieRillIcon.png')
+    ];
+
+    // 从可能的路径中找出第一个存在的文件
+    for (const iconPath of possiblePaths) {
+      if (require('fs').existsSync(iconPath)) {
+        console.log('Icon found at:', iconPath);
+        return iconPath;
       }
-      console.error('Icon not found at backup path:', backupPath);
     }
+    
+    console.error('Icon not found in any path, using default Electron icon');
+    return null;
   } else if (process.platform === 'darwin') {
-    return process.env.NODE_ENV === 'development'
-      ? path.join(process.cwd(), 'resources/GoldieRillicon.icns')
-      : path.join(process.resourcesPath, 'GoldieRillicon.icns');
+    const macPaths = [
+      path.join(process.cwd(), 'resources/GoldieRillicon.icns'),
+      path.join(process.resourcesPath, 'GoldieRillicon.icns'),
+      path.join(__dirname, '../resources/GoldieRillicon.icns')
+    ];
+    
+    for (const iconPath of macPaths) {
+      if (require('fs').existsSync(iconPath)) {
+        return iconPath;
+      }
+    }
+    
+    return null;
   } else {
     return process.env.NODE_ENV === 'development'
       ? path.join(process.cwd(), 'resources/GoldieRillicon.png')
@@ -84,10 +105,13 @@ async function ensureIconAvailable() {
   }
 }
 
-// Register file protocol
+// Register file protocol and initialize app
 app.whenReady().then(async () => {
   // 确保图标文件可用
   await ensureIconAvailable();
+  
+  // 创建主窗口
+  createWindow();
   
   // 设置应用程序图标
   const iconPath = getIconPath();
@@ -96,6 +120,30 @@ app.whenReady().then(async () => {
       const icon = nativeImage.createFromPath(iconPath);
       app.setIcon(icon);
       console.log('Icon set successfully');
+      
+      // 为Windows平台进行额外的图标设置
+      if (process.platform === 'win32' && mainWindow) {
+        // 手动强制设置应用程序图标
+        app.setAppUserModelId('com.goldie.chat');
+        
+        // 在应用启动后稍等片刻再次设置图标
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setIcon(icon);
+            // 调用一个空的setOverlayIcon也有助于刷新任务栏图标
+            mainWindow.setOverlayIcon(null, '');
+            
+            // 尝试刷新Windows图标缓存
+            try {
+              const { execSync } = require('child_process');
+              execSync('ie4uinit.exe -show', { windowsHide: true });
+              console.log('Windows icon cache refresh attempted');
+            } catch (shellError) {
+              console.error('Failed to refresh Windows icon cache:', shellError);
+            }
+          }
+        }, 1000);
+      }
     }
   } catch (error) {
     console.error('Failed to set app icon:', error);
@@ -614,7 +662,19 @@ function createWindow() {
     if (iconPath) {
       icon = nativeImage.createFromPath(iconPath);
       if (process.platform === 'win32') {
+        // 确保图标不是模板图标，Windows不支持模板图标
         icon.setTemplateImage(false);
+        
+        // 创建高DPI图标
+        const sizes = [16, 24, 32, 48, 64, 128, 256];
+        for (const size of sizes) {
+          try {
+            // 尝试生成各种尺寸的图标以确保清晰度
+            icon.resize({ width: size, height: size });
+          } catch (resizeError) {
+            console.error(`Failed to resize icon to ${size}x${size}:`, resizeError);
+          }
+        }
       }
     }
   } catch (error) {
@@ -638,6 +698,29 @@ function createWindow() {
       icon
     } : {})
   })
+  
+  // 直接设置任务栏图标（针对Windows平台）
+  if (process.platform === 'win32' && icon) {
+    try {
+      // 确保在主进程中设置任务栏图标
+      mainWindow.setThumbarButtons([]);
+      mainWindow.setIcon(icon);
+      app.setAppUserModelId('com.goldie.chat');
+      
+      // 尝试强制刷新任务栏图标
+      const { execSync } = require('child_process');
+      try {
+        // 运行一个简单的PowerShell命令来刷新shell图标缓存
+        execSync('powershell -command "$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey(\\\"Control Panel\\\\Desktop\\\", $true); $key.SetValue(\\\"IconCache\\\", \\\"0\\\"); $key.Close()"', { windowsHide: true });
+        console.log('Shell icon cache refresh attempted');
+      } catch (shellError) {
+        console.error('Failed to refresh shell icon cache:', shellError);
+        // 即使刷新失败也继续执行
+      }
+    } catch (iconError) {
+      console.error('Failed to set taskbar icon:', iconError);
+    }
+  }
 
   let browserView = null
 
@@ -1036,8 +1119,6 @@ function createWindow() {
 module.exports = {
   createWindow
 }
-
-app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

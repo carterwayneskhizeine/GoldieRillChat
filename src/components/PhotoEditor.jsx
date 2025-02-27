@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ReactPhotoEditor } from 'react-photo-editor';
 import 'react-photo-editor/dist/style.css';
 
@@ -24,23 +24,63 @@ export default function PhotoEditor({
   const [showEditor, setShowEditor] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [editedFile, setEditedFile] = useState(null);
+  const [editedImagePreview, setEditedImagePreview] = useState(null);
   // 添加分辨率和宽高比状态
   const [editorResolution, setEditorResolution] = useState({ width: 512, height: 512 });
   const [editorAspectRatio, setEditorAspectRatio] = useState("16:9");
   // 添加自定义编辑器状态
   const [showCustomEditor, setShowCustomEditor] = useState(false);
+  // 添加边缘处理和保持宽高比选项
+  const [preserveAspectRatio, setPreserveAspectRatio] = useState(true);
+  const [edgeSmoothing, setEdgeSmoothing] = useState(true);
+  // 添加图片加载状态
+  const [imageLoading, setImageLoading] = useState(false);
+  // 添加图片原始尺寸
+  const [originalDimensions, setOriginalDimensions] = useState({ width: 0, height: 0 });
+  
+  // 引用预览图片元素
+  const previewImageRef = useRef(null);
+  const editedImageRef = useRef(null);
 
   // 处理文件选择
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
+      setImageLoading(true);
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
-      setShowCustomEditor(true);
       
       // 创建预览
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target.result);
+        
+        // 获取图片原始尺寸
+        const img = new Image();
+        img.onload = () => {
+          setOriginalDimensions({ width: img.width, height: img.height });
+          
+          // 根据原始尺寸设置编辑器分辨率，保持宽高比
+          const aspectRatio = img.width / img.height;
+          let newWidth = editorResolution.width;
+          let newHeight = Math.round(newWidth / aspectRatio);
+          
+          // 如果高度超过限制，则调整宽度
+          if (newHeight > 4096) {
+            newHeight = 4096;
+            newWidth = Math.round(newHeight * aspectRatio);
+          }
+          
+          // 如果宽度超过限制，则调整高度
+          if (newWidth > 4096) {
+            newWidth = 4096;
+            newHeight = Math.round(newWidth / aspectRatio);
+          }
+          
+          setEditorResolution({ width: newWidth, height: newHeight });
+          setImageLoading(false);
+          setShowCustomEditor(true);
+        };
+        img.src = e.target.result;
       };
       reader.readAsDataURL(selectedFile);
     }
@@ -52,15 +92,43 @@ export default function PhotoEditor({
     e.stopPropagation();
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setImageLoading(true);
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile.type.startsWith('image/')) {
         setFile(droppedFile);
-        setShowCustomEditor(true);
         
         // 创建预览
         const reader = new FileReader();
         reader.onload = (e) => {
           setImagePreview(e.target.result);
+          
+          // 获取图片原始尺寸
+          const img = new Image();
+          img.onload = () => {
+            setOriginalDimensions({ width: img.width, height: img.height });
+            
+            // 根据原始尺寸设置编辑器分辨率，保持宽高比
+            const aspectRatio = img.width / img.height;
+            let newWidth = editorResolution.width;
+            let newHeight = Math.round(newWidth / aspectRatio);
+            
+            // 如果高度超过限制，则调整宽度
+            if (newHeight > 4096) {
+              newHeight = 4096;
+              newWidth = Math.round(newHeight * aspectRatio);
+            }
+            
+            // 如果宽度超过限制，则调整高度
+            if (newWidth > 4096) {
+              newWidth = 4096;
+              newHeight = Math.round(newWidth / aspectRatio);
+            }
+            
+            setEditorResolution({ width: newWidth, height: newHeight });
+            setImageLoading(false);
+            setShowCustomEditor(true);
+          };
+          img.src = e.target.result;
         };
         reader.readAsDataURL(droppedFile);
       }
@@ -75,6 +143,14 @@ export default function PhotoEditor({
   // 处理保存图片
   const handleSaveImage = (editedImage) => {
     setEditedFile(editedImage);
+    
+    // 创建编辑后图片的预览
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setEditedImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(editedImage);
+    
     setShowEditor(false);
     setShowCustomEditor(false);
   };
@@ -86,7 +162,7 @@ export default function PhotoEditor({
       const newMessage = {
         id: Date.now().toString(),
         type: 'user',
-        content: '',
+        content: `编辑后的图片: ${editedFile.name || '图片.png'}`,
         files: [editedFile],
         timestamp: new Date().toISOString()
       };
@@ -129,9 +205,9 @@ export default function PhotoEditor({
     // 应用分辨率设置的逻辑
     console.log('应用分辨率设置:', editorResolution);
     // 重新打开编辑器以应用新的分辨率
-    if (showEditor) {
-      setShowEditor(false);
-      setTimeout(() => setShowEditor(true), 100);
+    if (showCustomEditor) {
+      setShowCustomEditor(false);
+      setTimeout(() => setShowCustomEditor(true), 100);
     }
   };
   
@@ -148,6 +224,33 @@ export default function PhotoEditor({
       
       // 更新宽高比状态
       setEditorAspectRatio(currentRatio);
+      
+      // 应用新的分辨率
+      setTimeout(() => applyEditorResolution(), 100);
+    }
+  };
+  
+  // 重置为原始尺寸
+  const resetToOriginalSize = () => {
+    if (originalDimensions.width > 0 && originalDimensions.height > 0) {
+      // 如果原始尺寸超过限制，则按比例缩小
+      let newWidth = originalDimensions.width;
+      let newHeight = originalDimensions.height;
+      
+      if (newWidth > 4096) {
+        const ratio = 4096 / newWidth;
+        newWidth = 4096;
+        newHeight = Math.round(newHeight * ratio);
+      }
+      
+      if (newHeight > 4096) {
+        const ratio = 4096 / newHeight;
+        newHeight = 4096;
+        newWidth = Math.round(newWidth * ratio);
+      }
+      
+      setEditorResolution({ width: newWidth, height: newHeight });
+      setTimeout(() => applyEditorResolution(), 100);
     }
   };
 
@@ -243,6 +346,53 @@ export default function PhotoEditor({
         margin: 0 !important;
         transform: none !important;
       }
+      
+      /* 添加图片容器样式 */
+      .image-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        max-height: 70vh;
+        overflow: auto;
+      }
+      
+      .image-preview {
+        position: relative;
+        border: 2px solid var(--p);
+        border-radius: 4px;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .image-preview img {
+        max-width: 100%;
+        max-height: 60vh;
+        object-fit: contain;
+      }
+      
+      .image-info {
+        font-size: 0.875rem;
+        color: var(--bc);
+        text-align: center;
+      }
+      
+      /* 加载动画 */
+      .loading-spinner {
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: var(--p);
+        animation: spin 1s ease-in-out infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
     `;
     
     // 添加到 head
@@ -253,6 +403,30 @@ export default function PhotoEditor({
       document.head.removeChild(style);
     };
   }, []);
+
+  // 渲染图片函数
+  const renderImage = (src, alt, ref) => (
+    <div className="image-preview">
+      <img 
+        ref={ref}
+        src={src} 
+        alt={alt} 
+        style={{
+          maxWidth: '100%',
+          maxHeight: '60vh',
+          objectFit: 'contain'
+        }}
+        onLoad={(e) => {
+          console.log(`图片加载完成: ${alt}`, {
+            naturalWidth: e.target.naturalWidth,
+            naturalHeight: e.target.naturalHeight,
+            displayWidth: e.target.width,
+            displayHeight: e.target.height
+          });
+        }}
+      />
+    </div>
+  );
 
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
@@ -299,24 +473,25 @@ export default function PhotoEditor({
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
-        {editedFile ? (
+        {imageLoading ? (
           <div className="flex flex-col items-center gap-4">
-            <img 
-              src={URL.createObjectURL(editedFile)} 
-              alt="编辑后的图片" 
-              className="max-w-full max-h-[70vh] object-contain"
-            />
-            <p className="text-sm opacity-70">
-              图片已编辑完成，可以发送到聊天或下载
-            </p>
+            <div className="loading-spinner"></div>
+            <p>正在加载图片...</p>
+          </div>
+        ) : editedFile ? (
+          <div className="image-container">
+            {renderImage(editedImagePreview, "编辑后的图片", editedImageRef)}
+            <div className="image-info">
+              <p>图片已编辑完成，可以发送到聊天或下载</p>
+              <p>尺寸: {editorResolution.width} x {editorResolution.height}</p>
+            </div>
           </div>
         ) : imagePreview ? (
-          <div className="flex flex-col items-center gap-4">
-            <img 
-              src={imagePreview} 
-              alt="图片预览" 
-              className="max-w-full max-h-[70vh] object-contain"
-            />
+          <div className="image-container">
+            {renderImage(imagePreview, "图片预览", previewImageRef)}
+            <div className="image-info">
+              <p>原始尺寸: {originalDimensions.width} x {originalDimensions.height}</p>
+            </div>
             <button 
               className="btn btn-primary"
               onClick={() => setShowCustomEditor(true)}
@@ -361,6 +536,7 @@ export default function PhotoEditor({
                     <li><a onClick={() => setEditorResolution({ width: 768, height: 320 })}>768 x 320</a></li>
                     <li><a onClick={() => setEditorResolution({ width: 768, height: 512 })}>768 x 512</a></li>
                     <li><a onClick={() => setEditorResolution({ width: 1024, height: 576 })}>1024 x 576</a></li>
+                    <li><a onClick={resetToOriginalSize}>原始尺寸</a></li>
                   </ul>
                 </div>
                 
@@ -403,6 +579,30 @@ export default function PhotoEditor({
                   应用
                 </button>
               </div>
+              
+              <div className="settings-group">
+                <label className="label cursor-pointer">
+                  <span className="label-text mr-2">保持宽高比</span>
+                  <input 
+                    type="checkbox" 
+                    className="toggle toggle-primary" 
+                    checked={preserveAspectRatio}
+                    onChange={(e) => setPreserveAspectRatio(e.target.checked)}
+                  />
+                </label>
+              </div>
+              
+              <div className="settings-group">
+                <label className="label cursor-pointer">
+                  <span className="label-text mr-2">边缘平滑</span>
+                  <input 
+                    type="checkbox" 
+                    className="toggle toggle-primary" 
+                    checked={edgeSmoothing}
+                    onChange={(e) => setEdgeSmoothing(e.target.checked)}
+                  />
+                </label>
+              </div>
             </div>
             
             <div className="custom-editor-content">
@@ -419,8 +619,38 @@ export default function PhotoEditor({
                   allowRotate={true}
                   allowFlip={true}
                   allowZoom={true}
+                  allowResolutionSettings={true}
+                  allowAspectRatioSettings={true}
                   downloadOnSave={false}
                   resolution={editorResolution}
+                  resolutionOptions={[
+                    { width: 512, height: 512 },
+                    { width: 512, height: 288 },
+                    { width: 768, height: 320 },
+                    { width: 768, height: 512 },
+                    { width: 1024, height: 576 },
+                    { width: originalDimensions.width, height: originalDimensions.height }
+                  ]}
+                  aspectRatioOptions={['16:9', '9:16', '21:9', '4:3', '1:1']}
+                  preserveAspectRatio={preserveAspectRatio}
+                  smoothEdges={edgeSmoothing}
+                  labels={{
+                    close: '关闭',
+                    save: '保存',
+                    rotate: '旋转',
+                    brightness: '亮度',
+                    contrast: '对比度',
+                    saturate: '饱和度',
+                    grayscale: '灰度',
+                    reset: '重置',
+                    flipHorizontal: '水平翻转',
+                    flipVertical: '垂直翻转',
+                    zoomIn: '放大',
+                    zoomOut: '缩小',
+                    resolution: '分辨率',
+                    aspectRatio: '宽高比',
+                    apply: '应用'
+                  }}
                 />
               )}
             </div>
