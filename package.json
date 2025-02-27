@@ -50,7 +50,14 @@
                   ],
                   "signAndEditExecutable": false,
                   "requestedExecutionLevel": "asInvoker",
-                  "artifactName": "GoldieRillChat-Setup-${version}.${ext}"
+                  "artifactName": "GoldieRillChat-Setup-${version}.${ext}",
+                  "extraResources": [
+                        {
+                              "from": "resources/",
+                              "to": "resources",
+                              "filter": ["**/*"]
+                        }
+                  ]
             },
             "nsis": {
                   "oneClick": false,

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, nativeImage, BrowserView, Menu, clipboard } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, protocol, nativeImage, BrowserView, Menu, clipboard, Tray } = require('electron')
 const { shell } = require('electron')
 const path = require('path')
 const fs = require('fs').promises
@@ -6,6 +6,9 @@ const BrowserLikeWindow = require('electron-as-browser')
 
 let mainWindow = null
 let browserWindow = null
+
+// 添加应用程序退出标志
+app.isQuitting = false;
 
 // 添加侧边栏状态变量
 let sidebarWidth = 0
@@ -24,82 +27,51 @@ if (process.platform === 'win32') {
 
 // 获取图标路径
 function getIconPath() {
-  if (process.platform === 'win32') {
-    // 尝试多个可能的路径
-    const possiblePaths = [
-      // 标准路径
-      path.join(process.cwd(), 'resources/GoldieRillicon.ico'),
-      path.join(process.resourcesPath, 'GoldieRillicon.ico'),
-      path.join(__dirname, '../resources/GoldieRillicon.ico'),
-      // 备用 .ico 文件名格式
-      path.join(process.cwd(), 'resources/GoldieRillIcon.ico'),
-      path.join(process.resourcesPath, 'GoldieRillIcon.ico'),
-      path.join(__dirname, '../resources/GoldieRillIcon.ico'),
-      // 使用 PNG 作为备选
-      path.join(process.cwd(), 'resources/GoldieRillIcon.png'),
-      path.join(process.resourcesPath, 'GoldieRillIcon.png'),
-      path.join(__dirname, '../resources/GoldieRillIcon.png'),
-      // 其他可能的目录
-      path.join(__dirname, 'resources/GoldieRillicon.ico'),
-      path.join(__dirname, 'resources/GoldieRillIcon.png')
-    ];
-
-    // 从可能的路径中找出第一个存在的文件
-    for (const iconPath of possiblePaths) {
-      if (require('fs').existsSync(iconPath)) {
-        console.log('Icon found at:', iconPath);
-        return iconPath;
-      }
+  let iconPath;
+  
+  if (process.env.NODE_ENV === 'development') {
+    // 开发环境优先使用项目根目录的resources文件夹
+    iconPath = path.join(process.cwd(), 'resources/GoldieRillicon.ico');
+    
+    // 如果不存在则使用构建目录的resources
+    if (!require('fs').existsSync(iconPath)) {
+      iconPath = path.join(__dirname, '../resources/GoldieRillicon.ico');
     }
-    
-    console.error('Icon not found in any path, using default Electron icon');
-    return null;
-  } else if (process.platform === 'darwin') {
-    const macPaths = [
-      path.join(process.cwd(), 'resources/GoldieRillicon.icns'),
-      path.join(process.resourcesPath, 'GoldieRillicon.icns'),
-      path.join(__dirname, '../resources/GoldieRillicon.icns')
-    ];
-    
-    for (const iconPath of macPaths) {
-      if (require('fs').existsSync(iconPath)) {
-        return iconPath;
-      }
-    }
-    
-    return null;
   } else {
-    return process.env.NODE_ENV === 'development'
-      ? path.join(process.cwd(), 'resources/GoldieRillicon.png')
-      : path.join(process.resourcesPath, 'GoldieRillicon.png');
+    // 生产环境使用打包后的resources目录
+    iconPath = path.join(process.resourcesPath, 'GoldieRillicon.ico');
   }
+
+  console.log('最终图标路径:', iconPath);
+  console.log('文件存在:', require('fs').existsSync(iconPath));
+  
+  return iconPath;
 }
 
 // 确保开发环境下图标文件可用
 async function ensureIconAvailable() {
   if (process.env.NODE_ENV === 'development') {
     const fs = require('fs').promises;
-    const iconPath = path.join(process.cwd(), 'resources/GoldieRillicon.ico');
-    const backupPath = path.join(__dirname, '../resources/GoldieRillicon.ico');
+    const targetDir = path.join(__dirname, '../resources');
     
-    try {
-      // 检查目标路径是否存在
-      await fs.access(iconPath);
-      console.log('Icon already exists at:', iconPath);
-    } catch {
+    // 确保资源目录存在
+    await fs.mkdir(targetDir, { recursive: true });
+
+    const iconFiles = [
+      'GoldieRillicon.ico',
+      'GoldieRillicon.icns', 
+      'GoldieRillIcon.png'
+    ];
+
+    for (const file of iconFiles) {
+      const srcPath = path.join(process.cwd(), 'resources', file);
+      const destPath = path.join(targetDir, file);
+      
       try {
-        // 检查备用路径是否存在
-        await fs.access(backupPath);
-        console.log('Icon found at backup path:', backupPath);
-        
-        // 确保目标目录存在
-        await fs.mkdir(path.dirname(iconPath), { recursive: true });
-        
-        // 复制图标文件
-        await fs.copyFile(backupPath, iconPath);
-        console.log('Icon copied to:', iconPath);
+        await fs.copyFile(srcPath, destPath);
+        console.log(`Copied ${file} to build resources`);
       } catch (error) {
-        console.error('Failed to ensure icon availability:', error);
+        console.error(`Failed to copy ${file}:`, error);
       }
     }
   }
@@ -110,44 +82,27 @@ app.whenReady().then(async () => {
   // 确保图标文件可用
   await ensureIconAvailable();
   
-  // 创建主窗口
-  createWindow();
-  
   // 设置应用程序图标
   const iconPath = getIconPath();
   try {
     if (iconPath) {
       const icon = nativeImage.createFromPath(iconPath);
+      
+      // 设置应用ID - 这是Windows平台下正确显示任务栏图标的关键
+      if (process.platform === 'win32') {
+        app.setAppUserModelId('com.goldie.chat');
+      }
+      
+      // 设置应用图标
       app.setIcon(icon);
       console.log('Icon set successfully');
-      
-      // 为Windows平台进行额外的图标设置
-      if (process.platform === 'win32' && mainWindow) {
-        // 手动强制设置应用程序图标
-        app.setAppUserModelId('com.goldie.chat');
-        
-        // 在应用启动后稍等片刻再次设置图标
-        setTimeout(() => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setIcon(icon);
-            // 调用一个空的setOverlayIcon也有助于刷新任务栏图标
-            mainWindow.setOverlayIcon(null, '');
-            
-            // 尝试刷新Windows图标缓存
-            try {
-              const { execSync } = require('child_process');
-              execSync('ie4uinit.exe -show', { windowsHide: true });
-              console.log('Windows icon cache refresh attempted');
-            } catch (shellError) {
-              console.error('Failed to refresh Windows icon cache:', shellError);
-            }
-          }
-        }, 1000);
-      }
     }
   } catch (error) {
     console.error('Failed to set app icon:', error);
   }
+
+  // 创建主窗口
+  createWindow();
 
   // 注册本地文件协议
   protocol.registerFileProtocol('local-file', (request, callback) => {
@@ -654,32 +609,7 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
 // Create the browser window
 function createWindow() {
   const iconPath = getIconPath();
-  console.log('Creating window with icon path:', iconPath);
-
-  // 创建图标对象
-  let icon = null;
-  try {
-    if (iconPath) {
-      icon = nativeImage.createFromPath(iconPath);
-      if (process.platform === 'win32') {
-        // 确保图标不是模板图标，Windows不支持模板图标
-        icon.setTemplateImage(false);
-        
-        // 创建高DPI图标
-        const sizes = [16, 24, 32, 48, 64, 128, 256];
-        for (const size of sizes) {
-          try {
-            // 尝试生成各种尺寸的图标以确保清晰度
-            icon.resize({ width: size, height: size });
-          } catch (resizeError) {
-            console.error(`Failed to resize icon to ${size}x${size}:`, resizeError);
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Failed to create icon:', error);
-  }
+  console.log('创建窗口使用的图标路径:', iconPath);
 
   mainWindow = new BrowserWindow({
     width: 1270,
@@ -694,32 +624,63 @@ function createWindow() {
       webSecurity: true,
       additionalArguments: ['--js-flags=--max-old-space-size=4096'],
     },
-    ...(icon ? { 
-      icon
-    } : {})
-  })
+    icon: iconPath,
+    title: 'Goldie Rill Chat'
+  });
   
-  // 直接设置任务栏图标（针对Windows平台）
-  if (process.platform === 'win32' && icon) {
+  // 如果在Windows平台上，创建托盘图标
+  if (process.platform === 'win32' && iconPath) {
     try {
-      // 确保在主进程中设置任务栏图标
-      mainWindow.setThumbarButtons([]);
-      mainWindow.setIcon(icon);
-      app.setAppUserModelId('com.goldie.chat');
+      // 创建托盘图标
+      let tray = new Tray(iconPath);
+      tray.setToolTip('Goldie Rill Chat');
       
-      // 尝试强制刷新任务栏图标
-      const { execSync } = require('child_process');
-      try {
-        // 运行一个简单的PowerShell命令来刷新shell图标缓存
-        execSync('powershell -command "$key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey(\\\"Control Panel\\\\Desktop\\\", $true); $key.SetValue(\\\"IconCache\\\", \\\"0\\\"); $key.Close()"', { windowsHide: true });
-        console.log('Shell icon cache refresh attempted');
-      } catch (shellError) {
-        console.error('Failed to refresh shell icon cache:', shellError);
-        // 即使刷新失败也继续执行
-      }
-    } catch (iconError) {
-      console.error('Failed to set taskbar icon:', iconError);
+      // 添加托盘菜单
+      const contextMenu = Menu.buildFromTemplate([
+        { 
+          label: '显示窗口', 
+          click: () => {
+            if (mainWindow) {
+              if (mainWindow.isMinimized()) mainWindow.restore();
+              mainWindow.show();
+              mainWindow.focus();
+            }
+          }
+        },
+        { type: 'separator' },
+        { 
+          label: '退出', 
+          click: () => {
+            app.isQuitting = true; // 标记为真正退出程序
+            app.quit();
+          }
+        }
+      ]);
+      tray.setContextMenu(contextMenu);
+      
+      // 点击托盘图标显示窗口
+      tray.on('click', () => {
+        if (mainWindow) {
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          if (!mainWindow.isVisible()) mainWindow.show();
+          mainWindow.focus();
+        }
+      });
+      
+      // 防止托盘图标被垃圾回收
+      global.tray = tray;
+    } catch (error) {
+      console.error('Failed to create tray icon:', error);
     }
+  }
+
+  // 添加Windows平台特定设置
+  if (process.platform === 'win32') {
+    // 强制刷新任务栏图标
+    mainWindow.on('ready-to-show', () => {
+      mainWindow.setOverlayIcon(nativeImage.createEmpty(), '');
+      mainWindow.setOverlayIcon(null, '');
+    });
   }
 
   let browserView = null
@@ -1074,9 +1035,23 @@ function createWindow() {
     }
   })
 
+  // 修改关闭按钮行为，点击关闭按钮时只隐藏窗口，不退出程序
   ipcMain.handle('window-close', () => {
-    mainWindow?.close()
+    if (mainWindow) {
+      mainWindow.hide(); // 隐藏窗口而不是关闭
+    }
   })
+
+  // 添加窗口关闭事件处理，阻止默认关闭行为
+  mainWindow.on('close', (event) => {
+    // 如果不是真正要退出程序
+    if (!app.isQuitting) {
+      event.preventDefault(); // 阻止默认关闭行为
+      mainWindow.hide(); // 隐藏窗口
+      return false;
+    }
+    return true;
+  });
 
   ipcMain.handle('is-window-maximized', () => {
     return mainWindow?.isMaximized()
