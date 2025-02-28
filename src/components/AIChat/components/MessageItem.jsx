@@ -457,20 +457,20 @@ export const MessageItem = ({
           <div className="message-actions">
             {/* 仅当消息没有附件文件且是用户消息时显示编辑按钮 */}
             {!message.files?.length && message.type === 'user' && (
-              <button className="btn btn-ghost btn-xs" onClick={() => handleEditStart(message)}>编辑</button>
+              <button className="btn btn-ghost btn-xs" onClick={() => handleEditStart(message)}>Edit</button>
             )}
-            <button className="btn btn-ghost btn-xs" onClick={() => handleDeleteMessage(message.id)}>删除</button>
+            <button className="btn btn-ghost btn-xs" onClick={() => handleDeleteMessage(message.id)}>Delete</button>
             {/* 仅当消息没有附件文件时显示复制按钮 */}
             {!message.files?.length && (
-              <button className="btn btn-ghost btn-xs" onClick={() => navigator.clipboard.writeText(message.content)}>复制</button>
+              <button className="btn btn-ghost btn-xs" onClick={() => navigator.clipboard.writeText(message.content)}>Copy</button>
             )}
             {/* AI 消息的编辑按钮 */}
             {!message.files?.length && message.type === 'assistant' && (
-              <button className="btn btn-ghost btn-xs" onClick={() => handleEditStart(message)}>编辑</button>
+              <button className="btn btn-ghost btn-xs" onClick={() => handleEditStart(message)}>Edit</button>
             )}
             {message.type === 'assistant' && (
               <>
-                <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>重试</button>
+                <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>Retry</button>
                 {message.generating && (
                   <button 
                     className="btn btn-ghost btn-xs text-error" 

@@ -423,11 +423,11 @@
 
 /* 修改消息内容的行间距 */
 .chat-bubble .prose {
-  line-height: 1.2;
+  line-height: 1.5;
 }
 
 .chat-bubble .prose * {
-  line-height: 1.2 !important; /* 强制所有子元素使用 1.2 的行间距 */
+  line-height: 1.5 !important; /* 强制所有子元素使用 1.2 的行间距 */
 }
 
 .chat-bubble .prose p,
@@ -435,7 +435,7 @@
 .chat-bubble .prose blockquote,
 .chat-bubble .prose pre,
 .chat-bubble .prose table {
-  line-height: 1.2;
+  line-height: 1.5;
 }
 
 /* 修改代码块内的行间距 */

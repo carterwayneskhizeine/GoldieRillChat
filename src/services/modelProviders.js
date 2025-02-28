@@ -182,14 +182,19 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
             if (json.choices && json.choices[0] && json.choices[0].delta) {
               const delta = json.choices[0].delta;
               console.log('Delta 对象:', delta); // 添加调试日志
-              let shouldUpdate = false;
+              let contentUpdated = false;
               
-              // 处理推理内容
+              // 处理推理内容（逐字符打印，不设置 contentUpdated 标志以免被后续调用覆盖）
               if (delta.reasoning_content !== undefined) {
-                reasoning_content += delta.reasoning_content || '';
-                console.log('收到推理内容:', delta.reasoning_content);
-                console.log('当前推理内容:', reasoning_content);
-                shouldUpdate = true;
+                const newReasoning = delta.reasoning_content || '';
+                for (let i = 0; i < newReasoning.length; i++) {
+                  reasoning_content += newReasoning[i];
+                  onUpdate?.({
+                    type: 'reasoning',
+                    content: reasoning_content
+                  });
+                  await new Promise(resolve => setTimeout(resolve, 50));
+                }
               }
               
               // 处理普通内容
@@ -206,11 +211,11 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
                   });
                   await new Promise(resolve => setTimeout(resolve, 50));
                 }
-                shouldUpdate = true;
+                contentUpdated = true;
               }
 
-              // 只在有更新时发送
-              if (shouldUpdate) {
+              // 只在普通内容有更新时，再发送一次完整更新
+              if (contentUpdated) {
                 onUpdate?.({
                   type: 'assistant',
                   content: content,
@@ -374,11 +379,15 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate,
               const delta = json.choices[0].delta;
               
               if (delta.reasoning_content !== undefined) {
-                reasoning_content += delta.reasoning_content || '';
-                onUpdate?.({
-                  type: 'reasoning',
-                  content: reasoning_content
-                });
+                const newReasoning = delta.reasoning_content || '';
+                for (let i = 0; i < newReasoning.length; i++) {
+                  reasoning_content += newReasoning[i];
+                  onUpdate?.({
+                    type: 'reasoning',
+                    content: reasoning_content
+                  });
+                  await new Promise(resolve => setTimeout(resolve, 50));
+                }
               }
               
               if (delta.content !== undefined) {
