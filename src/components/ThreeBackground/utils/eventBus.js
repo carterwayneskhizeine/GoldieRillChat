@@ -6,6 +6,7 @@ class EventBus {
     this.isCustomBackground = false;
     this.currentBackgroundPath = null;
     this.previousTheme = null; // 保存切换前的主题
+    this.originalShaders = null; // 保存原始着色器代码
   }
 
   on(eventName, callback) {
@@ -108,6 +109,39 @@ class EventBus {
         isCustomBackground: false,
         path: null,
         theme: newTheme
+      });
+    }
+  }
+  
+  // 保存原始着色器代码
+  saveOriginalShaders(vertexShader, fragmentShader) {
+    if (!this.originalShaders) {
+      this.originalShaders = {
+        vertex: vertexShader,
+        fragment: fragmentShader
+      };
+    }
+  }
+  
+  // 获取原始着色器代码
+  getOriginalShaders() {
+    return this.originalShaders;
+  }
+  
+  // 更新着色器代码
+  updateShaders(vertexShader, fragmentShader) {
+    this.emit('shaderUpdate', {
+      vertexShader,
+      fragmentShader
+    });
+  }
+  
+  // 重置着色器代码为原始状态
+  resetShaders() {
+    if (this.originalShaders) {
+      this.emit('shaderUpdate', {
+        vertexShader: this.originalShaders.vertex,
+        fragmentShader: this.originalShaders.fragment
       });
     }
   }

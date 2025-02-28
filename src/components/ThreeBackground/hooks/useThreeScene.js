@@ -50,6 +50,8 @@ export const useThreeScene = () => {
   // 添加后处理引用
   const composerRef = useRef(null);
   const contrastPassRef = useRef(null);
+  // 添加着色器材质引用
+  const shaderMaterialRef = useRef(null);
 
   // 添加输入事件监听
   useEffect(() => {
@@ -64,6 +66,50 @@ export const useThreeScene = () => {
     eventBus.on('input', handleInput);
     return () => eventBus.off('input', handleInput);
   }, [uniforms]);
+
+  // 添加着色器更新事件监听
+  useEffect(() => {
+    if (!meshRef.current || !shaderMaterialRef.current) return;
+    
+    const handleShaderUpdate = (data) => {
+      try {
+        console.log('Updating shaders:', data);
+        
+        // 创建新的着色器材质
+        const newMaterial = new THREE.ShaderMaterial({
+          uniforms: shaderMaterialRef.current.uniforms,
+          vertexShader: data.vertexShader,
+          fragmentShader: data.fragmentShader,
+          transparent: true
+        });
+        
+        // 更新网格材质
+        meshRef.current.material = newMaterial;
+        
+        // 更新引用
+        shaderMaterialRef.current = newMaterial;
+        originalMaterialRef.current = newMaterial;
+        
+        // 如果处于图片背景模式，切换回默认背景
+        if (isCustomBackground) {
+          setIsCustomBackground(false);
+        }
+        
+        // 立即渲染一次
+        if (composerRef.current) {
+          composerRef.current.render();
+        } else if (renderer && camera && scene) {
+          renderer.render(scene, camera);
+        }
+      } catch (error) {
+        console.error('Error updating shaders:', error);
+        // 如果更新失败，可以考虑重置为原始着色器
+      }
+    };
+    
+    eventBus.on('shaderUpdate', handleShaderUpdate);
+    return () => eventBus.off('shaderUpdate', handleShaderUpdate);
+  }, [scene, camera, renderer, isCustomBackground]);
 
   // 添加背景切换事件监听
   useEffect(() => {
@@ -237,6 +283,10 @@ export const useThreeScene = () => {
       // 保存原始材质和网格引用
       originalMaterialRef.current = material;
       meshRef.current = mesh;
+      shaderMaterialRef.current = material;
+      
+      // 保存原始着色器代码到eventBus
+      eventBus.saveOriginalShaders(vertexShader, fragmentShader);
 
       setScene(newScene);
       setCamera(newCamera);
@@ -350,6 +400,16 @@ export const useThreeScene = () => {
   const toggleBackground = useCallback((imagePath) => {
     return eventBus.toggleBackground(imagePath);
   }, []);
+  
+  // 提供着色器更新API
+  const updateShaders = useCallback((vertexShader, fragmentShader) => {
+    eventBus.updateShaders(vertexShader, fragmentShader);
+  }, []);
+  
+  // 提供着色器重置API
+  const resetShaders = useCallback(() => {
+    eventBus.resetShaders();
+  }, []);
 
   return {
     scene,
@@ -359,6 +419,8 @@ export const useThreeScene = () => {
     initScene,
     updateScene,
     toggleBackground,
+    updateShaders,
+    resetShaders,
     isCustomBackground
   };
 }; 

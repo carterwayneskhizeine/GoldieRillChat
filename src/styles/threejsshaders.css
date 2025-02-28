@@ -1,150 +1,131 @@
+/* 主容器 */
 .threejs-shaders-container {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background-color: var(--base-200);
-  color: var(--base-content);
+  background-color: var(--background-secondary);
+  color: var(--text-normal);
+  font-family: var(--font-sans);
 }
 
-.shaders-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--base-300);
-  background-color: var(--base-100);
-}
-
-.shaders-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.shaders-toolbar {
-  display: flex;
-  gap: 0.5rem;
-}
-
-/* 添加标签样式 */
+/* 标签页 */
 .shader-tabs {
   display: flex;
-  background-color: var(--base-100);
-  border-bottom: 1px solid var(--base-300);
+  background-color: var(--background-tertiary);
+  border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .shader-tab {
-  padding: 0.5rem 1rem;
-  border: none;
+  padding: 8px 15px;
   background: none;
+  border: none;
+  color: var(--text-normal);
   cursor: pointer;
-  font-size: 0.9rem;
-  color: var(--base-content);
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
+  font-size: 14px;
+  transition: background-color 0.2s;
 }
 
 .shader-tab:hover {
-  background-color: var(--base-200);
+  background-color: var(--background-modifier-hover);
 }
 
 .shader-tab.active {
-  border-bottom: 2px solid var(--primary);
+  background-color: var(--background-secondary);
+  border-bottom: 2px solid var(--interactive-accent);
   font-weight: 600;
 }
 
+/* 内容区 */
 .shaders-content {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
+/* 编辑器 */
 .shaders-editor {
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--base-300);
   overflow: hidden;
+  padding: 10px;
+}
+
+.shaders-editor.full-width {
+  width: 100%;
 }
 
 .shader-code-editor {
-  flex: 1;
-  padding: 1rem;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  background-color: var(--base-100);
-  color: var(--base-content);
-  border: none;
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
   resize: none;
-  outline: none;
-  overflow: auto;
+  padding: 10px;
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  tab-size: 2;
 }
 
-.shaders-preview {
-  flex: 1;
+/* 按钮容器 */
+.shaders-button-container {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.preview-header {
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  background-color: var(--base-100);
-  border-bottom: 1px solid var(--base-300);
-}
-
-.preview-canvas-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   justify-content: center;
-  align-items: center;
-  background-color: #000;
-  overflow: hidden;
-  position: relative;
+  gap: 15px;
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.preview-canvas {
-  max-width: 100%;
-  max-height: 100%;
+/* 透明扁平按钮 */
+.shader-btn {
+  min-width: 140px;
+  padding: 6px 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  height: 32px;
 }
 
-/* 添加预览信息样式 */
-.preview-info {
-  position: absolute;
-  bottom: 1rem;
-  left: 0;
-  right: 0;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-  padding: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.5);
+.shader-btn:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
-.preview-info p {
-  margin: 0.25rem 0;
+.shader-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
+/* 底部状态栏 */
 .shaders-footer {
-  padding: 0.5rem 1rem;
-  border-top: 1px solid var(--base-300);
-  background-color: var(--base-100);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 8px 15px;
+  font-size: 12px;
 }
 
 .status-bar {
-  font-size: 0.85rem;
-  color: var(--base-content-secondary);
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
 }
 
+/* 加载动画 */
 .loading-spinner {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100%;
-  font-size: 1rem;
-  color: var(--base-content-secondary);
+  color: var(--text-muted);
 } 
