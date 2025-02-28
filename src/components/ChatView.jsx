@@ -1026,6 +1026,19 @@ export function ChatView({
                   >
                     Delete
                   </button>
+                  {/* 添加BG按钮 - 只在图片消息下显示 */}
+                  {message.files?.some(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) && (
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => {
+                        console.log('BG按钮点击，消息ID:', message.id);
+                        // 功能暂未定义，可以在此添加处理逻辑
+                      }}
+                      title="背景处理"
+                    >
+                      BG
+                    </button>
+                  )}
                   <button
                     className="btn btn-ghost btn-xs"
                     onClick={() => copyMessageContent(message)}
