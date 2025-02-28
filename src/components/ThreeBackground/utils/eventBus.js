@@ -7,6 +7,11 @@ class EventBus {
     this.currentBackgroundPath = null;
     this.previousTheme = null; // 保存切换前的主题
     this.originalShaders = null; // 保存原始着色器代码
+    
+    // 初始化全局标志
+    if (typeof window !== 'undefined') {
+      window.isImageBackgroundMode = this.isCustomBackground;
+    }
   }
 
   on(eventName, callback) {
@@ -80,11 +85,21 @@ class EventBus {
       }
     }
     
+    // 设置全局标志
+    window.isImageBackgroundMode = this.isCustomBackground;
+    
+    // 触发背景变化事件
     this.emit('backgroundChange', {
       isCustomBackground: this.isCustomBackground,
       path: this.currentBackgroundPath,
       theme: this.isCustomBackground ? 'bg-theme' : this.previousTheme
     });
+    
+    // 触发背景模式变化事件 - 用于通知其他组件
+    const event = new CustomEvent('backgroundModeChange', {
+      detail: { isImageBackground: this.isCustomBackground }
+    });
+    window.dispatchEvent(event);
     
     return this.isCustomBackground;
   }
@@ -105,11 +120,21 @@ class EventBus {
       this.isCustomBackground = false;
       this.currentBackgroundPath = null;
       
+      // 更新全局标志
+      window.isImageBackgroundMode = false;
+      
+      // 触发背景变化事件
       this.emit('backgroundChange', {
         isCustomBackground: false,
         path: null,
         theme: newTheme
       });
+      
+      // 触发背景模式变化事件
+      const event = new CustomEvent('backgroundModeChange', {
+        detail: { isImageBackground: false }
+      });
+      window.dispatchEvent(event);
     }
   }
   

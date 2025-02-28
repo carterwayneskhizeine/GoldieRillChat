@@ -10,8 +10,36 @@ const ThreeJSShaders = () => {
   const [statusMessage, setStatusMessage] = useState('准备就绪');
   const [hasChanges, setHasChanges] = useState(false);
   const [isModified, setIsModified] = useState(false);  // 新增状态，跟踪着色器是否被修改过
+  const [isImageBackground, setIsImageBackground] = useState(false); // 新增状态，跟踪是否为图片背景模式
   const originalShadersRef = useRef(null);
   
+  // 初始化时检查是否为图片背景模式
+  useEffect(() => {
+    // 检查是否有图片背景标志
+    const checkImageBackgroundMode = () => {
+      // 从 window 对象检查
+      if (window.isImageBackgroundMode !== undefined) {
+        setIsImageBackground(window.isImageBackgroundMode);
+      }
+    };
+    
+    // 立即检查一次
+    checkImageBackgroundMode();
+    
+    // 监听背景模式变化的事件
+    const handleBackgroundModeChange = (event) => {
+      if (event.detail && event.detail.isImageBackground !== undefined) {
+        setIsImageBackground(event.detail.isImageBackground);
+      }
+    };
+    
+    window.addEventListener('backgroundModeChange', handleBackgroundModeChange);
+    
+    return () => {
+      window.removeEventListener('backgroundModeChange', handleBackgroundModeChange);
+    };
+  }, []);
+
   // 从utils/shaders.js加载着色器代码
   useEffect(() => {
     const loadShaderCode = async () => {
@@ -143,7 +171,7 @@ const ThreeJSShaders = () => {
   };
 
   return (
-    <div className="threejs-shaders-container">
+    <div className={`threejs-shaders-container ${isImageBackground ? 'image-background-mode' : ''}`}>
       <div className="shader-tabs">
         <button 
           className={`shader-tab ${activeTab === 'vertex' ? 'active' : ''}`}

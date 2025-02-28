@@ -28,6 +28,34 @@ export const MonacoEditor = () => {
   const [pyodide, setPyodide] = useState(null);
   const [markdownContent, setMarkdownContent] = useState('');
   const [initialContent, setInitialContent] = useState('');
+  const [isImageBackground, setIsImageBackground] = useState(false);
+
+  // 初始化时检查是否为图片背景模式
+  useEffect(() => {
+    // 检查是否有图片背景标志
+    const checkImageBackgroundMode = () => {
+      // 可以从 window 对象、localStorage 或其他全局状态检查
+      if (window.isImageBackgroundMode !== undefined) {
+        setIsImageBackground(window.isImageBackgroundMode);
+      }
+    };
+    
+    // 立即检查一次
+    checkImageBackgroundMode();
+    
+    // 监听背景模式变化的事件
+    const handleBackgroundModeChange = (event) => {
+      if (event.detail && event.detail.isImageBackground !== undefined) {
+        setIsImageBackground(event.detail.isImageBackground);
+      }
+    };
+    
+    window.addEventListener('backgroundModeChange', handleBackgroundModeChange);
+    
+    return () => {
+      window.removeEventListener('backgroundModeChange', handleBackgroundModeChange);
+    };
+  }, []);
 
   // 监听外部传入的内容
   useEffect(() => {
@@ -197,16 +225,36 @@ export const MonacoEditor = () => {
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
       {/* 工具栏 */}
-      <div className="flex flex-wrap gap-2 items-center bg-base-200 p-2 rounded-lg">
+      <div 
+        className={`flex flex-wrap gap-2 items-center p-2 rounded-lg ${isImageBackground ? '' : 'bg-base-200'}`}
+        style={isImageBackground ? { 
+          position: 'relative', 
+          zIndex: 10,
+          backgroundColor: 'transparent',
+          color: 'white'
+        } : {}}
+      >
         {/* 语言选择 */}
         <select 
           className="select select-bordered select-sm"
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
           disabled={!isEditorReady}
+          style={isImageBackground ? { 
+            position: 'relative', 
+            zIndex: 10,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: 'white'
+          } : {}}
         >
           {languages.map(lang => (
-            <option key={lang} value={lang}>{lang}</option>
+            <option 
+              key={lang} 
+              value={lang} 
+              style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
+            >
+              {lang}
+            </option>
           ))}
         </select>
 
@@ -216,26 +264,71 @@ export const MonacoEditor = () => {
           value={theme}
           onChange={(e) => setTheme(e.target.value)}
           disabled={!isEditorReady}
+          style={isImageBackground ? { 
+            position: 'relative', 
+            zIndex: 10,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: 'white'
+          } : {}}
         >
           {themes.map(t => (
-            <option key={t} value={t}>{t}</option>
+            <option 
+              key={t} 
+              value={t} 
+              style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
+            >
+              {t}
+            </option>
           ))}
         </select>
 
         {/* 字体大小调整 */}
-        <div className="flex items-center gap-2">
+        <div 
+          className="flex items-center gap-2" 
+          style={isImageBackground ? { 
+            position: 'relative', 
+            zIndex: 10,
+            padding: '2px 8px',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            borderRadius: '4px',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          } : {}}
+        >
           <button 
             className="btn btn-sm btn-square"
             onClick={() => handleFontSizeChange(-2)}
             disabled={!isEditorReady}
+            style={isImageBackground ? { 
+              position: 'relative', 
+              zIndex: 10,
+              backgroundColor: 'rgba(40, 40, 40, 0.8)',
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.3)'
+            } : {}}
           >
             -
           </button>
-          <span className="text-sm">{fontSize}px</span>
+          <span 
+            className="text-sm" 
+            style={isImageBackground ? { 
+              color: 'white', 
+              fontWeight: 'bold',
+              textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
+            } : {}}
+          >
+            {fontSize}px
+          </span>
           <button 
             className="btn btn-sm btn-square"
             onClick={() => handleFontSizeChange(2)}
             disabled={!isEditorReady}
+            style={isImageBackground ? { 
+              position: 'relative', 
+              zIndex: 10,
+              backgroundColor: 'rgba(40, 40, 40, 0.8)',
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.3)'
+            } : {}}
           >
             +
           </button>
@@ -247,94 +340,108 @@ export const MonacoEditor = () => {
             className="btn btn-sm"
             onClick={() => setShowPreview(!showPreview)}
             disabled={!isEditorReady}
+            style={isImageBackground ? { 
+              position: 'relative', 
+              zIndex: 10,
+              backgroundColor: showPreview ? 'rgba(60, 60, 200, 0.6)' : 'rgba(40, 40, 40, 0.8)',
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.3)'
+            } : {}}
           >
-            {showPreview ? "隐藏预览" : "显示预览"}
+            {showPreview ? "编辑" : "预览"}
           </button>
         )}
-
+        
         {/* Python 运行按钮 */}
         {language === "python" && (
-          <>
-            <button 
-              className="btn btn-sm btn-primary"
-              onClick={runPythonCode}
-              disabled={!isEditorReady || isRunning || !pyodide}
-            >
-              {isRunning ? (
-                <>
-                  <span className="loading loading-spinner loading-xs"></span>
-                  运行中...
-                </>
-              ) : (
-                "运行代码"
-              )}
-            </button>
-            <button 
-              className="btn btn-sm"
-              onClick={() => setShowPreview(!showPreview)}
-              disabled={!isEditorReady}
-            >
-              {showPreview ? "隐藏输出" : "显示输出"}
-            </button>
-          </>
+          <button 
+            className="btn btn-sm"
+            onClick={runPythonCode}
+            disabled={!isEditorReady || isRunning}
+            style={isImageBackground ? { 
+              position: 'relative', 
+              zIndex: 10,
+              backgroundColor: 'rgba(40, 120, 40, 0.8)',
+              color: 'white',
+              border: '1px solid rgba(255, 255, 255, 0.3)'
+            } : {}}
+          >
+            {isRunning ? "运行中..." : "运行"}
+          </button>
         )}
-
-        {/* 其他工具按钮 */}
-        <div className="flex-1 flex justify-end gap-2">
-          <button 
-            className="btn btn-sm"
-            onClick={() => {
-              if (editorRef.current) {
-                editorRef.current.getAction('editor.action.formatDocument').run();
-              }
-            }}
-            disabled={!isEditorReady}
-          >
-            格式化
-          </button>
-          <button 
-            className="btn btn-sm"
-            onClick={() => {
-              navigator.clipboard.writeText(editorRef.current?.getValue() || '');
-            }}
-            disabled={!isEditorReady}
-          >
-            复制
-          </button>
-          <button 
-            className="btn btn-sm"
-            onClick={async () => {
+        
+        {/* 格式化按钮 */}
+        <button 
+          className="btn btn-sm"
+          onClick={() => {
+            if (editorRef.current) {
+              editorRef.current.getAction('editor.action.formatDocument').run();
+            }
+          }}
+          disabled={!isEditorReady}
+          style={isImageBackground ? { 
+            position: 'relative', 
+            zIndex: 10,
+            backgroundColor: 'rgba(40, 40, 40, 0.8)',
+            color: 'white',
+            border: '1px solid rgba(255, 255, 255, 0.3)'
+          } : {}}
+        >
+          格式化
+        </button>
+        
+        {/* 复制按钮 */}
+        <button 
+          className="btn btn-sm"
+          onClick={() => {
+            if (editorRef.current) {
+              const content = editorRef.current.getValue();
+              navigator.clipboard.writeText(content);
+              window.toastManager?.success('已复制到剪贴板！', 2000);
+              console.log('已复制到剪贴板');
+            }
+          }}
+          disabled={!isEditorReady}
+          style={isImageBackground ? { 
+            position: 'relative', 
+            zIndex: 10,
+            backgroundColor: 'rgba(40, 40, 40, 0.8)',
+            color: 'white',
+            border: '1px solid rgba(255, 255, 255, 0.3)'
+          } : {}}
+        >
+          复制
+        </button>
+        
+        {/* 粘贴按钮 */}
+        <button 
+          className="btn btn-sm"
+          onClick={async () => {
+            try {
               const text = await navigator.clipboard.readText();
-              editorRef.current?.setValue(text);
-            }}
-            disabled={!isEditorReady}
-          >
-            粘贴
-          </button>
-          {language === "markdown" && (
-            <button
-              className="btn btn-sm"
-              onClick={() => {
-                if (!editorRef.current) return;
-                const content = editorRef.current.getValue();
-                const blob = new Blob([content], { type: 'text/markdown' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'document.md';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-              }}
-              disabled={!isEditorReady}
-            >
-              导出 MD
-            </button>
-          )}
-        </div>
+              if (text && editorRef.current) {
+                editorRef.current.setValue(text);
+                window.toastManager?.success('已从剪贴板粘贴！', 2000);
+                console.log('已从剪贴板粘贴');
+              }
+            } catch (error) {
+              console.error('粘贴失败:', error);
+              window.toastManager?.error('粘贴失败: ' + error.message, 2000);
+            }
+          }}
+          disabled={!isEditorReady}
+          style={isImageBackground ? { 
+            position: 'relative', 
+            zIndex: 10,
+            backgroundColor: 'rgba(40, 40, 40, 0.8)',
+            color: 'white',
+            border: '1px solid rgba(255, 255, 255, 0.3)'
+          } : {}}
+        >
+          粘贴
+        </button>
       </div>
-
+      
       {/* 主要内容区域 */}
       <div className="flex-1 flex gap-4 overflow-hidden">
         {/* 编辑器区域 */}

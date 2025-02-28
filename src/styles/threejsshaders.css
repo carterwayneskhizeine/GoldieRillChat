@@ -81,12 +81,12 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* 透明扁平按钮 */
+/* 透明扁平按钮 - 基础样式（非图片背景模式） */
 .shader-btn {
   min-width: 140px;
   padding: 6px 8px;
   background-color: rgba(255, 255, 255, 0.1);
-  color: white;
+  color: var(--bc, currentColor);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   font-size: 12px;
@@ -128,4 +128,98 @@
   align-items: center;
   height: 100%;
   color: var(--text-muted);
+}
+
+/* 图片背景模式下的样式增强 */
+.image-background-mode .threejs-shaders-container {
+  position: relative;
+  z-index: 15;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3px);
+}
+
+.image-background-mode .shader-tabs {
+  background-color: rgba(0, 0, 0, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 20;
+}
+
+.image-background-mode .shader-tab {
+  color: white;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
+  position: relative;
+  z-index: 20;
+}
+
+.image-background-mode .shader-tab:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.image-background-mode .shader-tab.active {
+  background-color: rgba(30, 30, 60, 0.7);
+  border-bottom: 2px solid rgba(100, 150, 255, 0.7);
+}
+
+.image-background-mode .shaders-content {
+  position: relative;
+  z-index: 15;
+}
+
+.image-background-mode .shaders-editor {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3px);
+  border-radius: 6px;
+  position: relative;
+  z-index: 20;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.image-background-mode .shader-code-editor {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 20;
+}
+
+.image-background-mode .shaders-button-container {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.7);
+  position: relative;
+  z-index: 25;
+}
+
+.image-background-mode .shader-btn {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
+  position: relative;
+  z-index: 25;
+}
+
+.image-background-mode .shader-btn:hover:not(:disabled) {
+  background-color: rgba(60, 60, 150, 0.5);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.image-background-mode .shaders-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.7);
+  position: relative;
+  z-index: 20;
+}
+
+.image-background-mode .status-bar {
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
+  position: relative;
+  z-index: 20;
+}
+
+.image-background-mode .loading-spinner {
+  color: white;
+  position: relative;
+  z-index: 20;
 } 

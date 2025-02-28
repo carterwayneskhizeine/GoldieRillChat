@@ -102,6 +102,8 @@
   /* 侧边栏样式 */
   .sidebar, .sidebar-item, .sidebar-menu, .sidebar-content {
     color: white !important;
+    position: relative;
+    z-index: 5 !important; /* 确保侧边栏内容显示在背景之上 */
   }
   
   /* 侧边栏菜单项 */
@@ -113,6 +115,8 @@
   .sidebar-content * {
     color: white !important;
     text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.6);
+    position: relative;
+    z-index: 5 !important; /* 确保侧边栏元素显示在背景之上 */
   }
   
   /* 侧边栏活跃项 */
@@ -137,6 +141,8 @@
   #tabs *, .tab-panel, .tab-panels *, nav *, .nav *,
   .title, .breadcrumbs, header {
     color: white !important;
+    position: relative;
+    z-index: 5 !important; /* 确保导航元素显示在背景之上 */
   }
   
   /* 特别针对红框区域的元素 */
@@ -147,6 +153,11 @@
   .chat-list *, .menu *, .menu li * {
     color: white !important;
     text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.6);
+    position: relative;
+    z-index: 5 !important; /* 确保这些元素显示在背景之上 */
+    background-color: rgba(0, 0, 0, 0.5); /* 添加半透明背景增强可见性 */
+    border-radius: 4px;
+    padding: 2px 4px;
   }
   
   /* 针对特定的聊天标题元素 */
@@ -159,6 +170,215 @@
     color: white !important;
     text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
     font-weight: bold;
+    position: relative;
+    z-index: 5 !important; /* 确保标题元素显示在背景之上 */
+  }
+  
+  /* 顶部组件和模型选择器样式 */
+  .select, select, .select-bordered, 
+  .select-xs, .select option, 
+  .select-container, .select-wrapper {
+    position: relative !important;
+    z-index: 10 !important; /* 更高的z-index确保下拉菜单显示在最上层 */
+    color: white !important;
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+  }
+  
+  /* 选择菜单的选项 */
+  .select option, select option, 
+  option, datalist option {
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    color: white !important;
+    padding: 8px !important;
+  }
+  
+  /* 选择菜单获得焦点时 */
+  .select:focus, select:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  /* 顶部Header组件 */
+  header, .header, .app-header, 
+  div[class*="border-b"][class*="flex"][class*="justify-between"][class*="items-center"] {
+    position: relative !important;
+    z-index: 10 !important; /* 确保头部在最上层 */
+    background-color: rgba(0, 0, 0, 0) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  /* 特定功能按钮的激活状态样式 */
+  .btn.text-primary.active svg,
+  .btn.text-primary[data-active="true"] svg,
+  .btn.text-primary.btn-active svg,
+  button.btn-active.text-primary svg,
+  button[data-state="active"].text-primary svg,
+  button.active.text-primary svg,
+  button.text-primary[aria-pressed="true"] svg,
+  /* 支持自定义属性 */
+  button.text-primary[data-enabled="true"] svg,
+  button.text-primary[data-on="true"] svg {
+    stroke: #3B82F6 !important; /* 蓝色 - tailwind blue-500 */
+    fill: none !important;
+  }
+}
+
+/* 图片背景模式下的样式 - 将应用所有特殊样式 */
+[data-theme="bg-theme"].image-background-mode {
+  /* 卡片和模态框背景 - 修改为纯黑色背景 */
+  .card, .card-body, .modal, .modal-box, .dropdown-content {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+  }
+  
+  /* 确保文本可读性 */
+  .prose, .chat-bubble {
+    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.5);  /* 修改文本阴影使白色文本更清晰 */
+    color: white !important;  /* 添加白色文本 */
+  }
+
+  /* 聊天气泡背景 */
+  .chat-bubble {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(8px);
+    color: white !important; /* 强制设置对话泡泡文字为白色 */
+    border: 1px solid rgba(255, 255, 255, 0.1);  /* 添加微弱边框以便区分 */
+  }
+  
+  /* 聊天气泡内所有文本元素 */
+  .chat-bubble * {
+    color: white !important; /* 确保气泡内所有子元素文字都是白色 */
+    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.7); /* 增强文本阴影使白色文字在任何背景上都清晰 */
+  }
+
+  /* 输入框和按钮背景 */
+  .input, .textarea, .btn {
+    background-color: rgba(10, 10, 10, 0.1) !important;
+    backdrop-filter: blur(5px);
+  }
+  
+  /* 消息操作按钮 */
+  .message-actions button {
+    color: rgb(182, 182, 182) !important; /* 确保按钮文字为白色 */
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.5); /* 添加文本阴影增强可读性 */
+  }
+  
+  /* 按钮悬停效果 */
+  .message-actions button:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    transform: scale(1.05);
+  }
+  
+  /* 侧边栏样式 */
+  .sidebar, .sidebar-item, .sidebar-menu, .sidebar-content {
+    color: white !important;
+    position: relative;
+    z-index: 5 !important; /* 确保侧边栏内容显示在背景之上 */
+  }
+  
+  /* 侧边栏菜单项 */
+  .sidebar .menu-item, 
+  .sidebar .menu-title, 
+  .sidebar a, 
+  .sidebar button,
+  .sidebar li,
+  .sidebar-content * {
+    color: white !important;
+    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.6);
+    position: relative;
+    z-index: 5 !important; /* 确保侧边栏元素显示在背景之上 */
+  }
+  
+  /* 侧边栏活跃项 */
+  .sidebar .active, 
+  .sidebar .selected,
+  .sidebar .menu-active {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    font-weight: bold;
+  }
+  
+  /* 聊天容器和页面背景 */
+  body, html, .app, .chat-container, .main-content, 
+  .drawer-content, .drawer-side, .bg-base-100, .bg-base-200, .bg-base-300 {
+    background-color: black !important;
+    color: rgb(220, 220, 220) !important;
+  }
+  
+  /* 针对导航栏和标签 */
+  nav, .tabs, .tab, .tab-content, .tab-active, 
+  .menu-title, .menu-item, .drawer-content .menu-title,
+  .drawer-toggle, .drawer-side, .drawer, .drawer-content,
+  #tabs *, .tab-panel, .tab-panels *, nav *, .nav *,
+  .title, .breadcrumbs, header {
+    color: white !important;
+    position: relative;
+    z-index: 5 !important; /* 确保导航元素显示在背景之上 */
+  }
+  
+  /* 特别针对红框区域的元素 */
+  .chat-title, .conversation-title, .app-title,
+  .title-bar, .title-container, .app-header, .app-title *,
+  .drawer-side .menu li, .side-menu li, .conversation-list-item,
+  .conversation-list li, .chat-list li, .chat-list-item,
+  .chat-list *, .menu *, .menu li * {
+    color: white !important;
+    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.6);
+    position: relative;
+    z-index: 5 !important; /* 确保这些元素显示在背景之上 */
+    background-color: rgba(0, 0, 0, 0.5); /* 添加半透明背景增强可见性 */
+    border-radius: 4px;
+    padding: 2px 4px;
+  }
+  
+  /* 针对特定的聊天标题元素 */
+  .flex.justify-between.items-center .font-semibold,
+  div.flex.justify-between.items-center span.font-semibold,
+  div.flex.items-center span.font-semibold,
+  div[class*="flex"][class*="justify-between"][class*="items-center"] span,
+  div[class*="flex"][class*="items-center"] span.font-semibold,
+  .font-semibold {
+    color: white !important;
+    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
+    font-weight: bold;
+    position: relative;
+    z-index: 5 !important; /* 确保标题元素显示在背景之上 */
+  }
+  
+  /* 顶部组件和模型选择器样式 */
+  .select, select, .select-bordered, 
+  .select-xs, .select option, 
+  .select-container, .select-wrapper {
+    position: relative !important;
+    z-index: 10 !important; /* 更高的z-index确保下拉菜单显示在最上层 */
+    color: white !important;
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+  }
+  
+  /* 选择菜单的选项 */
+  .select option, select option, 
+  option, datalist option {
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    color: white !important;
+    padding: 8px !important;
+  }
+  
+  /* 选择菜单获得焦点时 */
+  .select:focus, select:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  /* 顶部Header组件 */
+  header, .header, .app-header, 
+  div[class*="border-b"][class*="flex"][class*="justify-between"][class*="items-center"] {
+    position: relative !important;
+    z-index: 10 !important; /* 确保头部在最上层 */
+    background-color: rgba(0, 0, 0, 0) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
   
   /* 特定功能按钮的激活状态样式 */
