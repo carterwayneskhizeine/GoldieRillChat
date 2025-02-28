@@ -5,6 +5,7 @@ class EventBus {
     this.inputIntensity = 0;
     this.isCustomBackground = false;
     this.currentBackgroundPath = null;
+    this.previousTheme = null; // 保存切换前的主题
   }
 
   on(eventName, callback) {
@@ -64,9 +65,24 @@ class EventBus {
     this.isCustomBackground = !this.isCustomBackground;
     this.currentBackgroundPath = this.isCustomBackground ? imagePath : null;
     
+    // 切换主题
+    if (this.isCustomBackground) {
+      // 保存当前主题
+      this.previousTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      // 应用透明背景主题
+      document.documentElement.setAttribute('data-theme', 'bg-theme');
+    } else {
+      // 恢复之前的主题
+      if (this.previousTheme) {
+        document.documentElement.setAttribute('data-theme', this.previousTheme);
+        this.previousTheme = null;
+      }
+    }
+    
     this.emit('backgroundChange', {
       isCustomBackground: this.isCustomBackground,
-      path: this.currentBackgroundPath
+      path: this.currentBackgroundPath,
+      theme: this.isCustomBackground ? 'bg-theme' : this.previousTheme
     });
     
     return this.isCustomBackground;
@@ -76,11 +92,50 @@ class EventBus {
   getBackgroundState() {
     return {
       isCustomBackground: this.isCustomBackground,
-      path: this.currentBackgroundPath
+      path: this.currentBackgroundPath,
+      theme: this.isCustomBackground ? 'bg-theme' : this.previousTheme
     };
+  }
+
+  // 处理主题变化
+  handleThemeChange(newTheme) {
+    // 如果用户手动切换了主题且不是我们的透明主题，则关闭自定义背景
+    if (newTheme !== 'bg-theme' && this.isCustomBackground) {
+      this.isCustomBackground = false;
+      this.currentBackgroundPath = null;
+      
+      this.emit('backgroundChange', {
+        isCustomBackground: false,
+        path: null,
+        theme: newTheme
+      });
+    }
   }
 }
 
 // 创建单例实例
 const eventBus = new EventBus();
+
+// 添加主题变化监听
+if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined') {
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'attributes' && 
+          mutation.attributeName === 'data-theme' && 
+          mutation.target === document.documentElement) {
+        const newTheme = document.documentElement.getAttribute('data-theme');
+        eventBus.handleThemeChange(newTheme);
+      }
+    });
+  });
+  
+  // 在DOM加载完成后开始观察
+  window.addEventListener('DOMContentLoaded', () => {
+    observer.observe(document.documentElement, { 
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+  });
+}
+
 export default eventBus; 

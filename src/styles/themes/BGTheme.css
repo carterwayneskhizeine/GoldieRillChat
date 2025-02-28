@@ -1,0 +1,175 @@
+/* 基于pastel主题的透明背景主题 */
+[data-theme="bg-theme"] {
+    /* 主要颜色 */
+    --p: 0 0% 0%;
+    --pf: 0 0% 0%;
+    --pc: 0 0% 100%;
+  
+    /* 次要颜色 */
+    --s: 352 70% 88%;
+    --sf: 352 70% 78%;
+    --sc: 0 0% 100%; 
+  
+    /* 强调颜色 */
+    --a: 158 55% 80%;
+    --af: 158 55% 70%;
+    --ac: 204 19% 12%;
+  
+    /* 中性色 */
+    --n: 219 14% 28%;
+    --nf: 219 14% 18%;
+    --nc: 0 0% 100%;
+  
+    /* 关键背景颜色 - 全部设置为完全透明 */
+    --b1: 0 0% 100% 0;     /* 完全透明 */
+    --b2: 0 0% 100% 0;     /* 完全透明 */
+    --b3: 0 0% 100% 0;     /* 完全透明 */
+    --bc: 0 0% 100%;       /* 文本颜色修改为白色 */
+  
+    /* 基础背景色 - 全部设置为完全透明 */
+    --base-100: 0 0% 100% 0;
+    --base-200: 0 0% 100% 0;
+    --base-300: 0 0% 100% 0;
+    --base-content: 0 0% 100%;     /* 基础文本内容为白色 */
+  
+    /* 信息类颜色 */
+    --in: 198 93% 60%;
+    --inc: 198 93% 20%;
+    --su: 158 64% 52%;
+    --suc: 158 64% 20%;
+    --wa: 43 96% 56%;
+    --wac: 43 96% 20%;
+    --er: 0 91% 71%;
+    --erc: 0 91% 20%;
+  
+    /* 圆角 */
+    --rounded-box: 1rem;
+    --rounded-btn: 0.5rem;
+    --rounded-badge: 1.9rem;
+  
+    /* 文本大小 */
+    --btn-text-case: uppercase;
+    --border-btn: 1px;
+    --tab-border: 1px;
+    --tab-radius: 0.5rem;
+  
+    /* 卡片和模态框背景 - 使用更强的模糊效果 */
+    .card, .card-body, .modal, .modal-box, .dropdown-content {
+      background-color: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    
+    /* 确保文本可读性 */
+    .prose, .chat-bubble {
+        text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.5);  /* 修改文本阴影使白色文本更清晰 */
+       color: white;  /* 添加白色文本 */
+    }
+  
+    /* 聊天气泡背景 */
+    .chat-bubble {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      backdrop-filter: blur(8px);
+      color: white !important; /* 强制设置对话泡泡文字为白色 */
+    }
+    
+    /* 聊天气泡内所有文本元素 */
+    .chat-bubble * {
+      color: white !important; /* 确保气泡内所有子元素文字都是白色 */
+      text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.7); /* 增强文本阴影使白色文字在任何背景上都清晰 */
+    }
+  
+    /* 输入框和按钮背景 */
+    .input, .textarea, .select, .btn {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      backdrop-filter: blur(5px);
+    }
+    
+    /* 消息操作按钮 */
+    .message-actions button {
+      color: white !important; /* 确保按钮文字为白色 */
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.5); /* 添加文本阴影增强可读性 */
+    }
+    
+    /* 按钮悬停效果 */
+    .message-actions button:hover {
+      background-color: rgba(255, 255, 255, 0.2) !important;
+      transform: scale(1.05);
+    }
+    
+    /* 侧边栏样式 */
+    .sidebar, .sidebar-item, .sidebar-menu, .sidebar-content {
+      color: white !important;
+    }
+    
+    /* 侧边栏菜单项 */
+    .sidebar .menu-item, 
+    .sidebar .menu-title, 
+    .sidebar a, 
+    .sidebar button,
+    .sidebar li,
+    .sidebar-content * {
+      color: white !important;
+      text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.6);
+    }
+    
+    /* 侧边栏活跃项 */
+    .sidebar .active, 
+    .sidebar .selected,
+    .sidebar .menu-active {
+      background-color: rgba(255, 255, 255, 0.2) !important;
+      color: white !important;
+      font-weight: bold;
+    }
+    
+    /* 确保所有文本元素可见 */
+    .text-base-content, 
+    .text-primary-content,
+    .text-secondary-content,
+    .text-accent-content,
+    .text-neutral-content {
+      color: white !important;
+    }
+    
+    /* 针对导航栏和标签 */
+    nav, .tabs, .tab, .tab-content, .tab-active, 
+    .menu-title, .menu-item, .drawer-content .menu-title,
+    .drawer-toggle, .drawer-side, .drawer, .drawer-content,
+    #tabs *, .tab-panel, .tab-panels *, nav *, .nav *,
+    .title, .breadcrumbs, header {
+      color: white !important;
+    }
+    
+    /* 特别针对红框区域的元素 */
+    .chat-title, .conversation-title, .app-title,
+    .title-bar, .title-container, .app-header, .app-title *,
+    .drawer-side .menu li, .side-menu li, .conversation-list-item,
+    .conversation-list li, .chat-list li, .chat-list-item,
+    .chat-list *, .menu *, .menu li * {
+      color: white !important;
+      text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.6);
+    }
+    
+    /* 针对特定的聊天标题元素 */
+    .flex.justify-between.items-center .font-semibold,
+    div.flex.justify-between.items-center span.font-semibold,
+    div.flex.items-center span.font-semibold,
+    div[class*="flex"][class*="justify-between"][class*="items-center"] span,
+    div[class*="flex"][class*="items-center"] span.font-semibold,
+    .font-semibold {
+      color: white !important;
+      text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
+      font-weight: bold;
+    }
+    
+    /* 针对按钮的SVG图标 */
+    button svg, 
+    button.btn svg,
+    button.btn-circle svg,
+    button.btn-ghost svg,
+    svg[stroke="currentColor"] {
+      stroke: white !important;
+      fill: none !important;
+    }
+  }

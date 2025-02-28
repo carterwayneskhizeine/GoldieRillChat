@@ -7,7 +7,11 @@ import eventBus from './utils/eventBus';
 const ThreeBackground = () => {
   const canvasRef = useRef(null);
   const { scene, initScene, updateScene, isCustomBackground } = useThreeScene();
-  const [backgroundInfo, setBackgroundInfo] = useState({ path: null, isCustom: false });
+  const [backgroundInfo, setBackgroundInfo] = useState({ 
+    path: null, 
+    isCustom: false,
+    theme: null
+  });
   
   useInputEvents();
   
@@ -23,7 +27,8 @@ const ThreeBackground = () => {
       console.log('Background change detected:', data);
       setBackgroundInfo({
         path: data.path,
-        isCustom: data.isCustomBackground
+        isCustom: data.isCustomBackground,
+        theme: data.theme
       });
     };
     
@@ -33,6 +38,7 @@ const ThreeBackground = () => {
     };
   }, []);
 
+  // 组件加载时初始化ThreeJS场景
   useEffect(() => {
     console.log('ThreeBackground mounted, canvasRef:', canvasRef.current);
     if (canvasRef.current) {
@@ -48,6 +54,10 @@ const ThreeBackground = () => {
     };
   }, []);
 
+  // 根据当前主题确定显示状态
+  const isHidden = backgroundInfo.isCustom && 
+                   backgroundInfo.theme === 'bg-theme';
+
   return (
     <canvas
       ref={canvasRef}
@@ -58,9 +68,10 @@ const ThreeBackground = () => {
         width: '100vw',
         height: '100vh',
         zIndex: 0,
-        opacity: 0.25,
+        opacity: isHidden ? 1 : 0.2, // 当使用图片背景时降低不透明度
         pointerEvents: 'none',
-        background: isCustomBackground ? 'transparent' : 'rgba(0,0,255,0.1)'
+        background: isCustomBackground ? 'transparent' : 'rgba(0,0,0,0)',
+        transition: 'opacity 0.3s ease'
       }}
     />
   );

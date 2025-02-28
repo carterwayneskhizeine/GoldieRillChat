@@ -516,8 +516,21 @@ export function ChatView({
   // 添加背景变化监听
   useEffect(() => {
     const handleBackgroundChange = (data) => {
-      setCurrentBackground(data.isCustomBackground ? data.path : null);
+      const { isCustomBackground, path, theme } = data;
+      
+      // 如果切换了主题或取消了图片背景，更新状态
+      if (theme !== 'bg-theme' || !isCustomBackground) {
+        setCurrentBackground(null);
+      } else {
+        setCurrentBackground(path);
+      }
     };
+    
+    // 组件初始化时，检查当前背景状态
+    const currentState = eventBus.getBackgroundState();
+    if (currentState.isCustomBackground && currentState.theme === 'bg-theme') {
+      setCurrentBackground(currentState.path);
+    }
     
     eventBus.on('backgroundChange', handleBackgroundChange);
     return () => {

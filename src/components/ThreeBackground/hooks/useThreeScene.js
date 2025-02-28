@@ -1,6 +1,36 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import eventBus from '../utils/eventBus';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+
+// 自定义对比度着色器
+const ContrastShader = {
+  uniforms: {
+    "tDiffuse": { value: null },
+    "contrast": { value: 1 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float contrast;
+    varying vec2 vUv;
+    void main() {
+      vec4 texel = texture2D(tDiffuse, vUv);
+      vec3 color = texel.rgb;
+      // 应用对比度
+      color = (color - 0.5) * contrast + 0.5;
+      gl_FragColor = vec4(color, texel.a);
+    }
+  `
+};
 
 // 直接在代码中定义着色器
 const vertexShader = `
@@ -90,6 +120,9 @@ export const useThreeScene = () => {
   const originalMaterialRef = useRef(null);
   const meshRef = useRef(null);
   const textureRef = useRef(null);
+  // 添加后处理引用
+  const composerRef = useRef(null);
+  const contrastPassRef = useRef(null);
 
   // 添加输入事件监听
   useEffect(() => {
@@ -151,11 +184,11 @@ export const useThreeScene = () => {
           // 保存新纹理引用以便后续清理
           textureRef.current = texture;
 
-          // 创建新材质
+          // 创建新材质 - 使用完全不透明度
           const imageMaterial = new THREE.MeshBasicMaterial({
             map: texture,
             transparent: true,
-            opacity: 0.25
+            opacity: 1.0 // 完全不透明
           });
 
           // 应用新材质
@@ -173,8 +206,14 @@ export const useThreeScene = () => {
             meshRef.current.scale.set(imageAspect / screenAspect, 1, 1);
           }
 
-          // 立即渲染一次
-          if (renderer && camera) {
+          // 应用对比度效果
+          if (composerRef.current && contrastPassRef.current) {
+            // 调整对比度
+            contrastPassRef.current.uniforms.contrast.value = 1;
+            // 立即渲染一次
+            composerRef.current.render();
+          } else if (renderer && camera) {
+            // 如果没有后处理，直接渲染
             renderer.render(scene, camera);
           }
           
@@ -206,8 +245,15 @@ export const useThreeScene = () => {
     // 重置缩放
     meshRef.current.scale.set(1, 1, 1);
     
+    // 重置对比度效果
+    if (contrastPassRef.current) {
+      contrastPassRef.current.uniforms.contrast.value = 1.0; // 重置为正常对比度
+    }
+    
     // 立即渲染一次
-    if (renderer && camera && scene) {
+    if (composerRef.current) {
+      composerRef.current.render();
+    } else if (renderer && camera && scene) {
       renderer.render(scene, camera);
     }
   };
@@ -270,6 +316,20 @@ export const useThreeScene = () => {
       setRenderer(newRenderer);
       setUniforms(newUniforms);
 
+      // 设置后处理效果
+      const composer = new EffectComposer(newRenderer);
+      const renderPass = new RenderPass(newScene, newCamera);
+      composer.addPass(renderPass);
+
+      // 添加对比度效果
+      const contrastPass = new ShaderPass(ContrastShader);
+      contrastPass.uniforms.contrast.value = 1.2; // 增加对比度
+      composer.addPass(contrastPass);
+
+      // 保存引用
+      composerRef.current = composer;
+      contrastPassRef.current = contrastPass;
+
       const handleResize = () => {
         if (newRenderer && newCamera) {
           const width = window.innerWidth;
@@ -277,6 +337,11 @@ export const useThreeScene = () => {
           console.log('Resizing to:', width, height);
           newRenderer.setSize(width, height, false);
           newUniforms.u_resolution.value.set(width, height);
+          
+          // 更新后处理效果的大小
+          if (composerRef.current) {
+            composerRef.current.setSize(width, height);
+          }
           
           // 如果是自定义背景，需要更新缩放
           if (isCustomBackground && textureRef.current && meshRef.current) {
@@ -309,6 +374,17 @@ export const useThreeScene = () => {
         console.log('Cleaning up Three.js scene');
         window.removeEventListener('resize', handleResize);
         window.removeEventListener('mousemove', handleMouseMove);
+        
+        // 清理后处理效果
+        if (composerRef.current) {
+          composerRef.current.dispose();
+          composerRef.current = null;
+        }
+        
+        if (contrastPassRef.current) {
+          contrastPassRef.current = null;
+        }
+        
         newRenderer.dispose();
         if (textureRef.current) {
           textureRef.current.dispose();
@@ -329,7 +405,14 @@ export const useThreeScene = () => {
         
         // 更新输入强度的自然衰减
         uniforms.u_intensity.value = eventBus.getInputIntensity();
-        renderer.render(scene, camera);
+        
+        // 使用后处理效果渲染
+        if (composerRef.current) {
+          composerRef.current.render();
+        } else {
+          // 如果没有后处理，使用普通渲染
+          renderer.render(scene, camera);
+        }
       } catch (error) {
         console.error('Error in render loop:', error);
       }

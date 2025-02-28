@@ -1,3 +1,6 @@
+/* 在文件顶部导入BGTheme */
+@import './themes/BGTheme.css';
+
 /* Chat 界面媒体容器样式 */
 .chat-media-container {
   position: relative;
