@@ -39,6 +39,7 @@ export function ToastContainer() {
       {toasts.map(toast => (
         <Toast
           key={toast.id}
+          title={toast.title}
           message={toast.message}
           type={toast.type}
           visible={true}

@@ -60,6 +60,18 @@ import {
 import { MonacoEditor } from './components/MonacoEditor'
 import ToastContainer from './components/ToastContainer'
 import toastManager from './utils/toastManager'
+import BookmarksPanel from './components/BookmarksPanel'
+
+// 模拟引入书签Store
+const useBookmarkStore = {
+  getState: () => ({
+    showBookmarksPanel: false,
+    toggleBookmarksPanel: () => {},
+    addBookmark: (bookmark) => {
+      console.log('添加书签:', bookmark);
+    }
+  })
+};
 
 export default function App() {
   // 修改初始工具为 chat
@@ -129,6 +141,36 @@ export default function App() {
   const [lightboxImages, setLightboxImages] = useState([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [isRotating, setIsRotating] = useState(false)
+
+  // 书签状态
+  const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
+  
+  // 在useEffect中添加电子书签store的连接
+  useEffect(() => {
+    // 这里是实际项目中书签状态的集成代码
+    // 在生产环境中，这里应该从window.bookmarks获取书签状态
+    const unsubscribe = window.electron?.bookmarks?.onBookmarksPanelToggle((isVisible) => {
+      setShowBookmarksPanel(isVisible);
+    });
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // 用于监听TitleBar中的书签操作
+  useEffect(() => {
+    // 当书签面板打开时隐藏浏览器视图，关闭时显示浏览器视图（如果当前工具是浏览器）
+    if (window.electron?.browser) {
+      if (showBookmarksPanel) {
+        // 书签面板打开，隐藏浏览器视图
+        window.electron.browser.setVisibility(false);
+      } else if (activeTool === 'browser') {
+        // 书签面板关闭且当前工具是浏览器，显示浏览器视图
+        window.electron.browser.setVisibility(true);
+      }
+    }
+  }, [showBookmarksPanel, activeTool]);
 
   // 添加发送到Monaco的处理函数
   const sendToMonaco = (message) => {
@@ -935,6 +977,109 @@ export default function App() {
     return () => window.removeEventListener('switchTool', handleSwitchTool);
   }, []);
 
+  // 添加处理导入书签的函数
+  const handleImportBookmarks = () => {
+    // 让用户选择要导入的HTML书签文件
+    window.electron.selectBookmarkFile().then(async (filePath) => {
+      if (!filePath) return; // 用户取消了选择
+      
+      try {
+        // 读取文件内容
+        const fileContent = await window.electron.readFile(filePath);
+        
+        // 通过书签API解析并导入书签
+        const result = await window.electron.bookmarks.parseAndImportBookmarks(fileContent);
+        
+        if (result && result.success) {
+          // 显示成功消息
+          toastManager.success(`已导入 ${result.count} 个书签`, 3000);
+          
+          // 自动显示书签面板
+          setShowBookmarksPanel(true);
+          window.electron.bookmarks.toggleBookmarksPanel(true);
+        } else {
+          throw new Error('导入失败');
+        }
+      } catch (error) {
+        console.error('导入书签失败:', error);
+        toastManager.error(error.message || '文件格式不正确', 5000);
+      }
+    }).catch(error => {
+      console.error('选择书签文件失败:', error);
+      toastManager.error(error.message || '选择文件失败', 3000);
+    });
+  };
+
+  // 添加书签处理函数
+  const handleAddBookmark = () => {
+    const activeTab = browserTabs.find(tab => tab.id === activeTabId);
+    if (activeTab) {
+      // 获取根文件夹ID（如果有的话）
+      window.electron?.bookmarks?.getFolders().then(folders => {
+        // 查找根文件夹（没有parentId的文件夹）
+        let rootFolder = folders.find(f => !f.parentId);
+        
+        // 如果没有根文件夹，创建一个
+        if (!rootFolder) {
+          const defaultFolderId = `folder_root_${Date.now()}`;
+          rootFolder = {
+            id: defaultFolderId,
+            name: '我的书签',
+            addDate: Date.now(),
+            parentId: null
+          };
+          
+          // 添加到文件夹列表
+          folders.push(rootFolder);
+          
+          // 保存新文件夹
+          window.electron?.bookmarks?.importBookmarks([], [rootFolder])
+            .catch(error => {
+              console.error('创建默认文件夹失败:', error);
+            });
+        }
+        
+        const rootFolderId = rootFolder ? rootFolder.id : null;
+        
+        const bookmark = {
+          id: Math.random().toString(36).substring(2, 9),
+          title: activeTab.title || currentUrl,
+          url: activeTab.url || currentUrl,
+          icon: activeTab.favicon || null,
+          addDate: Date.now(),
+          folder: rootFolderId // 将书签添加到根文件夹
+        };
+        
+        // 调用实际的书签添加功能
+        window.electron?.bookmarks?.addBookmark(bookmark).then(() => {
+          // 显示成功通知
+          toastManager.success(`已添加书签: ${bookmark.title}`, 3000);
+          
+          // 自动打开书签面板以便用户查看新添加的书签
+          if (!showBookmarksPanel) {
+            setShowBookmarksPanel(true);
+            window.electron?.bookmarks?.toggleBookmarksPanel(true);
+          }
+        }).catch(error => {
+          console.error('添加书签失败:', error);
+          toastManager.error('添加书签失败', 3000);
+        });
+      }).catch(error => {
+        console.error('获取书签文件夹失败:', error);
+        toastManager.error('获取书签文件夹失败', 3000);
+      });
+    }
+  };
+
+  // 处理书签面板切换
+  const handleToggleBookmarksPanel = () => {
+    const newState = !showBookmarksPanel;
+    setShowBookmarksPanel(newState);
+    
+    // 同步到electron主进程
+    window.electron?.bookmarks?.toggleBookmarksPanel(newState);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-base-100">
       <ThreeBackground />
@@ -946,6 +1091,11 @@ export default function App() {
         isLoading={isLoading}
         currentTheme={currentTheme}
         setCurrentTheme={setCurrentTheme}
+        onAddBookmark={handleAddBookmark}
+        onToggleBookmarksPanel={handleToggleBookmarksPanel}
+        showBookmarksPanel={showBookmarksPanel}
+        onImportBookmarks={handleImportBookmarks}
+        activeTabId={activeTabId}
       />
       <ToastContainer />
       <div className="flex-1 flex overflow-hidden">
@@ -1105,95 +1255,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Modals and overlays */}
-        {showSettings && (
-          <div className="modal modal-open">
-            <div className="modal-box">
-              <button 
-                onClick={() => setShowSettings(false)}
-                className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-              >
-                ✕
-              </button>
-              
-              <h1 className="text-2xl font-bold mb-6">Settings</h1>
-              
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Storage</h2>
-                  
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg">Folder</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm opacity-70">{storagePath || 'No folder selected'}</span>
-                        <button className="btn btn-primary" onClick={() => handleSelectFolder(setStoragePath, currentConversation, messages, window, setConversations, setCurrentConversation)}>
-                          Modify Folder
-                        </button>
-                    </div>
-                </div>
-                
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg">Update</h3>
-                    <button className="btn btn-primary" onClick={() => handleUpdateFolders(storagePath, setConversations, window)}>
-                      Update Folders
-                    </button>
-                </div>
-
-                  <div className="divider"></div>
-
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg">Theme</h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm opacity-70">{currentTheme}</span>
-                      <button onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)} className="btn btn-primary">
-                        Change Theme
-                      </button>
-                </div>
-                  </div>
-                </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-backdrop" onClick={() => setShowSettings(false)}></div>
-          </div>
-        )}
-
-        {deletingConversation && (
-          <div className="modal modal-open">
-            <div className="modal-box">
-              <h3 className="font-bold text-lg">Delete Chat</h3>
-              <p className="py-4">Are you sure you want to delete this chat?</p>
-              <div className="modal-action">
-                <button 
-                  className="btn btn-ghost"
-                  onClick={() => setDeletingConversation(null)}
-                >
-                  No
-                </button>
-                <button 
-                  className="btn btn-error"
-                  onClick={() => {
-                    deleteConversation(
-                      deletingConversation.id,
-                      conversations,
-                      currentConversation,
-                      setConversations,
-                      setCurrentConversation,
-                      setMessages,
-                      window
-                    )
-                    setDeletingConversation(null)
-                  }}
-                >
-                  Yes
-                </button>
-              </div>
-            </div>
-            <div className="modal-backdrop" onClick={() => setDeletingConversation(null)}></div>
-          </div>
-        )}
-
         {/* All components need to be wrapped in the same parent element */}
         <div className="overlays">
           <ContextMenu
@@ -1211,6 +1272,105 @@ export default function App() {
           />
         </div>
       </div>
+      
+      {/* 书签面板 - 移至应用根级别以实现真正的全屏效果 */}
+      {showBookmarksPanel && (
+        <BookmarksPanel 
+          onClose={() => {
+            setShowBookmarksPanel(false);
+            window.electron.bookmarks.toggleBookmarksPanel(false);
+          }}
+        />
+      )}
+
+      {/* Modals and overlays */}
+      {showSettings && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <button 
+              onClick={() => setShowSettings(false)}
+              className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+            >
+              ✕
+            </button>
+            
+            <h1 className="text-2xl font-bold mb-6">Settings</h1>
+            
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Storage</h2>
+                
+              <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg">Folder</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm opacity-70">{storagePath || 'No folder selected'}</span>
+                      <button className="btn btn-primary" onClick={() => handleSelectFolder(setStoragePath, currentConversation, messages, window, setConversations, setCurrentConversation)}>
+                        Modify Folder
+                      </button>
+                  </div>
+              </div>
+              
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg">Update</h3>
+                  <button className="btn btn-primary" onClick={() => handleUpdateFolders(storagePath, setConversations, window)}>
+                    Update Folders
+                  </button>
+              </div>
+
+                <div className="divider"></div>
+
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg">Theme</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm opacity-70">{currentTheme}</span>
+                    <button onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)} className="btn btn-primary">
+                      Change Theme
+                    </button>
+              </div>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setShowSettings(false)}></div>
+        </div>
+      )}
+
+      {deletingConversation && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Delete Chat</h3>
+            <p className="py-4">Are you sure you want to delete this chat?</p>
+            <div className="modal-action">
+              <button 
+                className="btn btn-ghost"
+                onClick={() => setDeletingConversation(null)}
+              >
+                No
+              </button>
+              <button 
+                className="btn btn-error"
+                onClick={() => {
+                  deleteConversation(
+                    deletingConversation.id,
+                    conversations,
+                    currentConversation,
+                    setConversations,
+                    setCurrentConversation,
+                    setMessages,
+                    window
+                  )
+                  setDeletingConversation(null)
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setDeletingConversation(null)}></div>
+        </div>
+      )}
     </div>
   )
 }

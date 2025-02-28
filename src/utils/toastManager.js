@@ -40,16 +40,28 @@ const toastManager = {
   
   /**
    * 显示提示
-   * @param {string} message - 消息内容
+   * @param {string|Object} message - 消息内容或消息对象
    * @param {string} type - 消息类型
    * @param {number} duration - 持续时间
    */
   show(message, type = 'info', duration = 3000) {
-    this.notify({
-      message,
-      type,
-      duration
-    });
+    // 如果message是对象
+    if (typeof message === 'object' && message !== null) {
+      // 如果是消息对象，直接使用对象中的属性
+      this.notify({
+        message: message.message || '',
+        type: message.type || type,
+        duration: message.duration || duration,
+        title: message.title || ''
+      });
+    } else {
+      // 如果是字符串，使用传入的参数
+      this.notify({
+        message,
+        type,
+        duration
+      });
+    }
   },
   
   /**

@@ -35,7 +35,15 @@ export const useBrowserEvents = ({
 
       // 监听标签页更新
       const tabsUnsubscribe = window.electron.browser.onTabsUpdate((tabs) => {
-        setBrowserTabs(Object.values(tabs))
+        const tabsArray = Object.values(tabs);
+        setBrowserTabs(tabsArray);
+        
+        // 如果没有标签页，清空URL输入框和页面标题
+        if (tabsArray.length === 0) {
+          setCurrentUrl('');
+          setPageTitle('新标签页');
+          setActiveTabId(null);
+        }
       })
 
       // 监听活动标签页更新
@@ -45,6 +53,10 @@ export const useBrowserEvents = ({
         if (tab) {
           setCurrentUrl(tab.url)
           setPageTitle(tab.title)
+        } else if (tabId === null) {
+          // 如果没有活动标签页，清空URL输入框
+          setCurrentUrl('');
+          setPageTitle('新标签页');
         }
       })
 

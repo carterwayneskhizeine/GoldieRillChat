@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 /**
  * Toast组件 - 用于显示临时消息提示
  * @param {Object} props - 组件属性
+ * @param {string} props.title - 消息标题
  * @param {string} props.message - 消息内容
  * @param {string} props.type - 消息类型，可以是 'success', 'error', 'info', 'warning'
  * @param {boolean} props.visible - 是否可见
@@ -10,7 +11,7 @@ import React, { useEffect } from 'react';
  * @param {number} props.duration - 显示持续时间，单位为毫秒，默认为3000ms
  * @returns {JSX.Element}
  */
-export function Toast({ message, type = 'info', visible, onClose, duration = 3000 }) {
+export function Toast({ title, message, type = 'info', visible, onClose, duration = 3000 }) {
   // 自动关闭计时器
   useEffect(() => {
     if (visible && onClose) {
@@ -60,7 +61,10 @@ export function Toast({ message, type = 'info', visible, onClose, duration = 300
     <div className="toast toast-top toast-center pointer-events-auto my-2">
       <div className={`alert ${alertClass} shadow-lg shadow-base-300 opacity-100 border border-base-300`}>
         {icons}
-        <div className="font-medium">{message}</div>
+        <div>
+          {title && <h4 className="font-bold">{title}</h4>}
+          <div className="font-medium">{message}</div>
+        </div>
       </div>
     </div>
   );

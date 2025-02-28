@@ -1,0 +1,9 @@
+/* 响应式布局断点 */
+@media (max-width: 640px) {
+  .tab-bar {
+    @apply overflow-x-auto; /* 小屏幕标签栏滚动 */
+  }
+  .control-bar {
+    @apply flex-col gap-1; /* 垂直排列控制元素 */
+  }
+} 

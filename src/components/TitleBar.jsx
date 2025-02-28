@@ -1,10 +1,26 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { toggleTheme, themes } from '../components/themeHandlers'
 
-export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoading, currentTheme, setCurrentTheme }) {
+export default function TitleBar({ 
+  activeTool, 
+  currentUrl, 
+  setCurrentUrl, 
+  isLoading, 
+  currentTheme, 
+  setCurrentTheme,
+  // 添加书签相关属性
+  onAddBookmark,
+  onToggleBookmarksPanel,
+  showBookmarksPanel,
+  // 添加导入书签功能
+  onImportBookmarks,
+  // 添加活动标签页ID
+  activeTabId
+}) {
   const [isMaximized, setIsMaximized] = useState(false)
   const [iconPath, setIconPath] = useState('')
   const [currentChatName, setCurrentChatName] = useState('')
+  const [isNavigating, setIsNavigating] = useState(false) // 添加导航状态
 
   useEffect(() => {
     // 初始化窗口状态
@@ -39,6 +55,46 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
       window.removeEventListener('storage', handleStorageChange);
     }
   }, [])
+
+  // 处理导航请求
+  const handleNavigation = (url) => {
+    if (isNavigating) return; // 如果正在导航中，忽略请求
+    
+    // 确保URL格式正确
+    let formattedUrl = url.trim();
+    if (!formattedUrl) return;
+    
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://') && !formattedUrl.startsWith('file://')) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    
+    setIsNavigating(true); // 设置导航状态为正在进行
+    
+    try {
+      if (!activeTabId) {
+        // 如果没有活动标签页，直接创建新标签页并导航到URL
+        console.log('没有活动标签页，创建新标签页:', formattedUrl);
+        window.electron.browser.newTab(formattedUrl).finally(() => {
+          // 无论成功失败，500ms后重置导航状态
+          setTimeout(() => {
+            setIsNavigating(false);
+          }, 500);
+        });
+      } else {
+        // 有活动标签页，直接导航
+        console.log('导航到:', formattedUrl);
+        window.electron.browser.navigate(formattedUrl).finally(() => {
+          // 无论成功失败，500ms后重置导航状态
+          setTimeout(() => {
+            setIsNavigating(false);
+          }, 500);
+        });
+      }
+    } catch (error) {
+      console.error('导航错误:', error);
+      setIsNavigating(false); // 出错时立即重置状态
+    }
+  };
 
   return (
     <div className="h-7 flex items-center bg-base-300 select-none app-drag-region">
@@ -91,12 +147,64 @@ export default function TitleBar({ activeTool, currentUrl, setCurrentUrl, isLoad
               value={currentUrl}
               onChange={(e) => setCurrentUrl(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  window.electron.browser.navigate(currentUrl)
+                if (e.key === 'Enter' && !isNavigating) {
+                  handleNavigation(currentUrl);
                 }
               }}
+              disabled={isNavigating}
               placeholder="输入网址..."
             />
+            
+            {/* 书签按钮区域 */}
+            <div className="join h-5 flex items-center ml-1">
+              {/* 添加书签按钮 */}
+              <button
+                className="join-item btn btn-xs btn-ghost px-1.5 h-5 min-h-0 flex items-center justify-center"
+                onClick={onAddBookmark}
+                title="添加当前页面到书签"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" 
+                  />
+                </svg>
+              </button>
+              
+              {/* 导入书签按钮 - 新增 */}
+              <button
+                className="join-item btn btn-xs btn-ghost px-1.5 h-5 min-h-0 flex items-center justify-center"
+                onClick={onImportBookmarks}
+                title="导入书签文件"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </button>
+              
+              {/* 显示书签面板按钮 */}
+              <button
+                className={`join-item btn btn-xs ${showBookmarksPanel ? 'btn-primary' : 'btn-ghost'} px-1.5 h-5 min-h-0 flex items-center justify-center`}
+                onClick={onToggleBookmarksPanel}
+                title="显示书签"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" 
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         ) : activeTool === 'browser' ? null : null}
       </div>
