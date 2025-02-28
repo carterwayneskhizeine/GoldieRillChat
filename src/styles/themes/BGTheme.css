@@ -21,16 +21,16 @@
     --nc: 0 0% 100%;
   
     /* 关键背景颜色 - 全部设置为完全透明 */
-    --b1: 0 0% 100% 0;     /* 完全透明 */
-    --b2: 0 0% 100% 0;     /* 完全透明 */
-    --b3: 0 0% 100% 0;     /* 完全透明 */
-    --bc: 0 0% 100%;       /* 文本颜色修改为白色 */
+    --b1: 0 0% 0% 1;     /* 完全黑色 */
+    --b2: 0 0% 0% 1;     /* 完全黑色 */
+    --b3: 0 0% 0% 1;     /* 完全黑色 */
+    --bc: 0 0% 0%;       /* 文本颜色修改为黑色 */
   
     /* 基础背景色 - 全部设置为完全透明 */
-    --base-100: 0 0% 100% 0;
-    --base-200: 0 0% 100% 0;
-    --base-300: 0 0% 100% 0;
-    --base-content: 0 0% 100%;     /* 基础文本内容为白色 */
+    --base-100: 0 0% 0% 1;
+    --base-200: 0 0% 0% 1;
+    --base-300: 0 0% 0% 1;
+    --base-content: 0 0% 0%;     /* 基础文本内容为黑色 */
   
     /* 信息类颜色 */
     --in: 198 93% 60%;
@@ -119,18 +119,9 @@
     .sidebar .selected,
     .sidebar .menu-active {
       background-color: rgba(255, 255, 255, 0.2) !important;
-      color: white !important;
       font-weight: bold;
     }
     
-    /* 确保所有文本元素可见 */
-    .text-base-content, 
-    .text-primary-content,
-    .text-secondary-content,
-    .text-accent-content,
-    .text-neutral-content {
-      color: white !important;
-    }
     
     /* 针对导航栏和标签 */
     nav, .tabs, .tab, .tab-content, .tab-active, 
@@ -163,13 +154,18 @@
       font-weight: bold;
     }
     
-    /* 针对按钮的SVG图标 */
-    button svg, 
-    button.btn svg,
-    button.btn-circle svg,
-    button.btn-ghost svg,
-    svg[stroke="currentColor"] {
-      stroke: white !important;
+    /* 特定功能按钮的激活状态样式 */
+    .btn.text-primary.active svg,
+    .btn.text-primary[data-active="true"] svg,
+    .btn.text-primary.btn-active svg,
+    button.btn-active.text-primary svg,
+    button[data-state="active"].text-primary svg,
+    button.active.text-primary svg,
+    button.text-primary[aria-pressed="true"] svg,
+    /* 支持自定义属性 */
+    button.text-primary[data-enabled="true"] svg,
+    button.text-primary[data-on="true"] svg {
+      stroke: #3B82F6 !important; /* 蓝色 - tailwind blue-500 */
       fill: none !important;
     }
   }
