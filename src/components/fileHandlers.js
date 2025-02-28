@@ -1,7 +1,9 @@
+import toastManager from '../utils/toastManager';
+
 // 处理文件选择
 export const handleFileSelect = async (event, currentConversation, setSelectedFiles, electron) => {
   if (!currentConversation) {
-    alert('请先选择或创建一个对话')
+    toastManager.warning('请先选择或创建一个对话');
     return
   }
 
@@ -40,7 +42,7 @@ export const handleFileDrop = async (e, currentConversation, setSelectedFiles, e
   e.stopPropagation()
 
   if (!currentConversation) {
-    alert('请先选择或创建一个对话')
+    toastManager.warning('请先选择或创建一个对话');
     return
   }
 

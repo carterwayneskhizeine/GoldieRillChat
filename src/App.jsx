@@ -58,6 +58,8 @@ import {
   handleContextMenu
 } from './components/conversationHandlers'
 import { MonacoEditor } from './components/MonacoEditor'
+import ToastContainer from './components/ToastContainer'
+import toastManager from './utils/toastManager'
 
 export default function App() {
   // 修改初始工具为 chat
@@ -180,7 +182,7 @@ export default function App() {
           try {
             const folders = await window.electron.scanFolders(storagePath)
             if (folders && folders.length > 0) {
-              // 使用handleUpdateFolders中导出的mergeConversations函数
+              // 使用mergeConversationsWithPath函数并传入当前存储路径
               const mergedConversations = await handleUpdateFolders(storagePath, setConversations, window, false)
               console.log('自动更新文件夹成功:', mergedConversations.length)
             }
@@ -216,7 +218,7 @@ export default function App() {
 
   const createNewConversation = async () => {
     if (!storagePath) {
-      alert('请先在设置中选择存储文件夹');
+      toastManager.error('请先在设置中选择存储文件夹');
       return;
     }
 
@@ -264,58 +266,52 @@ export default function App() {
       localStorage.setItem('aichat_current_conversation', JSON.stringify(newConversation));
     } catch (error) {
       console.error('创建新会话失败:', error);
-      alert('创建新会话失败: ' + error.message);
+      toastManager.error('创建新会话失败: ' + error.message);
     }
   };
 
-  const loadConversation = async (conversationId) => {
+  const handleConversationSelect = async (conversationId) => {
     const conversation = conversations.find(c => c.id === conversationId);
     if (!conversation) return;
-
+    
     try {
       if (!conversation.path) {
         throw new Error('会话路径无效');
       }
-
-      // 先设置当前会话，这样用户界面可以立即响应
-      setCurrentConversation(conversation);
       
-      // 加载消息前先清空当前消息列表，避免显示旧消息
-      setMessages([]);
-
-      // 加载新对话的消息
+      // 先检查文件夹是否存在
       try {
-        // 先检查 messages.json 文件是否存在
-        const messagesPath = window.electron.path.join(conversation.path, 'messages.json');
-        try {
-          await window.electron.access(messagesPath);
-        } catch (error) {
-          // 如果文件不存在，创建一个空的 messages.json
-          await window.electron.writeFile(messagesPath, '[]');
+        await window.electron.access(conversation.path);
+      } catch (accessError) {
+        // 文件夹不存在，从列表中移除
+        console.warn(`文件夹不存在，从列表中移除: ${conversation.path}`);
+        const updatedConversations = conversations.filter(c => c.id !== conversation.id);
+        setConversations(updatedConversations);
+        localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+        
+        // 如果当前对话是被删除的对话，清空当前对话
+        if (currentConversation && currentConversation.id === conversation.id) {
+          setCurrentConversation(null);
+          setMessages([]);
+          localStorage.setItem('aichat_current_conversation', '');
         }
-
-        // 加载消息
-        const msgs = await window.electron.loadMessages(conversation.path, conversation.id);
         
-        // 设置新的消息列表
-        setMessages(msgs || []);
-        
-        // 保存到本地存储
-        localStorage.setItem('aichat_current_conversation', JSON.stringify({
-          id: conversation.id,
-          name: conversation.name,
-          path: conversation.path,
-          timestamp: conversation.timestamp
-        }));
-      } catch (error) {
-        console.error('加载新对话消息失败:', error);
-        // 如果加载失败，至少保持空消息列表
-        setMessages([]);
-        throw error;
+        toastManager.warning(`会话文件夹不存在: ${conversation.path}\n该会话已从列表中移除`);
+        return;
       }
+      
+      const messages = await window.electron.loadMessages(conversation.path, conversation.id);
+      setMessages(messages || []);
+      setCurrentConversation(conversation);
+      localStorage.setItem('aichat_current_conversation', JSON.stringify({
+        id: conversation.id,
+        name: conversation.name,
+        path: conversation.path,
+        timestamp: conversation.timestamp
+      }));
     } catch (error) {
       console.error('加载会话消息失败:', error);
-      alert('加载会话消息失败: ' + error.message);
+      toastManager.error('加载会话消息失败: ' + error.message);
     }
   };
 
@@ -709,7 +705,7 @@ export default function App() {
       
       // 如果没有选中的对话，选择第一个
       if (!currentConversation && conversations.length > 0) {
-        loadConversation(conversations[0].id)
+        handleConversationSelect(conversations[0].id)
       }
     } else {
       setSidebarMode(previousMode)
@@ -785,30 +781,6 @@ export default function App() {
   };
 
   // 会话管理相关函数
-  const handleConversationSelect = async (conversationId) => {
-    const conversation = conversations.find(c => c.id === conversationId);
-    if (!conversation) return;
-    
-    try {
-      if (!conversation.path) {
-        throw new Error('会话路径无效');
-      }
-      const messages = await window.electron.loadMessages(conversation.path, conversation.id);
-      setMessages(messages || []);
-      setCurrentConversation(conversation);
-      localStorage.setItem('aichat_current_conversation', JSON.stringify({
-        id: conversation.id,
-        name: conversation.name,
-        path: conversation.path,
-        timestamp: conversation.timestamp
-      }));
-    } catch (error) {
-      console.error('加载会话消息失败:', error);
-      alert('加载会话消息失败: ' + error.message);
-    }
-  };
-
-  // 修改 handleConversationCreate 函数为内部使用的辅助函数
   const handleConversationCreate = async (conversation) => {
     if (!conversation || !conversation.id) {
       console.error('无效的会话对象');
@@ -950,7 +922,7 @@ export default function App() {
         handleConversationCreate(conversation)
           .then(() => {
             // 加载对话消息
-            loadConversation(conversation.id);
+            handleConversationSelect(conversation.id);
           })
           .catch(error => {
             console.error('切换对话失败:', error);
@@ -975,6 +947,7 @@ export default function App() {
         currentTheme={currentTheme}
         setCurrentTheme={setCurrentTheme}
       />
+      <ToastContainer />
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar toggle bar */}
         <div
@@ -1154,7 +1127,7 @@ export default function App() {
                       <h3 className="text-lg">Folder</h3>
                       <div className="flex items-center gap-2">
                         <span className="text-sm opacity-70">{storagePath || 'No folder selected'}</span>
-                        <button className="btn btn-primary" onClick={() => handleSelectFolder(setStoragePath, currentConversation, messages, window)}>
+                        <button className="btn btn-primary" onClick={() => handleSelectFolder(setStoragePath, currentConversation, messages, window, setConversations, setCurrentConversation)}>
                           Modify Folder
                         </button>
                     </div>

@@ -1,6 +1,8 @@
+import toastManager from '../utils/toastManager';
+
 export const handlePaste = async (e, currentConversation, setSelectedFiles, electron) => {
   if (!currentConversation) {
-    alert('请先选择或创建一个对话')
+    toastManager.warning('请先选择或创建一个对话');
     return
   }
 

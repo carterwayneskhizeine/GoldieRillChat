@@ -1,3 +1,5 @@
+import toastManager from '../utils/toastManager';
+
 /**
  * 更新文件夹列表
  * @param {string} storagePath - 存储路径
@@ -8,51 +10,83 @@
  */
 export const handleUpdateFolders = async (storagePath, setConversations, window, showAlert = true) => {
   if (!storagePath) {
-    if (showAlert) alert('请先在设置中选择存储文件夹');
+    if (showAlert) toastManager.error('请先在设置中选择存储文件夹');
     return [];
   }
 
   try {
     // 获取当前对话列表
-    const currentConversations = JSON.parse(localStorage.getItem('conversations') || '[]');
+    const currentConversations = JSON.parse(localStorage.getItem('aichat_conversations') || '[]');
     
     // 扫描文件夹获取所有对话
     const folders = await window.electron.scanFolders(storagePath);
     
-    // 合并对话列表，避免丢失数据
-    const mergedConversations = mergeConversations(currentConversations, folders);
+    // 验证当前对话列表中的对话文件夹是否存在
+    let validConversations = [...currentConversations];
+    let hasInvalidConversations = false;
+    
+    // 使用Promise.all进行并行验证
+    const validationPromises = validConversations.map(async (conv) => {
+      if (!conv.path) return false;
+      
+      try {
+        await window.electron.access(conv.path);
+        return true;
+      } catch (err) {
+        console.warn(`对话文件夹不存在: ${conv.path}`);
+        hasInvalidConversations = true;
+        return false;
+      }
+    });
+    
+    const validationResults = await Promise.all(validationPromises);
+    
+    // 过滤出有效的对话
+    validConversations = validConversations.filter((_, index) => validationResults[index]);
+    
+    // 合并对话列表，但只保留当前存储路径的对话
+    const mergedConversations = mergeConversationsWithPath(validConversations, folders, storagePath);
     
     // 更新应用状态
     setConversations(mergedConversations);
     
     // 保存到本地存储
-    localStorage.setItem('conversations', JSON.stringify(mergedConversations));
+    localStorage.setItem('aichat_conversations', JSON.stringify(mergedConversations));
     
-    if (showAlert) alert('更新文件夹成功');
+    if (showAlert) {
+      if (hasInvalidConversations) {
+        toastManager.warning('更新文件夹成功。注意：一些对话文件夹已不存在并被移除。');
+      } else {
+        toastManager.success('更新文件夹成功');
+      }
+    }
     
     return mergedConversations;
   } catch (error) {
     console.error('Failed to update folders:', error);
-    if (showAlert) alert('更新文件夹失败: ' + error.message);
+    if (showAlert) toastManager.error('更新文件夹失败: ' + error.message);
     return [];
   }
 };
 
 /**
- * 合并对话列表，避免重复
+ * 合并对话列表，只保留指定路径的对话
  * @param {Array} existing - 现有对话列表
  * @param {Array} scanned - 新扫描的对话列表
+ * @param {string} currentPath - 当前存储路径
  * @returns {Array} 合并后的对话列表
  */
-export const mergeConversations = (existing, scanned) => {
-  if (!existing || existing.length === 0) return scanned;
-  if (!scanned || scanned.length === 0) return existing;
+export const mergeConversationsWithPath = (existing, scanned, currentPath) => {
+  // 只保留以当前存储路径开头的对话
+  const filteredExisting = existing.filter(conv => 
+    conv.path && conv.path.startsWith(currentPath)
+  );
   
   // 使用Map存储合并结果，以路径为键避免重复
   const mergedMap = new Map();
   
-  // 添加现有对话
-  existing.forEach(conv => {
+  // 添加过滤后的现有对话
+  filteredExisting.forEach(conv => {
     if (conv.path) {
       mergedMap.set(conv.path, conv);
     }
@@ -78,4 +112,69 @@ export const mergeConversations = (existing, scanned) => {
   // 转换回数组并按时间戳排序
   return Array.from(mergedMap.values())
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-}; 
+};
+
+/**
+ * 合并对话列表，避免重复
+ * @param {Array} existing - 现有对话列表
+ * @param {Array} scanned - 新扫描的对话列表
+ * @returns {Array} 合并后的对话列表
+ */
+export const mergeConversations = (existing, scanned) => {
+  if (!existing || existing.length === 0) return scanned;
+  if (!scanned || scanned.length === 0) return existing;
+  
+  // 由于没有传入currentPath，我们只能根据scanned中的路径来判断
+  // 获取所有扫描对话的路径前缀，取最长相同前缀
+  const pathPrefix = getCommonPathPrefix(scanned);
+  return mergeConversationsWithPath(existing, scanned, pathPrefix);
+};
+
+/**
+ * 获取对话列表中的公共路径前缀
+ * @param {Array} conversations - 对话列表
+ * @returns {string} 公共路径前缀
+ */
+function getCommonPathPrefix(conversations) {
+  if (!conversations || conversations.length === 0) return '';
+  
+  // 获取所有有效路径
+  const paths = conversations
+    .filter(conv => conv.path)
+    .map(conv => conv.path);
+  
+  if (paths.length === 0) return '';
+  if (paths.length === 1) return paths[0].substring(0, paths[0].lastIndexOf('/') + 1);
+  
+  // 获取第一个路径的所有前缀
+  const firstPath = paths[0];
+  let prefix = '';
+  let commonPrefix = '';
+  
+  // 查找公共前缀
+  for (let i = 0; i < firstPath.length; i++) {
+    prefix = firstPath.substring(0, i + 1);
+    let isCommon = true;
+    
+    for (let j = 1; j < paths.length; j++) {
+      if (!paths[j].startsWith(prefix)) {
+        isCommon = false;
+        break;
+      }
+    }
+    
+    if (isCommon) {
+      commonPrefix = prefix;
+    } else {
+      break;
+    }
+  }
+  
+  // 确保前缀以目录分隔符结尾
+  const lastSlashIndex = commonPrefix.lastIndexOf('/');
+  if (lastSlashIndex > 0) {
+    return commonPrefix.substring(0, lastSlashIndex + 1);
+  }
+  
+  return commonPrefix;
+} 

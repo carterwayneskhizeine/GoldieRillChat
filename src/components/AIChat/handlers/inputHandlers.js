@@ -5,6 +5,7 @@ import { MESSAGE_STATES } from '../constants';
 import { searchService } from '../../../services/searchService';
 import { handleVideoCommand } from './videoCommandHandler';
 import { handleAudioCommand } from './audioCommandHandler';
+import toastManager from '../../../utils/toastManager';
 
 export const createInputHandlers = ({
   messageInput,
@@ -43,7 +44,7 @@ export const createInputHandlers = ({
   const handleSendMessage = async (isRetry = false, retryContent = null, forceNetworkSearch = false) => {
     if (!messageInput.trim() && !isRetry) return;
     if (!currentConversation) {
-      alert('请先创建或选择一个会话');
+      toastManager.warning('请先创建或选择一个会话');
       return;
     }
 
@@ -75,7 +76,7 @@ export const createInputHandlers = ({
         return;
       } catch (error) {
         console.error('语音生成失败:', error);
-        alert('语音生成失败: ' + error.message);
+        toastManager.error('语音生成失败: ' + error.message);
         return;
       }
     }
@@ -106,7 +107,7 @@ export const createInputHandlers = ({
         return;
       } catch (error) {
         console.error('视频生成失败:', error);
-        alert('视频生成失败: ' + error.message);
+        toastManager.error('视频生成失败: ' + error.message);
         return;
       }
     }
@@ -181,7 +182,7 @@ export const createInputHandlers = ({
       }
 
       if (!prompt) {
-        alert('请输入图片生成提示词');
+        toastManager.warning('请输入图片生成提示词');
         return;
       }
 

@@ -7,9 +7,11 @@
  * @param {Function} setActiveTool - 设置当前工具的函数
  * @param {Object} window - 窗口对象，用于访问electron API
  */
+import toastManager from '../utils/toastManager';
+
 export const sendCanvasToChat = async (currentConversation, canvas, messages, setMessages, setActiveTool, window) => {
   if (!currentConversation) {
-    alert('请先选择或创建一个对话')
+    toastManager.warning('请先选择或创建一个对话');
     return
   }
 
@@ -55,6 +57,6 @@ export const sendCanvasToChat = async (currentConversation, canvas, messages, se
     setActiveTool('chat')
   } catch (error) {
     console.error('Failed to send canvas image:', error)
-    alert('发送失败')
+    toastManager.error('发送失败');
   }
 } 
