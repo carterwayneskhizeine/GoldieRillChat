@@ -61,6 +61,7 @@ import { MonacoEditor } from './components/MonacoEditor'
 import ToastContainer from './components/ToastContainer'
 import toastManager from './utils/toastManager'
 import BookmarksPanel from './components/BookmarksPanel'
+import ThreeJSShaders from './components/ThreeJSShaders'
 
 // 模拟引入书签Store
 const useBookmarkStore = {
@@ -1235,6 +1236,11 @@ export default function App() {
           {/* Monaco Editor content */}
           <div style={{ display: activeTool === 'monaco' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
             <MonacoEditor />
+          </div>
+
+          {/* ThreeJS Shaders content */}
+          <div style={{ display: activeTool === 'threejs-shaders' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
+            <ThreeJSShaders />
           </div>
 
           {/* AI Chat content */}

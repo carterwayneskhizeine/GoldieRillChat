@@ -1,5 +1,5 @@
 // 工具列表配置
-export const tools = ['browser', 'aichat', 'chat', 'monaco']
+export const tools = ['browser', 'aichat', 'chat', 'monaco', 'threejs-shaders']
 
 // 工具显示名称映射
 export const toolDisplayNames = {
@@ -7,7 +7,8 @@ export const toolDisplayNames = {
   aichat: 'AI Chat',
   chat: 'Chat',
   monaco: 'Monaco Editor',
-  editor: 'Image Editor'
+  editor: 'Image Editor',
+  'threejs-shaders': 'ThreeJS Shaders'
 }
 
 // 获取工具显示名称的函数
