@@ -281,7 +281,7 @@
 /* 折叠按钮样式 */
 .aichat-collapse-btn {
   position: sticky;
-  top: 320px;
+  top: 5px;
   float: right;
   z-index: 100;
   pointer-events: all;

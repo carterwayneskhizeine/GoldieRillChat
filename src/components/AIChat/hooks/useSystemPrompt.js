@@ -22,8 +22,30 @@ export const useSystemPrompt = () => {
     return getSystemPromptTemplates();
   });
 
-  // 当前选中的模板ID，默认选中第一个模板
+  // 当前选中的模板ID，检查当前系统提示词是否与某个模板匹配
   const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
+    const savedPrompt = localStorage.getItem(STORAGE_KEYS.SYSTEM_PROMPT);
+    const savedTemplateId = localStorage.getItem(STORAGE_KEYS.SELECTED_TEMPLATE_ID);
+    
+    // 如果有保存的模板ID，优先使用
+    if (savedTemplateId) {
+      const templates = getSystemPromptTemplates();
+      const template = templates.find(t => t.id === savedTemplateId);
+      if (template) {
+        return savedTemplateId;
+      }
+    }
+    
+    // 检查当前系统提示词是否与某个模板匹配
+    if (savedPrompt) {
+      const templates = getSystemPromptTemplates();
+      const matchedTemplate = templates.find(t => t.content === savedPrompt);
+      if (matchedTemplate) {
+        return matchedTemplate.id;
+      }
+    }
+    
+    // 默认选中第一个模板
     return DEFAULT_SYSTEM_PROMPT_TEMPLATES[0].id;
   });
 
@@ -41,6 +63,13 @@ export const useSystemPrompt = () => {
   useEffect(() => {
     saveSystemPromptTemplates(systemPromptTemplates);
   }, [systemPromptTemplates]);
+
+  // 保存当前选中的模板ID
+  useEffect(() => {
+    if (selectedTemplateId) {
+      localStorage.setItem(STORAGE_KEYS.SELECTED_TEMPLATE_ID, selectedTemplateId);
+    }
+  }, [selectedTemplateId]);
 
   // 初始化时，如果没有设置过系统提示词，则设置为启用状态并使用默认模板
   useEffect(() => {
@@ -62,6 +91,9 @@ export const useSystemPrompt = () => {
     if (template) {
       setSystemPrompt(template.content);
       setSelectedTemplateId(templateId);
+      // 确保本地存储也立即更新
+      localStorage.setItem(STORAGE_KEYS.SYSTEM_PROMPT, template.content);
+      localStorage.setItem(STORAGE_KEYS.SELECTED_TEMPLATE_ID, templateId);
     }
   };
 
@@ -72,7 +104,15 @@ export const useSystemPrompt = () => {
       name,
       content
     };
-    setSystemPromptTemplates([...systemPromptTemplates, newTemplate]);
+    const updatedTemplates = [...systemPromptTemplates, newTemplate];
+    setSystemPromptTemplates(updatedTemplates);
+    
+    // 添加后立即应用新模板
+    setSystemPrompt(content);
+    setSelectedTemplateId(newTemplate.id);
+    localStorage.setItem(STORAGE_KEYS.SYSTEM_PROMPT, content);
+    localStorage.setItem(STORAGE_KEYS.SELECTED_TEMPLATE_ID, newTemplate.id);
+    
     return newTemplate.id;
   };
 
@@ -82,22 +122,37 @@ export const useSystemPrompt = () => {
       template.id === templateId ? { ...template, name, content } : template
     );
     setSystemPromptTemplates(updatedTemplates);
+    
+    // 如果更新的是当前选中的模板，同步更新系统提示词
+    if (selectedTemplateId === templateId) {
+      setSystemPrompt(content);
+      localStorage.setItem(STORAGE_KEYS.SYSTEM_PROMPT, content);
+    }
   };
 
   // 删除模板
   const deleteTemplate = (templateId) => {
     const updatedTemplates = systemPromptTemplates.filter(template => template.id !== templateId);
     setSystemPromptTemplates(updatedTemplates);
+    
+    // 如果删除的是当前选中的模板，重置为默认模板
     if (selectedTemplateId === templateId) {
-      setSelectedTemplateId('');
+      const defaultTemplate = updatedTemplates[0] || DEFAULT_SYSTEM_PROMPT_TEMPLATES[0];
+      setSelectedTemplateId(defaultTemplate.id);
+      setSystemPrompt(defaultTemplate.content);
+      localStorage.setItem(STORAGE_KEYS.SYSTEM_PROMPT, defaultTemplate.content);
+      localStorage.setItem(STORAGE_KEYS.SELECTED_TEMPLATE_ID, defaultTemplate.id);
     }
   };
 
   // 重置模板到默认值
   const resetTemplates = () => {
     setSystemPromptTemplates(DEFAULT_SYSTEM_PROMPT_TEMPLATES);
-    setSelectedTemplateId(DEFAULT_SYSTEM_PROMPT_TEMPLATES[0].id);
-    setSystemPrompt(DEFAULT_SYSTEM_PROMPT_TEMPLATES[0].content);
+    const defaultTemplate = DEFAULT_SYSTEM_PROMPT_TEMPLATES[0];
+    setSelectedTemplateId(defaultTemplate.id);
+    setSystemPrompt(defaultTemplate.content);
+    localStorage.setItem(STORAGE_KEYS.SYSTEM_PROMPT, defaultTemplate.content);
+    localStorage.setItem(STORAGE_KEYS.SELECTED_TEMPLATE_ID, defaultTemplate.id);
   };
 
   return {

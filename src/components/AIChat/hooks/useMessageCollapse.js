@@ -3,11 +3,11 @@ import { useState } from 'react';
 export const useMessageCollapse = () => {
   const [collapsedMessages, setCollapsedMessages] = useState(new Set());
 
-  const toggleMessageCollapse = (messageId, isCollapsed) => {
+  const toggleMessageCollapse = (messageId) => {
     const newSet = new Set([...collapsedMessages]);
     const namespacedId = `aichat_${messageId}`;
     
-    if (isCollapsed) {
+    if (collapsedMessages.has(namespacedId)) {
       newSet.delete(namespacedId);
       setCollapsedMessages(newSet);
       setTimeout(() => {

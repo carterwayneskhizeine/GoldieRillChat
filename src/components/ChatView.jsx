@@ -1124,6 +1124,53 @@ export function ChatView({
                       ? "Edit" 
                       : "Send"}
                   </button>
+                  
+                  {/* 添加类型切换按钮 */}
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      // 切换消息类型
+                      let newType;
+                      if (!message.type) {
+                        newType = 'user'; // TypeN -> TypeU
+                      } else if (message.type === 'user') {
+                        newType = 'assistant'; // TypeU -> TypeA
+                      } else {
+                        newType = null; // TypeA -> TypeN
+                      }
+                      
+                      // 创建更新后的消息对象
+                      const updatedMessage = {...message};
+                      
+                      if (newType) {
+                        updatedMessage.type = newType;
+                      } else {
+                        delete updatedMessage.type;
+                      }
+                      
+                      // 更新消息列表
+                      const updatedMessages = messages.map(msg => 
+                        msg.id === message.id ? updatedMessage : msg
+                      );
+                      
+                      // 保存到存储
+                      if (currentConversation) {
+                        window.electron.saveMessages(
+                          currentConversation.path,
+                          currentConversation.id,
+                          updatedMessages
+                        ).then(() => {
+                          // 更新状态
+                          setMessages(updatedMessages);
+                        }).catch(error => {
+                          console.error('保存消息类型失败:', error);
+                          alert('保存消息类型失败: ' + error.message);
+                        });
+                      }
+                    }}
+                  >
+                    {!message.type ? "TypeN" : message.type === 'user' ? "TypeU" : "TypeA"}
+                  </button>
                 </div>
               )}
             </div>

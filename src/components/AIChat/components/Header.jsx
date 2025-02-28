@@ -24,7 +24,7 @@ export const Header = ({
             localStorage.setItem('aichat_model', e.target.value);
           }}
         >
-          {availableModels.map(model => (
+          {(availableModels || []).map(model => (
             <option key={model} value={model}>{model}</option>
           ))}
         </select>

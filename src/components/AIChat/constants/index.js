@@ -8,7 +8,8 @@ export const STORAGE_KEYS = {
   CURRENT_CONVERSATION: 'aichat_current_conversation',
   SYSTEM_PROMPT: 'aichat_system_prompt',
   SYSTEM_PROMPT_ENABLED: 'aichat_system_prompt_enabled',
-  SYSTEM_PROMPT_TEMPLATES: 'aichat_system_prompt_templates'
+  SYSTEM_PROMPT_TEMPLATES: 'aichat_system_prompt_templates',
+  SELECTED_TEMPLATE_ID: 'aichat_selected_template_id'
 };
 
 // 显示阶段常量

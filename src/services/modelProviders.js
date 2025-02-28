@@ -194,7 +194,18 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
               
               // 处理普通内容
               if (delta.content !== undefined) {
-                content += delta.content || '';
+                const newContent = delta.content || '';
+                for (let i = 0; i < newContent.length; i++) {
+                  content += newContent[i];
+                  onUpdate?.({
+                    type: 'assistant',
+                    content: content,
+                    reasoning_content: reasoning_content,
+                    done: false,
+                    generating: true
+                  });
+                  await new Promise(resolve => setTimeout(resolve, 50));
+                }
                 shouldUpdate = true;
               }
 
@@ -245,8 +256,17 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
 };
 
 // DeepSeek API 调用实现
-export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7 }) => {
+export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate, maxTokens = 2000, temperature = 0.7, signal }) => {
   try {
+    // 发送初始状态，显示 "Thinking..." 动画
+    onUpdate?.({
+      type: 'assistant',
+      content: '',
+      reasoning_content: '',
+      done: false,
+      generating: true
+    });
+    
     // 检查是否是 reasoner 模型
     const isReasonerModel = model === 'deepseek-reasoner';
     
@@ -284,7 +304,8 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate,
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      signal: signal // 添加 signal 参数，用于中止请求
     });
 
     if (!response.ok) {
@@ -314,68 +335,87 @@ export const callDeepSeek = async ({ apiKey, apiHost, model, messages, onUpdate,
     let reasoning_content = '';
     let buffer = '';
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        // 发送完成信号
-        onUpdate?.({
-          type: 'assistant',
-          content,
-          reasoning_content,
-          done: true,
-          generating: false
-        });
-        break;
-      }
-      
-      buffer += decoder.decode(value, { stream: true });
-      const chunks = buffer.split('\n');
-      buffer = chunks.pop() || '';
-      
-      for (const chunk of chunks) {
-        if (!chunk.trim() || chunk.includes('keep-alive')) continue;
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          // 发送完成信号
+          onUpdate?.({
+            type: 'assistant',
+            content,
+            reasoning_content,
+            done: true,
+            generating: false
+          });
+          break;
+        }
         
-        try {
-          const jsonStr = chunk.replace(/^data:\s*/, '').trim();
-          if (jsonStr === '[DONE]') continue;
+        buffer += decoder.decode(value, { stream: true });
+        const chunks = buffer.split('\n');
+        buffer = chunks.pop() || '';
+        
+        for (const chunk of chunks) {
+          if (!chunk.trim() || chunk.includes('keep-alive')) continue;
           
-          // 尝试解析 JSON，如果失败则跳过这个块
-          let json;
           try {
-            json = JSON.parse(jsonStr);
+            const jsonStr = chunk.replace(/^data:\s*/, '').trim();
+            if (jsonStr === '[DONE]') continue;
+            
+            // 尝试解析 JSON，如果失败则跳过这个块
+            let json;
+            try {
+              json = JSON.parse(jsonStr);
+            } catch (e) {
+              console.warn('跳过无效的 JSON 数据块:', jsonStr);
+              continue;
+            }
+            
+            if (json.choices && json.choices[0] && json.choices[0].delta) {
+              const delta = json.choices[0].delta;
+              
+              if (delta.reasoning_content !== undefined) {
+                reasoning_content += delta.reasoning_content || '';
+                onUpdate?.({
+                  type: 'reasoning',
+                  content: reasoning_content
+                });
+              }
+              
+              if (delta.content !== undefined) {
+                const newContent = delta.content || '';
+                for (let i = 0; i < newContent.length; i++) {
+                  content += newContent[i];
+                  onUpdate?.({
+                    type: 'assistant',
+                    content: content,
+                    reasoning_content: reasoning_content,
+                    done: false,
+                    generating: true
+                  });
+                  await new Promise(resolve => setTimeout(resolve, 50));
+                }
+              }
+            }
           } catch (e) {
-            console.warn('跳过无效的 JSON 数据块:', jsonStr);
+            console.warn('解析数据块失败:', e, '数据块:', chunk);
             continue;
           }
-          
-          if (json.choices && json.choices[0] && json.choices[0].delta) {
-            const delta = json.choices[0].delta;
-            
-            if (delta.reasoning_content !== undefined) {
-              reasoning_content += delta.reasoning_content || '';
-              onUpdate?.({
-                type: 'reasoning',
-                content: reasoning_content
-              });
-            }
-            
-            if (delta.content !== undefined) {
-              content += delta.content || '';
-              // 不要在这里发送content更新
-            }
-          }
-        } catch (e) {
-          console.warn('解析数据块失败:', e, '数据块:', chunk);
-          continue;
         }
       }
-    }
 
-    return {
-      content,
-      reasoning_content,
-      usage: {}
-    };
+      return {
+        content,
+        reasoning_content,
+        usage: {}
+      };
+    } catch (error) {
+      console.error('DeepSeek API 调用失败:', error);
+      // 如果是中止错误，抛出 AbortError
+      if (error.name === 'AbortError') {
+        throw error;
+      }
+      throw new Error(`DeepSeek API 调用失败: ${error.message}`);
+    }
   } catch (error) {
     console.error('DeepSeek API 调用失败:', error);
     throw new Error(`DeepSeek API 调用失败: ${error.message}`);
@@ -600,13 +640,18 @@ export const callStepFun = async ({ apiKey, apiHost, model, messages, maxTokens 
             const delta = json.choices[0].delta;
             
             if (delta.content !== undefined) {
-              content += delta.content || '';
-              onUpdate?.({
-                type: 'assistant',
-                content: content,
-                done: false,
-                generating: true
-              });
+              const newContent = delta.content || '';
+              for (let i = 0; i < newContent.length; i++) {
+                content += newContent[i];
+                onUpdate?.({
+                  type: 'assistant',
+                  content: content,
+                  reasoning_content: reasoning_content,
+                  done: false,
+                  generating: true
+                });
+                await new Promise(resolve => setTimeout(resolve, 50));
+              }
             }
           }
         } catch (e) {
@@ -675,7 +720,7 @@ export const callModelAPI = async ({
     case 'openrouter':
       return callOpenRouter({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature });
     case 'deepseek':
-      return callDeepSeek({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature });
+      return callDeepSeek({ apiKey, apiHost, model, messages, onUpdate, maxTokens, temperature, signal });
     case 'stepfun':
       return callStepFun({ apiKey, apiHost, model, messages, maxTokens, temperature, onUpdate, signal });
     default:

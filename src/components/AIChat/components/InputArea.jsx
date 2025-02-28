@@ -43,7 +43,7 @@ export const InputArea = ({
       <div className="relative max-w-[750px] mx-auto">
         <textarea
           className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-transparent aichat-input"
-          placeholder="输入消息..."
+          placeholder="Send a message..."
           value={messageInput}
           onChange={(e) => {
             setMessageInput(e.target.value);

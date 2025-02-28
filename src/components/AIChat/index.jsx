@@ -327,8 +327,8 @@ export const AIChat = ({
           </div>
 
           {/* 消息列表区域 */}
-          <div className="flex-1 overflow-auto">
-            <MessageList
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <MessageList 
               messages={messageState.messages}
               selectedModel={modelState.selectedModel}
               editingMessageId={messageState.editingMessageId}
@@ -343,6 +343,8 @@ export const AIChat = ({
               handleHistoryNavigation={messageHandlers.handleHistoryNavigation}
               openFileLocation={openFileLocation}
               openInBrowserTab={openInBrowserTab}
+              currentConversation={currentConversation}
+              setMessages={messageState.setMessages}
             />
           </div>
 

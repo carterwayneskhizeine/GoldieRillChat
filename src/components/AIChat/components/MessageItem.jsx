@@ -113,7 +113,10 @@ export const MessageItem = ({
   onToggleCollapse,
   onImageClick,
   openFileLocation,
-  openInBrowserTab
+  openInBrowserTab,
+  currentConversation,
+  setMessages,
+  messages
 }) => {
   // 添加推理过程折叠状态
   const [isReasoningCollapsed, setIsReasoningCollapsed] = useState(false);
@@ -313,7 +316,7 @@ export const MessageItem = ({
           {shouldCollapseMessage(message) && (
             <button
               className="aichat-collapse-btn"
-              onClick={() => onToggleCollapse(message.id, isCollapsed)}
+              onClick={() => onToggleCollapse(message.id)}
               style={{ zIndex: 40 }}
             >
               {isCollapsed ? (
@@ -347,9 +350,15 @@ export const MessageItem = ({
                       {/* 显示推理过程 */}
                       {message.type === 'assistant' && message.reasoning_content && (
                         <div className="mb-4 p-4 bg-base-200 rounded-lg border border-base-300 reasoning-bubble relative">
-                          <div className={`typing-content ${message.generating ? 'generating' : ''} ${
-                            isReasoningCollapsed ? 'max-h-[100px] overflow-hidden mask-bottom' : ''
-                          }`}>
+                          <div 
+                            className={`typing-content ${message.generating ? 'generating' : ''}`}
+                            style={isReasoningCollapsed ? {
+                              maxHeight: '100px',
+                              overflow: 'hidden',
+                              maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
+                              WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)'
+                            } : {}}
+                          >
                             {message.reasoning_content}
                           </div>
                           <div className="flex justify-center mt-2">
@@ -511,6 +520,53 @@ export const MessageItem = ({
                 </span>
               </>
             )}
+            
+            {/* 添加类型切换按钮 */}
+            <button
+              className="btn btn-ghost btn-xs"
+              onClick={() => {
+                // 切换消息类型
+                let newType;
+                if (!message.type) {
+                  newType = 'user'; // TypeN -> TypeU
+                } else if (message.type === 'user') {
+                  newType = 'assistant'; // TypeU -> TypeA
+                } else {
+                  newType = null; // TypeA -> TypeN
+                }
+                
+                // 创建更新后的消息对象
+                const updatedMessage = {...message};
+                
+                if (newType) {
+                  updatedMessage.type = newType;
+                } else {
+                  delete updatedMessage.type;
+                }
+                
+                // 更新消息列表
+                const updatedMessages = messages.map(msg => 
+                  msg.id === message.id ? updatedMessage : msg
+                );
+                
+                // 保存到存储
+                if (currentConversation?.path) {
+                  window.electron.saveMessages(
+                    currentConversation.path,
+                    currentConversation.id,
+                    updatedMessages
+                  ).then(() => {
+                    // 更新状态
+                    setMessages(updatedMessages);
+                  }).catch(error => {
+                    console.error('保存消息类型失败:', error);
+                    alert('保存消息类型失败: ' + error.message);
+                  });
+                }
+              }}
+            >
+              {!message.type ? "TypeN" : message.type === 'user' ? "TypeU" : "TypeA"}
+            </button>
           </div>
         )}
       </div>

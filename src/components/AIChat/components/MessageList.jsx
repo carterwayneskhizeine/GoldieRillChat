@@ -18,7 +18,9 @@ export const MessageList = ({
   handleStop,
   handleHistoryNavigation,
   openFileLocation,
-  openInBrowserTab
+  openInBrowserTab,
+  currentConversation,
+  setMessages
 }) => {
   const messagesEndRef = useRef(null);
 
@@ -100,7 +102,7 @@ export const MessageList = ({
           scrollBehavior: 'smooth'
         }}
       >
-        <div className="space-y-4 max-w-[1200px] mx-auto p-4">
+        <div className="space-y-4 p-4 max-w-[1200px] mx-auto">
           {messages.map(message => (
             <MessageItem
               key={message.id}
@@ -117,10 +119,13 @@ export const MessageList = ({
               handleStop={handleStop}
               handleHistoryNavigation={handleHistoryNavigation}
               isCollapsed={isMessageCollapsed(message.id)}
-              onToggleCollapse={toggleMessageCollapse}
+              onToggleCollapse={() => toggleMessageCollapse(message.id)}
               onImageClick={handleImageClick}
               openFileLocation={openFileLocation}
               openInBrowserTab={openInBrowserTab}
+              currentConversation={currentConversation}
+              setMessages={setMessages}
+              messages={messages}
             />
           ))}
           <div ref={messagesEndRef} />
