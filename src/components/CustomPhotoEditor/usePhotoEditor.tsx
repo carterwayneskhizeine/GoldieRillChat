@@ -75,12 +75,12 @@ export const usePhotoEditor = ({
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
 
+    // 清除画布
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
     // 设置画布尺寸为当前分辨率
     canvasRef.current.width = resolution.width;
     canvasRef.current.height = resolution.height;
-
-    // 清除画布
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
     // 填充白色背景 - 始终填充整个画布
     ctx.fillStyle = '#FFFFFF';
@@ -120,6 +120,9 @@ export const usePhotoEditor = ({
     // 移动到画布中心
     ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
+    // 应用滤镜 - 在绘制图像前应用滤镜
+    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%)`;
+
     // 应用旋转
     ctx.rotate((rotate * Math.PI) / 180);
 
@@ -144,9 +147,6 @@ export const usePhotoEditor = ({
 
     // 恢复状态
     ctx.restore();
-    
-    // 应用滤镜
-    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) grayscale(${grayscale}%)`;
   }, [
     brightness,
     contrast,

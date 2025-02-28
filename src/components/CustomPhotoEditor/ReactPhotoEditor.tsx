@@ -343,6 +343,32 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
     handleAspectRatioChange(ratio);
   };
 
+  // 参考原生库实现方式，直接使用handleInputChange函数处理滑块变化
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    setValue: React.Dispatch<React.SetStateAction<number>>,
+    min: number,
+    max: number
+  ) => {
+    const value = parseInt(event.target.value);
+    if (!isNaN(value) && value >= min && value <= max) {
+      setValue(value);
+      // 原生库通过useEffect自动应用滤镜，这里我们手动调用
+      setTimeout(() => applyFilter(), 0);
+    }
+  };
+
+  // 处理重置的函数
+  const handleResetColors = () => {
+    // 恢复默认值
+    setBrightness(100);
+    setContrast(100);
+    setSaturate(100);
+    setGrayscale(0);
+    // 确保应用滤镜
+    setTimeout(() => applyFilter(), 0);
+  };
+
   // 在分辨率变化后自动调整图片
   useEffect(() => {
     // 当分辨率变化时，自动调整图片
@@ -377,250 +403,252 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
           </button>
         </div>
 
-        {/* 编辑图片标签页 */}
-        {activeTab === 'edit' && (
+        {/* 主区域 - 固定结构，确保画布位置一致 */}
+        <div className="rpe-main-container">
+          {/* 顶部控制面板 - 根据标签页显示不同内容 */}
           <div className="rpe-top-controls">
-            {/* 按钮行 */}
-            <div className="rpe-button-row">
-              {allowResolutionSettings && (
-                <div className="dropdown dropdown-bottom">
-                  <label tabIndex={0} className="btn btn-sm">Res</label>
-                  <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
-                    {resolutionOptions.map((option, index) => (
-                      <li key={index}>
-                        <a onClick={() => applyPresetResolution(option)}>
-                          {option.width} x {option.height}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+            {activeTab === 'edit' && (
+              <div className="rpe-edit-controls">
+                {/* 按钮行 */}
+                <div className="rpe-button-row">
+                  {allowResolutionSettings && (
+                    <div className="dropdown dropdown-bottom">
+                      <label tabIndex={0} className="btn btn-sm">Res</label>
+                      <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
+                        {resolutionOptions.map((option, index) => (
+                          <li key={index}>
+                            <a onClick={() => applyPresetResolution(option)}>
+                              {option.width} x {option.height}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {allowRotate && (
+                    <>
+                      <button className="btn btn-sm btn-circle" onClick={() => setRotate((prev) => prev - 90)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M9,4 L4,9 L9,14 M4,9 C7.86599045,9 11,12.1340096 11,16 C11,19.8659904 7.86599045,23 4,23" />
+                        </svg>
+                      </button>
+                      <button className="btn btn-sm btn-circle" onClick={() => setRotate((prev) => prev + 90)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M15,4 L20,9 L15,14 M20,9 C16.1340096,9 13,12.1340096 13,16 C13,19.8659904 16.1340096,23 20,23" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+
+                  {allowFlip && (
+                    <>
+                      <button 
+                        className={`btn btn-sm btn-circle ${flipHorizontal ? 'btn-primary' : ''}`}
+                        onClick={() => setFlipHorizontal((prev) => !prev)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12,2 L12,22 M3,12 L21,12" />
+                        </svg>
+                      </button>
+                      <button className="btn btn-sm btn-circle" onClick={fitToHeight}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M2,5 L22,5 L22,19 L2,19 L2,5 Z M12,5 L12,19" />
+                        </svg>
+                      </button>
+                      <button 
+                        className={`btn btn-sm btn-circle ${flipVertical ? 'btn-primary' : ''}`}
+                        onClick={() => setFlipVertical((prev) => !prev)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M2,12 L22,12 M12,2 L12,22" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+
+                  {allowZoom && (
+                    <>
+                      <button className="btn btn-sm btn-circle" onClick={() => handleZoom(0.01)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12,2 L12,22 M2,12 L22,12" />
+                        </svg>
+                      </button>
+                      <button className="btn btn-sm btn-circle" onClick={() => handleZoom(-0.01)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M2,12 L22,12" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+
+                  {allowAspectRatioSettings && (
+                    <div className="dropdown dropdown-bottom">
+                      <label tabIndex={0} className="btn btn-sm">AR</label>
+                      <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
+                        {aspectRatioOptions.map((ratio, index) => (
+                          <li key={index}>
+                            <a onClick={() => handleAspectRatioSelect(ratio)}>
+                              {ratio}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {allowRotate && (
-                <>
-                  <button className="btn btn-sm btn-circle" onClick={() => setRotate((prev) => prev - 90)}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M9,4 L4,9 L9,14 M4,9 C7.86599045,9 11,12.1340096 11,16 C11,19.8659904 7.86599045,23 4,23" />
-                    </svg>
-                  </button>
-                  <button className="btn btn-sm btn-circle" onClick={() => setRotate((prev) => prev + 90)}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M15,4 L20,9 L15,14 M20,9 C16.1340096,9 13,12.1340096 13,16 C13,19.8659904 16.1340096,23 20,23" />
-                    </svg>
-                  </button>
-                </>
-              )}
-
-              {allowFlip && (
-                <>
-                  <button 
-                    className={`btn btn-sm btn-circle ${flipHorizontal ? 'btn-primary' : ''}`}
-                    onClick={() => setFlipHorizontal((prev) => !prev)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12,2 L12,22 M3,12 L21,12" />
-                    </svg>
-                  </button>
-                  <button className="btn btn-sm btn-circle" onClick={fitToHeight}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M2,5 L22,5 L22,19 L2,19 L2,5 Z M12,5 L12,19" />
-                    </svg>
-                  </button>
-                  <button 
-                    className={`btn btn-sm btn-circle ${flipVertical ? 'btn-primary' : ''}`}
-                    onClick={() => setFlipVertical((prev) => !prev)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M2,12 L22,12 M12,2 L12,22" />
-                    </svg>
-                  </button>
-                </>
-              )}
-
-              {allowZoom && (
-                <>
-                  <button className="btn btn-sm btn-circle" onClick={() => handleZoom(0.01)}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12,2 L12,22 M2,12 L22,12" />
-                    </svg>
-                  </button>
-                  <button className="btn btn-sm btn-circle" onClick={() => handleZoom(-0.01)}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M2,12 L22,12" />
-                    </svg>
-                  </button>
-                </>
-              )}
-
-              {allowAspectRatioSettings && (
-                <div className="dropdown dropdown-bottom">
-                  <label tabIndex={0} className="btn btn-sm">AR</label>
-                  <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
-                    {aspectRatioOptions.map((ratio, index) => (
-                      <li key={index}>
-                        <a onClick={() => handleAspectRatioSelect(ratio)}>
-                          {ratio}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                {/* 分辨率信息 */}
+                <div className="rpe-canvas-info">
+                  <p>分辨率: <span id="currentResolution">{currentResolution.width} x {currentResolution.height}</span></p>
                 </div>
-              )}
-            </div>
 
-            {/* 分辨率信息 */}
-            <div className="rpe-canvas-info">
-              <p>分辨率: <span id="currentResolution">{currentResolution.width} x {currentResolution.height}</span></p>
-            </div>
-
-            {/* 分辨率输入控制 */}
-            <div className="rpe-control-panel">
-              <div className="rpe-control-group">
-                <input 
-                  type="number" 
-                  className="input input-bordered input-sm w-24"
-                  placeholder="宽度" 
-                  value={widthInput}
-                  onChange={handleWidthChange}
-                />
-                <input 
-                  type="number" 
-                  className="input input-bordered input-sm w-24"
-                  placeholder="高度" 
-                  value={heightInput}
-                  onChange={handleHeightChange}
-                />
-                <button className="btn btn-sm btn-primary" onClick={applyResolution}>
-                  {mergedLabels.apply}
-                </button>
+                {/* 分辨率输入控制 */}
+                <div className="rpe-control-panel">
+                  <div className="rpe-control-group">
+                    <input 
+                      type="number" 
+                      className="input input-bordered input-sm w-24"
+                      placeholder="宽度" 
+                      value={widthInput}
+                      onChange={handleWidthChange}
+                    />
+                    <input 
+                      type="number" 
+                      className="input input-bordered input-sm w-24"
+                      placeholder="高度" 
+                      value={heightInput}
+                      onChange={handleHeightChange}
+                    />
+                    <button className="btn btn-sm btn-primary" onClick={applyResolution}>
+                      {mergedLabels.apply}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {activeTab === 'color' && (
+              <div className="rpe-color-controls">
+                <div className="rpe-slider-row">
+                  {/* 亮度滑块 */}
+                  <div className="rpe-slider-group">
+                    <div className="rpe-slider-label-row">
+                      <span>{mergedLabels.brightness}: {brightness}%</span>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="200" 
+                        value={brightness} 
+                        onChange={(e) => handleInputChange(e, setBrightness, 0, 200)}
+                        className="range range-sm"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* 对比度滑块 */}
+                  <div className="rpe-slider-group">
+                    <div className="rpe-slider-label-row">
+                      <span>{mergedLabels.contrast}: {contrast}%</span>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="200" 
+                        value={contrast} 
+                        onChange={(e) => handleInputChange(e, setContrast, 0, 200)}
+                        className="range range-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="rpe-slider-row">
+                  {/* 饱和度滑块 */}
+                  <div className="rpe-slider-group">
+                    <div className="rpe-slider-label-row">
+                      <span>{mergedLabels.saturate}: {saturate}%</span>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="200" 
+                        value={saturate} 
+                        onChange={(e) => handleInputChange(e, setSaturate, 0, 200)}
+                        className="range range-sm"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* 灰度滑块 */}
+                  <div className="rpe-slider-group">
+                    <div className="rpe-slider-label-row">
+                      <span>{mergedLabels.grayscale}: {grayscale}%</span>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={grayscale} 
+                        onChange={(e) => handleInputChange(e, setGrayscale, 0, 100)}
+                        className="range range-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 重置按钮行 */}
+                <div className="rpe-reset-row">
+                  <button 
+                    className="btn btn-sm btn-outline" 
+                    onClick={handleResetColors}
+                  >
+                    {mergedLabels.reset}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* 颜色调整标签页 */}
-        {activeTab === 'color' && (
-          <div className="rpe-top-controls">
-            <div className="rpe-color-controls">
-              <div className="rpe-slider-row">
-                {/* 亮度滑块 */}
-                <div className="rpe-slider-group">
-                  <div className="rpe-slider-label-row">
-                    <span>{mergedLabels.brightness}: {brightness}%</span>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="200" 
-                      value={brightness} 
-                      onChange={(e) => setBrightness(parseInt(e.target.value))}
-                      className="range range-sm"
-                    />
-                  </div>
-                </div>
-                
-                {/* 对比度滑块 */}
-                <div className="rpe-slider-group">
-                  <div className="rpe-slider-label-row">
-                    <span>{mergedLabels.contrast}: {contrast}%</span>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="200" 
-                      value={contrast} 
-                      onChange={(e) => setContrast(parseInt(e.target.value))}
-                      className="range range-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="rpe-slider-row">
-                {/* 饱和度滑块 */}
-                <div className="rpe-slider-group">
-                  <div className="rpe-slider-label-row">
-                    <span>{mergedLabels.saturate}: {saturate}%</span>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="200" 
-                      value={saturate} 
-                      onChange={(e) => setSaturate(parseInt(e.target.value))}
-                      className="range range-sm"
-                    />
-                  </div>
-                </div>
-                
-                {/* 灰度滑块 */}
-                <div className="rpe-slider-group">
-                  <div className="rpe-slider-label-row">
-                    <span>{mergedLabels.grayscale}: {grayscale}%</span>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={grayscale} 
-                      onChange={(e) => setGrayscale(parseInt(e.target.value))}
-                      className="range range-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              {/* 重置按钮行 */}
-              <div className="rpe-reset-row">
-                <button 
-                  className="btn btn-sm btn-outline" 
-                  onClick={resetEdits}
+          {/* 画布区域 - 固定位置 */}
+          <div className="rpe-content">
+            <div 
+              className="rpe-canvas-wrapper"
+              onWheel={handleWheel}
+              ref={canvasContainerRef}
+            >
+              <div className="rpe-canvas-container">
+                <div 
+                  className="rpe-canvas-preview" 
+                  style={{
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: 'center',
+                    width: currentResolution.width,
+                    height: currentResolution.height,
+                  }}
                 >
-                  {mergedLabels.reset}
+                  <canvas
+                    ref={canvasRef}
+                    className="rpe-canvas"
+                    width={currentResolution.width}
+                    height={currentResolution.height}
+                    onMouseDown={handleCanvasMouseDown}
+                    onMouseMove={handleCanvasMouseMove}
+                    onMouseUp={handleCanvasMouseUp}
+                    onMouseLeave={handleCanvasMouseUp}
+                  />
+                  <img ref={imageRef} src="" alt="source" style={{ display: 'none' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* 底部操作按钮 */}
+            <div className="rpe-bottom-controls">
+              <div className="rpe-action-buttons">
+                <button className="btn btn-sm" onClick={handleClose}>
+                  {mergedLabels.cancel}
+                </button>
+                <button className="btn btn-sm btn-primary" onClick={handleSave}>
+                  {mergedLabels.save}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
-
-        <div className="rpe-content">
-          {/* 画布区域 - 放在中间 */}
-          <div 
-            className="rpe-canvas-wrapper"
-            onWheel={handleWheel}
-            ref={canvasContainerRef}
-          >
-            <div className="rpe-canvas-container">
-              <div 
-                className="rpe-canvas-preview" 
-                style={{
-                  transform: `scale(${previewScale})`,
-                  transformOrigin: 'center',
-                  width: currentResolution.width,
-                  height: currentResolution.height,
-                }}
-              >
-                <canvas
-                  ref={canvasRef}
-                  className="rpe-canvas"
-                  width={currentResolution.width}
-                  height={currentResolution.height}
-                  onMouseDown={handleCanvasMouseDown}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={handleCanvasMouseUp}
-                />
-                <img ref={imageRef} src="" alt="source" style={{ display: 'none' }} />
-              </div>
-            </div>
-          </div>
-
-          {/* 底部操作按钮 */}
-          <div className="rpe-bottom-controls">
-            <div className="rpe-action-buttons">
-              <button className="btn btn-sm" onClick={handleClose}>
-                {mergedLabels.cancel}
-              </button>
-              <button className="btn btn-sm btn-primary" onClick={handleSave}>
-                {mergedLabels.save}
-              </button>
             </div>
           </div>
         </div>
