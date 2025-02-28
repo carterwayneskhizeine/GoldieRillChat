@@ -3,6 +3,8 @@ class EventBus {
     this.events = {};
     this.lastInputTime = 0;
     this.inputIntensity = 0;
+    this.isCustomBackground = false;
+    this.currentBackgroundPath = null;
   }
 
   on(eventName, callback) {
@@ -55,6 +57,27 @@ class EventBus {
       this.inputIntensity = Math.max(0.0, this.inputIntensity - 0.01);
     }
     return this.inputIntensity;
+  }
+
+  // 切换背景状态
+  toggleBackground(imagePath) {
+    this.isCustomBackground = !this.isCustomBackground;
+    this.currentBackgroundPath = this.isCustomBackground ? imagePath : null;
+    
+    this.emit('backgroundChange', {
+      isCustomBackground: this.isCustomBackground,
+      path: this.currentBackgroundPath
+    });
+    
+    return this.isCustomBackground;
+  }
+
+  // 获取当前背景状态
+  getBackgroundState() {
+    return {
+      isCustomBackground: this.isCustomBackground,
+      path: this.currentBackgroundPath
+    };
   }
 }
 

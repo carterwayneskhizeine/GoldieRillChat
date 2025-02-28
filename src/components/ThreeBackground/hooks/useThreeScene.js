@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import eventBus from '../utils/eventBus';
 
@@ -84,6 +84,12 @@ export const useThreeScene = () => {
   const [camera, setCamera] = useState(null);
   const [renderer, setRenderer] = useState(null);
   const [uniforms, setUniforms] = useState(null);
+  const [isCustomBackground, setIsCustomBackground] = useState(false);
+  
+  // 保存原始材质和网格引用
+  const originalMaterialRef = useRef(null);
+  const meshRef = useRef(null);
+  const textureRef = useRef(null);
 
   // 添加输入事件监听
   useEffect(() => {
@@ -98,6 +104,113 @@ export const useThreeScene = () => {
     eventBus.on('input', handleInput);
     return () => eventBus.off('input', handleInput);
   }, [uniforms]);
+
+  // 添加背景切换事件监听
+  useEffect(() => {
+    if (!scene || !meshRef.current || !originalMaterialRef.current) return;
+
+    const handleBackgroundChange = (data) => {
+      if (data.isCustomBackground) {
+        // 切换到图片背景
+        setImageBackground(data.path);
+      } else {
+        // 恢复默认着色器背景
+        resetToDefaultBackground();
+      }
+    };
+
+    eventBus.on('backgroundChange', handleBackgroundChange);
+    return () => eventBus.off('backgroundChange', handleBackgroundChange);
+  }, [scene]);
+
+  // 设置图片背景
+  const setImageBackground = async (imagePath) => {
+    if (!scene || !meshRef.current) return;
+
+    try {
+      console.log('Setting image background:', imagePath);
+      setIsCustomBackground(true);
+
+      // 通过Electron API读取图片文件
+      const fileData = await window.electron.readBinaryFile(imagePath);
+      const blob = new Blob([fileData], { type: 'image/png' });
+      const imageUrl = URL.createObjectURL(blob);
+
+      // 创建纹理加载器
+      const loader = new THREE.TextureLoader();
+      
+      // 加载图片纹理
+      loader.load(
+        imageUrl,
+        (texture) => {
+          // 清理之前的纹理
+          if (textureRef.current) {
+            textureRef.current.dispose();
+          }
+          
+          // 保存新纹理引用以便后续清理
+          textureRef.current = texture;
+
+          // 创建新材质
+          const imageMaterial = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            opacity: 0.25
+          });
+
+          // 应用新材质
+          meshRef.current.material = imageMaterial;
+          
+          // 设置适当的缩放比例以保持图片比例
+          const imageAspect = texture.image.width / texture.image.height;
+          const screenAspect = window.innerWidth / window.innerHeight;
+          
+          if (imageAspect > screenAspect) {
+            // 图片更宽，填满宽度
+            meshRef.current.scale.set(1, screenAspect / imageAspect, 1);
+          } else {
+            // 图片更高，填满高度
+            meshRef.current.scale.set(imageAspect / screenAspect, 1, 1);
+          }
+
+          // 立即渲染一次
+          if (renderer && camera) {
+            renderer.render(scene, camera);
+          }
+          
+          // 清理URL
+          URL.revokeObjectURL(imageUrl);
+        },
+        undefined,
+        (error) => {
+          console.error('Error loading image texture:', error);
+          resetToDefaultBackground();
+        }
+      );
+    } catch (error) {
+      console.error('Error setting image background:', error);
+      resetToDefaultBackground();
+    }
+  };
+
+  // 恢复默认背景
+  const resetToDefaultBackground = () => {
+    if (!meshRef.current || !originalMaterialRef.current) return;
+    
+    console.log('Resetting to default background');
+    setIsCustomBackground(false);
+    
+    // 恢复原始材质
+    meshRef.current.material = originalMaterialRef.current;
+    
+    // 重置缩放
+    meshRef.current.scale.set(1, 1, 1);
+    
+    // 立即渲染一次
+    if (renderer && camera && scene) {
+      renderer.render(scene, camera);
+    }
+  };
 
   const initScene = useCallback((container) => {
     console.log('Initializing Three.js scene with container:', container);
@@ -147,6 +260,10 @@ export const useThreeScene = () => {
       const mesh = new THREE.Mesh(geometry, material);
       newScene.add(mesh);
       console.log('Mesh added to scene');
+      
+      // 保存原始材质和网格引用
+      originalMaterialRef.current = material;
+      meshRef.current = mesh;
 
       setScene(newScene);
       setCamera(newCamera);
@@ -160,6 +277,18 @@ export const useThreeScene = () => {
           console.log('Resizing to:', width, height);
           newRenderer.setSize(width, height, false);
           newUniforms.u_resolution.value.set(width, height);
+          
+          // 如果是自定义背景，需要更新缩放
+          if (isCustomBackground && textureRef.current && meshRef.current) {
+            const imageAspect = textureRef.current.image.width / textureRef.current.image.height;
+            const screenAspect = width / height;
+            
+            if (imageAspect > screenAspect) {
+              meshRef.current.scale.set(1, screenAspect / imageAspect, 1);
+            } else {
+              meshRef.current.scale.set(imageAspect / screenAspect, 1, 1);
+            }
+          }
         }
       };
 
@@ -181,16 +310,23 @@ export const useThreeScene = () => {
         window.removeEventListener('resize', handleResize);
         window.removeEventListener('mousemove', handleMouseMove);
         newRenderer.dispose();
+        if (textureRef.current) {
+          textureRef.current.dispose();
+        }
       };
     } catch (error) {
       console.error('Error initializing Three.js scene:', error);
     }
-  }, []);
+  }, [isCustomBackground]);
 
   const updateScene = useCallback((deltaTime) => {
     if (scene && camera && renderer && uniforms) {
       try {
-        uniforms.u_time.value += deltaTime * 0.5;
+        // 只在非图片背景模式下更新时间
+        if (!isCustomBackground) {
+          uniforms.u_time.value += deltaTime * 0.5;
+        }
+        
         // 更新输入强度的自然衰减
         uniforms.u_intensity.value = eventBus.getInputIntensity();
         renderer.render(scene, camera);
@@ -198,7 +334,12 @@ export const useThreeScene = () => {
         console.error('Error in render loop:', error);
       }
     }
-  }, [scene, camera, renderer, uniforms]);
+  }, [scene, camera, renderer, uniforms, isCustomBackground]);
+
+  // 提供背景切换API
+  const toggleBackground = useCallback((imagePath) => {
+    return eventBus.toggleBackground(imagePath);
+  }, []);
 
   return {
     scene,
@@ -206,6 +347,8 @@ export const useThreeScene = () => {
     renderer,
     uniforms,
     initScene,
-    updateScene
+    updateScene,
+    toggleBackground,
+    isCustomBackground
   };
 }; 

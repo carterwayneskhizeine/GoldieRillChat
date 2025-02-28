@@ -15,6 +15,8 @@ import Editor from "@monaco-editor/react";
 import '../styles/chat.css';
 // 导入自定义图像编辑器
 import { ReactPhotoEditor } from '../components/CustomPhotoEditor';
+// 导入 eventBus
+import eventBus from '../components/ThreeBackground/utils/eventBus';
 // 不再需要导入原始的样式
 // import 'react-photo-editor/dist/style.css';
 
@@ -85,6 +87,8 @@ export function ChatView({
   const [showInlineEditor, setShowInlineEditor] = useState(false);
   const [editingImage, setEditingImage] = useState(null);
   const [editingImageMessage, setEditingImageMessage] = useState(null);
+  // 添加背景状态追踪
+  const [currentBackground, setCurrentBackground] = useState(null);
 
   // 添加复制功能
   const handleCopySelectedText = (e) => {
@@ -508,6 +512,18 @@ export function ChatView({
     setEditingImage(null);
     setEditingImageMessage(null);
   };
+
+  // 添加背景变化监听
+  useEffect(() => {
+    const handleBackgroundChange = (data) => {
+      setCurrentBackground(data.isCustomBackground ? data.path : null);
+    };
+    
+    eventBus.on('backgroundChange', handleBackgroundChange);
+    return () => {
+      eventBus.off('backgroundChange', handleBackgroundChange);
+    };
+  }, []);
 
   return (
     <div 
@@ -1029,12 +1045,26 @@ export function ChatView({
                   {/* 添加BG按钮 - 只在图片消息下显示 */}
                   {message.files?.some(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) && (
                     <button
-                      className="btn btn-ghost btn-xs"
+                      className={`btn btn-xs ${
+                        currentBackground === message.files.find(file => 
+                          file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                        )?.path 
+                          ? 'btn-primary' 
+                          : 'btn-ghost'
+                      }`}
                       onClick={() => {
                         console.log('BG按钮点击，消息ID:', message.id);
-                        // 功能暂未定义，可以在此添加处理逻辑
+                        // 获取第一个图片文件
+                        const imageFile = message.files.find(file => 
+                          file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                        );
+                        
+                        if (imageFile) {
+                          // 使用 eventBus 切换背景
+                          eventBus.toggleBackground(imageFile.path);
+                        }
                       }}
-                      title="背景处理"
+                      title="设置/取消背景图片"
                     >
                       BG
                     </button>
