@@ -92,7 +92,7 @@ const ThreeBackground = () => {
           width: '100vw',
           height: '100vh',
           zIndex: 0,
-          opacity: isHidden && showCanvas ? 0.2 : 0.2, // 当使用图片背景时降低不透明度
+          opacity: isHidden && showCanvas ? 1 : 0.2, // 当使用图片背景时降低不透明度
           pointerEvents: 'none',
           background: isCustomBackground ? 'transparent' : 'rgba(0,0,0,0)',
           transition: 'opacity 0.3s ease',
