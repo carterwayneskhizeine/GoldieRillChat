@@ -17,6 +17,50 @@
   margin: 0;
 }
 
+/* 拖拽上传遮罩样式 */
+.drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  color: white;
+  transition: opacity 0.3s ease;
+}
+
+.drag-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drag-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  animation: bounce 1s infinite alternate;
+}
+
+.drag-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke: white;
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-10px);
+  }
+}
+
 /* 消息操作按钮基础样式 */
 .message-actions {
   position: absolute;

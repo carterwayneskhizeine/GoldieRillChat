@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, nativeImage, BrowserView, Menu, clipboard, Tray } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, protocol, nativeImage, BrowserView, Menu, clipboard, Tray, globalShortcut } = require('electron')
 const { shell } = require('electron')
 const path = require('path')
 const fs = require('fs').promises
@@ -30,6 +30,12 @@ let bookmarksPanelVisible = false;
 // 初始化导出对象 - 用于跨模块共享
 exports.bookmarks = bookmarks;
 exports.bookmarkFolders = bookmarkFolders;
+
+// 着色器预设相关变量
+let defaultVertexShader = '';
+let defaultFragmentShader = '';
+let shaderPresetsFolder = '';
+const PRESETS_COUNT = 10;
 
 // 设置应用 ID 和图标
 if (process.platform === 'win32') {
@@ -115,6 +121,13 @@ app.whenReady().then(async () => {
   // 创建主窗口
   createWindow();
 
+  // 添加快捷键打开开发者工具 (Ctrl+Shift+I)
+  globalShortcut.register('CommandOrControl+Shift+I', () => {
+    if (mainWindow) {
+      mainWindow.webContents.openDevTools();
+    }
+  });
+
   // 注册本地文件协议
   protocol.registerFileProtocol('local-file', (request, callback) => {
     const filePath = request.url.replace('local-file://', '')
@@ -132,6 +145,27 @@ app.whenReady().then(async () => {
 
   // 加载书签数据
   loadBookmarks();
+
+  // 注册着色器预设相关IPC处理程序
+  ipcMain.handle('init-shader-presets', async () => {
+    return await initShaderPresets();
+  });
+  
+  ipcMain.handle('get-all-shader-presets', async () => {
+    return await getAllShaderPresets();
+  });
+  
+  ipcMain.handle('load-shader-preset', async (event, presetId) => {
+    return await loadShaderPreset(presetId);
+  });
+  
+  ipcMain.handle('save-shader-preset', async (event, presetId, vertexShader, fragmentShader) => {
+    return await saveShaderPreset(presetId, vertexShader, fragmentShader);
+  });
+  
+  ipcMain.handle('reset-default-shader-preset', async () => {
+    return await resetDefaultShaderPreset();
+  });
 })
 
 // Handle folder selection
@@ -1935,4 +1969,247 @@ ipcMain.handle('list-notes', async (event, storagePath) => {
     console.error('列出笔记失败:', error);
     throw error;
   }
-}); 
+});
+
+// 在适当位置添加着色器预设管理函数
+// 初始化着色器预设文件夹和文件
+async function initShaderPresets() {
+  try {
+    // 获取存储路径
+    const storagePath = app.getPath('userData');
+    shaderPresetsFolder = path.join(storagePath, 'shader-presets');
+    
+    // 确保预设文件夹存在
+    try {
+      await fs.mkdir(shaderPresetsFolder, { recursive: true });
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err;
+    }
+    
+    // 获取默认着色器代码（用于Shaders1）
+    const appPath = app.getAppPath();
+    const shaderFilePath = path.join(appPath, 'src/components/ThreeBackground/utils/shaders.js');
+    
+    try {
+      const fileContent = await fs.readFile(shaderFilePath, 'utf8');
+      
+      // 解析顶点着色器和片段着色器
+      const vertexMatch = fileContent.match(/export const vertexShader = `([\s\S]*?)`;/);
+      const fragmentMatch = fileContent.match(/export const fragmentShader = `([\s\S]*?)`;/);
+      
+      if (vertexMatch && vertexMatch[1]) {
+        defaultVertexShader = vertexMatch[1];
+      }
+      
+      if (fragmentMatch && fragmentMatch[1]) {
+        defaultFragmentShader = fragmentMatch[1];
+      }
+    } catch (error) {
+      console.error('读取默认着色器代码失败:', error);
+      defaultVertexShader = '';
+      defaultFragmentShader = '';
+    }
+    
+    // 初始化所有预设文件
+    const presetsInfo = [];
+    
+    for (let i = 1; i <= PRESETS_COUNT; i++) {
+      const presetId = `Shaders${i}`;
+      const presetPath = path.join(shaderPresetsFolder, `${presetId}.json`);
+      const exists = await fileExists(presetPath);
+      
+      if (!exists) {
+        // 为首个预设使用默认代码，其他使用空代码
+        const vertexShader = i === 1 ? defaultVertexShader : '';
+        const fragmentShader = i === 1 ? defaultFragmentShader : '';
+        
+        await fs.writeFile(presetPath, JSON.stringify({
+          id: presetId,
+          isDefault: i === 1,
+          vertex: vertexShader,
+          fragment: fragmentShader
+        }, null, 2));
+      }
+      
+      // 读取预设信息（仅基本信息，不包括完整代码）
+      const presetContent = JSON.parse(await fs.readFile(presetPath, 'utf8'));
+      presetsInfo.push({
+        id: presetContent.id,
+        isDefault: presetContent.isDefault,
+        isEmpty: !presetContent.vertex && !presetContent.fragment
+      });
+    }
+    
+    return presetsInfo;
+  } catch (error) {
+    console.error('初始化着色器预设失败:', error);
+    throw error;
+  }
+}
+
+// 辅助函数：检查文件是否存在
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// 获取所有着色器预设
+async function getAllShaderPresets() {
+  try {
+    const presets = [];
+    
+    for (let i = 1; i <= PRESETS_COUNT; i++) {
+      const presetId = `Shaders${i}`;
+      const presetPath = path.join(shaderPresetsFolder, `${presetId}.json`);
+      
+      try {
+        const presetContent = JSON.parse(await fs.readFile(presetPath, 'utf8'));
+        presets.push({
+          id: presetId,
+          isDefault: presetContent.isDefault,
+          isEmpty: !presetContent.vertex && !presetContent.fragment
+        });
+      } catch (error) {
+        console.error(`读取预设 ${presetId} 失败:`, error);
+        // 添加占位对象
+        presets.push({
+          id: presetId,
+          isDefault: i === 1,
+          isEmpty: true
+        });
+      }
+    }
+    
+    return presets;
+  } catch (error) {
+    console.error('获取着色器预设失败:', error);
+    throw error;
+  }
+}
+
+// 加载指定的着色器预设
+async function loadShaderPreset(presetId) {
+  try {
+    const presetPath = path.join(shaderPresetsFolder, `${presetId}.json`);
+    
+    // 检查文件是否存在
+    const exists = await fileExists(presetPath);
+    if (!exists) {
+      // 如果是Shaders1且不存在，则创建默认预设
+      if (presetId === 'Shaders1') {
+        await fs.writeFile(presetPath, JSON.stringify({
+          id: presetId,
+          isDefault: true,
+          vertex: defaultVertexShader,
+          fragment: defaultFragmentShader
+        }, null, 2));
+        
+        return {
+          id: presetId,
+          vertex: defaultVertexShader,
+          fragment: defaultFragmentShader
+        };
+      }
+      
+      // 对于其他预设，创建空预设
+      await fs.writeFile(presetPath, JSON.stringify({
+        id: presetId,
+        isDefault: false,
+        vertex: '',
+        fragment: ''
+      }, null, 2));
+      
+      return {
+        id: presetId,
+        vertex: '',
+        fragment: ''
+      };
+    }
+    
+    // 读取预设内容
+    const presetContent = JSON.parse(await fs.readFile(presetPath, 'utf8'));
+    
+    // 如果是Shaders1，始终确保有默认值
+    if (presetId === 'Shaders1' && presetContent.isDefault) {
+      // 重置为默认值
+      presetContent.vertex = defaultVertexShader;
+      presetContent.fragment = defaultFragmentShader;
+      
+      // 保存回文件
+      await fs.writeFile(presetPath, JSON.stringify(presetContent, null, 2));
+    }
+    
+    return {
+      id: presetId,
+      vertex: presetContent.vertex,
+      fragment: presetContent.fragment
+    };
+  } catch (error) {
+    console.error(`加载着色器预设 ${presetId} 失败:`, error);
+    throw error;
+  }
+}
+
+// 保存着色器预设
+async function saveShaderPreset(presetId, vertexShader, fragmentShader) {
+  try {
+    const presetPath = path.join(shaderPresetsFolder, `${presetId}.json`);
+    
+    // 读取当前预设内容（如果存在）
+    let presetContent = {
+      id: presetId,
+      isDefault: presetId === 'Shaders1',
+      vertex: vertexShader,
+      fragment: fragmentShader
+    };
+    
+    // 如果是Shaders1，保留isDefault标记但允许内容被修改
+    const exists = await fileExists(presetPath);
+    if (exists) {
+      const currentContent = JSON.parse(await fs.readFile(presetPath, 'utf8'));
+      presetContent.isDefault = currentContent.isDefault;
+    }
+    
+    // 保存预设
+    await fs.writeFile(presetPath, JSON.stringify(presetContent, null, 2));
+    
+    return { success: true, id: presetId };
+  } catch (error) {
+    console.error(`保存着色器预设 ${presetId} 失败:`, error);
+    throw error;
+  }
+}
+
+// 重置默认着色器预设（仅Shaders1）
+async function resetDefaultShaderPreset() {
+  try {
+    const presetPath = path.join(shaderPresetsFolder, 'Shaders1.json');
+    
+    // 创建或更新默认预设
+    await fs.writeFile(presetPath, JSON.stringify({
+      id: 'Shaders1',
+      isDefault: true,
+      vertex: defaultVertexShader,
+      fragment: defaultFragmentShader
+    }, null, 2));
+    
+    return {
+      id: 'Shaders1',
+      vertex: defaultVertexShader,
+      fragment: defaultFragmentShader
+    };
+  } catch (error) {
+    console.error('重置默认着色器预设失败:', error);
+    throw error;
+  }
+} 
+
+// 在应用退出前取消注册所有快捷键
+app.on('will-quit', () => {
+  // 取消注册所有快捷键
+  globalShortcut.unregisterAll();
+});

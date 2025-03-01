@@ -64,6 +64,23 @@ export const initializeBrowserState = () => ({
     };
   }
   
+  // 着色器预设状态初始化
+  export const initializeShaderPresetsState = () => {
+    // 生成10个默认的着色器预设
+    const defaultPresets = Array.from({ length: 10 }, (_, i) => ({
+      id: `Shaders${i + 1}`,
+      isDefault: i === 0,
+      isEmpty: i > 0, // 只有第一个预设不为空
+      active: i === 0
+    }));
+
+    return {
+      presets: defaultPresets,
+      currentPresetId: 'Shaders1',
+      lastLoadedTime: null
+    };
+  }
+  
   // 图片预览状态初始化
   export const initializeImagePreviewState = () => ({
     lightboxOpen: false,

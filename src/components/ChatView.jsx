@@ -737,7 +737,6 @@ export function ChatView({
           </svg>
         </div>
         <div className="text-lg font-medium">拖放文件到这里上传</div>
-        <div className="text-sm opacity-70 mt-2">支持图片、视频、文档等文件格式</div>
       </div>
 
       {/* 消息列表容器 */}

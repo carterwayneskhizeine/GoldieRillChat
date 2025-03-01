@@ -65,13 +65,47 @@ export default function Sidebar({
   scrollToMessage,
   sendToMonaco,
   sendToEditor,
+  shouldScrollToBottom,
+  setShouldScrollToBottom,
   notes,
   currentNote,
   loadNote,
-  handleRenameConfirm
+  handleRenameConfirm,
+  shaderPresets,
+  setShaderPresets,
+  currentShaderPreset,
+  setCurrentShaderPreset
 }) {
   const [openChatFolder, setOpenChatFolder] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isImageBackground, setIsImageBackground] = useState(false);
+
+  // 检测图片背景模式
+  useEffect(() => {
+    // 检查是否有图片背景标志
+    const checkImageBackgroundMode = () => {
+      // 从 window 对象检查
+      if (window.isImageBackgroundMode !== undefined) {
+        setIsImageBackground(window.isImageBackgroundMode);
+      }
+    };
+    
+    // 立即检查一次
+    checkImageBackgroundMode();
+    
+    // 监听背景模式变化的事件
+    const handleBackgroundModeChange = (event) => {
+      if (event.detail && event.detail.isImageBackground !== undefined) {
+        setIsImageBackground(event.detail.isImageBackground);
+      }
+    };
+    
+    window.addEventListener('backgroundModeChange', handleBackgroundModeChange);
+    
+    return () => {
+      window.removeEventListener('backgroundModeChange', handleBackgroundModeChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (activeTool === 'chat' || activeTool === 'aichat') {
@@ -80,6 +114,33 @@ export default function Sidebar({
       setSidebarMode('chat');
     }
   }, [activeTool, previousMode]);
+
+  // 监听着色器预设加载事件
+  useEffect(() => {
+    // 处理预设列表加载
+    const handlePresetsLoaded = (event) => {
+      if (event.detail && event.detail.presets) {
+        setShaderPresets(event.detail.presets);
+      }
+    };
+    
+    // 处理单个预设加载
+    const handlePresetLoaded = (event) => {
+      if (event.detail && event.detail.presetId) {
+        setCurrentShaderPreset(event.detail.presetId);
+      }
+    };
+    
+    // 添加事件监听
+    window.addEventListener('shaderPresetsLoaded', handlePresetsLoaded);
+    window.addEventListener('shaderPresetLoaded', handlePresetLoaded);
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('shaderPresetsLoaded', handlePresetsLoaded);
+      window.removeEventListener('shaderPresetLoaded', handlePresetLoaded);
+    };
+  }, []);
 
   const handleSidebarModeToggleLocal = () => {
     if (sidebarMode === 'default') {
@@ -136,6 +197,24 @@ export default function Sidebar({
     } catch (error) {
       console.error('加载笔记失败:', error);
       window.toastManager?.error('加载笔记失败: ' + error.message);
+    }
+  };
+
+  // 处理着色器预设点击
+  const handleShaderPresetClick = (presetId) => {
+    if (presetId === currentShaderPreset) return;
+    
+    // 触发预设选择事件
+    window.dispatchEvent(new CustomEvent('selectShaderPreset', {
+      detail: { presetId }
+    }));
+    
+    // 更新当前选中的预设
+    setCurrentShaderPreset(presetId);
+    
+    // 如果当前不是着色器工具，切换到着色器工具
+    if (activeTool !== 'threejs-shaders') {
+      switchTool('threejs-shaders');
     }
   };
 
@@ -589,6 +668,71 @@ export default function Sidebar({
             </div>
           )}
 
+          {activeTool === 'threejs-shaders' && (
+            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                {sidebarMode === 'default' ? (
+                  <div className="empty-sidebar">
+                    <div className="p-2">
+                      <div className="flex flex-col gap-2">
+                        {shaderPresets.map((preset) => (
+                          <div
+                            key={preset.id}
+                            className={`btn btn-ghost justify-between ${currentShaderPreset === preset.id ? 'btn-active' : ''} ${isImageBackground ? 'image-background-mode' : ''}`}
+                            onClick={() => handleShaderPresetClick(preset.id)}
+                          >
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="truncate">
+                                {preset.id}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <ChatView
+                    messages={messages}
+                    currentConversation={currentConversation}
+                    editingMessage={editingMessage}
+                    setEditingMessage={setEditingMessage}
+                    messageInput={messageInput}
+                    setMessageInput={setMessageInput}
+                    selectedFiles={selectedFiles}
+                    setSelectedFiles={setSelectedFiles}
+                    sendMessage={sendMessage}
+                    deleteMessage={confirmDeleteMessage}
+                    updateMessage={updateMessageInApp}
+                    moveMessage={moveMessageInApp}
+                    enterEditMode={enterEditMode}
+                    exitEditMode={exitEditMode}
+                    collapsedMessages={collapsedMessages}
+                    setCollapsedMessages={setCollapsedMessages}
+                    isCompact={true}
+                    handleImageClick={handleImageClick}
+                    fileInputRef={fileInputRef}
+                    editingFileName={editingFileName}
+                    setEditingFileName={setEditingFileName}
+                    fileNameInput={fileNameInput}
+                    setFileNameInput={setFileNameInput}
+                    renameMessageFile={renameMessageFile}
+                    openFileLocation={openFileLocation}
+                    copyMessageContent={copyMessageContent}
+                    deletingMessageId={deletingMessageId}
+                    setDeletingMessageId={setDeletingMessageId}
+                    cancelDeleteMessage={cancelDeleteMessage}
+                    confirmDeleteMessage={confirmDeleteMessage}
+                    scrollToMessage={scrollToMessage}
+                    window={window}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
           {activeTool === 'markdown' && (
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
@@ -742,55 +886,6 @@ export default function Sidebar({
                 {sidebarMode === 'default' ? (
                   <div className="empty-sidebar">
                     {/* Screen侧边栏的内容可以在这里添加 */}
-                  </div>
-                ) : (
-                  <ChatView
-                    messages={messages}
-                    currentConversation={currentConversation}
-                    editingMessage={editingMessage}
-                    setEditingMessage={setEditingMessage}
-                    messageInput={messageInput}
-                    setMessageInput={setMessageInput}
-                    selectedFiles={selectedFiles}
-                    setSelectedFiles={setSelectedFiles}
-                    sendMessage={sendMessage}
-                    deleteMessage={confirmDeleteMessage}
-                    updateMessage={updateMessageInApp}
-                    moveMessage={moveMessageInApp}
-                    enterEditMode={enterEditMode}
-                    exitEditMode={exitEditMode}
-                    collapsedMessages={collapsedMessages}
-                    setCollapsedMessages={setCollapsedMessages}
-                    isCompact={true}
-                    handleImageClick={handleImageClick}
-                    fileInputRef={fileInputRef}
-                    editingFileName={editingFileName}
-                    setEditingFileName={setEditingFileName}
-                    fileNameInput={fileNameInput}
-                    setFileNameInput={setFileNameInput}
-                    renameMessageFile={renameMessageFile}
-                    openFileLocation={openFileLocation}
-                    copyMessageContent={copyMessageContent}
-                    deletingMessageId={deletingMessageId}
-                    setDeletingMessageId={setDeletingMessageId}
-                    cancelDeleteMessage={cancelDeleteMessage}
-                    confirmDeleteMessage={confirmDeleteMessage}
-                    scrollToMessage={scrollToMessage}
-                    window={window}
-                    sendToMonaco={sendToMonaco}
-                    sendToEditor={sendToEditor}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTool === 'threejs-shaders' && (
-            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
-              <div className="flex-1 overflow-hidden">
-                {sidebarMode === 'default' ? (
-                  <div className="empty-sidebar">
-                    {/* ThreeJS Shaders侧边栏的内容可以在这里添加 */}
                   </div>
                 ) : (
                   <ChatView

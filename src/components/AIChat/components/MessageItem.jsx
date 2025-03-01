@@ -494,7 +494,7 @@ export const MessageItem = ({
                     onClick={() => openFileLocation(file)}
                     title="打开文件位置"
                   >
-                    文件
+                    File
                   </button>
                 ))}
               </div>

@@ -47,7 +47,8 @@ import {
   initializeStoragePath,
   initializeSidebarState,
   initializeEditorState,
-  initializeNotesState
+  initializeNotesState,
+  initializeShaderPresetsState
 } from './components/stateInitializers'
 import Sidebar from './components/Sidebar'
 import { AIChat } from './components/AIChat'
@@ -118,6 +119,11 @@ export default function App() {
   const [notes, setNotes] = useState(initialNotesState.notes)
   const [currentNote, setCurrentNote] = useState(initialNotesState.currentNote)
   const [lastSavedTime, setLastSavedTime] = useState(initialNotesState.lastSavedTime)
+
+  // 着色器预设相关状态
+  const initialShaderPresetsState = initializeShaderPresetsState()
+  const [shaderPresets, setShaderPresets] = useState(initialShaderPresetsState.presets)
+  const [currentShaderPreset, setCurrentShaderPreset] = useState(initialShaderPresetsState.currentPresetId)
 
   // 浏览器状态
   const initialBrowserState = initializeBrowserState()
@@ -1317,6 +1323,10 @@ export default function App() {
           notes={notes}
           currentNote={currentNote}
           loadNote={loadNote}
+          shaderPresets={shaderPresets}
+          currentShaderPreset={currentShaderPreset}
+          setShaderPresets={setShaderPresets}
+          setCurrentShaderPreset={setCurrentShaderPreset}
         />
 
         {/* Main content area */}

@@ -374,6 +374,25 @@ contextBridge.exposeInMainWorld('electron', {
     save: (filePath, content) => ipcRenderer.invoke('save-note', filePath, content),
     list: (storagePath) => ipcRenderer.invoke('list-notes', storagePath),
   },
+
+  // 着色器预设相关函数
+  shaderPresets: {
+    // 初始化着色器预设
+    initShaderPresets: () => ipcRenderer.invoke('init-shader-presets'),
+    
+    // 获取所有着色器预设
+    getAllPresets: () => ipcRenderer.invoke('get-all-shader-presets'),
+    
+    // 加载指定的着色器预设
+    loadPreset: (presetId) => ipcRenderer.invoke('load-shader-preset', presetId),
+    
+    // 保存着色器预设
+    savePreset: (presetId, vertexShader, fragmentShader) => 
+      ipcRenderer.invoke('save-shader-preset', presetId, vertexShader, fragmentShader),
+      
+    // 重置指定的预设（只对Shaders1有效）
+    resetDefaultPreset: () => ipcRenderer.invoke('reset-default-shader-preset')
+  },
 })
 
 // 添加视频生成相关的 API

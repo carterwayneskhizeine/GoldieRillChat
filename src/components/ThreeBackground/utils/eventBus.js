@@ -7,6 +7,7 @@ class EventBus {
     this.currentBackgroundPath = null;
     this.previousTheme = null; // 保存切换前的主题
     this.originalShaders = null; // 保存原始着色器代码
+    this.currentPresetId = "Shaders1"; // 当前使用的预设ID
     
     // 初始化全局标志
     if (typeof window !== 'undefined') {
@@ -169,6 +170,36 @@ class EventBus {
         fragmentShader: this.originalShaders.fragment
       });
     }
+  }
+  
+  // 获取当前预设ID
+  getCurrentPresetId() {
+    return this.currentPresetId;
+  }
+  
+  // 设置当前预设ID
+  setCurrentPresetId(presetId) {
+    this.currentPresetId = presetId;
+    this.emit('presetChange', { presetId });
+  }
+  
+  // 加载预设
+  loadPreset(presetId, vertexShader, fragmentShader) {
+    this.currentPresetId = presetId;
+    this.emit('presetLoad', {
+      presetId,
+      vertexShader,
+      fragmentShader
+    });
+  }
+  
+  // 保存预设
+  savePreset(presetId, vertexShader, fragmentShader) {
+    this.emit('presetSave', {
+      presetId,
+      vertexShader,
+      fragmentShader
+    });
   }
 }
 

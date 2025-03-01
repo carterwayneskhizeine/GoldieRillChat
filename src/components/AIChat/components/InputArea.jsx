@@ -8,6 +8,9 @@ export const InputArea = ({
   fileInputRef,
   isNetworkEnabled,
   setIsNetworkEnabled,
+  selectedFiles = [],
+  handleFileSelect,
+  removeFile
 }) => {
   const handleContextMenu = (e) => {
     e.preventDefault();
@@ -41,6 +44,29 @@ export const InputArea = ({
   return (
     <div className="border-t border-base-300 p-4 bg-transparent">
       <div className="relative max-w-[750px] mx-auto">
+        {/* 显示已选择的文件 */}
+        {selectedFiles && selectedFiles.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {selectedFiles.map((file, index) => (
+              <div 
+                key={index} 
+                className="badge badge-neutral gap-1 p-3"
+                title={file.name}
+              >
+                <span className="truncate max-w-[150px]">{file.name}</span>
+                <button 
+                  className="btn btn-ghost btn-xs btn-circle"
+                  onClick={() => removeFile(index)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        
         <textarea
           className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-transparent aichat-input"
           placeholder="Send a message..."
@@ -86,6 +112,7 @@ export const InputArea = ({
           <button
             className="btn btn-ghost btn-sm btn-circle"
             onClick={() => fileInputRef.current?.click()}
+            title="上传文件"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -102,6 +129,7 @@ export const InputArea = ({
                 textarea.style.overflowY = 'hidden';
               }
             }}
+            title="发送消息"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />

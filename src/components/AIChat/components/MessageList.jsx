@@ -20,12 +20,18 @@ export const MessageList = ({
   openFileLocation,
   openInBrowserTab,
   currentConversation,
-  setMessages
+  setMessages,
+  handleFileDrop,
+  fileInputRef
 }) => {
   const messagesEndRef = useRef(null);
 
   // 删除确认状态
   const [deletingMessageId, setDeletingMessageId] = useState(null);
+  
+  // 添加拖拽状态
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
 
   // 使用折叠状态 hook
   const { isMessageCollapsed, toggleMessageCollapse } = useMessageCollapse();
@@ -89,9 +95,50 @@ export const MessageList = ({
     setLightboxIndex(currentIndex);
     setLightboxOpen(true);
   }, [collectMedia]);
+  
+  // 添加拖拽处理函数
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    dragCounterRef.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+  
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  };
+  
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileDrop(e);
+    }
+  };
 
   return (
-    <div className="flex-1 overflow-hidden bg-base-100">
+    <div 
+      className="flex-1 overflow-hidden bg-base-100"
+      onDragEnter={handleDragEnter}
+    >
       <div 
         id="ai-chat-messages-main"
         className="h-full overflow-y-auto" 
@@ -130,6 +177,22 @@ export const MessageList = ({
           ))}
           <div ref={messagesEndRef} />
         </div>
+      </div>
+
+      {/* 拖拽上传遮罩 */}
+      <div 
+        className={`drag-overlay ${isDragging ? '' : 'hidden'}`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        <div className="drag-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        </div>
+        <div className="text-lg font-medium">拖放文件到这里上传</div>
       </div>
 
       {/* 删除确认对话框 */}

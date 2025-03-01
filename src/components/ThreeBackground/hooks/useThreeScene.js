@@ -75,6 +75,34 @@ export const useThreeScene = () => {
       try {
         console.log('Updating shaders:', data);
         
+        // 检查着色器代码是否都为空
+        const isVertexEmpty = !data.vertexShader || !data.vertexShader.trim();
+        const isFragmentEmpty = !data.fragmentShader || !data.fragmentShader.trim();
+        const isShaderEmpty = isVertexEmpty && isFragmentEmpty;
+        
+        if (isShaderEmpty) {
+          console.log('Empty shaders detected, hiding shader effects');
+          
+          // 如果着色器为空，隐藏着色器平面
+          if (meshRef.current) {
+            meshRef.current.visible = false;
+          }
+          
+          // 立即渲染一次
+          if (composerRef.current) {
+            composerRef.current.render();
+          } else if (renderer && camera && scene) {
+            renderer.render(scene, camera);
+          }
+          
+          return;
+        }
+        
+        // 确保着色器平面是可见的
+        if (meshRef.current) {
+          meshRef.current.visible = true;
+        }
+        
         // 创建新的着色器材质
         const newMaterial = new THREE.ShaderMaterial({
           uniforms: shaderMaterialRef.current.uniforms,

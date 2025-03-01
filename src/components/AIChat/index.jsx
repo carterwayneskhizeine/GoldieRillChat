@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { InputArea } from './components/InputArea';
@@ -37,6 +37,9 @@ export const AIChat = ({
   const modelState = useModelState();
   const inputState = useInputState();
   const systemPromptState = useSystemPrompt();
+  
+  // 添加文件输入引用
+  const fileInputRef = useRef(null);
 
   // 添加新的状态
   const [maxTokens, setMaxTokens] = useState(() => {
@@ -304,6 +307,45 @@ export const AIChat = ({
       alert('打开文件位置失败');
     }
   };
+  
+  // 添加文件处理函数
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files).map(file => ({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        path: file.path || URL.createObjectURL(file),
+        lastModified: file.lastModified
+      }));
+      
+      inputState.setSelectedFile(files);
+    }
+  };
+  
+  const handleFileDrop = (e) => {
+    e.preventDefault();
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files).map(file => ({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        path: file.path || URL.createObjectURL(file),
+        lastModified: file.lastModified
+      }));
+      
+      inputState.setSelectedFile(files);
+    }
+  };
+  
+  const removeFile = (index) => {
+    inputState.setSelectedFile(prev => {
+      const newFiles = [...prev];
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
+  };
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -345,6 +387,8 @@ export const AIChat = ({
               openInBrowserTab={openInBrowserTab}
               currentConversation={currentConversation}
               setMessages={messageState.setMessages}
+              handleFileDrop={handleFileDrop}
+              fileInputRef={fileInputRef}
             />
           </div>
 
@@ -355,11 +399,23 @@ export const AIChat = ({
               setMessageInput={inputState.setMessageInput}
               handleSendMessage={inputHandlers.handleSendMessage}
               handleKeyDown={inputHandlers.handleKeyDown}
-              fileInputRef={inputState.fileInputRef}
+              fileInputRef={fileInputRef}
               isNetworkEnabled={isNetworkEnabled}
               setIsNetworkEnabled={setIsNetworkEnabled}
+              selectedFiles={inputState.selectedFile}
+              handleFileSelect={handleFileSelect}
+              removeFile={removeFile}
             />
           </div>
+
+          {/* 隐藏的文件输入 */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            style={{ display: 'none' }}
+            multiple
+          />
 
           {/* 设置弹窗 */}
           {modelState.showSettings && (
