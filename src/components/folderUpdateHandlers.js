@@ -18,11 +18,25 @@ export const handleUpdateFolders = async (storagePath, setConversations, window,
     // 获取当前对话列表
     const currentConversations = JSON.parse(localStorage.getItem('aichat_conversations') || '[]');
     
+    // 从当前会话列表中过滤掉Notes文件夹的会话
+    const filteredCurrentConversations = currentConversations.filter(conv => {
+      if (!conv.path) return true;
+      // 检查路径中是否包含/Notes/或\Notes\
+      return !conv.path.includes('/Notes/') && !conv.path.includes('\\Notes\\') && 
+             !conv.path.endsWith('/Notes') && !conv.path.endsWith('\\Notes');
+    });
+    
+    // 如果过滤后的数组长度和原数组不同，说明有Notes文件夹的会话被过滤掉了
+    if (filteredCurrentConversations.length !== currentConversations.length) {
+      console.log('已过滤掉Notes文件夹的会话:', 
+                 currentConversations.length - filteredCurrentConversations.length);
+    }
+    
     // 扫描文件夹获取所有对话
     const folders = await window.electron.scanFolders(storagePath);
     
     // 验证当前对话列表中的对话文件夹是否存在
-    let validConversations = [...currentConversations];
+    let validConversations = [...filteredCurrentConversations];
     let hasInvalidConversations = false;
     
     // 使用Promise.all进行并行验证

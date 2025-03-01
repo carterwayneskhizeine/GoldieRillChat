@@ -47,6 +47,23 @@ export const initializeBrowserState = () => ({
     offsetY: 0
   })
   
+  // Monaco 编辑器笔记状态初始化
+  export const initializeNotesState = () => {
+    // 生成10个默认的笔记
+    const defaultNotes = Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: `Note${i + 1}`,
+      filePath: `Notes/Note${i + 1}.txt`,
+      content: ''
+    }));
+
+    return {
+      notes: defaultNotes,
+      currentNote: null,
+      lastSavedTime: null
+    };
+  }
+  
   // 图片预览状态初始化
   export const initializeImagePreviewState = () => ({
     lightboxOpen: false,

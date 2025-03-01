@@ -122,9 +122,36 @@
   /* 侧边栏活跃项 */
   .sidebar .active, 
   .sidebar .selected,
-  .sidebar .menu-active {
-    background-color: rgba(255, 255, 255, 0.2) !important;
+  .sidebar .menu-active,
+  .btn.btn-active,
+  .btn-ghost.btn-active {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    color: white !important;
     font-weight: bold;
+    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  /* 对话文件夹列表项 - 选中状态 */
+  .btn-ghost.btn-active {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    color: white !important;
+    font-weight: bold;
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  /* 对话文件夹列表项 - 未选中状态 */
+  .btn-ghost {
+    background-color: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  /* 对话文件夹列表项 - 悬停状态 */
+  .btn-ghost:hover {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.2);
   }
   
   /* 聊天容器和页面背景 */
@@ -292,12 +319,41 @@
     z-index: 5 !important; /* 确保侧边栏元素显示在背景之上 */
   }
   
-  /* 侧边栏活跃项 */
+  /* 侧边栏活跃项 - 图片背景模式特定样式 */
   .sidebar .active, 
   .sidebar .selected,
-  .sidebar .menu-active {
-    background-color: rgba(255, 255, 255, 0.2) !important;
+  .sidebar .menu-active,
+  .btn.btn-active,
+  .btn-ghost.btn-active {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    color: white !important;
     font-weight: bold;
+    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  /* 对话文件夹列表项 - 选中状态 - 更具体的选择器 */
+  .btn.btn-ghost.justify-between.btn-active {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    color: white !important;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
+  }
+  
+  /* 对话文件夹列表项 - 未选中状态 - 更具体的选择器 */
+  .btn.btn-ghost.justify-between:not(.btn-active) {
+    background-color: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  /* 对话文件夹列表项 - 悬停状态 - 更具体的选择器 */
+  .btn.btn-ghost.justify-between:hover {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.2);
   }
   
   /* 聊天容器和页面背景 */

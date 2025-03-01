@@ -65,6 +65,9 @@ export default function Sidebar({
   scrollToMessage,
   sendToMonaco,
   sendToEditor,
+  notes,
+  currentNote,
+  loadNote,
   handleRenameConfirm
 }) {
   const [openChatFolder, setOpenChatFolder] = useState(null);
@@ -123,11 +126,23 @@ export default function Sidebar({
     }, 100);
   };
 
+  const handleNoteClick = async (noteId) => {
+    try {
+      await loadNote(noteId);
+      
+      if (activeTool !== 'monaco') {
+        switchTool('monaco');
+      }
+    } catch (error) {
+      console.error('加载笔记失败:', error);
+      window.toastManager?.error('加载笔记失败: ' + error.message);
+    }
+  };
+
   return (
     <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-y-auto overflow-x-hidden transition-all duration-300 flex flex-col`}>
       <div className={`${sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]'} flex flex-col h-full overflow-x-hidden`}>
         <div className="p-2 flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
-          {/* 顶部按钮行：前后工具切换 */}
           <div className="join grid grid-cols-2 mb-2">
             <button className="join-item btn btn-outline btn-sm" onClick={() => switchTool('prev')}>
               Previous
@@ -137,14 +152,12 @@ export default function Sidebar({
             </button>
           </div>
 
-          {/* 工具页面指示器 */}
           <div className="flex justify-center gap-2 mb-2">
             {tools.map(tool => (
               <div key={tool} className={`w-2 h-2 rounded-full ${activeTool === tool ? 'bg-primary' : 'bg-base-content opacity-20'}`} />
             ))}
           </div>
 
-          {/* 当前工具显示及新对话/标签页创建按钮 */}
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center">
               <span className="font-semibold">{getToolDisplayName(activeTool)}</span>
@@ -189,7 +202,6 @@ export default function Sidebar({
             )}
           </div>
 
-          {/* 添加Open Chat文件夹选择器 */}
           {sidebarMode === 'chat' && activeTool !== 'chat' && (
             <div className="dropdown dropdown-bottom w-full mb-4">
               <label 
@@ -224,7 +236,6 @@ export default function Sidebar({
             </div>
           )}
 
-          {/* 工具特定内容：例如聊天室展示对话列表 */}
           {activeTool === 'chat' && (
             <div className="flex-1 mt-2 overflow-y-auto">
               <div className="flex flex-col gap-2">
@@ -515,6 +526,69 @@ export default function Sidebar({
             </div>
           )}
 
+          {activeTool === 'monaco' && (
+            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                {sidebarMode === 'default' ? (
+                  <div className="empty-sidebar">
+                    <div className="p-2">
+                      <div className="flex flex-col gap-2">
+                        {notes && notes.map(note => (
+                          <div
+                            key={note.id}
+                            className={`btn btn-ghost justify-between ${currentNote?.id === note.id ? 'btn-active' : ''}`}
+                            onClick={() => handleNoteClick(note.id)}
+                          >
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="truncate">{note.name}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <ChatView
+                    messages={messages}
+                    currentConversation={currentConversation}
+                    editingMessage={editingMessage}
+                    setEditingMessage={setEditingMessage}
+                    messageInput={messageInput}
+                    setMessageInput={setMessageInput}
+                    selectedFiles={selectedFiles}
+                    setSelectedFiles={setSelectedFiles}
+                    sendMessage={sendMessage}
+                    deleteMessage={confirmDeleteMessage}
+                    updateMessage={updateMessageInApp}
+                    moveMessage={moveMessageInApp}
+                    enterEditMode={enterEditMode}
+                    exitEditMode={exitEditMode}
+                    collapsedMessages={collapsedMessages}
+                    setCollapsedMessages={setCollapsedMessages}
+                    isCompact={true}
+                    handleImageClick={handleImageClick}
+                    fileInputRef={fileInputRef}
+                    editingFileName={editingFileName}
+                    setEditingFileName={setEditingFileName}
+                    fileNameInput={fileNameInput}
+                    setFileNameInput={setFileNameInput}
+                    renameMessageFile={renameMessageFile}
+                    openFileLocation={openFileLocation}
+                    copyMessageContent={copyMessageContent}
+                    deletingMessageId={deletingMessageId}
+                    setDeletingMessageId={setDeletingMessageId}
+                    cancelDeleteMessage={cancelDeleteMessage}
+                    confirmDeleteMessage={confirmDeleteMessage}
+                    scrollToMessage={scrollToMessage}
+                    window={window}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
           {activeTool === 'markdown' && (
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
@@ -662,55 +736,6 @@ export default function Sidebar({
             </div>
           )}
 
-          {activeTool === 'monaco' && (
-            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
-              <div className="flex-1 overflow-hidden">
-                {sidebarMode === 'default' ? (
-                  <div className="empty-sidebar">
-                    {/* Monaco Editor 侧边栏的内容可以在这里添加 */}
-                  </div>
-                ) : (
-                  <ChatView
-                    messages={messages}
-                    currentConversation={currentConversation}
-                    editingMessage={editingMessage}
-                    setEditingMessage={setEditingMessage}
-                    messageInput={messageInput}
-                    setMessageInput={setMessageInput}
-                    selectedFiles={selectedFiles}
-                    setSelectedFiles={setSelectedFiles}
-                    sendMessage={sendMessage}
-                    deleteMessage={confirmDeleteMessage}
-                    updateMessage={updateMessageInApp}
-                    moveMessage={moveMessageInApp}
-                    enterEditMode={enterEditMode}
-                    exitEditMode={exitEditMode}
-                    collapsedMessages={collapsedMessages}
-                    setCollapsedMessages={setCollapsedMessages}
-                    isCompact={true}
-                    handleImageClick={handleImageClick}
-                    fileInputRef={fileInputRef}
-                    editingFileName={editingFileName}
-                    setEditingFileName={setEditingFileName}
-                    fileNameInput={fileNameInput}
-                    setFileNameInput={setFileNameInput}
-                    renameMessageFile={renameMessageFile}
-                    openFileLocation={openFileLocation}
-                    copyMessageContent={copyMessageContent}
-                    deletingMessageId={deletingMessageId}
-                    setDeletingMessageId={setDeletingMessageId}
-                    cancelDeleteMessage={cancelDeleteMessage}
-                    confirmDeleteMessage={confirmDeleteMessage}
-                    scrollToMessage={scrollToMessage}
-                    window={window}
-                    sendToMonaco={sendToMonaco}
-                    sendToEditor={sendToEditor}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
           {activeTool === 'screen' && (
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
@@ -810,10 +835,8 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* 底部固定区域 - 统一处理按钮 */}
         <div className="p-2 border-t border-base-content/10">
           {activeTool === 'chat' ? (
-            // Chat工具显示Settings按钮
             <button
               className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
               onClick={() => setShowSettings(true)}
@@ -825,7 +848,6 @@ export default function Sidebar({
               <span>Settings</span>
             </button>
           ) : activeTool === 'aichat' ? (
-            // AI Chat工具显示Settings按钮
             <button
               className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
               onClick={() => {
@@ -841,7 +863,6 @@ export default function Sidebar({
               <span>Settings</span>
             </button>
           ) : (
-            // 其他工具显示Open Chat按钮
             <button
               className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
               onClick={handleSidebarModeToggleLocal}

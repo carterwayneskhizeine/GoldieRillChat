@@ -46,7 +46,8 @@ import {
   initializeUIState,
   initializeStoragePath,
   initializeSidebarState,
-  initializeEditorState
+  initializeEditorState,
+  initializeNotesState
 } from './components/stateInitializers'
 import Sidebar from './components/Sidebar'
 import { AIChat } from './components/AIChat'
@@ -111,6 +112,12 @@ export default function App() {
   const [deletingMessageId, setDeletingMessageId] = useState(initialChatState.deletingMessageId)
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(initialChatState.shouldScrollToBottom)
   const [draggedConversation, setDraggedConversation] = useState(initialChatState.draggedConversation)
+
+  // 笔记相关状态
+  const initialNotesState = initializeNotesState()
+  const [notes, setNotes] = useState(initialNotesState.notes)
+  const [currentNote, setCurrentNote] = useState(initialNotesState.currentNote)
+  const [lastSavedTime, setLastSavedTime] = useState(initialNotesState.lastSavedTime)
 
   // 浏览器状态
   const initialBrowserState = initializeBrowserState()
@@ -1081,6 +1088,139 @@ export default function App() {
     window.electron?.bookmarks?.toggleBookmarksPanel(newState);
   };
 
+  // 初始化笔记文件夹和文件
+  useEffect(() => {
+    const initializeNotes = async () => {
+      try {
+        // 确保Notes文件夹存在
+        await window.electron.ensureDirectory(storagePath, 'Notes');
+        
+        // 确保所有笔记文件都存在
+        const updatedNotes = [...notes];
+        
+        for (const note of updatedNotes) {
+          // 检查文件是否存在，不存在则创建
+          const exists = await window.electron.fileExists(`${storagePath}/${note.filePath}`);
+          
+          if (!exists) {
+            // 创建空笔记文件
+            await window.electron.writeTextFile(`${storagePath}/${note.filePath}`, '');
+          } else {
+            // 读取笔记内容
+            const content = await window.electron.readTextFile(`${storagePath}/${note.filePath}`);
+            note.content = content;
+          }
+        }
+        
+        setNotes(updatedNotes);
+        
+        // 如果Monaco是活动工具并且没有选中的笔记，则默认选择第一个笔记
+        if (activeTool === 'monaco' && !currentNote && updatedNotes.length > 0) {
+          setCurrentNote(updatedNotes[0]);
+        }
+      } catch (error) {
+        console.error('初始化笔记失败:', error);
+        window.toastManager?.error('初始化笔记失败: ' + error.message);
+      }
+    };
+    
+    if (storagePath) {
+      initializeNotes();
+    }
+  }, [storagePath, activeTool]);
+
+  // 加载笔记
+  const loadNote = async (noteId) => {
+    try {
+      if (!storagePath) {
+        throw new Error('存储路径未设置，请先设置存储路径');
+      }
+      
+      // 如果当前有正在编辑的笔记，先保存
+      if (currentNote) {
+        await saveNote(currentNote.id);
+      }
+      
+      const noteToLoad = notes.find(note => note.id === noteId);
+      if (!noteToLoad) {
+        throw new Error(`找不到ID为${noteId}的笔记`);
+      }
+      
+      // 读取笔记文件内容
+      const content = await window.electron.readTextFile(`${storagePath}/${noteToLoad.filePath}`);
+      
+      // 更新笔记内容
+      const updatedNotes = notes.map(note => 
+        note.id === noteId ? { ...note, content } : note
+      );
+      
+      setNotes(updatedNotes);
+      setCurrentNote({ ...noteToLoad, content });
+      
+      // 如果Monaco编辑器已加载，设置其内容
+      if (window.monacoEditor) {
+        window.monacoEditor.setValue(content);
+      } else {
+        // 否则设置为待处理的内容
+        window.pendingMonacoContent = content;
+      }
+      
+      return content;
+    } catch (error) {
+      console.error('加载笔记失败:', error);
+      window.toastManager?.error('加载笔记失败: ' + error.message);
+      throw error;
+    }
+  };
+  
+  // 保存笔记
+  const saveNote = async (noteId, manualContent = null) => {
+    try {
+      if (!storagePath) {
+        throw new Error('存储路径未设置，请先设置存储路径');
+      }
+      
+      const noteToSave = notes.find(note => note.id === noteId);
+      if (!noteToSave) {
+        throw new Error(`找不到ID为${noteId}的笔记`);
+      }
+      
+      // 获取内容，优先使用传入的内容，否则使用编辑器内容
+      let content = manualContent;
+      if (content === null && window.monacoEditor) {
+        content = window.monacoEditor.getValue();
+      }
+      
+      if (content === null) {
+        content = noteToSave.content || '';
+      }
+      
+      // 保存内容到文件
+      await window.electron.writeTextFile(`${storagePath}/${noteToSave.filePath}`, content);
+      
+      // 更新笔记状态
+      const updatedNotes = notes.map(note => 
+        note.id === noteId ? { ...note, content } : note
+      );
+      
+      setNotes(updatedNotes);
+      // 如果是当前笔记，更新当前笔记状态
+      if (currentNote && currentNote.id === noteId) {
+        setCurrentNote({ ...noteToSave, content });
+      }
+      
+      // 更新最后保存时间
+      setLastSavedTime(new Date().toLocaleTimeString());
+      
+      window.toastManager?.success('笔记已保存');
+      return true;
+    } catch (error) {
+      console.error('保存笔记失败:', error);
+      window.toastManager?.error('保存笔记失败: ' + error.message);
+      throw error;
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-base-100">
       <ThreeBackground />
@@ -1131,7 +1271,6 @@ export default function App() {
           handleDragStart={handleDragStart}
           handleDragOver={handleDragOver}
           handleDrop={handleDrop}
-          handleContextMenu={handleContextMenu}
           handleConversationDelete={handleConversationDelete}
           handleConversationRename={handleConversationRename}
           handleRenameConfirm={handleRenameConfirm}
@@ -1175,6 +1314,9 @@ export default function App() {
           sendToEditor={sendToEditor}
           shouldScrollToBottom={shouldScrollToBottom}
           setShouldScrollToBottom={setShouldScrollToBottom}
+          notes={notes}
+          currentNote={currentNote}
+          loadNote={loadNote}
         />
 
         {/* Main content area */}
@@ -1235,7 +1377,10 @@ export default function App() {
 
           {/* Monaco Editor content */}
           <div style={{ display: activeTool === 'monaco' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
-            <MonacoEditor />
+            <MonacoEditor 
+              currentNote={currentNote}
+              saveNote={saveNote}
+            />
           </div>
 
           {/* ThreeJS Shaders content */}

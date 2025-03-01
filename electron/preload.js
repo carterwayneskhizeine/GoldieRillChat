@@ -360,6 +360,20 @@ contextBridge.exposeInMainWorld('electron', {
     // 添加解析并导入书签函数
     parseAndImportBookmarks: (fileContent) => ipcRenderer.invoke('parse-and-import-bookmarks', fileContent)
   },
+
+  // 文件操作
+  ensureDirectory: (basePath, dirName) => ipcRenderer.invoke('ensure-directory', basePath, dirName),
+  fileExists: (filePath) => ipcRenderer.invoke('file-exists', filePath),
+  readTextFile: (filePath) => ipcRenderer.invoke('read-text-file', filePath),
+  writeTextFile: (filePath, content) => ipcRenderer.invoke('write-text-file', filePath, content),
+  
+  // 笔记相关方法
+  notes: {
+    initialize: (storagePath) => ipcRenderer.invoke('initialize-notes', storagePath),
+    load: (filePath) => ipcRenderer.invoke('load-note', filePath),
+    save: (filePath, content) => ipcRenderer.invoke('save-note', filePath, content),
+    list: (storagePath) => ipcRenderer.invoke('list-notes', storagePath),
+  },
 })
 
 // 添加视频生成相关的 API

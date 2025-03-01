@@ -16,7 +16,7 @@ loader.config({
   }
 });
 
-export const MonacoEditor = () => {
+export const MonacoEditor = ({ currentNote, saveNote }) => {
   const [language, setLanguage] = useState("plaintext");
   const [theme, setTheme] = useState("vs-dark");
   const editorRef = useRef(null);
@@ -29,6 +29,9 @@ export const MonacoEditor = () => {
   const [markdownContent, setMarkdownContent] = useState('');
   const [initialContent, setInitialContent] = useState('');
   const [isImageBackground, setIsImageBackground] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [lastSaved, setLastSaved] = useState('');
+  const autoSaveTimeoutRef = useRef(null);
 
   // 初始化时检查是否为图片背景模式
   useEffect(() => {
@@ -64,6 +67,63 @@ export const MonacoEditor = () => {
       window.pendingMonacoContent = null;
     }
   }, [isEditorReady]);
+
+  // 当currentNote改变时，更新编辑器内容
+  useEffect(() => {
+    if (currentNote && editorRef.current) {
+      editorRef.current.setValue(currentNote.content || '');
+      // 更新文件类型
+      if (currentNote.filePath.endsWith('.js') || currentNote.filePath.endsWith('.jsx')) {
+        setLanguage('javascript');
+      } else if (currentNote.filePath.endsWith('.ts') || currentNote.filePath.endsWith('.tsx')) {
+        setLanguage('typescript');
+      } else if (currentNote.filePath.endsWith('.py')) {
+        setLanguage('python');
+      } else if (currentNote.filePath.endsWith('.md')) {
+        setLanguage('markdown');
+      } else if (currentNote.filePath.endsWith('.json')) {
+        setLanguage('json');
+      } else if (currentNote.filePath.endsWith('.html')) {
+        setLanguage('html');
+      } else if (currentNote.filePath.endsWith('.css')) {
+        setLanguage('css');
+      } else if (currentNote.filePath.endsWith('.sql')) {
+        setLanguage('sql');
+      } else {
+        setLanguage('plaintext');
+      }
+    }
+  }, [currentNote]);
+
+  // 监听编辑器内容变化，自动保存
+  useEffect(() => {
+    if (isEditorReady && editorRef.current && currentNote && autoSaveEnabled) {
+      const model = editorRef.current.getModel();
+      
+      const handleContentChange = () => {
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+        
+        // 3秒后自动保存
+        autoSaveTimeoutRef.current = setTimeout(() => {
+          const content = editorRef.current.getValue();
+          saveNote(currentNote.id, content).then(() => {
+            setLastSaved(new Date().toLocaleTimeString());
+          });
+        }, 3000);
+      };
+      
+      const disposable = model.onDidChangeContent(handleContentChange);
+      
+      return () => {
+        disposable.dispose();
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+      };
+    }
+  }, [isEditorReady, currentNote, autoSaveEnabled, saveNote]);
 
   // 初始化 Pyodide
   useEffect(() => {
@@ -114,6 +174,16 @@ export const MonacoEditor = () => {
       setMarkdownContent(editorRef.current.getValue());
     }
   }, [showPreview, language]);
+
+  // 手动保存笔记
+  const handleManualSave = () => {
+    if (editorRef.current && currentNote) {
+      const content = editorRef.current.getValue();
+      saveNote(currentNote.id, content).then(() => {
+        setLastSaved(new Date().toLocaleTimeString());
+      });
+    }
+  };
 
   // 运行 Python 代码
   const runPythonCode = async () => {
@@ -226,220 +296,165 @@ export const MonacoEditor = () => {
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
       {/* 工具栏 */}
       <div 
-        className={`flex flex-wrap gap-2 items-center p-2 rounded-lg ${isImageBackground ? '' : 'bg-base-200'}`}
+        className={`grid grid-cols-12 gap-3 items-center p-3 rounded-lg ${isImageBackground ? '' : 'bg-base-200'}`}
         style={isImageBackground ? { 
           position: 'relative', 
           zIndex: 10,
-          backgroundColor: 'transparent',
-          color: 'white'
+          backgroundColor: 'rgba(30, 30, 30, 0.7)',
+          color: 'white',
+          padding: '0.75rem'
         } : {}}
       >
-        {/* 语言选择 */}
-        <select 
-          className="select select-bordered select-sm"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          disabled={!isEditorReady}
-          style={isImageBackground ? { 
-            position: 'relative', 
-            zIndex: 10,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: 'white'
-          } : {}}
-        >
-          {languages.map(lang => (
-            <option 
-              key={lang} 
-              value={lang} 
-              style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
-            >
-              {lang}
-            </option>
-          ))}
-        </select>
-
-        {/* 主题选择 */}
-        <select 
-          className="select select-bordered select-sm"
-          value={theme}
-          onChange={(e) => setTheme(e.target.value)}
-          disabled={!isEditorReady}
-          style={isImageBackground ? { 
-            position: 'relative', 
-            zIndex: 10,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: 'white'
-          } : {}}
-        >
-          {themes.map(t => (
-            <option 
-              key={t} 
-              value={t} 
-              style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
-            >
-              {t}
-            </option>
-          ))}
-        </select>
-
-        {/* 字体大小调整 */}
-        <div 
-          className="flex items-center gap-2" 
-          style={isImageBackground ? { 
-            position: 'relative', 
-            zIndex: 10,
-            padding: '2px 8px',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            borderRadius: '4px',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-          } : {}}
-        >
-          <button 
-            className="btn btn-sm btn-square"
-            onClick={() => handleFontSizeChange(-2)}
+        {/* 左侧组：语言和主题选择 */}
+        <div className="col-span-4 flex gap-2">
+          {/* 语言选择 */}
+          <select 
+            className="select select-bordered select-sm h-9 min-h-[2.25rem] w-full max-w-[140px]"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
             disabled={!isEditorReady}
             style={isImageBackground ? { 
-              position: 'relative', 
-              zIndex: 10,
-              backgroundColor: 'rgba(40, 40, 40, 0.8)',
+              backgroundColor: 'rgba(40, 40, 40, 0.9)',
               color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.3)'
+              border: '1px solid rgba(200, 200, 200, 0.3)'
             } : {}}
           >
-            -
-          </button>
-          <span 
-            className="text-sm" 
-            style={isImageBackground ? { 
-              color: 'white', 
-              fontWeight: 'bold',
-              textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
-            } : {}}
-          >
-            {fontSize}px
-          </span>
-          <button 
-            className="btn btn-sm btn-square"
-            onClick={() => handleFontSizeChange(2)}
+            {languages.map(lang => (
+              <option 
+                key={lang} 
+                value={lang} 
+                style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
+              >
+                {lang}
+              </option>
+            ))}
+          </select>
+
+          {/* 主题选择 */}
+          <select 
+            className="select select-bordered select-sm h-9 min-h-[2.25rem] w-full max-w-[120px]"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
             disabled={!isEditorReady}
             style={isImageBackground ? { 
-              position: 'relative', 
-              zIndex: 10,
-              backgroundColor: 'rgba(40, 40, 40, 0.8)',
+              backgroundColor: 'rgba(40, 40, 40, 0.9)',
               color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.3)'
+              border: '1px solid rgba(200, 200, 200, 0.3)'
             } : {}}
           >
-            +
-          </button>
+            {themes.map(t => (
+              <option 
+                key={t} 
+                value={t} 
+                style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
+              >
+                {t}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Markdown 预览按钮 */}
-        {language === "markdown" && (
+        {/* 中部组：字体大小调整 */}
+        <div className="col-span-3 flex items-center justify-center">
+          <div 
+            className="flex items-center gap-2 h-9 px-2 rounded-md"
+            style={isImageBackground ? { 
+              backgroundColor: 'rgba(40, 40, 40, 0.8)',
+              border: '1px solid rgba(200, 200, 200, 0.3)'
+            } : { border: '1px solid #ddd' }}
+          >
+            <button 
+              className="btn btn-sm btn-square h-7 w-7 min-h-0"
+              onClick={() => handleFontSizeChange(-2)}
+              disabled={!isEditorReady}
+              style={isImageBackground ? { 
+                backgroundColor: 'rgba(60, 60, 60, 0.8)',
+                color: 'white',
+              } : {}}
+            >
+              -
+            </button>
+            <span 
+              className="text-sm font-medium w-12 text-center" 
+              style={isImageBackground ? { 
+                color: 'white'
+              } : {}}
+            >
+              {fontSize}px
+            </span>
+            <button 
+              className="btn btn-sm btn-square h-7 w-7 min-h-0"
+              onClick={() => handleFontSizeChange(2)}
+              disabled={!isEditorReady}
+              style={isImageBackground ? { 
+                backgroundColor: 'rgba(60, 60, 60, 0.8)',
+                color: 'white'
+              } : {}}
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* 右侧组：自动保存开关和保存按钮 */}
+        <div className="col-span-5 flex items-center justify-end gap-4">
+          {/* 自动保存开关 */}
+          <div className="form-control flex-row items-center">
+            <span className="mr-2 text-sm font-medium" style={isImageBackground ? { color: 'white' } : {}}>自动保存</span>
+            <input 
+              type="checkbox" 
+              className="toggle toggle-primary toggle-sm" 
+              checked={autoSaveEnabled}
+              onChange={() => setAutoSaveEnabled(!autoSaveEnabled)}
+            />
+          </div>
+          
+          {/* 保存按钮 */}
           <button 
-            className="btn btn-sm"
-            onClick={() => setShowPreview(!showPreview)}
+            className="btn btn-sm btn-primary h-9 min-h-[2.25rem] min-w-[80px] px-3"
+            onClick={handleManualSave}
             disabled={!isEditorReady}
             style={isImageBackground ? { 
-              position: 'relative', 
-              zIndex: 10,
-              backgroundColor: showPreview ? 'rgba(60, 60, 200, 0.6)' : 'rgba(40, 40, 40, 0.8)',
+              backgroundColor: 'rgba(40, 40, 40, 0.8)',
               color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.3)'
+              border: '1px solid rgba(200, 200, 200, 0.3)'
             } : {}}
           >
-            {showPreview ? "编辑" : "预览"}
+            保存
           </button>
-        )}
-        
-        {/* Python 运行按钮 */}
-        {language === "python" && (
-          <button 
-            className="btn btn-sm"
-            onClick={runPythonCode}
-            disabled={!isEditorReady || isRunning}
-            style={isImageBackground ? { 
-              position: 'relative', 
-              zIndex: 10,
-              backgroundColor: 'rgba(40, 120, 40, 0.8)',
-              color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.3)'
-            } : {}}
-          >
-            {isRunning ? "运行中..." : "运行"}
-          </button>
-        )}
-        
-        {/* 格式化按钮 */}
-        <button 
-          className="btn btn-sm"
-          onClick={() => {
-            if (editorRef.current) {
-              editorRef.current.getAction('editor.action.formatDocument').run();
-            }
-          }}
-          disabled={!isEditorReady}
-          style={isImageBackground ? { 
-            position: 'relative', 
-            zIndex: 10,
-            backgroundColor: 'rgba(40, 40, 40, 0.8)',
-            color: 'white',
-            border: '1px solid rgba(255, 255, 255, 0.3)'
-          } : {}}
-        >
-          格式化
-        </button>
-        
-        {/* 复制按钮 */}
-        <button 
-          className="btn btn-sm"
-          onClick={() => {
-            if (editorRef.current) {
-              const content = editorRef.current.getValue();
-              navigator.clipboard.writeText(content);
-              window.toastManager?.success('已复制到剪贴板！', 2000);
-              console.log('已复制到剪贴板');
-            }
-          }}
-          disabled={!isEditorReady}
-          style={isImageBackground ? { 
-            position: 'relative', 
-            zIndex: 10,
-            backgroundColor: 'rgba(40, 40, 40, 0.8)',
-            color: 'white',
-            border: '1px solid rgba(255, 255, 255, 0.3)'
-          } : {}}
-        >
-          复制
-        </button>
-        
-        {/* 粘贴按钮 */}
-        <button 
-          className="btn btn-sm"
-          onClick={async () => {
-            try {
-              const text = await navigator.clipboard.readText();
-              if (text && editorRef.current) {
-                editorRef.current.setValue(text);
-                window.toastManager?.success('已从剪贴板粘贴！', 2000);
-                console.log('已从剪贴板粘贴');
-              }
-            } catch (error) {
-              console.error('粘贴失败:', error);
-              window.toastManager?.error('粘贴失败: ' + error.message, 2000);
-            }
-          }}
-          disabled={!isEditorReady}
-          style={isImageBackground ? { 
-            position: 'relative', 
-            zIndex: 10,
-            backgroundColor: 'rgba(40, 40, 40, 0.8)',
-            color: 'white',
-            border: '1px solid rgba(255, 255, 255, 0.3)'
-          } : {}}
-        >
-          粘贴
-        </button>
+          
+          {/* Markdown 预览按钮 */}
+          {language === "markdown" && (
+            <button 
+              className="btn btn-sm h-9 min-h-[2.25rem] min-w-[80px] px-3"
+              onClick={() => setShowPreview(!showPreview)}
+              disabled={!isEditorReady}
+              style={isImageBackground ? { 
+                backgroundColor: showPreview ? 'rgba(60, 60, 200, 0.6)' : 'rgba(40, 40, 40, 0.8)',
+                color: 'white',
+                border: '1px solid rgba(200, 200, 200, 0.3)'
+              } : {}}
+            >
+              {showPreview ? "编辑" : "预览"}
+            </button>
+          )}
+          
+          {/* Python 运行按钮 */}
+          {language === "python" && (
+            <button 
+              className="btn btn-sm h-9 min-h-[2.25rem] min-w-[80px] px-3"
+              onClick={runPythonCode}
+              disabled={!isEditorReady || isRunning}
+              style={isImageBackground ? { 
+                backgroundColor: 'rgba(40, 120, 40, 0.8)',
+                color: 'white',
+                border: '1px solid rgba(200, 200, 200, 0.3)'
+              } : {}}
+            >
+              {isRunning ? "运行中..." : "运行"}
+            </button>
+          )}
+        </div>
       </div>
       
       {/* 主要内容区域 */}
@@ -461,7 +476,14 @@ export const MonacoEditor = () => {
               minimap: { enabled: true },
               scrollBeyondLastLine: false,
               wordWrap: "on",
-              automaticLayout: true
+              automaticLayout: true,
+              lineNumbers: "on",
+              roundedSelection: true,
+              selectOnLineNumbers: true,
+              cursorStyle: "line",
+              cursorWidth: 2,
+              formatOnPaste: true,
+              formatOnType: true
             }}
           />
         </div>

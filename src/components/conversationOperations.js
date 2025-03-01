@@ -6,7 +6,23 @@ export const loadConversations = async () => {
   try {
     // 从 localStorage 加载对话历史
     const savedConversations = JSON.parse(localStorage.getItem('conversations') || '[]')
-    return savedConversations
+    
+    // 过滤掉Notes文件夹相关的对话
+    const filteredConversations = savedConversations.filter(conv => {
+      if (!conv.path) return true;
+      // 检查路径中是否包含/Notes/或\Notes\
+      return !conv.path.includes('/Notes/') && !conv.path.includes('\\Notes\\') && 
+             !conv.path.endsWith('/Notes') && !conv.path.endsWith('\\Notes');
+    });
+    
+    // 如果过滤掉了一些对话，更新localStorage
+    if (filteredConversations.length !== savedConversations.length) {
+      console.log('已过滤掉Notes文件夹的对话:', 
+                 savedConversations.length - filteredConversations.length);
+      localStorage.setItem('conversations', JSON.stringify(filteredConversations));
+    }
+    
+    return filteredConversations
   } catch (error) {
     console.error('Failed to load conversations:', error)
     throw new Error('加载对话历史失败')
