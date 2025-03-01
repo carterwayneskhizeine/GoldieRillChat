@@ -1108,7 +1108,23 @@ export function ChatView({
                           ) : message.files?.some(file => 
                             file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
                           ) ? (
-                            <div className="media-content">
+                            <div className="media-content flex flex-col">
+                              {/* 先显示消息内容（如果有） */}
+                              {message.content && (
+                                <div className="mb-0">
+                                  <MarkdownRenderer
+                                    content={message.content || ''}
+                                    isCompact={false}
+                                    onCopyCode={(code) => {
+                                      console.log('Code copied:', code);
+                                    }}
+                                    onLinkClick={(href) => {
+                                      window.electron.openExternal(href);
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              {/* 然后显示图片 */}
                               {message.files
                                 .filter(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
                                 .map(file => renderMediaContent(file, handleImageClick))
@@ -1117,7 +1133,23 @@ export function ChatView({
                           ) : message.files?.some(file => 
                             file.name && file.name.match(/\.mp4$/i)
                           ) ? (
-                            <div className="media-content">
+                            <div className="media-content flex flex-col">
+                              {/* 先显示消息内容（如果有） */}
+                              {message.content && (
+                                <div className="mb-0">
+                                  <MarkdownRenderer
+                                    content={message.content || ''}
+                                    isCompact={false}
+                                    onCopyCode={(code) => {
+                                      console.log('Code copied:', code);
+                                    }}
+                                    onLinkClick={(href) => {
+                                      window.electron.openExternal(href);
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              {/* 然后显示视频 */}
                               {console.log('渲染视频文件:', message.files.filter(file => file.name && file.name.match(/\.mp4$/i)))}
                               {message.files
                                 .filter(file => file.name && file.name.match(/\.mp4$/i))
@@ -1135,6 +1167,21 @@ export function ChatView({
                             file.name && !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
                           ) ? (
                             <div className="file-message">
+                              {/* 先显示消息内容（如果有） */}
+                              {message.content && (
+                                <div className="mb-4">
+                                  <MarkdownRenderer
+                                    content={message.content || ''}
+                                    isCompact={false}
+                                    onCopyCode={(code) => {
+                                      console.log('Code copied:', code);
+                                    }}
+                                    onLinkClick={(href) => {
+                                      window.electron.openExternal(href);
+                                    }}
+                                  />
+                                </div>
+                              )}
                               {/* 显示文件消息 */}
                               {message.files.map((file, index) => (
                                 <div key={index} className="file-item">

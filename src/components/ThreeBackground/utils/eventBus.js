@@ -12,8 +12,8 @@ class EventBus {
     
     // 初始化全局标志
     if (typeof window !== 'undefined') {
-      window.isImageBackgroundMode = this.isCustomBackground;
-      window.isVideoBackgroundMode = this.isVideoBackground;
+      window.isImageBackgroundMode = this.isCustomBackground && !this.isVideoBackground;
+      window.isVideoBackgroundMode = this.isCustomBackground && this.isVideoBackground;
     }
   }
 
@@ -102,8 +102,18 @@ class EventBus {
     }
     
     // 设置全局标志
-    window.isImageBackgroundMode = this.isCustomBackground && !this.isVideoBackground;
-    window.isVideoBackgroundMode = this.isCustomBackground && this.isVideoBackground;
+    if (typeof window !== 'undefined') {
+      window.isImageBackgroundMode = this.isCustomBackground && !this.isVideoBackground;
+      window.isVideoBackgroundMode = this.isCustomBackground && this.isVideoBackground;
+      
+      // 添加调试日志
+      console.log('Background mode updated:', {
+        isCustomBackground: this.isCustomBackground,
+        isVideoBackground: this.isVideoBackground,
+        isImageBackground: this.isCustomBackground && !this.isVideoBackground,
+        path: this.currentBackgroundPath
+      });
+    }
     
     // 触发背景变化事件
     this.emit('backgroundChange', {
@@ -114,13 +124,15 @@ class EventBus {
     });
     
     // 触发背景模式变化事件 - 用于通知其他组件
-    const event = new CustomEvent('backgroundModeChange', {
-      detail: { 
-        isImageBackground: this.isCustomBackground && !this.isVideoBackground,
-        isVideoBackground: this.isCustomBackground && this.isVideoBackground
-      }
-    });
-    window.dispatchEvent(event);
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('backgroundModeChange', {
+        detail: { 
+          isImageBackground: this.isCustomBackground && !this.isVideoBackground,
+          isVideoBackground: this.isCustomBackground && this.isVideoBackground
+        }
+      });
+      window.dispatchEvent(event);
+    }
     
     return this.isCustomBackground;
   }
@@ -144,8 +156,10 @@ class EventBus {
       this.isVideoBackground = false;
       
       // 更新全局标志
-      window.isImageBackgroundMode = false;
-      window.isVideoBackgroundMode = false;
+      if (typeof window !== 'undefined') {
+        window.isImageBackgroundMode = false;
+        window.isVideoBackgroundMode = false;
+      }
       
       // 触发背景变化事件
       this.emit('backgroundChange', {
@@ -156,13 +170,15 @@ class EventBus {
       });
       
       // 触发背景模式变化事件
-      const event = new CustomEvent('backgroundModeChange', {
-        detail: { 
-          isImageBackground: false,
-          isVideoBackground: false
-        }
-      });
-      window.dispatchEvent(event);
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('backgroundModeChange', {
+          detail: { 
+            isImageBackground: false,
+            isVideoBackground: false
+          }
+        });
+        window.dispatchEvent(event);
+      }
     }
   }
   

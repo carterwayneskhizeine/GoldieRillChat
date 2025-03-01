@@ -169,9 +169,6 @@ export const MessageItem = ({
       return (
         <div key={file.path} className="chat-media-container my-2">
           <div className="video-info mb-2">
-            <div className="text-sm opacity-70">
-              视频文件: {file.name}
-            </div>
           </div>
           <video
             src={`local-file://${file.path}`}
@@ -198,7 +195,22 @@ export const MessageItem = ({
     if (!videoFile) return null;
 
     return (
-      <div className="video-container">
+      <div className="video-container flex flex-col">
+        {/* 先显示消息内容（如果有） */}
+        {message.content && (
+          <div className="mb-4">
+            <MarkdownRenderer
+              content={message.content || ''}
+              isCompact={false}
+              onCopyCode={(code) => {
+                console.log('Code copied:', code);
+              }}
+              onLinkClick={(href) => {
+                window.electron.openExternal(href);
+              }}
+            />
+          </div>
+        )}
         <div className="video-info mb-4">
           <div className="font-medium mb-2">提示词：{message.originalPrompt}</div>
           <div className="text-sm opacity-70">
@@ -248,7 +260,22 @@ export const MessageItem = ({
     if (!audioFile) return null;
 
     return (
-      <div className="audio-message">
+      <div className="audio-message flex flex-col">
+        {/* 先显示消息内容（如果有） */}
+        {message.content && (
+          <div className="mb-4">
+            <MarkdownRenderer
+              content={message.content || ''}
+              isCompact={false}
+              onCopyCode={(code) => {
+                console.log('Code copied:', code);
+              }}
+              onLinkClick={(href) => {
+                window.electron.openExternal(href);
+              }}
+            />
+          </div>
+        )}
         <div className="audio-info mb-4">
           <div className="font-medium mb-2">文本：{message.audioParams?.text}</div>
           <div className="text-sm opacity-70">
@@ -391,16 +418,48 @@ export const MessageItem = ({
                       ) : message.files?.some(file => 
                         file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
                       ) ? (
-                        <div className="media-content">
+                        <div className="media-content flex flex-col">
+                          {/* 先显示消息内容（如果有） */}
+                          {message.content && (
+                            <div className="mb-0">
+                              <MarkdownRenderer
+                                content={message.content || ''}
+                                isCompact={false}
+                                onCopyCode={(code) => {
+                                  console.log('Code copied:', code);
+                                }}
+                                onLinkClick={(href) => {
+                                  window.electron.openExternal(href);
+                                }}
+                              />
+                            </div>
+                          )}
+                          {/* 然后显示图片 */}
                           {message.files
                             .filter(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
                             .map(file => renderMediaContent(file, onImageClick))
-                        }
+                          }
                         </div>
                       ) : message.files?.some(file => 
                         file.name && file.name.match(/\.mp4$/i)
                       ) ? (
-                        <div className="media-content">
+                        <div className="media-content flex flex-col">
+                          {/* 先显示消息内容（如果有） */}
+                          {message.content && (
+                            <div className="mb-0">
+                              <MarkdownRenderer
+                                content={message.content || ''}
+                                isCompact={false}
+                                onCopyCode={(code) => {
+                                  console.log('Code copied:', code);
+                                }}
+                                onLinkClick={(href) => {
+                                  window.electron.openExternal(href);
+                                }}
+                              />
+                            </div>
+                          )}
+                          {/* 然后显示视频 */}
                           {message.files
                             .filter(file => file.name && file.name.match(/\.mp4$/i))
                             .map(file => renderMediaContent(file, onImageClick))
@@ -410,6 +469,21 @@ export const MessageItem = ({
                         file.name && !file.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)
                       ) ? (
                         <div className="file-message">
+                          {/* 先显示消息内容（如果有） */}
+                          {message.content && (
+                            <div className="mb-0">
+                              <MarkdownRenderer
+                                content={message.content || ''}
+                                isCompact={false}
+                                onCopyCode={(code) => {
+                                  console.log('Code copied:', code);
+                                }}
+                                onLinkClick={(href) => {
+                                  window.electron.openExternal(href);
+                                }}
+                              />
+                            </div>
+                          )}
                           {/* 显示文件消息 */}
                           {message.files.map((file, index) => (
                             <div key={index} className="file-item">

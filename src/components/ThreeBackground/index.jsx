@@ -7,6 +7,7 @@ import eventBus from './utils/eventBus';
 const ThreeBackground = () => {
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
+  const imgRef = useRef(null);
   const { scene, initScene, updateScene, isCustomBackground } = useThreeScene();
   const [backgroundInfo, setBackgroundInfo] = useState({ 
     path: null, 
@@ -74,12 +75,23 @@ const ThreeBackground = () => {
     }
   }, [backgroundInfo.isCustom, backgroundInfo.isVideo, backgroundInfo.path]);
 
+  // 图片背景加载
+  useEffect(() => {
+    if (backgroundInfo.isCustom && !backgroundInfo.isVideo && backgroundInfo.path && imgRef.current) {
+      console.log('Loading image background:', backgroundInfo.path);
+      imgRef.current.src = `local-file://${backgroundInfo.path}`;
+    }
+  }, [backgroundInfo.isCustom, backgroundInfo.isVideo, backgroundInfo.path]);
+
   // 根据当前主题确定显示状态
   const isHidden = backgroundInfo.isCustom && 
                    backgroundInfo.theme === 'bg-theme';
   
-  // 使用图片背景时隐藏Canvas
-  const showCanvas = !backgroundInfo.isCustom || !backgroundInfo.isVideo;
+  // 使用图片或视频背景时隐藏Canvas
+  const showCanvas = !backgroundInfo.isCustom;
+  
+  // 判断是否显示图片背景
+  const showImageBackground = backgroundInfo.isCustom && !backgroundInfo.isVideo;
   
   return (
     <>
@@ -92,13 +104,45 @@ const ThreeBackground = () => {
           width: '100vw',
           height: '100vh',
           zIndex: 0,
-          opacity: isHidden && showCanvas ? 1 : 0.2, // 当使用图片背景时降低不透明度
+          opacity: isHidden ? 0 : 0.2, // 当使用自定义背景时隐藏
           pointerEvents: 'none',
           background: isCustomBackground ? 'transparent' : 'rgba(0,0,0,0)',
           transition: 'opacity 0.3s ease',
           display: showCanvas ? 'block' : 'none'
         }}
       />
+      
+      {/* 图片背景 */}
+      {showImageBackground && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 0,
+            opacity: backgroundInfo.isCustom ? 1 : 0,
+            pointerEvents: 'none',
+            transition: 'opacity 0.3s ease',
+            overflow: 'hidden',
+            backgroundColor: 'rgba(0,0,0,0.1)' // 添加一个轻微的背景色
+          }}
+        >
+          <img
+            ref={imgRef}
+            src={backgroundInfo.path ? `local-file://${backgroundInfo.path}` : ''}
+            alt="背景"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover', // 固定使用铺满模式
+              objectPosition: 'center center',
+              display: 'block'
+            }}
+          />
+        </div>
+      )}
       
       {/* 视频背景 */}
       {backgroundInfo.isVideo && (
