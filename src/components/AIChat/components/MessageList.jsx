@@ -65,6 +65,11 @@ export const MessageList = ({
     setTimeout(scrollToBottom, 100);
   }, [messages]);
 
+  // 添加初始化消息
+  useEffect(() => {
+    console.log('AIChat拖放上传功能已初始化 - 请直接将文件拖放到聊天界面');
+  }, []);
+
   // 处理删除消息
   const onDeleteMessage = async (messageId) => {
     setDeletingMessageId(messageId);
@@ -120,16 +125,22 @@ export const MessageList = ({
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    // 保持isDragging状态为true，以确保拖放遮罩显示
+    setIsDragging(true);
   };
   
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     
+    // 重置拖拽状态
     setIsDragging(false);
     dragCounterRef.current = 0;
     
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    console.log('Drop event detected:', e.dataTransfer.files);
+    
+    // 确保有文件且handleFileDrop是一个函数
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0 && typeof handleFileDrop === 'function') {
       handleFileDrop(e);
     }
   };
@@ -138,6 +149,7 @@ export const MessageList = ({
     <div 
       className="flex-1 overflow-hidden bg-base-100"
       onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
     >
       <div 
         id="ai-chat-messages-main"
@@ -148,6 +160,8 @@ export const MessageList = ({
           position: 'relative',
           scrollBehavior: 'smooth'
         }}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
         <div className="space-y-4 p-4 max-w-[1200px] mx-auto">
           {messages.map(message => (
@@ -186,6 +200,14 @@ export const MessageList = ({
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999
+        }}
       >
         <div className="drag-icon">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -29,7 +29,7 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
   const [markdownContent, setMarkdownContent] = useState('');
   const [initialContent, setInitialContent] = useState('');
   const [isImageBackground, setIsImageBackground] = useState(false);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   const [lastSaved, setLastSaved] = useState('');
   const autoSaveTimeoutRef = useRef(null);
 
@@ -111,7 +111,7 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
           saveNote(currentNote.id, content).then(() => {
             setLastSaved(new Date().toLocaleTimeString());
           });
-        }, 3000);
+        }, 15000);
       };
       
       const disposable = model.onDidChangeContent(handleContentChange);

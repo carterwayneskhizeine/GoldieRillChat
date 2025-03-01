@@ -89,6 +89,13 @@ export function ChatView({
   const [editingImageMessage, setEditingImageMessage] = useState(null);
   // 添加背景状态追踪
   const [currentBackground, setCurrentBackground] = useState(null);
+  // 添加视频背景状态追踪
+  const [currentVideoBackground, setCurrentVideoBackground] = useState(null);
+  // 添加文件上传状态
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  // 添加拖放计数器引用
+  const dragCounterRef = useRef(0);
 
   // 添加复制功能
   const handleCopySelectedText = (e) => {
@@ -181,25 +188,54 @@ export function ChatView({
   const handleDragEnter = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    console.log('拖放进入事件');
+    dragCounterRef.current++;
+    
     if (!currentConversation) return;
-    setIsDragging(true);
+    
+    // 只有当拖放的是文件时才显示拖放区
+    if (e.dataTransfer.types && 
+       (e.dataTransfer.types.includes('Files') || e.dataTransfer.types.includes('application/x-moz-file'))) {
+      setIsDragging(true);
+      console.log('拖放状态已激活');
+    }
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    
+    console.log('拖放离开事件');
+    dragCounterRef.current--;
+    
+    // 只有当所有拖放事件都离开时才取消拖放状态
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDragging(false);
+      console.log('拖放状态已取消');
+    }
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // 保持拖放状态
+    if (!isDragging && e.dataTransfer.types && 
+        (e.dataTransfer.types.includes('Files') || e.dataTransfer.types.includes('application/x-moz-file'))) {
+      setIsDragging(true);
+    }
   };
 
   const handleDrop = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    console.log('拖放释放事件');
+    // 重置拖放状态和计数器
     setIsDragging(false);
+    dragCounterRef.current = 0;
 
     if (!currentConversation) {
       alert('请先选择或创建一个对话');
@@ -207,67 +243,96 @@ export function ChatView({
     }
 
     const files = Array.from(e.dataTransfer.files);
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      console.log('没有检测到文件');
+      return;
+    }
+
+    console.log(`检测到 ${files.length} 个文件`);
 
     try {
+      // 显示上传状态
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      // 记录总文件数和已处理文件数
+      const totalFiles = files.length;
+      let processedCount = 0;
+      
       // 对每个文件单独处理并发送消息
       for (const file of files) {
-        // 创建文件的副本并保存到对话文件夹
-        const result = await window.electron.saveFile(currentConversation.path, {
-          name: file.name,
-          data: await file.arrayBuffer()
-        });
+        console.log(`处理拖放文件: ${file.name} (${file.type}), 大小: ${(file.size/1024/1024).toFixed(2)}MB`);
         
-        const processedFile = {
-          name: result.name,
-          path: result.path,
-          type: file.type
-        };
+        try {
+          // 创建文件的副本并保存到对话文件夹
+          const result = await window.electron.saveFile(currentConversation.path, {
+            name: file.name,
+            data: await file.arrayBuffer()
+          });
+          
+          // 更新进度
+          processedCount++;
+          setUploadProgress(Math.floor((processedCount / totalFiles) * 100));
+          
+          console.log(`文件保存成功: ${result.path}`);
+          
+          const processedFile = {
+            name: result.name,
+            path: result.path,
+            type: file.type
+          };
 
-        // 构建消息内容
-        let messageContent = '';
-        if (file.type.startsWith('image/')) {
-          messageContent = `图片文件: ${file.name}`;
-        } else if (file.type.startsWith('video/')) {
-          messageContent = `视频文件: ${file.name}`;
-        } else if (file.type.startsWith('audio/')) {
-          messageContent = `音频文件: ${file.name}`;
-        } else if (file.type === 'application/pdf') {
-          messageContent = `PDF文档: ${file.name}`;
-        } else if (file.type.includes('document') || file.type.includes('sheet') || file.type.includes('presentation')) {
-          messageContent = `办公文档: ${file.name}`;
-        } else if (file.type.includes('text/')) {
-          messageContent = `文本文件: ${file.name}`;
-        } else {
-          messageContent = `文件: ${file.name}`;
-        }
+          // 构建消息内容
+          let messageContent = '';
+          if (file.type.startsWith('image/')) {
+            messageContent = `图片文件: ${file.name}`;
+          } else if (file.type.startsWith('video/')) {
+            messageContent = `视频文件: ${file.name}`;
+          } else if (file.type.startsWith('audio/')) {
+            messageContent = `音频文件: ${file.name}`;
+          } else if (file.type === 'application/pdf') {
+            messageContent = `PDF文档: ${file.name}`;
+          } else if (file.type.includes('document') || file.type.includes('sheet') || file.type.includes('presentation')) {
+            messageContent = `办公文档: ${file.name}`;
+          } else if (file.type.includes('text/')) {
+            messageContent = `文本文件: ${file.name}`;
+          } else {
+            messageContent = `文件: ${file.name}`;
+          }
 
-        // 直接发送包含单个文件的消息
-        const tempMessage = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          content: messageContent,
-          type: 'user',
-          timestamp: new Date().toISOString(),
-          files: [processedFile]
-        };
+          // 直接发送包含单个文件的消息
+          const tempMessage = {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            content: messageContent,
+            type: 'user',
+            timestamp: new Date().toISOString(),
+            files: [processedFile]
+          };
 
-        // 保存消息
-        const updatedMessages = [...messages, tempMessage];
-        await window.electron.saveMessages(
-          currentConversation.path,
-          currentConversation.id,
-          updatedMessages
-        );
+          // 保存消息
+          const updatedMessages = [...messages, tempMessage];
+          await window.electron.saveMessages(
+            currentConversation.path,
+            currentConversation.id,
+            updatedMessages
+          );
 
-        // 更新消息列表
-        setMessages(updatedMessages);
-        if (typeof setShouldScrollToBottom === 'function') {
-          setShouldScrollToBottom(true);
+          // 更新消息列表
+          setMessages(updatedMessages);
+          if (typeof setShouldScrollToBottom === 'function') {
+            setShouldScrollToBottom(true);
+          }
+        } catch (error) {
+          console.error(`处理文件 ${file.name} 失败:`, error);
+          alert(`文件 ${file.name} 上传失败: ${error.message}`);
         }
       }
     } catch (error) {
-      console.error('文件上传失败:', error);
+      console.error('文件上传过程中发生错误:', error);
       alert('文件上传失败: ' + error.message);
+    } finally {
+      // 无论成功与否，都完成上传状态
+      setIsUploading(false);
     }
   };
 
@@ -516,20 +581,29 @@ export function ChatView({
   // 添加背景变化监听
   useEffect(() => {
     const handleBackgroundChange = (data) => {
-      const { isCustomBackground, path, theme } = data;
+      const { isCustomBackground, path, theme, isVideo } = data;
       
       // 如果切换了主题或取消了图片背景，更新状态
       if (theme !== 'bg-theme' || !isCustomBackground) {
         setCurrentBackground(null);
+        setCurrentVideoBackground(null);
+      } else if (isVideo) {
+        setCurrentVideoBackground(path);
+        setCurrentBackground(null);
       } else {
         setCurrentBackground(path);
+        setCurrentVideoBackground(null);
       }
     };
     
     // 组件初始化时，检查当前背景状态
     const currentState = eventBus.getBackgroundState();
     if (currentState.isCustomBackground && currentState.theme === 'bg-theme') {
-      setCurrentBackground(currentState.path);
+      if (currentState.isVideo) {
+        setCurrentVideoBackground(currentState.path);
+      } else {
+        setCurrentBackground(currentState.path);
+      }
     }
     
     eventBus.on('backgroundChange', handleBackgroundChange);
@@ -666,6 +740,75 @@ export function ChatView({
             animation: bounce 1s infinite;
           }
 
+          /* 增强拖放区域样式 */
+          .drag-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: all;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+          }
+
+          .drag-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+          }
+
+          .drag-icon {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+            animation: pulse 1.5s infinite alternate;
+          }
+
+          .drag-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--primary);
+            stroke-width: 1;
+            fill: transparent;
+          }
+
+          @keyframes pulse {
+            0% {
+              transform: scale(1);
+              opacity: 0.7;
+            }
+            100% {
+              transform: scale(1.1);
+              opacity: 1;
+            }
+          }
+
+          .drag-overlay .drag-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 1rem;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+          }
+
+          .drag-overlay .drag-subtext {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            max-width: 400px;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+          }
+
           @keyframes bounce {
             0%, 100% {
               transform: translateY(-10%);
@@ -736,7 +879,8 @@ export function ChatView({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
         </div>
-        <div className="text-lg font-medium">拖放文件到这里上传</div>
+        <div className="drag-text">拖放文件到这里上传</div>
+        <div className="drag-subtext">支持图片、视频、音频、PDF和其他文件类型</div>
       </div>
 
       {/* 消息列表容器 */}
@@ -995,13 +1139,6 @@ export function ChatView({
                               {message.files.map((file, index) => (
                                 <div key={index} className="file-item">
                                   <span className="file-name">{file.name}</span>
-                                  <button
-                                    className="btn btn-ghost btn-xs"
-                                    onClick={() => openFileLocation(file)}
-                                    title="打开文件位置"
-                                  >
-                                    打开
-                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -1079,6 +1216,33 @@ export function ChatView({
                       title="设置/取消背景图片"
                     >
                       BG
+                    </button>
+                  )}
+                  {/* 添加MBG按钮 - 只在视频消息下显示 */}
+                  {message.files?.some(file => file.name && file.name.match(/\.mp4$/i)) && (
+                    <button
+                      className={`btn btn-xs ${
+                        currentVideoBackground === message.files.find(file => 
+                          file.name && file.name.match(/\.mp4$/i)
+                        )?.path 
+                          ? 'btn-primary' 
+                          : 'btn-ghost'
+                      }`}
+                      onClick={() => {
+                        console.log('MBG按钮点击，消息ID:', message.id);
+                        // 获取第一个视频文件
+                        const videoFile = message.files.find(file => 
+                          file.name && file.name.match(/\.mp4$/i)
+                        );
+                        
+                        if (videoFile) {
+                          // 使用 eventBus 切换视频背景
+                          eventBus.toggleBackground(videoFile.path, true);
+                        }
+                      }}
+                      title="设置/取消视频背景"
+                    >
+                      MBG
                     </button>
                   )}
                   <button
@@ -1293,7 +1457,15 @@ export function ChatView({
               <div className="absolute bottom-3 right-3 flex items-center gap-2">
                 <button
                   className="btn btn-ghost btn-sm btn-circle"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    console.log('点击上传文件按钮');
+                    if (fileInputRef && fileInputRef.current) {
+                      fileInputRef.current.click();
+                    } else {
+                      console.error('fileInputRef未正确初始化');
+                    }
+                  }}
+                  title="上传文件"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -1310,6 +1482,84 @@ export function ChatView({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 隐藏的文件输入元素 */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        multiple
+        onChange={(e) => {
+          console.log('文件选择事件触发', e.target.files);
+          if (!currentConversation) {
+            alert('请先选择或创建一个对话');
+            return;
+          }
+
+          if (e.target.files && e.target.files.length > 0) {
+            const files = Array.from(e.target.files);
+            
+            // 显示上传状态
+            setIsUploading(true);
+            setUploadProgress(0);
+            
+            // 记录总文件数和已处理文件数
+            const totalFiles = files.length;
+            let processedCount = 0;
+            
+            Promise.all(
+              files.map(async (file) => {
+                try {
+                  console.log(`处理文件: ${file.name} (${file.type}), 大小: ${(file.size/1024/1024).toFixed(2)}MB`);
+                  
+                  // 将文件保存到对话文件夹
+                  const result = await window.electron.saveFile(currentConversation.path, {
+                    name: file.name,
+                    data: await file.arrayBuffer()
+                  });
+                  
+                  // 更新进度
+                  processedCount++;
+                  setUploadProgress(Math.floor((processedCount / totalFiles) * 100));
+                  
+                  console.log(`文件保存成功: ${result.path}`);
+                  return {
+                    name: result.name,
+                    path: result.path,
+                    type: file.type
+                  };
+                } catch (error) {
+                  console.error('保存文件失败:', error);
+                  throw error;
+                }
+              })
+            )
+            .then((processedFiles) => {
+              // 更新选中的文件列表
+              setSelectedFiles([...selectedFiles, ...processedFiles]);
+              // 重置文件输入元素，允许再次选择相同文件
+              e.target.value = '';
+              // 完成上传
+              setIsUploading(false);
+              console.log(`成功上传 ${processedFiles.length} 个文件`);
+            })
+            .catch((error) => {
+              console.error('处理文件时出错:', error);
+              alert('上传文件失败: ' + error.message);
+              e.target.value = '';
+              setIsUploading(false);
+            });
+          }
+        }}
+      />
+
+      {/* 上传进度指示器 */}
+      {isUploading && (
+        <div className="fixed bottom-4 right-4 bg-base-200 p-3 rounded-lg shadow-lg z-50">
+          <div className="text-sm mb-2">正在上传文件... {uploadProgress}%</div>
+          <progress className="progress progress-primary w-56" value={uploadProgress} max="100"></progress>
         </div>
       )}
 

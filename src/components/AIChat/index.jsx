@@ -326,16 +326,29 @@ export const AIChat = ({
   const handleFileDrop = (e) => {
     e.preventDefault();
     
+    console.log('处理文件拖放事件:', e);
+    console.log('文件数量:', e.dataTransfer.files?.length);
+    
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const files = Array.from(e.dataTransfer.files).map(file => ({
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        path: file.path || URL.createObjectURL(file),
-        lastModified: file.lastModified
-      }));
-      
-      inputState.setSelectedFile(files);
+      try {
+        const files = Array.from(e.dataTransfer.files).map(file => {
+          console.log('处理文件:', file.name, file.type, file.size);
+          return {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            path: file.path || URL.createObjectURL(file),
+            lastModified: file.lastModified
+          };
+        });
+        
+        console.log('处理后的文件:', files);
+        inputState.setSelectedFile(files);
+      } catch (error) {
+        console.error('处理拖放文件时出错:', error);
+      }
+    } else {
+      console.warn('没有检测到有效的文件');
     }
   };
   

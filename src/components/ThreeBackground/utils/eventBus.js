@@ -8,10 +8,12 @@ class EventBus {
     this.previousTheme = null; // 保存切换前的主题
     this.originalShaders = null; // 保存原始着色器代码
     this.currentPresetId = "Shaders1"; // 当前使用的预设ID
+    this.isVideoBackground = false; // 标记当前背景是否为视频
     
     // 初始化全局标志
     if (typeof window !== 'undefined') {
       window.isImageBackgroundMode = this.isCustomBackground;
+      window.isVideoBackgroundMode = this.isVideoBackground;
     }
   }
 
@@ -68,9 +70,22 @@ class EventBus {
   }
 
   // 切换背景状态
-  toggleBackground(imagePath) {
-    this.isCustomBackground = !this.isCustomBackground;
-    this.currentBackgroundPath = this.isCustomBackground ? imagePath : null;
+  toggleBackground(imagePath, isVideo = false) {
+    // 如果相同路径被再次点击，则关闭背景
+    const isSamePath = this.currentBackgroundPath === imagePath;
+    const wasVideoBackground = this.isVideoBackground;
+    
+    if (isSamePath && this.isCustomBackground) {
+      // 点击相同路径时，关闭背景
+      this.isCustomBackground = false;
+      this.currentBackgroundPath = null;
+      this.isVideoBackground = false;
+    } else {
+      // 点击不同路径时，启用该背景
+      this.isCustomBackground = true;
+      this.currentBackgroundPath = imagePath;
+      this.isVideoBackground = isVideo;
+    }
     
     // 切换主题
     if (this.isCustomBackground) {
@@ -87,18 +102,23 @@ class EventBus {
     }
     
     // 设置全局标志
-    window.isImageBackgroundMode = this.isCustomBackground;
+    window.isImageBackgroundMode = this.isCustomBackground && !this.isVideoBackground;
+    window.isVideoBackgroundMode = this.isCustomBackground && this.isVideoBackground;
     
     // 触发背景变化事件
     this.emit('backgroundChange', {
       isCustomBackground: this.isCustomBackground,
       path: this.currentBackgroundPath,
-      theme: this.isCustomBackground ? 'bg-theme' : this.previousTheme
+      theme: this.isCustomBackground ? 'bg-theme' : this.previousTheme,
+      isVideo: this.isVideoBackground
     });
     
     // 触发背景模式变化事件 - 用于通知其他组件
     const event = new CustomEvent('backgroundModeChange', {
-      detail: { isImageBackground: this.isCustomBackground }
+      detail: { 
+        isImageBackground: this.isCustomBackground && !this.isVideoBackground,
+        isVideoBackground: this.isCustomBackground && this.isVideoBackground
+      }
     });
     window.dispatchEvent(event);
     
@@ -110,7 +130,8 @@ class EventBus {
     return {
       isCustomBackground: this.isCustomBackground,
       path: this.currentBackgroundPath,
-      theme: this.isCustomBackground ? 'bg-theme' : this.previousTheme
+      theme: this.isCustomBackground ? 'bg-theme' : this.previousTheme,
+      isVideo: this.isVideoBackground
     };
   }
 
@@ -120,20 +141,26 @@ class EventBus {
     if (newTheme !== 'bg-theme' && this.isCustomBackground) {
       this.isCustomBackground = false;
       this.currentBackgroundPath = null;
+      this.isVideoBackground = false;
       
       // 更新全局标志
       window.isImageBackgroundMode = false;
+      window.isVideoBackgroundMode = false;
       
       // 触发背景变化事件
       this.emit('backgroundChange', {
         isCustomBackground: false,
         path: null,
-        theme: newTheme
+        theme: newTheme,
+        isVideo: false
       });
       
       // 触发背景模式变化事件
       const event = new CustomEvent('backgroundModeChange', {
-        detail: { isImageBackground: false }
+        detail: { 
+          isImageBackground: false,
+          isVideoBackground: false
+        }
       });
       window.dispatchEvent(event);
     }

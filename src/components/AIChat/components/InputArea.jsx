@@ -121,6 +121,7 @@ export const InputArea = ({
           <button 
             className="btn btn-ghost btn-sm btn-circle"
             onClick={() => {
+              console.log('发送消息，当前选中的文件:', selectedFiles?.length || 0);
               handleSendMessage();
               setMessageInput('');
               const textarea = document.querySelector('.aichat-input');

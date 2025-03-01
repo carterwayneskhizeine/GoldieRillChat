@@ -19,7 +19,7 @@
 
 /* 拖拽上传遮罩样式 */
 .drag-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -29,27 +29,31 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
   color: white;
   transition: opacity 0.3s ease;
+  pointer-events: all;
 }
 
 .drag-overlay.hidden {
   opacity: 0;
   pointer-events: none;
+  visibility: hidden;
 }
 
 .drag-icon {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 16px;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
   animation: bounce 1s infinite alternate;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
 }
 
 .drag-icon svg {
   width: 100%;
   height: 100%;
   stroke: white;
+  stroke-width: 1.5;
 }
 
 @keyframes bounce {
