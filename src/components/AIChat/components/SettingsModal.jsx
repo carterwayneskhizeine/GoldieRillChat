@@ -597,6 +597,30 @@ export const SettingsModal = ({
                   )}
                 </div>
               </div>
+              
+              {/* 消息历史记录数量设置 */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">消息历史记录数量</h3>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range"
+                      min="5"
+                      max="21"
+                      value={maxHistoryMessages}
+                      onChange={(e) => handleMaxHistoryMessagesChange(e.target.value)}
+                      className="range range-primary"
+                      step="1"
+                    />
+                    <span className="text-lg font-medium min-w-[5ch]">
+                      {maxHistoryMessages === 21 ? '全部' : maxHistoryMessages}
+                    </span>
+                  </div>
+                  <div className="text-xs opacity-70">
+                    设置每次重试时使用的历史消息数量（5-20条，或全部历史消息）
+                  </div>
+                </div>
+              </div>
 
               {/* 添加翻译设置到提供商设置 */}
               <div className="divider my-6"></div>
@@ -658,7 +682,7 @@ export const SettingsModal = ({
                       </button>
                     </div>
                     <label className="label">
-                      <span className="label-text-alt text-opacity-70">SiliconFlow API 密钥，用于图片和视频生成功能</span>
+                      <span className="label-text-alt text-opacity-70">SiliconFlow API 密钥，用于翻译功能</span>
                     </label>
                   </div>
                 </div>
