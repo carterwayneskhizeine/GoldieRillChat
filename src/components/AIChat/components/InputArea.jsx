@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { translateText } from '../../../services/translationService';
+import toastManager from '../../../utils/toastManager';
 
 export const InputArea = ({
   messageInput,
@@ -10,8 +12,47 @@ export const InputArea = ({
   setIsNetworkEnabled,
   selectedFiles = [],
   handleFileSelect,
-  removeFile
+  removeFile,
+  selectedProvider,
+  selectedModel,
+  apiKey,
+  apiHost
 }) => {
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  // 处理翻译功能
+  const handleTranslation = async () => {
+    if (!messageInput.trim()) {
+      toastManager.warning('请先输入要翻译的文本');
+      return;
+    }
+
+    // 如果已经在翻译中，不重复执行
+    if (isTranslating) return;
+
+    try {
+      setIsTranslating(true);
+      
+      // 执行翻译
+      const translatedText = await translateText(
+        messageInput,
+        selectedProvider,
+        selectedModel,
+        apiKey,
+        apiHost
+      );
+      
+      // 更新输入框文本
+      setMessageInput(translatedText);
+      toastManager.success('翻译完成', { duration: 3000 });
+    } catch (error) {
+      console.error('翻译失败:', error);
+      toastManager.error('翻译失败: ' + error.message, { duration: 3000 });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -101,12 +142,22 @@ export const InputArea = ({
         />
         <div className="absolute right-4 bottom-3 flex items-center gap-2">
           <button
-            className={`btn btn-ghost btn-sm btn-circle ${isNetworkEnabled ? 'text-primary' : 'text-gray-400'}`}
-            onClick={() => setIsNetworkEnabled(!isNetworkEnabled)}
-            title={isNetworkEnabled ? "禁用网络搜索" : "启用网络搜索"}
+            className={`btn btn-ghost btn-sm btn-circle ${isTranslating ? 'loading' : ''}`}
+            onClick={handleTranslation}
+            title="翻译（使用 Qwen2-1.5B-Instruct 模型，支持中英互译）"
+            disabled={isTranslating}
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
+          </button>
+          <button
+            className={`btn btn-ghost btn-sm btn-circle ${isNetworkEnabled ? 'text-primary' : ''}`}
+            onClick={() => setIsNetworkEnabled(!isNetworkEnabled)}
+            title={isNetworkEnabled ? '关闭网络搜索' : '开启网络搜索'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </button>
           <button

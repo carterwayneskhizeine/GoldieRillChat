@@ -295,7 +295,7 @@ export default function Sidebar({
               </label>
               <ul 
                 tabIndex={0} 
-                className={`dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full max-h-[300px] overflow-y-auto ${dropdownOpen ? '' : 'hidden'}`}
+                className={`dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50 ${dropdownOpen ? '' : 'hidden'}`}
                 onBlur={() => setDropdownOpen(false)}
               >
                 {conversations.map(conversation => (
@@ -316,98 +316,100 @@ export default function Sidebar({
           )}
 
           {activeTool === 'chat' && (
-            <div className="flex-1 mt-2 overflow-y-auto">
-              <div className="flex flex-col gap-2">
-                {conversations.map(conversation => (
-                  <div
-                    key={conversation.id}
-                    className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''} ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
-                    draggable={editingFolderName === null}
-                    onDragStart={() => {
-                      if (editingFolderName !== null) return;
-                      handleDragStart(conversation, setDraggedConversation);
-                    }}
-                    onDragOver={(e) => {
-                      if (editingFolderName !== null) return;
-                      handleDragOver(e);
-                    }}
-                    onDrop={(e) => {
-                      if (editingFolderName !== null) return;
-                      handleDrop(conversation, draggedConversation, conversations, setConversations, setDraggedConversation);
-                    }}
-                    onContextMenu={(e) => {
-                      if (editingFolderName !== null) return;
-                      e.preventDefault();
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setContextMenu({
-                        visible: true,
-                        x: rect.right,
-                        y: rect.top,
-                        type: 'chat',
-                        data: conversation,
-                        options: [
-                          {
-                            label: 'Delete',
-                            onClick: () => handleConversationDelete(conversation)
-                          },
-                          {
-                            label: 'Rename',
-                            onClick: () => handleConversationRename(conversation)
-                          }
-                        ]
-                      });
-                    }}
-                    onClick={() => handleConversationClick(conversation)}
-                  >
-                    <div className="flex items-center gap-2 flex-1">
-                      {editingFolderName === conversation.id ? (
-                        <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="text"
-                            value={folderNameInput}
-                            onChange={(e) => setFolderNameInput(e.target.value)}
-                            className="input input-xs input-bordered w-full"
-                            placeholder="输入新的文件夹名称"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                handleRenameConfirm(
-                                  conversation,
-                                  folderNameInput
-                                );
-                              }
-                            }}
-                            autoFocus
-                          />
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              className="btn btn-xs btn-primary"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRenameConfirm(
-                                  conversation,
-                                  folderNameInput
-                                );
+            <div className="flex-1 mt-2 overflow-hidden h-full flex flex-col">
+              <div className="flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50">
+                <div className="flex flex-col gap-2 p-2">
+                  {conversations.map(conversation => (
+                    <div
+                      key={conversation.id}
+                      className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''} ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                      draggable={editingFolderName === null}
+                      onDragStart={() => {
+                        if (editingFolderName !== null) return;
+                        handleDragStart(conversation, setDraggedConversation);
+                      }}
+                      onDragOver={(e) => {
+                        if (editingFolderName !== null) return;
+                        handleDragOver(e);
+                      }}
+                      onDrop={(e) => {
+                        if (editingFolderName !== null) return;
+                        handleDrop(conversation, draggedConversation, conversations, setConversations, setDraggedConversation);
+                      }}
+                      onContextMenu={(e) => {
+                        if (editingFolderName !== null) return;
+                        e.preventDefault();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setContextMenu({
+                          visible: true,
+                          x: rect.right,
+                          y: rect.top,
+                          type: 'chat',
+                          data: conversation,
+                          options: [
+                            {
+                              label: 'Delete',
+                              onClick: () => handleConversationDelete(conversation)
+                            },
+                            {
+                              label: 'Rename',
+                              onClick: () => handleConversationRename(conversation)
+                            }
+                          ]
+                        });
+                      }}
+                      onClick={() => handleConversationClick(conversation)}
+                    >
+                      <div className="flex items-center gap-2 flex-1">
+                        {editingFolderName === conversation.id ? (
+                          <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="text"
+                              value={folderNameInput}
+                              onChange={(e) => setFolderNameInput(e.target.value)}
+                              className="input input-xs input-bordered w-full"
+                              placeholder="输入新的文件夹名称"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleRenameConfirm(
+                                    conversation,
+                                    folderNameInput
+                                  );
+                                }
                               }}
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              className="btn btn-xs"
-                              onClick={() => {
-                                setEditingFolderName(null);
-                                setFolderNameInput('');
-                              }}
-                            >
-                              Cancel
-                            </button>
+                              autoFocus
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                className="btn btn-xs btn-primary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRenameConfirm(
+                                    conversation,
+                                    folderNameInput
+                                  );
+                                }}
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                className="btn btn-xs"
+                                onClick={() => {
+                                  setEditingFolderName(null);
+                                  setFolderNameInput('');
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <span className="truncate">{conversation.name}</span>
-                      )}
+                        ) : (
+                          <span className="truncate">{conversation.name}</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -469,98 +471,100 @@ export default function Sidebar({
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
                 {sidebarMode === 'default' ? (
-                  <div className="h-full overflow-y-auto">
-                    <div className="flex flex-col gap-2">
-                      {conversations.map(conversation => (
-                        <div
-                          key={conversation.id}
-                          className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''} ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
-                          draggable={editingFolderName === null}
-                          onDragStart={() => {
-                            if (editingFolderName !== null) return;
-                            handleDragStart(conversation, setDraggedConversation);
-                          }}
-                          onDragOver={(e) => {
-                            if (editingFolderName !== null) return;
-                            handleDragOver(e);
-                          }}
-                          onDrop={(e) => {
-                            if (editingFolderName !== null) return;
-                            handleDrop(conversation, draggedConversation, conversations, setConversations, setDraggedConversation);
-                          }}
-                          onContextMenu={(e) => {
-                            if (editingFolderName !== null) return;
-                            e.preventDefault();
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setContextMenu({
-                              visible: true,
-                              x: rect.right,
-                              y: rect.top,
-                              type: 'chat',
-                              data: conversation,
-                              options: [
-                                {
-                                  label: 'Delete',
-                                  onClick: () => handleConversationDelete(conversation)
-                                },
-                                {
-                                  label: 'Rename',
-                                  onClick: () => handleConversationRename(conversation)
-                                }
-                              ]
-                            });
-                          }}
-                          onClick={() => handleConversationClick(conversation)}
-                        >
-                          <div className="flex items-center gap-2 flex-1">
-                            {editingFolderName === conversation.id ? (
-                              <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
-                                <input
-                                  type="text"
-                                  value={folderNameInput}
-                                  onChange={(e) => setFolderNameInput(e.target.value)}
-                                  className="input input-xs input-bordered w-full"
-                                  placeholder="输入新的文件夹名称"
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                      handleRenameConfirm(
-                                        conversation,
-                                        folderNameInput
-                                      );
-                                    }
-                                  }}
-                                  autoFocus
-                                />
-                                <div className="flex gap-2 justify-end">
-                                  <button
-                                    className="btn btn-xs btn-primary"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRenameConfirm(
-                                        conversation,
-                                        folderNameInput
-                                      );
+                  <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50">
+                      <div className="flex flex-col gap-2 p-2">
+                        {conversations.map(conversation => (
+                          <div
+                            key={conversation.id}
+                            className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''} ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                            draggable={editingFolderName === null}
+                            onDragStart={() => {
+                              if (editingFolderName !== null) return;
+                              handleDragStart(conversation, setDraggedConversation);
+                            }}
+                            onDragOver={(e) => {
+                              if (editingFolderName !== null) return;
+                              handleDragOver(e);
+                            }}
+                            onDrop={(e) => {
+                              if (editingFolderName !== null) return;
+                              handleDrop(conversation, draggedConversation, conversations, setConversations, setDraggedConversation);
+                            }}
+                            onContextMenu={(e) => {
+                              if (editingFolderName !== null) return;
+                              e.preventDefault();
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setContextMenu({
+                                visible: true,
+                                x: rect.right,
+                                y: rect.top,
+                                type: 'chat',
+                                data: conversation,
+                                options: [
+                                  {
+                                    label: 'Delete',
+                                    onClick: () => handleConversationDelete(conversation)
+                                  },
+                                  {
+                                    label: 'Rename',
+                                    onClick: () => handleConversationRename(conversation)
+                                  }
+                                ]
+                              });
+                            }}
+                            onClick={() => handleConversationClick(conversation)}
+                          >
+                            <div className="flex items-center gap-2 flex-1">
+                              {editingFolderName === conversation.id ? (
+                                <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="text"
+                                    value={folderNameInput}
+                                    onChange={(e) => setFolderNameInput(e.target.value)}
+                                    className="input input-xs input-bordered w-full"
+                                    placeholder="输入新的文件夹名称"
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleRenameConfirm(
+                                          conversation,
+                                          folderNameInput
+                                        );
+                                      }
                                     }}
-                                  >
-                                    Confirm
-                                  </button>
-                                  <button
-                                    className="btn btn-xs"
-                                    onClick={() => {
-                                      setEditingFolderName(null);
-                                      setFolderNameInput('');
-                                    }}
-                                  >
-                                    Cancel
-                                  </button>
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-2 justify-end">
+                                    <button
+                                      className="btn btn-xs btn-primary"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRenameConfirm(
+                                          conversation,
+                                          folderNameInput
+                                        );
+                                      }}
+                                    >
+                                      Confirm
+                                    </button>
+                                    <button
+                                      className="btn btn-xs"
+                                      onClick={() => {
+                                        setEditingFolderName(null);
+                                        setFolderNameInput('');
+                                      }}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <span className="truncate">{conversation.name}</span>
-                            )}
+                              ) : (
+                                <span className="truncate">{conversation.name}</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -609,8 +613,8 @@ export default function Sidebar({
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
                 {sidebarMode === 'default' ? (
-                  <div className="empty-sidebar">
-                    <div className="p-2">
+                  <div className="empty-sidebar h-full flex flex-col">
+                    <div className="p-2 flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50">
                       <div className="flex flex-col gap-2">
                         {notes && notes.map(note => (
                           <div
@@ -672,13 +676,13 @@ export default function Sidebar({
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
                 {sidebarMode === 'default' ? (
-                  <div className="empty-sidebar">
-                    <div className="p-2">
+                  <div className="empty-sidebar h-full flex flex-col">
+                    <div className="p-2 flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50">
                       <div className="flex flex-col gap-2">
                         {shaderPresets.map((preset) => (
                           <div
                             key={preset.id}
-                            className={`btn btn-ghost justify-between ${currentShaderPreset === preset.id ? 'btn-active' : ''} ${isImageBackground ? 'image-background-mode' : ''}`}
+                            className={`btn btn-ghost justify-between ${currentShaderPreset === preset.id ? 'btn-active' : ''}`}
                             onClick={() => handleShaderPresetClick(preset.id)}
                           >
                             <div className="flex items-center gap-2 flex-1">
@@ -930,7 +934,7 @@ export default function Sidebar({
           )}
         </div>
 
-        <div className="p-2 border-t border-base-content/10">
+        <div className={`p-2 border-t border-base-content/10`}>
           {activeTool === 'chat' ? (
             <button
               className="btn btn-ghost btn-sm w-full flex justify-start gap-2"

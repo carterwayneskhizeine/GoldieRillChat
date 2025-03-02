@@ -6,6 +6,8 @@ import { searchService } from '../../../services/searchService';
 import { handleVideoCommand } from './videoCommandHandler';
 import { handleAudioCommand } from './audioCommandHandler';
 import toastManager from '../../../utils/toastManager';
+import { translateText } from '../../../services/translationService';
+import { generateImage } from '../../../services/imageGenerationService';
 
 export const createInputHandlers = ({
   messageInput,
@@ -114,195 +116,164 @@ export const createInputHandlers = ({
 
     // 检查是否是图片生成命令或图片重试
     if (content.startsWith('/image ') || (isRetry && retryContent.originalPrompt)) {
-      // 添加全局设置日志
-      console.log('全局图片设置状态:', imageSettings);
+      try {
+        // 添加全局设置日志
+        console.log('全局图片设置状态:', imageSettings);
 
-      const args = content.startsWith('/image ') ? content.slice(7).trim().split('--') : [];
-      const prompt = content.startsWith('/image ') ? args[0].trim() : retryContent.originalPrompt;
-      
-      // 深度复制图片设置
-      let params = JSON.parse(JSON.stringify(imageSettings));
-      let model = params.model;
+        const args = content.startsWith('/image ') ? content.slice(7).trim().split('--') : [];
+        const prompt = content.startsWith('/image ') ? args[0].trim() : retryContent.originalPrompt;
+        
+        // 深度复制图片设置
+        let params = JSON.parse(JSON.stringify(imageSettings));
+        let model = params.model;
 
-      // 验证模型参数
-      if (!model) {
-        model = 'black-forest-labs/FLUX.1-schnell';
-        params.model = model;
-      }
+        // 验证模型参数
+        if (!model) {
+          model = 'black-forest-labs/FLUX.1-schnell';
+          params.model = model;
+        }
 
-      // 添加参数复制日志
-      console.log('初始参数复制:', {
-        model,
-        params,
-        typeof_width: typeof params.width,
-        width_value: params.width,
-        is_width_multiple_of_32: params.width ? params.width % 32 === 0 : null
-      });
+        // 添加参数复制日志
+        console.log('初始参数复制:', {
+          model,
+          params,
+          typeof_width: typeof params.width,
+          width_value: params.width,
+          is_width_multiple_of_32: params.width ? params.width % 32 === 0 : null
+        });
 
-      // 如果是新的图片生成命令，解析参数
-      if (content.startsWith('/image ')) {
-        // 解析其他参数
-        for (let i = 1; i < args.length; i++) {
-          const [key, value] = args[i].trim().split(' ');
-          if (key === 'model' && value) {
-            model = value;
-            // 如果切换到了不同的模型，使用该模型的默认参数
-            if (model !== params.model) {
-              if (model === 'black-forest-labs/FLUX.1-pro') {
-                // 确保宽度和高度是32的倍数
-                params = {
-                  model,
-                  width: Math.floor(1024 / 32) * 32,
-                  height: Math.floor(768 / 32) * 32,
-                  steps: 20,
-                  guidance: 3,
-                  safety_tolerance: 2,
-                  interval: 2,
-                  prompt_upsampling: false
-                };
-                console.log('切换到 FLUX.1-pro 模型，新参数:', params);
-              } else {
-                params = {
-                  model,
-                  image_size: '1024x576'
-                };
-                console.log('切换到其他模型，新参数:', params);
+        // 如果是新的图片生成命令，解析参数
+        if (content.startsWith('/image ')) {
+          // 解析其他参数
+          for (let i = 1; i < args.length; i++) {
+            const [key, value] = args[i].trim().split(' ');
+            if (key === 'model' && value) {
+              model = value;
+              // 如果切换到了不同的模型，使用该模型的默认参数
+              if (model !== params.model) {
+                if (model === 'black-forest-labs/FLUX.1-pro') {
+                  // 确保宽度和高度是32的倍数
+                  params = {
+                    model,
+                    width: Math.floor(1024 / 32) * 32,
+                    height: Math.floor(768 / 32) * 32,
+                    steps: 20,
+                    guidance: 3,
+                    safety_tolerance: 2,
+                    interval: 2,
+                    prompt_upsampling: false
+                  };
+                  console.log('切换到 FLUX.1-pro 模型，新参数:', params);
+                } else {
+                  params = {
+                    model,
+                    image_size: '1024x576'
+                  };
+                  console.log('切换到其他模型，新参数:', params);
+                }
+              }
+            }
+            if (key === 'size' && value && model !== 'black-forest-labs/FLUX.1-pro') {
+              // 验证尺寸是否有效
+              const validSizes = ['1024x1024', '512x1024', '768x512', '768x1024', '1024x576', '576x1024', '512x768'];
+              if (validSizes.includes(value)) {
+                params.image_size = value;
+                console.log('更新图片尺寸:', value);
               }
             }
           }
-          if (key === 'size' && value && model !== 'black-forest-labs/FLUX.1-pro') {
-            // 验证尺寸是否有效
-            const validSizes = ['1024x1024', '512x1024', '768x512', '768x1024', '1024x576', '576x1024', '512x768'];
-            if (validSizes.includes(value)) {
-              params.image_size = value;
-              console.log('更新图片尺寸:', value);
-            }
-          }
         }
-      }
 
-      if (!prompt) {
-        toastManager.warning('请输入图片生成提示词');
-        return;
-      }
-
-      // 构建 API 参数
-      const apiParams = {
-        prompt,
-        model: params.model,
-        ...(params.model === 'black-forest-labs/FLUX.1-pro' ? {
-          width: Number(params.width),
-          height: Number(params.height),
-          steps: Number(params.steps),
-          guidance: Number(params.guidance),
-          safety_tolerance: Number(params.safety_tolerance),
-          interval: Number(params.interval),
-          prompt_upsampling: Boolean(params.prompt_upsampling)
-        } : {
-          image_size: params.image_size
-        }),
-        conversationPath: currentConversation.path,
-        apiKey,
-        apiHost
-      };
-
-      // 添加最终 API 参数日志
-      console.log('最终 API 参数:', {
-        ...apiParams,
-        typeof_width: typeof apiParams.width,
-        width_value: apiParams.width,
-        is_width_multiple_of_32: params.model === 'black-forest-labs/FLUX.1-pro' ? apiParams.width % 32 === 0 : null
-      });
-
-      // 添加用户消息
-      const userMessage = {
-        id: Date.now(),
-        content: isRetry && retryContent.originalPrompt ? `/image ${retryContent.originalPrompt}` : content,
-        type: 'user',
-        timestamp: new Date()
-      };
-
-      // 保存用户消息到txt文件
-      const txtFile = await window.electron.saveMessageAsTxt(
-        currentConversation.path, 
-        userMessage
-      );
-      userMessage.txtFile = txtFile;
-      
-      // 更新消息列表
-      setMessages(prev => [...prev, userMessage]);
-
-      // 清空输入框
-      if (!isRetry) {
-        setMessageInput('');
-        const textarea = document.querySelector('.aichat-input');
-        if (textarea) {
-          textarea.style.height = '64px';
-          textarea.style.overflowY = 'hidden';
+        if (!prompt) {
+          toastManager.warning('请输入图片生成提示词');
+          return;
         }
-      }
 
-      // 创建 AI 消息对象
-      const aiMessage = {
-        id: Date.now() + 1,
-        content: '',
-        type: 'assistant',
-        timestamp: new Date(),
-        generating: true,
-        thinking: true,  // 添加 thinking 标记来触发动画效果
-        thinkingText: '正在生成图片'  // 自定义思考文本
-      };
+        // 添加用户消息
+        const userMessage = {
+          id: Date.now(),
+          content: content,
+          type: 'user',
+          timestamp: new Date()
+        };
 
-      // 设置消息状态
-      setMessageStates(prev => ({
-        ...prev,
-        [aiMessage.id]: MESSAGE_STATES.THINKING
-      }));
+        // 保存用户消息到txt文件
+        if (typeof window !== 'undefined' && window.electron && window.electron.saveMessageAsTxt) {
+          const txtFile = await window.electron.saveMessageAsTxt(
+            currentConversation.path,
+            userMessage
+          );
+          userMessage.txtFile = txtFile;
+        }
 
-      // 更新消息列表
-      setMessages(prev => [...prev, aiMessage]);
+        // 更新消息列表
+        setMessages(prev => [...prev, userMessage]);
 
-      try {
-        // 在构建 API 参数之前添加日志
-        console.log('构建 API 参数前的状态:', {
+        // 创建 AI 消息对象
+        const aiMessage = {
+          id: Date.now() + 1,
+          content: '正在生成图片...',
+          type: 'assistant',
+          timestamp: new Date(),
+          generating: true,
+          model: model
+        };
+
+        // 更新消息列表
+        setMessages(prev => [...prev, aiMessage]);
+
+        // 构建 API 参数
+        const apiParams = {
+          prompt,
+          model,
+          conversationPath: currentConversation.path,
+          apiKey,
+          apiHost
+        };
+
+        // 根据模型类型添加不同的参数
+        if (model === 'black-forest-labs/FLUX.1-pro') {
+          Object.assign(apiParams, {
+            width: params.width,
+            height: params.height,
+            steps: params.steps,
+            guidance: params.guidance,
+            safety_tolerance: params.safety_tolerance,
+            interval: params.interval,
+            prompt_upsampling: params.prompt_upsampling
+          });
+        } else {
+          apiParams.image_size = params.image_size;
+        }
+
+        // 添加参数日志
+        console.log('图片生成参数:', {
           model,
           params,
+          apiParams,
           typeof_width: typeof params.width,
           width_value: params.width,
           is_width_multiple_of_32: model === 'black-forest-labs/FLUX.1-pro' ? params.width % 32 === 0 : null
         });
 
-        // 只有在使用 FLUX.1-pro 模型时才进行宽度和高度的预处理
-        if (model === 'black-forest-labs/FLUX.1-pro') {
-          // 预处理宽度和高度，确保是32的倍数
-          const finalWidth = Number(Math.floor(Number(params.width) / 32) * 32);
-          const finalHeight = Number(Math.floor(Number(params.height) / 32) * 32);
-
-          // 添加预处理后的参数日志
-          console.log('预处理后的宽度和高度:', {
-            finalWidth,
-            finalHeight,
-            finalWidth_is_multiple: finalWidth % 32 === 0,
-            finalHeight_is_multiple: finalHeight % 32 === 0,
-            finalWidth_type: typeof finalWidth,
-            finalHeight_type: typeof finalHeight
-          });
-
-          // 验证预处理后的参数
-          if (finalWidth < 256 || finalWidth > 1440 || finalWidth % 32 !== 0) {
-            throw new Error(`宽度 ${finalWidth} 必须是32的倍数，且在256-1440之间`);
-          }
-          if (finalHeight < 256 || finalHeight > 1440 || finalHeight % 32 !== 0) {
-            throw new Error(`高度 ${finalHeight} 必须是32的倍数，且在256-1440之间`);
-          }
-
-          // 更新参数
-          params.width = finalWidth;
-          params.height = finalHeight;
-        }
-
-        // 调用图片生成 API
-        const result = await window.electron.generateImage(apiParams);
+        // 使用新的图片生成服务
+        const result = await generateImage(
+          prompt,
+          model,
+          params.image_size,
+          model === 'black-forest-labs/FLUX.1-pro' ? {
+            width: params.width,
+            height: params.height,
+            steps: params.steps,
+            guidance: params.guidance,
+            safety_tolerance: params.safety_tolerance,
+            interval: params.interval,
+            prompt_upsampling: params.prompt_upsampling
+          } : {},
+          currentConversation.path,
+          apiKey,
+          apiHost
+        );
 
         // 更新 AI 消息
         const finalContent = `**Prompt：** ${prompt}
@@ -331,47 +302,43 @@ export const createInputHandlers = ({
           msg.id === aiMessage.id ? updatedAiMessage : msg
         ));
 
-        // 保存消息到文件
-        const aiTxtFile = await window.electron.saveMessageAsTxt(
-          currentConversation.path,
-          {
-            ...updatedAiMessage,
-            fileName: `${formatAIChatTime(aiMessage.timestamp)} • 图片生成 • Seed: ${result.seed}`
-          }
-        );
+        // 保存 AI 消息到txt文件
+        if (typeof window !== 'undefined' && window.electron && window.electron.saveMessageAsTxt) {
+          await window.electron.saveMessageAsTxt(
+            currentConversation.path,
+            updatedAiMessage
+          );
+        }
 
-        // 更新最终消息
-        setMessages(prev => prev.map(msg => 
-          msg.id === aiMessage.id ? { ...updatedAiMessage, txtFile: aiTxtFile } : msg
-        ));
+        // 保存对话
+        if (typeof window !== 'undefined' && window.electron && window.electron.saveConversation) {
+          await window.electron.saveConversation(currentConversation.path, [
+            ...messages,
+            userMessage,
+            updatedAiMessage
+          ]);
+        }
 
-        // 更新消息状态
-        setMessageStates(prev => ({
-          ...prev,
-          [aiMessage.id]: MESSAGE_STATES.COMPLETED
-        }));
-
+        return;
       } catch (error) {
         console.error('图片生成失败:', error);
+        toastManager.error(`图片生成失败: ${error.message}`);
         
-        // 更新消息内容为错误信息
-        setMessages(prev => prev.map(msg => 
-          msg.id === aiMessage.id ? {
-            ...msg,
-            content: `图片生成失败: ${error.message}`,
-            generating: false,
-            error: true
-          } : msg
-        ));
-
-        // 更新消息状态
-        setMessageStates(prev => ({
-          ...prev,
-          [aiMessage.id]: MESSAGE_STATES.ERROR
-        }));
+        // 更新错误消息
+        setMessages(prev => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage && lastMessage.generating) {
+            return [...prev.slice(0, -1), {
+              ...lastMessage,
+              content: `图片生成失败: ${error.message}`,
+              generating: false
+            }];
+          }
+          return prev;
+        });
+        
+        return;
       }
-
-      return;
     }
 
     // 创建新的 AbortController
@@ -390,11 +357,13 @@ export const createInputHandlers = ({
       };
 
       // 保存用户消息到txt文件
-      const txtFile = await window.electron.saveMessageAsTxt(
-        currentConversation.path, 
-        userMessage
-      );
-      userMessage.txtFile = txtFile;
+      if (typeof window !== 'undefined' && window.electron && window.electron.saveMessageAsTxt) {
+        const txtFile = await window.electron.saveMessageAsTxt(
+          currentConversation.path, 
+          userMessage
+        );
+        userMessage.txtFile = txtFile;
+      }
       
       // 更新消息列表
       const messagesWithUser = isRetry ? messages : [...messages, userMessage];
@@ -534,14 +503,17 @@ export const createInputHandlers = ({
       });
 
       // 保存 AI 回复到txt文件
-      const aiTxtFile = await window.electron.saveMessageAsTxt(
-        currentConversation.path,
-        {
-          ...aiMessage,
-          content: `${response.reasoning_content ? `推理过程:\n${response.reasoning_content}\n\n回答:\n` : ''}${response.content}`,
-          fileName: `${formatAIChatTime(aiMessage.timestamp)} • 模型: ${selectedModel} • Token: ${response.usage?.total_tokens || 0}`
-        }
-      );
+      let aiTxtFile = null;
+      if (typeof window !== 'undefined' && window.electron && window.electron.saveMessageAsTxt) {
+        aiTxtFile = await window.electron.saveMessageAsTxt(
+          currentConversation.path,
+          {
+            ...aiMessage,
+            content: `${response.reasoning_content ? `推理过程:\n${response.reasoning_content}\n\n回答:\n` : ''}${response.content}`,
+            fileName: `${formatAIChatTime(aiMessage.timestamp)} • 模型: ${selectedModel} • Token: ${response.usage?.total_tokens || 0}`
+          }
+        );
+      }
 
       // 更新最终消息
       const finalAiMessage = {

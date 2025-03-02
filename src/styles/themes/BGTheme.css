@@ -249,6 +249,91 @@
     stroke: #3B82F6 !important; /* 蓝色 - tailwind blue-500 */
     fill: none !important;
   }
+
+  /* 添加滚动条样式，但使用更通用的样式 */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thumb-base-content::-webkit-scrollbar-thumb {
+    background-color: var(--base-content);
+    opacity: 0.3;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thumb-opacity-20::-webkit-scrollbar-thumb {
+    opacity: 0.2;
+  }
+  
+  .hover\:scrollbar-thumb-opacity-50:hover::-webkit-scrollbar-thumb {
+    opacity: 0.5;
+  }
+
+  /* 折叠按钮样式修复 - 更高优先级 */
+  .message-container .collapse-button button,
+  .chat-bubble .collapse-button button,
+  .chat .collapse-button button,
+  .chat-view-messages .collapse-button button,
+  .message-content .collapse-button button,
+  html [data-theme="bg-theme"] .collapse-button button,
+  html [data-theme="bg-theme"] .aichat-collapse-btn,
+  html [data-theme="bg-theme"] button.collapse-toggle,
+  html [data-theme="bg-theme"] button[data-collapse],
+  html [data-theme="bg-theme"] div.collapse-button > button,
+  html [data-theme="bg-theme"] button.aichat-collapse-btn {
+    background-color: transparent !important;
+    backdrop-filter: blur(4px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    color: white !important;
+    opacity: 0.8 !important;
+    z-index: 40 !important;
+  }
+  
+  /* 折叠按钮悬停效果 */
+  .message-container .collapse-button button:hover,
+  .chat-bubble .collapse-button button:hover,
+  .chat .collapse-button button:hover,
+  .chat-view-messages .collapse-button button:hover,
+  .message-content .collapse-button button:hover,
+  html [data-theme="bg-theme"] .collapse-button button:hover,
+  html [data-theme="bg-theme"] .aichat-collapse-btn:hover,
+  html [data-theme="bg-theme"] button.collapse-toggle:hover,
+  html [data-theme="bg-theme"] button[data-collapse]:hover,
+  html [data-theme="bg-theme"] div.collapse-button > button:hover,
+  html [data-theme="bg-theme"] button.aichat-collapse-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    transform: scale(1.1) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    opacity: 1 !important;
+  }
+  
+  /* 确保折叠按钮中的SVG图标可见 */
+  .message-container .collapse-button button svg,
+  .chat-bubble .collapse-button button svg,
+  .chat .collapse-button button svg,
+  .chat-view-messages .collapse-button button svg,
+  .message-content .collapse-button button svg,
+  html [data-theme="bg-theme"] .collapse-button button svg,
+  html [data-theme="bg-theme"] .aichat-collapse-btn svg,
+  html [data-theme="bg-theme"] button.collapse-toggle svg,
+  html [data-theme="bg-theme"] button[data-collapse] svg,
+  html [data-theme="bg-theme"] div.collapse-button > button svg,
+  html [data-theme="bg-theme"] button.aichat-collapse-btn svg {
+    stroke: white !important;
+    fill: none !important;
+    opacity: 0.9 !important;
+  }
 }
 
 /* 图片背景模式下的样式 - 将应用所有特殊样式 */
@@ -450,5 +535,61 @@
   button.text-primary[data-on="true"] svg {
     stroke: #3B82F6 !important; /* 蓝色 - tailwind blue-500 */
     fill: none !important;
+  }
+
+  /* 折叠按钮样式修复 - 图片背景模式 - 更高优先级 */
+  .message-container .collapse-button button,
+  .chat-bubble .collapse-button button,
+  .chat .collapse-button button,
+  .chat-view-messages .collapse-button button,
+  .message-content .collapse-button button,
+  html [data-theme="bg-theme"].image-background-mode .collapse-button button,
+  html [data-theme="bg-theme"].image-background-mode .aichat-collapse-btn,
+  html [data-theme="bg-theme"].image-background-mode button.collapse-toggle,
+  html [data-theme="bg-theme"].image-background-mode button[data-collapse],
+  html [data-theme="bg-theme"].image-background-mode div.collapse-button > button,
+  html [data-theme="bg-theme"].image-background-mode button.aichat-collapse-btn {
+    background-color: transparent !important;
+    backdrop-filter: blur(4px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    color: white !important;
+    opacity: 0.8 !important;
+    z-index: 40 !important;
+  }
+  
+  /* 折叠按钮悬停效果 - 图片背景模式 */
+  .message-container .collapse-button button:hover,
+  .chat-bubble .collapse-button button:hover,
+  .chat .collapse-button button:hover,
+  .chat-view-messages .collapse-button button:hover,
+  .message-content .collapse-button button:hover,
+  html [data-theme="bg-theme"].image-background-mode .collapse-button button:hover,
+  html [data-theme="bg-theme"].image-background-mode .aichat-collapse-btn:hover,
+  html [data-theme="bg-theme"].image-background-mode button.collapse-toggle:hover,
+  html [data-theme="bg-theme"].image-background-mode button[data-collapse]:hover,
+  html [data-theme="bg-theme"].image-background-mode div.collapse-button > button:hover,
+  html [data-theme="bg-theme"].image-background-mode button.aichat-collapse-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    transform: scale(1.1) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    opacity: 1 !important;
+  }
+  
+  /* 确保折叠按钮中的SVG图标可见 - 图片背景模式 */
+  .message-container .collapse-button button svg,
+  .chat-bubble .collapse-button button svg,
+  .chat .collapse-button button svg,
+  .chat-view-messages .collapse-button button svg,
+  .message-content .collapse-button button svg,
+  html [data-theme="bg-theme"].image-background-mode .collapse-button button svg,
+  html [data-theme="bg-theme"].image-background-mode .aichat-collapse-btn svg,
+  html [data-theme="bg-theme"].image-background-mode button.collapse-toggle svg,
+  html [data-theme="bg-theme"].image-background-mode button[data-collapse] svg,
+  html [data-theme="bg-theme"].image-background-mode div.collapse-button > button svg,
+  html [data-theme="bg-theme"].image-background-mode button.aichat-collapse-btn svg {
+    stroke: white !important;
+    fill: none !important;
+    opacity: 0.9 !important;
   }
 }

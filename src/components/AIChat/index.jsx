@@ -418,6 +418,10 @@ export const AIChat = ({
               selectedFiles={inputState.selectedFile}
               handleFileSelect={handleFileSelect}
               removeFile={removeFile}
+              selectedProvider={modelState.selectedProvider}
+              selectedModel={modelState.selectedModel}
+              apiKey={modelState.apiKey}
+              apiHost={modelState.apiHost}
             />
           </div>
 

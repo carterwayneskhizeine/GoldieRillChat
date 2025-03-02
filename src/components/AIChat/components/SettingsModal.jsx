@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import '../styles/settings.css';
+import { getTranslationApiConfig, setTranslationApiConfig } from '../../../services/translationService';
+import { getImageGenApiConfig, setImageGenApiConfig } from '../../../services/imageGenerationService';
 
 export const SettingsModal = ({
   selectedProvider,
@@ -34,7 +36,20 @@ export const SettingsModal = ({
   const currentProvider = MODEL_PROVIDERS[selectedProvider] || MODEL_PROVIDERS.openai;
 
   // 添加 tabs 状态
-  const [activeTab, setActiveTab] = useState('model');
+  const [activeTab, setActiveTab] = useState('provider');
+  
+  // 添加翻译 API 设置相关状态
+  const [translationApiKey, setTranslationApiKey] = useState(() => {
+    const { apiKey } = getTranslationApiConfig();
+    return apiKey || '';
+  });
+  
+  const [translationApiHost, setTranslationApiHost] = useState(() => {
+    const { apiHost } = getTranslationApiConfig();
+    return apiHost || 'https://api.siliconflow.cn';
+  });
+  
+  const [showTranslationApiKey, setShowTranslationApiKey] = useState(false);
   
   // 添加 Google Search 相关状态
   const [googleApiKey, setGoogleApiKey] = useState(() => {
@@ -121,6 +136,11 @@ export const SettingsModal = ({
     localStorage.getItem('aichat_schnell_prompt_enhancement') === 'true'
   );
 
+  // 添加图片生成 API 相关状态
+  const [imageGenApiKey, setImageGenApiKey] = useState('');
+  const [imageGenApiHost, setImageGenApiHost] = useState('');
+  const [showImageGenApiKey, setShowImageGenApiKey] = useState(false);
+
   // 生图模型列表
   const IMAGE_MODELS = [
     'black-forest-labs/FLUX.1-schnell',
@@ -155,6 +175,40 @@ export const SettingsModal = ({
     { value: '720x1440', label: '720×1440 (1:2 竖版)' },
     { value: '720x1280', label: '720×1280 (9:16 竖版)' }
   ];
+
+  // 初始化时加载翻译 API 配置
+  useEffect(() => {
+    const { apiKey, apiHost } = getTranslationApiConfig();
+    setTranslationApiKey(apiKey || '');
+    setTranslationApiHost(apiHost || '');
+    
+    // 加载图片生成 API 配置
+    const { apiKey: imgApiKey, apiHost: imgApiHost } = getImageGenApiConfig();
+    setImageGenApiKey(imgApiKey || '');
+    setImageGenApiHost(imgApiHost || '');
+  }, []);
+
+  // 处理翻译 API 密钥变更
+  const handleTranslationApiKeyChange = (value) => {
+    setTranslationApiKey(value);
+    setTranslationApiConfig(value, translationApiHost);
+  };
+
+  // 处理翻译 API 地址变更
+  const handleTranslationApiHostChange = (value) => {
+    setTranslationApiHost(value);
+    setTranslationApiConfig(translationApiKey, value);
+  };
+
+  // 处理翻译 API 密钥粘贴
+  const handleTranslationApiKeyPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      handleTranslationApiKeyChange(text);
+    } catch (error) {
+      console.error('粘贴失败:', error);
+    }
+  };
 
   // 处理 Google API 密钥变更
   const handleGoogleApiKeyChange = (value) => {
@@ -354,6 +408,31 @@ export const SettingsModal = ({
     handleSettingsClose();
   };
 
+  // 处理图片生成 API 密钥变更
+  const handleImageGenApiKeyChange = (value) => {
+    setImageGenApiKey(value);
+    setImageGenApiConfig(value, imageGenApiHost);
+  };
+
+  // 处理图片生成 API 地址变更
+  const handleImageGenApiHostChange = (value) => {
+    setImageGenApiHost(value);
+    setImageGenApiConfig(imageGenApiKey, value);
+  };
+
+  // 处理图片生成 API 密钥粘贴
+  const handleImageGenApiKeyPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setImageGenApiKey(text);
+        setImageGenApiConfig(text, imageGenApiHost);
+      }
+    } catch (error) {
+      console.error('粘贴失败:', error);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-base-100 rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto settings-panel">
@@ -374,16 +453,10 @@ export const SettingsModal = ({
           {/* 标签页 */}
           <div className="tabs tabs-bordered w-full">
             <a 
-              className={`tab ${activeTab === 'model' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('model')}
+              className={`tab ${activeTab === 'provider' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('provider')}
             >
-              模型
-            </a>
-            <a 
-              className={`tab ${activeTab === 'search' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('search')}
-            >
-              搜索
+              提供商设置
             </a>
             <a 
               className={`tab ${activeTab === 'system' ? 'tab-active' : ''}`}
@@ -391,32 +464,44 @@ export const SettingsModal = ({
             >
               系统提示词
             </a>
+            <a 
+              className={`tab ${activeTab === 'translation' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('translation')}
+            >
+              翻译设置
+            </a>
+            <a 
+              className={`tab ${activeTab === 'image_gen' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('image_gen')}
+            >
+              图片生成设置
+            </a>
             {selectedProvider === 'siliconflow' && (
               <>
                 <a 
                   className={`tab ${activeTab === 'image' ? 'tab-active' : ''}`}
                   onClick={() => setActiveTab('image')}
                 >
-                  图片
+                  图片参数
                 </a>
                 <a 
                   className={`tab ${activeTab === 'video' ? 'tab-active' : ''}`}
                   onClick={() => setActiveTab('video')}
                 >
-                  视频
+                  视频参数
                 </a>
               </>
             )}
             <a 
-              className={`tab ${activeTab === 'other' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('other')}
+              className={`tab ${activeTab === 'search' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('search')}
             >
-              其它
+              搜索设置
             </a>
           </div>
           
           {/* Tab 1: 模型设置 */}
-          <div className={activeTab === 'model' ? '' : 'hidden'}>
+          <div className={activeTab === 'provider' ? '' : 'hidden'}>
             {/* 模型提供方 */}
             <div className="mb-4">
               <h3 className="text-lg font-medium mb-2">模型提供方</h3>
@@ -551,119 +636,7 @@ export const SettingsModal = ({
             </div>
           </div>
 
-          {/* Tab 2: 搜索设置 */}
-          <div className={activeTab === 'search' ? '' : 'hidden'}>
-            <div className="space-y-4">
-              {/* Google Search API Key */}
-              <div>
-                <h3 className="text-lg font-medium mb-2">Google Custom Search JSON API</h3>
-                <div className="flex flex-col gap-2">
-                  <div className="flex w-full gap-0">
-                    <input
-                      type={showGoogleApiKey ? "text" : "password"}
-                      className="input input-bordered flex-1 rounded-r-none"
-                      value={googleApiKey}
-                      onChange={(e) => handleGoogleApiKeyChange(e.target.value)}
-                      placeholder="Google Custom Search JSON API..."
-                    />
-                    <button 
-                      type="button"
-                      className="btn rounded-l-none"
-                      onClick={handleGoogleApiKeyPaste}
-                      title="点击粘贴"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                    </button>
-                    <button 
-                      type="button"
-                      className="btn btn-ghost rounded-none border-l-0"
-                      onClick={() => setShowGoogleApiKey(!showGoogleApiKey)}
-                      title={showGoogleApiKey ? "隐藏密钥" : "显示密钥"}
-                    >
-                      {showGoogleApiKey ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Search Engine ID */}
-              <div>
-                <h3 className="text-lg font-medium mb-2">搜索引擎 ID</h3>
-                <div className="flex flex-col gap-2">
-                  <div className="flex w-full gap-0">
-                    <input
-                      type="text"
-                      className="input input-bordered flex-1"
-                      value={searchEngineId}
-                      onChange={(e) => handleSearchEngineIdChange(e.target.value)}
-                      placeholder="请输入搜索引擎 ID..."
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 最大搜索数量滑块 */}
-              <div>
-                <h3 className="text-lg font-medium mb-2">最大搜索结果数量</h3>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={maxSearchResults}
-                      onChange={(e) => handleMaxSearchResultsChange(e.target.value)}
-                      className="range range-primary"
-                      step="1"
-                    />
-                    <span className="text-lg font-medium min-w-[3ch]">{maxSearchResults}</span>
-                  </div>
-                  <div className="text-xs opacity-70">
-                    设置每次搜索返回的最大结果数量（1-10），免费用户每次搜索最多返回10条结果
-                  </div>
-                </div>
-              </div>
-
-              {/* 帮助信息 */}
-              <div className="text-xs opacity-70 space-y-2">
-                <div className="settings-help-text">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>
-                    每天免费提供100次搜索查询，超出部分按每1000次查询收费$5
-                  </span>
-                </div>
-                <div className="settings-help-text">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>
-                    获取帮助：
-                    <a
-                      className="text-primary hover:text-primary-focus cursor-pointer"
-                      onClick={() => openExternalLink('https://developers.google.com/custom-search/v1/overview')}
-                    >
-                      Google Custom Search JSON API
-                    </a>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tab 3: 系统提示词设置 */}
+          {/* Tab 2: 系统提示词设置 */}
           <div className={activeTab === 'system' ? '' : 'hidden'}>
             <div className="space-y-4">
               {/* 系统提示词启用开关 */}
@@ -767,7 +740,134 @@ export const SettingsModal = ({
             </div>
           </div>
 
-          {/* Tab 4: 图片设置 */}
+          {/* Tab 3: 翻译设置 */}
+          <div className={activeTab === 'translation' ? '' : 'hidden'}>
+            <div className="space-y-4">
+              {/* 翻译 API 主机地址 */}
+              <div className="mb-4">
+                <label className="label">
+                  <span className="label-text">SiliconFlow API 地址</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  value={translationApiHost}
+                  onChange={(e) => handleTranslationApiHostChange(e.target.value)}
+                  placeholder="https://api.siliconflow.cn"
+                />
+              </div>
+              
+              {/* 翻译 API 密钥 */}
+              <div className="mb-4">
+                <label className="label">
+                  <span className="label-text">SiliconFlow API 密钥</span>
+                </label>
+                <div className="flex w-full gap-0">
+                  <input
+                    type={showTranslationApiKey ? "text" : "password"}
+                    className="input input-bordered flex-1 rounded-r-none"
+                    value={translationApiKey}
+                    onChange={(e) => handleTranslationApiKeyChange(e.target.value)}
+                    placeholder="请输入用于翻译功能的 SiliconFlow API 密钥..."
+                  />
+                  <button 
+                    type="button"
+                    className="btn rounded-l-none"
+                    onClick={handleTranslationApiKeyPaste}
+                    title="点击粘贴"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-ghost rounded-none border-l-0"
+                    onClick={() => setShowTranslationApiKey(!showTranslationApiKey)}
+                    title={showTranslationApiKey ? "隐藏密钥" : "显示密钥"}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showTranslationApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="alert alert-info mt-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>
+                  翻译功能仅使用 SiliconFlow 的 <code>Qwen/Qwen2-1.5B-Instruct</code> 模型，这个模型翻译质量高且速度快。
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab 4: 图片生成设置 */}
+          <div className={activeTab === 'image_gen' ? '' : 'hidden'}>
+            <div className="space-y-4">
+              <div className="alert alert-info">
+                <div>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <span>图片生成功能使用 SiliconFlow API，可以独立于当前选择的提供商工作。这里的设置仅用于图片生成功能。</span>
+                </div>
+              </div>
+
+              {/* SiliconFlow API 地址 */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">SiliconFlow API 地址</h3>
+                <input 
+                  type="text" 
+                  className="input input-bordered w-full" 
+                  value={imageGenApiHost}
+                  onChange={(e) => handleImageGenApiHostChange(e.target.value)}
+                  placeholder="https://api.siliconflow.cn"
+                />
+                <div className="text-xs opacity-70 mt-2">
+                  SiliconFlow API 地址，默认为 https://api.siliconflow.cn
+                </div>
+              </div>
+
+              {/* SiliconFlow API 密钥 */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">SiliconFlow API 密钥</h3>
+                <div className="flex gap-2">
+                  <input 
+                    type={showImageGenApiKey ? "text" : "password"} 
+                    className="input input-bordered flex-1" 
+                    value={imageGenApiKey}
+                    onChange={(e) => handleImageGenApiKeyChange(e.target.value)}
+                    placeholder="sk-..."
+                  />
+                  <button 
+                    className="btn" 
+                    onClick={handleImageGenApiKeyPaste}
+                  >
+                    粘贴
+                  </button>
+                  <button 
+                    className="btn" 
+                    onClick={() => setShowImageGenApiKey(!showImageGenApiKey)}
+                  >
+                    {showImageGenApiKey ? '隐藏' : '显示'}
+                  </button>
+                </div>
+                <div className="text-xs opacity-70 mt-2">
+                  SiliconFlow API 密钥，用于图片生成功能
+                </div>
+              </div>
+
+              <div className="alert alert-info mt-4">
+                <div>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <span>图片生成功能支持多种模型，包括 FLUX.1 系列和 Stable Diffusion 系列。您可以在图片参数设置中选择默认模型。</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab 5: 图片参数 */}
           {selectedProvider === 'siliconflow' && (
             <div className={activeTab === 'image' ? '' : 'hidden'}>
               <div className="space-y-4">
@@ -1065,7 +1165,7 @@ export const SettingsModal = ({
             </div>
           )}
 
-          {/* Tab 5: 视频设置 */}
+          {/* Tab 6: 视频设置 */}
           {selectedProvider === 'siliconflow' && (
             <div className={activeTab === 'video' ? '' : 'hidden'}>
               <div className="space-y-4">
@@ -1148,30 +1248,113 @@ export const SettingsModal = ({
             </div>
           )}
 
-          {/* Tab 6: 其他设置 */}
-          <div className={activeTab === 'other' ? '' : 'hidden'}>
+          {/* Tab 7: 搜索设置 */}
+          <div className={activeTab === 'search' ? '' : 'hidden'}>
             <div className="space-y-4">
-              {/* 消息历史记录数量设置 */}
+              {/* Google Search API Key */}
               <div>
-                <h3 className="text-lg font-medium mb-2">消息历史记录数量</h3>
+                <h3 className="text-lg font-medium mb-2">Google Custom Search JSON API</h3>
+                <div className="flex flex-col gap-2">
+                  <div className="flex w-full gap-0">
+                    <input
+                      type={showGoogleApiKey ? "text" : "password"}
+                      className="input input-bordered flex-1 rounded-r-none"
+                      value={googleApiKey}
+                      onChange={(e) => handleGoogleApiKeyChange(e.target.value)}
+                      placeholder="Google Custom Search JSON API..."
+                    />
+                    <button 
+                      type="button"
+                      className="btn rounded-l-none"
+                      onClick={handleGoogleApiKeyPaste}
+                      title="点击粘贴"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </button>
+                    <button 
+                      type="button"
+                      className="btn btn-ghost rounded-none border-l-0"
+                      onClick={() => setShowGoogleApiKey(!showGoogleApiKey)}
+                      title={showGoogleApiKey ? "隐藏密钥" : "显示密钥"}
+                    >
+                      {showGoogleApiKey ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Search Engine ID */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">搜索引擎 ID</h3>
+                <div className="flex flex-col gap-2">
+                  <div className="flex w-full gap-0">
+                    <input
+                      type="text"
+                      className="input input-bordered flex-1"
+                      value={searchEngineId}
+                      onChange={(e) => handleSearchEngineIdChange(e.target.value)}
+                      placeholder="请输入搜索引擎 ID..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 最大搜索数量滑块 */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">最大搜索结果数量</h3>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-4">
                     <input
                       type="range"
-                      min="5"
-                      max="21"
-                      value={maxHistoryMessages}
-                      onChange={(e) => handleMaxHistoryMessagesChange(e.target.value)}
+                      min="1"
+                      max="10"
+                      value={maxSearchResults}
+                      onChange={(e) => handleMaxSearchResultsChange(e.target.value)}
                       className="range range-primary"
                       step="1"
                     />
-                    <span className="text-lg font-medium min-w-[5ch]">
-                      {maxHistoryMessages === 21 ? '全部' : maxHistoryMessages}
-                    </span>
+                    <span className="text-lg font-medium min-w-[3ch]">{maxSearchResults}</span>
                   </div>
                   <div className="text-xs opacity-70">
-                    设置每次重试时使用的历史消息数量（5-20条，或全部历史消息）
+                    设置每次搜索返回的最大结果数量（1-10），免费用户每次搜索最多返回10条结果
                   </div>
+                </div>
+              </div>
+
+              {/* 帮助信息 */}
+              <div className="text-xs opacity-70 space-y-2">
+                <div className="settings-help-text">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>
+                    每天免费提供100次搜索查询，超出部分按每1000次查询收费$5
+                  </span>
+                </div>
+                <div className="settings-help-text">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>
+                    获取帮助：
+                    <a
+                      className="text-primary hover:text-primary-focus cursor-pointer"
+                      onClick={() => openExternalLink('https://developers.google.com/custom-search/v1/overview')}
+                    >
+                      Google Custom Search JSON API
+                    </a>
+                  </span>
                 </div>
               </div>
             </div>

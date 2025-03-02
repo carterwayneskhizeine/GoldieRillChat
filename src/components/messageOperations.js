@@ -165,4 +165,80 @@ export const exitEditMode = () => {
     editingMessage: null,
     messageInput: ''
   }
+}
+
+/**
+ * 加载对话消息
+ * @param {Object} currentConversation - 当前对话信息
+ * @param {Object} electronApi - Electron API 接口
+ * @returns {Promise<Array>} 消息列表
+ */
+export const loadMessages = async (currentConversation, electronApi) => {
+  try {
+    if (!currentConversation?.path) return [];
+    
+    const messages = await electronApi.loadMessages(currentConversation.path);
+    
+    // 增强型数据验证
+    const validMessages = messages.filter(msg => {
+      // 必须包含的字段检查
+      const requiredFields = ['id', 'type', 'content', 'timestamp'];
+      const hasAllFields = requiredFields.every(field => field in msg);
+      
+      // 类型有效性检查
+      const validTypes = ['user', 'assistant'];
+      const hasValidType = validTypes.includes(msg.type);
+      
+      if (!hasAllFields || !hasValidType) {
+        console.warn('发现无效消息结构:', msg.id);
+        return false;
+      }
+      return true;
+    });
+
+    // 增强型重复检测
+    const uniqueMessages = [];
+    const seenIds = new Set();
+    const contentMap = new Map();
+
+    for (const msg of validMessages) {
+      // 基于ID的主键检查
+      if (seenIds.has(msg.id)) {
+        console.warn('发现重复ID消息:', msg.id);
+        continue;
+      }
+      seenIds.add(msg.id);
+
+      // 基于内容和时间的二次检查
+      const contentKey = `${msg.type}-${msg.content.substring(0, 100)}`; // 截取前100字符
+      const existing = contentMap.get(contentKey);
+      
+      if (existing) {
+        // 时间差在5秒内的视为重复
+        const timeDiff = Math.abs(new Date(msg.timestamp) - new Date(existing.timestamp));
+        if (timeDiff < 5000) {
+          console.warn(`发现时间相近的重复内容消息: ${msg.id} vs ${existing.id}`);
+          continue;
+        }
+      }
+      
+      contentMap.set(contentKey, msg);
+      uniqueMessages.push(msg);
+    }
+
+    // 自动修复并保存
+    if (uniqueMessages.length !== messages.length) {
+      console.log(`修复 ${messages.length - uniqueMessages.length} 条问题消息`);
+      await electronApi.saveMessages(
+        currentConversation.path,
+        currentConversation.id,
+        uniqueMessages
+      );
+    }
+    
+    return uniqueMessages;
+  } catch (error) {
+    console.error('消息加载失败:', error);
+    return [];
+  }
 } 

@@ -78,6 +78,15 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
   const baseDelay = 1000;  // 基础延迟时间（毫秒）
   let retryCount = 0;
 
+  // 添加调试日志
+  console.log('callSiliconCloud 被调用，使用的 API 主机地址:', apiHost);
+  
+  // 确保 apiHost 是 SiliconFlow 的 API 地址
+  if (!apiHost || !apiHost.includes('siliconflow.cn')) {
+    console.warn('强制使用默认的 SiliconFlow API 地址，原地址:', apiHost);
+    apiHost = 'https://api.siliconflow.cn'; // 强制使用 SiliconFlow 默认地址
+  }
+
   // 检查是否是 DeepSeek-R1 系列模型
   const isDeepseekR1Model = model.toLowerCase().includes('deepseek-r1') || 
                            model.toLowerCase().includes('deepseek-ai/deepseek-r1');
@@ -94,6 +103,9 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
         generating: true
       });
 
+      // 再次确认实际使用的 API 地址
+      console.log('实际发送请求到的 API 地址:', `${apiHost}/v1/chat/completions`);
+      
       const response = await fetch(`${apiHost}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -253,7 +265,9 @@ export const callSiliconCloud = async ({ apiKey, apiHost, model, messages, onUpd
       console.error('SiliconFlow API 调用失败:', error);
       // 如果是网络错误，提供更友好的错误信息
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        throw new Error('网络连接失败，请检查网络连接或 API 地址是否正确');
+        const errorMessage = '网络连接失败，请检查网络连接或 API 地址是否正确';
+        toastManager.error(errorMessage, { duration: 3000 }); // 3秒后自动消失
+        throw new Error(errorMessage);
       }
       throw error;
     }
