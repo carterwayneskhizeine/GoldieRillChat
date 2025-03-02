@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import TitleBar from './components/TitleBar'
 import ThreeBackground from './components/ThreeBackground'
+import Embedding from './components/Embedding'
 import { 
   updateMessage,
   sendMessage as sendMessageOp,
@@ -1410,6 +1411,16 @@ export default function App() {
               setShouldScrollToBottom={setShouldScrollToBottom}
             />
           </div>
+          
+          {/* Embedding content */}
+          <div 
+            style={{ 
+              display: activeTool === 'embedding' ? 'flex' : 'none',
+              height: 'calc(100vh - 40px)'
+            }} 
+            className="flex-1 flex flex-col overflow-hidden">
+            <Embedding />
+          </div>
 
           {/* Browser content */}
           <div style={{ display: activeTool === 'browser' ? 'flex' : 'none' }} className="flex-1 flex flex-col relative">
@@ -1457,6 +1468,7 @@ export default function App() {
               setSelectedProvider={setSelectedProvider}
             />
           </div>
+
         </div>
 
         {/* All components need to be wrapped in the same parent element */}

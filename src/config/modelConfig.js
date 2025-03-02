@@ -4,6 +4,7 @@ export const tools = ['browser', 'aichat', 'chat', 'monaco', 'editor']
 // 工具显示名称映射
 export const toolDisplayNames = {
   browser: 'Browser',
+  embedding: 'Embedding',
   aichat: 'AI Chat',
   chat: 'Chat',
   monaco: 'Monaco Editor',
