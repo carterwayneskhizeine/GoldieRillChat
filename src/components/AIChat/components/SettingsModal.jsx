@@ -435,10 +435,10 @@ export const SettingsModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-base-100 rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto settings-panel">
+      <div className="bg-base-100 rounded-lg p-4 w-[650px] max-h-[80vh] overflow-y-auto settings-panel">
         {/* 标题和关闭按钮 */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">设置</h1>
+        <div className="flex justify-between items-center mb-6 px-2">
+          <h1 className="text-2xl font-bold">Settings</h1>
           <button 
             type="button"
             className="btn btn-ghost btn-circle"
@@ -449,54 +449,34 @@ export const SettingsModal = ({
         </div>
 
         {/* Tabs */}
-        <div className="space-y-4">
+        <div className="space-y-4 px-2">
           {/* 标签页 */}
           <div className="tabs tabs-bordered w-full">
             <a 
               className={`tab ${activeTab === 'provider' ? 'tab-active' : ''}`}
               onClick={() => setActiveTab('provider')}
             >
-              提供商设置
+              API
             </a>
             <a 
               className={`tab ${activeTab === 'system' ? 'tab-active' : ''}`}
               onClick={() => setActiveTab('system')}
             >
-              系统提示词
-            </a>
-            <a 
-              className={`tab ${activeTab === 'translation' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('translation')}
-            >
-              翻译设置
-            </a>
-            <a 
-              className={`tab ${activeTab === 'image_gen' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('image_gen')}
-            >
-              图片生成设置
+              Prompt
             </a>
             {selectedProvider === 'siliconflow' && (
-              <>
-                <a 
-                  className={`tab ${activeTab === 'image' ? 'tab-active' : ''}`}
-                  onClick={() => setActiveTab('image')}
-                >
-                  图片参数
-                </a>
-                <a 
-                  className={`tab ${activeTab === 'video' ? 'tab-active' : ''}`}
-                  onClick={() => setActiveTab('video')}
-                >
-                  视频参数
-                </a>
-              </>
+              <a 
+                className={`tab ${activeTab === 'media_gen' ? 'tab-active' : ''}`}
+                onClick={() => setActiveTab('media_gen')}
+              >
+                Media
+              </a>
             )}
             <a 
               className={`tab ${activeTab === 'search' ? 'tab-active' : ''}`}
               onClick={() => setActiveTab('search')}
             >
-              搜索设置
+              Search
             </a>
           </div>
           
@@ -504,7 +484,7 @@ export const SettingsModal = ({
           <div className={activeTab === 'provider' ? '' : 'hidden'}>
             {/* 模型提供方 */}
             <div className="mb-4">
-              <h3 className="text-lg font-medium mb-2">模型提供方</h3>
+              <h3 className="text-lg font-bold mb-2">模型提供方</h3>
               <select 
                 className="select select-bordered w-full"
                 value={selectedProvider}
@@ -534,27 +514,39 @@ export const SettingsModal = ({
             </div>
 
             {/* API 设置 */}
-            <div className="space-y-4">
+            <div className="space-y-4 px-0">
               {/* API Host */}
               <div>
-                <h3 className="text-lg font-medium mb-2">API 地址</h3>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={apiHost}
-                  onChange={(e) => handleApiHostChange(e.target.value)}
-                  placeholder="请输入 API 地址..."
-                />
+                <div className="form-control w-full max-w-full">
+                  <label className="label">
+                    <span className="label-text font-medium text-base">API 地址</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered w-full h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                    value={apiHost}
+                    onChange={(e) => handleApiHostChange(e.target.value)}
+                    placeholder="请输入 API 地址..."
+                  />
+                  <label className="label">
+                    <span className="label-text-alt text-opacity-70">例如：https://api.openai.com</span>
+                  </label>
+                </div>
               </div>
 
               {/* API Key */}
               <div>
-                <h3 className="text-lg font-medium mb-2">API 密钥</h3>
-                <div className="flex flex-col gap-2">
-                  <div className="flex w-full gap-0">
+                <div className="form-control w-full max-w-none">
+                  <label className="label">
+                    <span className="label-text font-medium text-base">API 密钥</span>
+                    {currentProvider.needsApiKey && (
+                      <span className="label-text-alt text-error">必填</span>
+                    )}
+                  </label>
+                  <div className="input-group w-full max-w-none flex">
                     <input
                       type={showApiKey ? "text" : "password"}
-                      className="input input-bordered flex-1 rounded-r-none"
+                      className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
                       value={apiKey}
                       onChange={(e) => handleApiKeyChange(e.target.value)}
                       placeholder={`请输入 ${currentProvider.name} API 密钥...`}
@@ -562,7 +554,7 @@ export const SettingsModal = ({
                     />
                     <button 
                       type="button"
-                      className="btn rounded-l-none"
+                      className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
                       onClick={handlePaste}
                       title="点击粘贴"
                     >
@@ -572,64 +564,104 @@ export const SettingsModal = ({
                     </button>
                     <button 
                       type="button"
-                      className="btn btn-ghost rounded-none border-l-0"
+                      className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
                       onClick={() => setShowApiKey(!showApiKey)}
                       title={showApiKey ? "隐藏密钥" : "显示密钥"}
                     >
-                      {showApiKey ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      )}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
                     </button>
                   </div>
-                  <div className="flex flex-col gap-1 text-xs opacity-70">
-                    <div className="settings-help-text">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>
-                        API 密钥已为每个提供商单独保存，切换提供商时会自动加载对应的密钥
-                      </span>
-                    </div>
-                    {currentProvider.needsApiKey && (
-                      <div className="settings-help-text text-warning">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span>
-                          此提供商需要 API 密钥才能使用
-                        </span>
-                      </div>
-                    )}
-                    {currentProvider.apiKeyHelp && (
-                      <div className="settings-help-text mt-1">
+                  {currentProvider.apiKeyHelp && (
+                    <label className="label">
+                      <span className="label-text-alt flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>
-                          {currentProvider.apiKeyHelp.split(': ').map((part, index, array) => {
-                            if (index === array.length - 1) {
-                              return (
-                                <a
-                                  key={index}
-                                  className="text-primary hover:text-primary-focus cursor-pointer"
-                                  onClick={() => openExternalLink(part.trim())}
-                                >
-                                  {part.trim()}
-                                </a>
-                              );
-                            }
-                            return part + ': ';
-                          })}
-                        </span>
-                      </div>
-                    )}
+                        {currentProvider.apiKeyHelp.split(': ').map((part, index, array) => {
+                          if (index === array.length - 1) {
+                            return (
+                              <a
+                                key={index}
+                                className="text-primary hover:text-primary-focus cursor-pointer"
+                                onClick={() => openExternalLink(part.trim())}
+                              >
+                                {part.trim()}
+                              </a>
+                            );
+                          }
+                          return part + ': ';
+                        })}
+                      </span>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* 添加翻译设置到提供商设置 */}
+              <div className="divider my-6"></div>
+              <div className="space-y-4 px-0">
+                <h3 className="text-lg font-medium">翻译设置</h3>
+                
+                {/* 翻译 API 主机地址 */}
+                <div className="mb-4">
+                  <div className="form-control w-full max-w-none">
+                    <label className="label">
+                      <span className="label-text font-medium text-base">SiliconFlow API 地址</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                      value={translationApiHost}
+                      onChange={(e) => handleTranslationApiHostChange(e.target.value)}
+                      placeholder="https://api.siliconflow.cn"
+                    />
+                    <label className="label">
+                      <span className="label-text-alt text-opacity-70">翻译功能使用的API地址</span>
+                    </label>
+                  </div>
+                </div>
+                
+                {/* 翻译 API 密钥 */}
+                <div className="mb-4">
+                  <div className="form-control w-full max-w-none">
+                    <label className="label">
+                      <span className="label-text font-medium text-base">SiliconFlow API 密钥</span>
+                    </label>
+                    <div className="input-group w-full max-w-none flex">
+                      <input
+                        type={showTranslationApiKey ? "text" : "password"}
+                        className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
+                        value={translationApiKey}
+                        onChange={(e) => handleTranslationApiKeyChange(e.target.value)}
+                        placeholder="请输入用于翻译功能的 SiliconFlow API 密钥..."
+                      />
+                      <button 
+                        type="button"
+                        className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
+                        onClick={handleTranslationApiKeyPaste}
+                        title="点击粘贴"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
+                        onClick={() => setShowTranslationApiKey(!showTranslationApiKey)}
+                        title={showTranslationApiKey ? "隐藏密钥" : "显示密钥"}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showTranslationApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
+                        </svg>
+                      </button>
+                    </div>
+                    <label className="label">
+                      <span className="label-text-alt text-opacity-70">SiliconFlow API 密钥，用于图片和视频生成功能</span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -642,9 +674,9 @@ export const SettingsModal = ({
               {/* 系统提示词启用开关 */}
               <div>
                 <h3 className="text-lg font-medium mb-2">系统提示词</h3>
-                <div className="form-control">
+                <div className="form-control bg-base-200 rounded-lg p-3">
                   <label className="label cursor-pointer">
-                    <span className="label-text">启用系统提示词</span>
+                    <span className="label-text font-medium">启用系统提示词</span>
                     <input
                       type="checkbox"
                       className="toggle toggle-primary"
@@ -652,9 +684,9 @@ export const SettingsModal = ({
                       onChange={(e) => setSystemPromptEnabled(e.target.checked)}
                     />
                   </label>
-                </div>
-                <div className="text-xs opacity-70">
-                  启用后，系统提示词将应用于所有对话，帮助AI更好地理解你的需求
+                  <div className="text-xs opacity-70 mt-1">
+                    启用后，系统提示词将应用于所有对话，帮助AI更好地理解你的需求
+                  </div>
                 </div>
               </div>
 
@@ -740,532 +772,474 @@ export const SettingsModal = ({
             </div>
           </div>
 
-          {/* Tab 3: 翻译设置 */}
-          <div className={activeTab === 'translation' ? '' : 'hidden'}>
-            <div className="space-y-4">
-              {/* 翻译 API 主机地址 */}
-              <div className="mb-4">
-                <label className="label">
-                  <span className="label-text">SiliconFlow API 地址</span>
-                </label>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={translationApiHost}
-                  onChange={(e) => handleTranslationApiHostChange(e.target.value)}
-                  placeholder="https://api.siliconflow.cn"
-                />
-              </div>
-              
-              {/* 翻译 API 密钥 */}
-              <div className="mb-4">
-                <label className="label">
-                  <span className="label-text">SiliconFlow API 密钥</span>
-                </label>
-                <div className="flex w-full gap-0">
-                  <input
-                    type={showTranslationApiKey ? "text" : "password"}
-                    className="input input-bordered flex-1 rounded-r-none"
-                    value={translationApiKey}
-                    onChange={(e) => handleTranslationApiKeyChange(e.target.value)}
-                    placeholder="请输入用于翻译功能的 SiliconFlow API 密钥..."
-                  />
-                  <button 
-                    type="button"
-                    className="btn rounded-l-none"
-                    onClick={handleTranslationApiKeyPaste}
-                    title="点击粘贴"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </button>
-                  <button 
-                    type="button"
-                    className="btn btn-ghost rounded-none border-l-0"
-                    onClick={() => setShowTranslationApiKey(!showTranslationApiKey)}
-                    title={showTranslationApiKey ? "隐藏密钥" : "显示密钥"}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showTranslationApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="alert alert-info mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span>
-                  翻译功能仅使用 SiliconFlow 的 <code>Qwen/Qwen2-1.5B-Instruct</code> 模型，这个模型翻译质量高且速度快。
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Tab 4: 图片生成设置 */}
-          <div className={activeTab === 'image_gen' ? '' : 'hidden'}>
-            <div className="space-y-4">
-              <div className="alert alert-info">
-                <div>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  <span>图片生成功能使用 SiliconFlow API，可以独立于当前选择的提供商工作。这里的设置仅用于图片生成功能。</span>
-                </div>
-              </div>
-
-              {/* SiliconFlow API 地址 */}
-              <div>
-                <h3 className="text-lg font-medium mb-2">SiliconFlow API 地址</h3>
-                <input 
-                  type="text" 
-                  className="input input-bordered w-full" 
-                  value={imageGenApiHost}
-                  onChange={(e) => handleImageGenApiHostChange(e.target.value)}
-                  placeholder="https://api.siliconflow.cn"
-                />
-                <div className="text-xs opacity-70 mt-2">
-                  SiliconFlow API 地址，默认为 https://api.siliconflow.cn
-                </div>
-              </div>
-
-              {/* SiliconFlow API 密钥 */}
-              <div>
-                <h3 className="text-lg font-medium mb-2">SiliconFlow API 密钥</h3>
-                <div className="flex gap-2">
-                  <input 
-                    type={showImageGenApiKey ? "text" : "password"} 
-                    className="input input-bordered flex-1" 
-                    value={imageGenApiKey}
-                    onChange={(e) => handleImageGenApiKeyChange(e.target.value)}
-                    placeholder="sk-..."
-                  />
-                  <button 
-                    className="btn" 
-                    onClick={handleImageGenApiKeyPaste}
-                  >
-                    粘贴
-                  </button>
-                  <button 
-                    className="btn" 
-                    onClick={() => setShowImageGenApiKey(!showImageGenApiKey)}
-                  >
-                    {showImageGenApiKey ? '隐藏' : '显示'}
-                  </button>
-                </div>
-                <div className="text-xs opacity-70 mt-2">
-                  SiliconFlow API 密钥，用于图片生成功能
-                </div>
-              </div>
-
-              <div className="alert alert-info mt-4">
-                <div>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  <span>图片生成功能支持多种模型，包括 FLUX.1 系列和 Stable Diffusion 系列。您可以在图片参数设置中选择默认模型。</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tab 5: 图片参数 */}
+          {/* Tab 3: 媒体生成设置 */}
           {selectedProvider === 'siliconflow' && (
-            <div className={activeTab === 'image' ? '' : 'hidden'}>
-              <div className="space-y-4">
-                {/* 生图模型选择 */}
-                <div>
-                  <h3 className="text-lg font-medium mb-2">生图模型</h3>
-                  <select 
-                    className="select select-bordered w-full"
-                    value={imageModel}
-                    onChange={(e) => handleImageModelChange(e.target.value)}
-                  >
-                    {IMAGE_MODELS.map(model => (
-                      <option key={model} value={model}>{model}</option>
-                    ))}
-                  </select>
-                  <div className="text-xs opacity-70 mt-2">
-                    选择用于图片生成的模型，使用 /image 命令时会使用此模型
-                    {imageModel === 'black-forest-labs/FLUX.1-pro' && (
-                      <div className="mt-1 text-info">
-                        使用固定分辨率：1024×768
+            <div className={activeTab === 'media_gen' ? '' : 'hidden'}>
+              <div className="space-y-6">
+                {/* 图片生成API设置 */}
+                <div className="space-y-4">
+                  {/* SiliconFlow API 地址 */}
+                  <div>
+                    <div className="form-control w-full max-w-none">
+                      <label className="label">
+                        <span className="label-text font-medium text-base">SiliconFlow API 地址</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        className="input input-bordered w-full h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary" 
+                        value={imageGenApiHost}
+                        onChange={(e) => handleImageGenApiHostChange(e.target.value)}
+                        placeholder="https://api.siliconflow.cn"
+                      />
+                      <label className="label">
+                        <span className="label-text-alt text-opacity-70">媒体生成功能使用的API地址</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* SiliconFlow API 密钥 */}
+                  <div>
+                    <div className="form-control w-full max-w-none">
+                      <label className="label">
+                        <span className="label-text font-medium text-base">SiliconFlow API 密钥</span>
+                      </label>
+                      <div className="input-group w-full max-w-none flex">
+                        <input 
+                          type={showImageGenApiKey ? "text" : "password"} 
+                          className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0" 
+                          value={imageGenApiKey}
+                          onChange={(e) => handleImageGenApiKeyChange(e.target.value)}
+                          placeholder="sk-..."
+                        />
+                        <button 
+                          className="btn btn-square btn-outline h-11 min-w-[3.5rem]" 
+                          onClick={handleImageGenApiKeyPaste}
+                          title="点击粘贴"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                        </button>
+                        <button 
+                          className="btn btn-square btn-outline h-11 min-w-[3.5rem]" 
+                          onClick={() => setShowImageGenApiKey(!showImageGenApiKey)}
+                          title={showImageGenApiKey ? "隐藏密钥" : "显示密钥"}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showImageGenApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
+                          </svg>
+                        </button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
 
-                {/* 根据不同的模型显示不同的设置选项 */}
-                {imageModel === 'black-forest-labs/FLUX.1-pro' ? (
-                  <>
-                    {/* 步数设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">步数 (Steps)</h3>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="2"
-                          max="50"
-                          step="1"
-                          value={imageSteps}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value);
-                            setImageSteps(value);
-                            localStorage.setItem('aichat_image_steps', value.toString());
-                          }}
-                          className="range range-primary flex-1"
-                        />
-                        <span className="text-lg font-medium min-w-[3ch]">{imageSteps}</span>
-                      </div>
-                      <div className="text-xs opacity-70">生成步数范围：2-50</div>
-                    </div>
+                <div className="divider"></div>
 
-                    {/* 引导系数设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">引导系数 (Guidance)</h3>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="1.5"
-                          max="5"
-                          step="0.1"
-                          value={imageGuidance}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value);
-                            setImageGuidance(value);
-                            localStorage.setItem('aichat_image_guidance', value.toString());
-                          }}
-                          className="range range-primary flex-1"
-                        />
-                        <span className="text-lg font-medium min-w-[3ch]">{imageGuidance}</span>
-                      </div>
-                      <div className="text-xs opacity-70">值越高越严格遵循提示词，值越低创造性越强</div>
-                    </div>
-
-                    {/* 安全容忍度设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">安全容忍度 (Safety Tolerance)</h3>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="0"
-                          max="6"
-                          step="1"
-                          value={imageSafety}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value);
-                            setImageSafety(value);
-                            localStorage.setItem('aichat_image_safety', value.toString());
-                          }}
-                          className="range range-primary flex-1"
-                        />
-                        <span className="text-lg font-medium min-w-[3ch]">{imageSafety}</span>
-                      </div>
-                      <div className="text-xs opacity-70">0 最严格，6 最宽松</div>
-                    </div>
-
-                    {/* 间隔参数设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">间隔参数 (Interval)</h3>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="1"
-                          max="4"
-                          step="0.1"
-                          value={imageInterval}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value);
-                            setImageInterval(value);
-                            localStorage.setItem('aichat_image_interval', value.toString());
-                          }}
-                          className="range range-primary flex-1"
-                        />
-                        <span className="text-lg font-medium min-w-[3ch]">{imageInterval}</span>
-                      </div>
-                      <div className="text-xs opacity-70">引导控制的间隔参数，范围：1-4</div>
-                    </div>
-
-                    {/* 提示词上采样开关 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">提示词上采样</h3>
-                      <div className="form-control">
-                        <label className="label cursor-pointer">
-                          <span className="label-text">启用提示词上采样</span>
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-primary"
-                            checked={promptUpsampling}
-                            onChange={(e) => {
-                              setPromptUpsampling(e.target.checked);
-                              localStorage.setItem('aichat_prompt_upsampling', e.target.checked.toString());
-                            }}
-                          />
-                        </label>
-                      </div>
-                      <div className="text-xs opacity-70">启用后将自动调整提示词以生成更具创意的内容</div>
-                    </div>
-                  </>
-                ) : imageModel === 'black-forest-labs/FLUX.1-dev' ? (
-                  <>
-                    {/* 默认分辨率设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
-                      <select 
-                        className="select select-bordered w-full"
-                        value={imageSize}
-                        onChange={(e) => handleImageSizeChange(e.target.value)}
-                      >
-                        {IMAGE_SIZES.map(size => (
-                          <option key={size.value} value={size.value}>{size.label}</option>
-                        ))}
-                      </select>
-                      <div className="text-xs opacity-70 mt-2">
-                        选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
-                      </div>
-                    </div>
-
-                    {/* 推理步骤数设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">推理步骤数 (Steps)</h3>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="2"
-                          max="29"
-                          step="1"
-                          value={devImageSteps}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value);
-                            setDevImageSteps(value);
-                            localStorage.setItem('aichat_dev_image_steps', value.toString());
-                          }}
-                          className="range range-primary flex-1"
-                        />
-                        <span className="text-lg font-medium min-w-[3ch]">{devImageSteps}</span>
-                      </div>
-                      <div className="text-xs opacity-70">推理步骤数范围：2-29</div>
-                    </div>
-
-                    {/* 提示增强开关 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">提示增强</h3>
-                      <div className="form-control">
-                        <label className="label cursor-pointer">
-                          <span className="label-text">启用提示增强</span>
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-primary"
-                            checked={devPromptEnhancement}
-                            onChange={(e) => {
-                              setDevPromptEnhancement(e.target.checked);
-                              localStorage.setItem('aichat_dev_prompt_enhancement', e.target.checked.toString());
-                            }}
-                          />
-                        </label>
-                      </div>
-                      <div className="text-xs opacity-70">启用后将自动优化提示词以生成更好的结果</div>
-                    </div>
-                  </>
-                ) : imageModel.includes('stable-diffusion-3') ? (
-                  <>
-                    {/* 默认分辨率设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
-                      <select 
-                        className="select select-bordered w-full"
-                        value={imageSize}
-                        onChange={(e) => handleImageSizeChange(e.target.value)}
-                      >
-                        {IMAGE_SIZES.map(size => (
-                          <option key={size.value} value={size.value}>{size.label}</option>
-                        ))}
-                      </select>
-                      <div className="text-xs opacity-70 mt-2">
-                        选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
-                      </div>
-                    </div>
-
-                    {/* 提示增强开关 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">提示增强</h3>
-                      <div className="form-control">
-                        <label className="label cursor-pointer">
-                          <span className="label-text">启用提示增强</span>
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-primary"
-                            checked={sdPromptEnhancement}
-                            onChange={(e) => {
-                              setSdPromptEnhancement(e.target.checked);
-                              localStorage.setItem('aichat_sd_prompt_enhancement', e.target.checked.toString());
-                            }}
-                          />
-                        </label>
-                      </div>
-                      <div className="text-xs opacity-70">启用后将自动优化提示词以生成更好的结果</div>
-                    </div>
-                  </>
-                ) : imageModel.includes('FLUX.1-schnell') ? (
-                  <>
-                    {/* 默认分辨率设置 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
-                      <select 
-                        className="select select-bordered w-full"
-                        value={imageSize}
-                        onChange={(e) => handleImageSizeChange(e.target.value)}
-                      >
-                        {IMAGE_SIZES.map(size => (
-                          <option key={size.value} value={size.value}>{size.label}</option>
-                        ))}
-                      </select>
-                      <div className="text-xs opacity-70 mt-2">
-                        选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
-                      </div>
-                    </div>
-
-                    {/* 提示增强开关 */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">提示增强</h3>
-                      <div className="form-control">
-                        <label className="label cursor-pointer">
-                          <span className="label-text">启用提示增强</span>
-                          <input
-                            type="checkbox"
-                            className="toggle toggle-primary"
-                            checked={schnellPromptEnhancement}
-                            onChange={(e) => {
-                              setSchnellPromptEnhancement(e.target.checked);
-                              localStorage.setItem('aichat_schnell_prompt_enhancement', e.target.checked.toString());
-                            }}
-                          />
-                        </label>
-                      </div>
-                      <div className="text-xs opacity-70">启用后将自动优化提示词以生成更好的结果</div>
-                    </div>
-                  </>
-                ) : (
-                  // 其他模型的默认分辨率设置
+                {/* 图片参数设置 */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold">图片参数设置</h3>
+                  
+                  {/* 生图模型选择 */}
                   <div>
-                    <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                    <h3 className="text-lg font-medium mb-2">生图模型</h3>
                     <select 
                       className="select select-bordered w-full"
-                      value={imageSize}
-                      onChange={(e) => handleImageSizeChange(e.target.value)}
+                      value={imageModel}
+                      onChange={(e) => handleImageModelChange(e.target.value)}
                     >
-                      {IMAGE_SIZES.map(size => (
-                        <option key={size.value} value={size.value}>{size.label}</option>
+                      {IMAGE_MODELS.map(model => (
+                        <option key={model} value={model}>{model}</option>
                       ))}
                     </select>
                     <div className="text-xs opacity-70 mt-2">
-                      选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                      选择用于图片生成的模型，使用 /image 命令时会使用此模型
+                      {imageModel === 'black-forest-labs/FLUX.1-pro' && (
+                        <div className="mt-1 text-info">
+                          使用固定分辨率：1024×768
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
 
-          {/* Tab 6: 视频设置 */}
-          {selectedProvider === 'siliconflow' && (
-            <div className={activeTab === 'video' ? '' : 'hidden'}>
-              <div className="space-y-4">
-                {/* 视频模型选择 */}
-                <div>
-                  <h3 className="text-lg font-medium mb-2">视频生成模型</h3>
-                  <select 
-                    className="select select-bordered w-full"
-                    value={videoModel}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setVideoModel(value);
-                      localStorage.setItem('aichat_video_model', value);
-                    }}
-                  >
-                    {VIDEO_MODELS.map(model => (
-                      <option key={model} value={model}>{model}</option>
-                    ))}
-                  </select>
-                  <div className="text-xs opacity-70 mt-2">
-                    选择用于视频生成的模型，使用 /video 命令时会使用此模型
-                  </div>
+                  {/* 根据不同的模型显示不同的设置选项 */}
+                  {imageModel === 'black-forest-labs/FLUX.1-pro' ? (
+                    <>
+                      {/* 步数设置 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">步数 (Steps)</h3>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="range"
+                            min="2"
+                            max="50"
+                            step="1"
+                            value={imageSteps}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+                              setImageSteps(value);
+                              localStorage.setItem('aichat_image_steps', value.toString());
+                            }}
+                            className="range range-primary flex-1"
+                          />
+                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                            {imageSteps}
+                          </div>
+                        </div>
+                        <div className="text-xs opacity-70 mt-1">生成步数范围：2-50，步数越高，生成质量越好，但速度更慢</div>
+                      </div>
+
+                      {/* 引导系数设置 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">引导系数 (Guidance)</h3>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="range"
+                            min="1.5"
+                            max="5"
+                            step="0.1"
+                            value={imageGuidance}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value);
+                              setImageGuidance(value);
+                              localStorage.setItem('aichat_image_guidance', value.toString());
+                            }}
+                            className="range range-primary flex-1"
+                          />
+                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                            {imageGuidance}
+                          </div>
+                        </div>
+                        <div className="text-xs opacity-70 mt-1">值越高越严格遵循提示词，值越低创造性越强</div>
+                      </div>
+
+                      {/* 安全容忍度设置 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">安全容忍度 (Safety Tolerance)</h3>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="range"
+                            min="0"
+                            max="6"
+                            step="1"
+                            value={imageSafety}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+                              setImageSafety(value);
+                              localStorage.setItem('aichat_image_safety', value.toString());
+                            }}
+                            className="range range-primary flex-1"
+                          />
+                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                            {imageSafety}
+                          </div>
+                        </div>
+                        <div className="text-xs opacity-70 mt-1">0 最严格，6 最宽松，控制内容过滤级别</div>
+                      </div>
+
+                      {/* 间隔参数设置 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">间隔参数 (Interval)</h3>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="range"
+                            min="1"
+                            max="4"
+                            step="0.1"
+                            value={imageInterval}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value);
+                              setImageInterval(value);
+                              localStorage.setItem('aichat_image_interval', value.toString());
+                            }}
+                            className="range range-primary flex-1"
+                          />
+                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                            {imageInterval}
+                          </div>
+                        </div>
+                        <div className="text-xs opacity-70 mt-1">引导控制的间隔参数，范围：1-4</div>
+                      </div>
+
+                      {/* 提示词上采样开关 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">提示词上采样</h3>
+                        <div className="form-control bg-base-200 rounded-lg p-3">
+                          <label className="label cursor-pointer">
+                            <span className="label-text font-medium">启用提示词上采样</span>
+                            <input
+                              type="checkbox"
+                              className="toggle toggle-primary"
+                              checked={promptUpsampling}
+                              onChange={(e) => {
+                                setPromptUpsampling(e.target.checked);
+                                localStorage.setItem('aichat_prompt_upsampling', e.target.checked.toString());
+                              }}
+                            />
+                          </label>
+                          <div className="text-xs opacity-70 mt-1">启用后将自动调整提示词以生成更具创意的内容</div>
+                        </div>
+                      </div>
+                    </>
+                  ) : imageModel === 'black-forest-labs/FLUX.1-dev' ? (
+                    <>
+                      {/* 默认分辨率设置 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                        <select 
+                          className="select select-bordered w-full"
+                          value={imageSize}
+                          onChange={(e) => handleImageSizeChange(e.target.value)}
+                        >
+                          {IMAGE_SIZES.map(size => (
+                            <option key={size.value} value={size.value}>{size.label}</option>
+                          ))}
+                        </select>
+                        <div className="text-xs opacity-70 mt-2">
+                          选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                        </div>
+                      </div>
+
+                      {/* 推理步骤数设置 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">推理步骤数 (Steps)</h3>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="range"
+                            min="2"
+                            max="29"
+                            step="1"
+                            value={devImageSteps}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+                              setDevImageSteps(value);
+                              localStorage.setItem('aichat_dev_image_steps', value.toString());
+                            }}
+                            className="range range-primary flex-1"
+                          />
+                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                            {devImageSteps}
+                          </div>
+                        </div>
+                        <div className="text-xs opacity-70 mt-1">推理步骤数范围：2-29，步数越高细节越丰富</div>
+                      </div>
+
+                      {/* 提示增强开关 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">提示增强</h3>
+                        <div className="form-control bg-base-200 rounded-lg p-3">
+                          <label className="label cursor-pointer">
+                            <span className="label-text font-medium">启用提示增强</span>
+                            <input
+                              type="checkbox"
+                              className="toggle toggle-primary"
+                              checked={devPromptEnhancement}
+                              onChange={(e) => {
+                                setDevPromptEnhancement(e.target.checked);
+                                localStorage.setItem('aichat_dev_prompt_enhancement', e.target.checked.toString());
+                              }}
+                            />
+                          </label>
+                          <div className="text-xs opacity-70 mt-1">启用后将自动优化提示词以生成更好的结果</div>
+                        </div>
+                      </div>
+                    </>
+                  ) : imageModel.includes('stable-diffusion-3') ? (
+                    <>
+                      {/* 默认分辨率设置 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                        <select 
+                          className="select select-bordered w-full"
+                          value={imageSize}
+                          onChange={(e) => handleImageSizeChange(e.target.value)}
+                        >
+                          {IMAGE_SIZES.map(size => (
+                            <option key={size.value} value={size.value}>{size.label}</option>
+                          ))}
+                        </select>
+                        <div className="text-xs opacity-70 mt-2">
+                          选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                        </div>
+                      </div>
+
+                      {/* 提示增强开关 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">提示增强</h3>
+                        <div className="form-control bg-base-200 rounded-lg p-3">
+                          <label className="label cursor-pointer">
+                            <span className="label-text font-medium">启用提示增强</span>
+                            <input
+                              type="checkbox"
+                              className="toggle toggle-primary"
+                              checked={sdPromptEnhancement}
+                              onChange={(e) => {
+                                setSdPromptEnhancement(e.target.checked);
+                                localStorage.setItem('aichat_sd_prompt_enhancement', e.target.checked.toString());
+                              }}
+                            />
+                          </label>
+                          <div className="text-xs opacity-70 mt-1">启用后将自动优化提示词以生成更好的结果</div>
+                        </div>
+                      </div>
+                    </>
+                  ) : imageModel.includes('FLUX.1-schnell') ? (
+                    <>
+                      {/* 默认分辨率设置 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                        <select 
+                          className="select select-bordered w-full"
+                          value={imageSize}
+                          onChange={(e) => handleImageSizeChange(e.target.value)}
+                        >
+                          {IMAGE_SIZES.map(size => (
+                            <option key={size.value} value={size.value}>{size.label}</option>
+                          ))}
+                        </select>
+                        <div className="text-xs opacity-70 mt-2">
+                          选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                        </div>
+                      </div>
+
+                      {/* 提示增强开关 */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">提示增强</h3>
+                        <div className="form-control bg-base-200 rounded-lg p-3">
+                          <label className="label cursor-pointer">
+                            <span className="label-text font-medium">启用提示增强</span>
+                            <input
+                              type="checkbox"
+                              className="toggle toggle-primary"
+                              checked={schnellPromptEnhancement}
+                              onChange={(e) => {
+                                setSchnellPromptEnhancement(e.target.checked);
+                                localStorage.setItem('aichat_schnell_prompt_enhancement', e.target.checked.toString());
+                              }}
+                            />
+                          </label>
+                          <div className="text-xs opacity-70 mt-1">启用后将自动优化提示词以生成更好的结果</div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    // 其他模型的默认分辨率设置
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                      <select 
+                        className="select select-bordered w-full"
+                        value={imageSize}
+                        onChange={(e) => handleImageSizeChange(e.target.value)}
+                      >
+                        {IMAGE_SIZES.map(size => (
+                          <option key={size.value} value={size.value}>{size.label}</option>
+                        ))}
+                      </select>
+                      <div className="text-xs opacity-70 mt-2">
+                        选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* 随机种子设置 */}
-                <div>
-                  <h3 className="text-lg font-medium mb-2">随机种子 (Seed)</h3>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="number"
-                      min="0"
-                      max="9999999999"
-                      value={videoSeed}
+                <div className="divider"></div>
+
+                {/* 视频参数设置 */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold">视频参数设置</h3>
+                  
+                  {/* 视频模型选择 */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">视频生成模型</h3>
+                    <select 
+                      className="select select-bordered w-full"
+                      value={videoModel}
                       onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (value >= 0 && value <= 9999999999) {
-                          setVideoSeed(value);
-                          localStorage.setItem('aichat_video_seed', value.toString());
-                        }
+                        const value = e.target.value;
+                        setVideoModel(value);
+                        localStorage.setItem('aichat_video_model', value);
                       }}
-                      className="input input-bordered w-full"
-                    />
-                    <button
-                      className="btn btn-square"
-                      onClick={() => {
-                        const newSeed = Math.floor(Math.random() * 9999999999);
-                        setVideoSeed(newSeed);
-                        localStorage.setItem('aichat_video_seed', newSeed.toString());
-                      }}
-                      title="生成新的随机种子"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </button>
+                      {VIDEO_MODELS.map(model => (
+                        <option key={model} value={model}>{model}</option>
+                      ))}
+                    </select>
+                    <div className="text-xs opacity-70 mt-2">
+                      选择用于视频生成的模型，使用 /video 命令时会使用此模型
+                    </div>
                   </div>
-                  <div className="text-xs opacity-70">设置随机种子以获得可重复的结果（0-9999999999），留空则随机生成</div>
-                </div>
 
-                {/* 帮助信息 */}
-                <div className="text-xs opacity-70 space-y-2">
-                  <div className="settings-help-text">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>
-                      生成的视频链接有效期为1小时，请及时下载保存
-                    </span>
+                  {/* 随机种子设置 */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">随机种子 (Seed)</h3>
+                    <div className="flex items-center gap-0 w-full input-group flex">
+                      <input
+                        type="number"
+                        min="0"
+                        max="9999999999"
+                        value={videoSeed}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (value >= 0 && value <= 9999999999) {
+                            setVideoSeed(value);
+                            localStorage.setItem('aichat_video_seed', value.toString());
+                          }
+                        }}
+                        className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
+                      />
+                      <button
+                        className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
+                        onClick={() => {
+                          const newSeed = Math.floor(Math.random() * 9999999999);
+                          setVideoSeed(newSeed);
+                          localStorage.setItem('aichat_video_seed', newSeed.toString());
+                        }}
+                        title="生成新的随机种子"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="text-xs opacity-70 mt-1">设置随机种子以获得可重复的结果（0-9999999999），留空则随机生成</div>
                   </div>
-                  <div className="settings-help-text">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>
-                      使用 /video 命令生成视频，可选参数：--model 指定模型，--image 添加参考图片
-                    </span>
+
+                  {/* 帮助信息 */}
+                  <div className="text-xs opacity-70 space-y-2">
+                    <div className="settings-help-text">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>
+                        生成的视频链接有效期为1小时，请及时下载保存
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Tab 7: 搜索设置 */}
+          {/* Tab 4: 搜索设置 */}
           <div className={activeTab === 'search' ? '' : 'hidden'}>
             <div className="space-y-4">
               {/* Google Search API Key */}
               <div>
-                <h3 className="text-lg font-medium mb-2">Google Custom Search JSON API</h3>
-                <div className="flex flex-col gap-2">
-                  <div className="flex w-full gap-0">
+                <div className="form-control w-full max-w-none">
+                  <label className="label">
+                    <span className="label-text font-medium text-base">Google Custom Search JSON API</span>
+                  </label>
+                  <div className="input-group w-full max-w-none flex">
                     <input
                       type={showGoogleApiKey ? "text" : "password"}
-                      className="input input-bordered flex-1 rounded-r-none"
+                      className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
                       value={googleApiKey}
                       onChange={(e) => handleGoogleApiKeyChange(e.target.value)}
                       placeholder="Google Custom Search JSON API..."
                     />
                     <button 
                       type="button"
-                      className="btn rounded-l-none"
+                      className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
                       onClick={handleGoogleApiKeyPaste}
                       title="点击粘贴"
                     >
@@ -1275,33 +1249,29 @@ export const SettingsModal = ({
                     </button>
                     <button 
                       type="button"
-                      className="btn btn-ghost rounded-none border-l-0"
+                      className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
                       onClick={() => setShowGoogleApiKey(!showGoogleApiKey)}
                       title={showGoogleApiKey ? "隐藏密钥" : "显示密钥"}
                     >
-                      {showGoogleApiKey ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                      )}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showGoogleApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
+                      </svg>
                     </button>
                   </div>
+                  <label className="label">
+                    <span className="label-text-alt text-opacity-70">用于网络搜索功能的 Google API 密钥</span>
+                  </label>
                 </div>
               </div>
 
               {/* Search Engine ID */}
               <div>
                 <h3 className="text-lg font-medium mb-2">搜索引擎 ID</h3>
-                <div className="flex flex-col gap-2">
-                  <div className="flex w-full gap-0">
+                <div className="flex flex-col gap-2 w-full max-w-none">
+                  <div className="flex w-full max-w-none gap-0">
                     <input
                       type="text"
-                      className="input input-bordered flex-1"
+                      className="input input-bordered w-full min-w-0"
                       value={searchEngineId}
                       onChange={(e) => handleSearchEngineIdChange(e.target.value)}
                       placeholder="请输入搜索引擎 ID..."
@@ -1342,20 +1312,6 @@ export const SettingsModal = ({
                     每天免费提供100次搜索查询，超出部分按每1000次查询收费$5
                   </span>
                 </div>
-                <div className="settings-help-text">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>
-                    获取帮助：
-                    <a
-                      className="text-primary hover:text-primary-focus cursor-pointer"
-                      onClick={() => openExternalLink('https://developers.google.com/custom-search/v1/overview')}
-                    >
-                      Google Custom Search JSON API
-                    </a>
-                  </span>
-                </div>
               </div>
             </div>
           </div>
@@ -1365,10 +1321,12 @@ export const SettingsModal = ({
       {/* 模板编辑对话框 */}
       {(isAddingTemplate || editingTemplateId) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-base-100 rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">{isAddingTemplate ? '添加新模板' : '编辑模板'}</h2>
+          <div className="bg-base-100 rounded-lg p-4 w-[650px] max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4 px-2">
+              {isAddingTemplate ? '添加新模板' : '编辑模板'}
+            </h2>
             
-            <div className="space-y-4">
+            <div className="space-y-4 px-2">
               <div>
                 <label className="label">
                   <span className="label-text">模板名称</span>
