@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { toggleTheme, themes } from '../components/themeHandlers'
 
 export default function TitleBar({ 
@@ -15,12 +15,34 @@ export default function TitleBar({
   // 添加导入书签功能
   onImportBookmarks,
   // 添加活动标签页ID
-  activeTabId
+  activeTabId,
+  // 添加AI Chat相关属性
+  selectedModel,
+  setSelectedModel,
+  availableModels,
+  currentConversation,
+  maxTokens,
+  setMaxTokens,
+  temperature,
+  setTemperature,
+  systemPromptEnabled,
+  setShowSettings,
+  // 添加模型供应商相关属性
+  selectedProvider
 }) {
   const [isMaximized, setIsMaximized] = useState(false)
   const [iconPath, setIconPath] = useState('')
   const [currentChatName, setCurrentChatName] = useState('')
   const [isNavigating, setIsNavigating] = useState(false) // 添加导航状态
+  const [isImageBackground, setIsImageBackground] = useState(false) // 添加图片背景状态
+  
+  // 使用ref记录初始化状态和上一次的值
+  const initializedRef = useRef(false);
+  const lastProviderRef = useRef(selectedProvider);
+  
+  // 确保maxTokens和temperature有默认值，防止undefined错误
+  const safeMaxTokens = maxTokens || 2000;
+  const safeTemperature = temperature !== undefined ? temperature : 0.7;
 
   useEffect(() => {
     // 初始化窗口状态
@@ -50,11 +72,132 @@ export default function TitleBar({
     // 添加 storage 事件监听器
     window.addEventListener('storage', handleStorageChange);
 
+    // 检查是否为图片背景模式
+    const checkImageBackgroundMode = () => {
+      if (window.isImageBackgroundMode !== undefined) {
+        setIsImageBackground(window.isImageBackgroundMode);
+      }
+    };
+    
+    // 立即检查一次
+    checkImageBackgroundMode();
+    
+    // 监听背景模式变化的事件
+    const handleBackgroundModeChange = (event) => {
+      if (event.detail && event.detail.isImageBackground !== undefined) {
+        setIsImageBackground(event.detail.isImageBackground);
+      }
+    };
+    
+    window.addEventListener('backgroundModeChange', handleBackgroundModeChange);
+
     return () => {
       unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('backgroundModeChange', handleBackgroundModeChange);
     }
   }, [])
+
+  // 使用useMemo代替useState+useEffect来计算可用模型列表
+  const localAvailableModels = useMemo(() => {
+    // 默认模型列表映射 - 内联定义，避免外部依赖
+    const defaultModelsMap = {
+      openai: [
+        'gpt-4o',
+        'gpt-4-turbo',
+        'gpt-4',
+        'gpt-3.5-turbo'
+      ],
+      claude: [
+        'claude-3-5-sonnet-latest',
+        'claude-3-5-haiku-latest',
+        'claude-3-opus-latest',
+        'claude-3-sonnet-20240229',
+        'claude-3-haiku-20240307'
+      ],
+      siliconflow: [
+        'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B',
+        'Qwen/Qwen2.5-7B-Instruct',
+        'Qwen/Qwen2.5-Coder-7B-Instruct',
+        'internlm/internlm2_5-7b-chat',
+        'meta-llama/Meta-Llama-3.1-8B-Instruct',
+        'THUDM/glm-4-9b-chat'
+      ],
+      deepseek: [
+        'deepseek-chat',
+        'deepseek-reasoner'
+      ],
+      openrouter: [
+        'google/gemini-2.0-flash-thinking-exp:free',
+        'deepseek/deepseek-chat:free',
+        'google/gemini-2.0-pro-exp-02-05:free',
+        'anthropic/claude-3.5-sonnet',
+        'openai/gpt-4o'
+      ],
+      stepfun: [
+        'step-2-16k',
+        'step-1-8k',
+        'step-1-32k',
+        'step-1-128k'
+      ]
+    };
+    
+    // 获取默认模型列表的内联函数
+    const getDefaultModels = (provider) => {
+      return defaultModelsMap[provider] || [
+        'gpt-4o',
+        'gpt-4-turbo',
+        'gpt-3.5-turbo',
+        'claude-3-opus-20240229',
+        'claude-3-sonnet-20240229',
+        'claude-3-haiku-20240307'
+      ];
+    };
+  
+    // 初始化时记录provider
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      lastProviderRef.current = selectedProvider;
+    }
+    
+    // 检查provider是否发生变化
+    const providerChanged = selectedProvider !== lastProviderRef.current;
+    if (providerChanged) {
+      lastProviderRef.current = selectedProvider;
+    }
+    
+    // 如果有有效的模型列表，使用它
+    if (availableModels && availableModels.length > 0) {
+      // 保存到localStorage
+      try {
+        localStorage.setItem(`aichat_available_models_${selectedProvider}`, JSON.stringify(availableModels));
+      } catch (e) {
+        // 忽略localStorage错误
+      }
+      return availableModels;
+    }
+    
+    // provider变化或没有可用模型时，尝试从localStorage获取
+    if (providerChanged || !availableModels || availableModels.length === 0) {
+      try {
+        const savedModelsStr = localStorage.getItem(`aichat_available_models_${selectedProvider}`);
+        if (savedModelsStr) {
+          const savedModels = JSON.parse(savedModelsStr);
+          if (Array.isArray(savedModels) && savedModels.length > 0) {
+            return savedModels;
+          }
+        }
+      } catch (e) {
+        // 解析错误时忽略
+      }
+      
+      // 返回默认模型
+      return getDefaultModels(selectedProvider);
+    }
+    
+    // 其他情况返回空数组
+    return [];
+  }, [availableModels, selectedProvider]); // 只依赖availableModels和selectedProvider
 
   // 处理导航请求
   const handleNavigation = (url) => {
@@ -206,7 +349,141 @@ export default function TitleBar({
               </button>
             </div>
           </div>
-        ) : activeTool === 'browser' ? null : null}
+        ) : activeTool === 'aichat' ? (
+          <div className="w-full flex items-center gap-1 no-drag">
+            {/* 左侧模型选择 */}
+            <div className="flex-none" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
+              <select 
+                className="select select-bordered select-xs w-[300px]"
+                value={selectedModel || ''}
+                onChange={(e) => {
+                  setSelectedModel && setSelectedModel(e.target.value);
+                  localStorage.setItem('aichat_model', e.target.value);
+                }}
+                style={isImageBackground ? { 
+                  position: 'relative', 
+                  zIndex: 10, 
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  color: 'white',
+                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                } : {}}
+              >
+                {localAvailableModels.map(model => (
+                  <option 
+                    key={model} 
+                    value={model} 
+                    style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
+                  >
+                    {model}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 中间对话名称 */}
+            <div className="flex items-center gap-2 mx-2" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
+              <h2 className="text-xs opacity-70" 
+                  style={isImageBackground ? { 
+                    textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
+                    color: 'white',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    padding: '2px 6px',
+                    borderRadius: '4px'
+                  } : {}}>
+                {currentConversation?.name || '当前会话'}
+              </h2>
+            </div>
+
+            {/* 右侧设置区域 */}
+            <div className="flex items-center gap-4 ml-auto" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
+              {/* Max Tokens 控制 */}
+              <div className="flex items-center gap-1">
+                <span className="text-xs opacity-70" 
+                      style={isImageBackground ? { 
+                        color: 'white', 
+                        textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        padding: '1px 4px',
+                        borderRadius: '2px'
+                      } : {}}>Max:</span>
+                <input
+                  type="range"
+                  min="1024"
+                  max="8192"
+                  step="128"
+                  value={safeMaxTokens > 8192 ? 8192 : safeMaxTokens}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    setMaxTokens && setMaxTokens(value);
+                    localStorage.setItem('aichat_max_tokens', value.toString());
+                  }}
+                  className="range range-xs range-primary w-[60px]"
+                  style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}
+                />
+                <span className="text-xs opacity-70 min-w-[25px]" 
+                      style={isImageBackground ? { 
+                        color: 'white', 
+                        textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        padding: '1px 4px',
+                        borderRadius: '2px'
+                      } : {}}>{safeMaxTokens === 999999 ? '∞' : safeMaxTokens}</span>
+                <button
+                  className="btn btn-xs btn-ghost btn-circle"
+                  onClick={() => {
+                    const value = safeMaxTokens === 999999 ? 2000 : 999999;
+                    setMaxTokens && setMaxTokens(value);
+                    localStorage.setItem('aichat_max_tokens', value.toString());
+                  }}
+                  title={safeMaxTokens === 999999 ? "点击设置为默认值" : "点击设置为无限制"}
+                  style={isImageBackground ? { 
+                    position: 'relative', 
+                    zIndex: 10,
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    color: 'white',
+                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                  } : {}}
+                >
+                  {safeMaxTokens === 999999 ? "↺" : "∞"}
+                </button>
+              </div>
+
+              {/* Temperature 控制 */}
+              <div className="flex items-center gap-1 mr-2">
+                <span className="text-xs opacity-70" 
+                      style={isImageBackground ? { 
+                        color: 'white', 
+                        textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        padding: '1px 4px',
+                        borderRadius: '2px'
+                      } : {}}>Temp:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value={safeTemperature}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    setTemperature && setTemperature(value);
+                    localStorage.setItem('aichat_temperature', e.target.value);
+                  }}
+                  className="range range-xs range-primary w-[60px]"
+                  style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}
+                />
+                <span className="text-xs opacity-70 min-w-[25px]" 
+                      style={isImageBackground ? { 
+                        color: 'white', 
+                        textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        padding: '1px 4px',
+                        borderRadius: '2px'
+                      } : {}}>{safeTemperature.toFixed(1)}</span>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* 右侧按钮组 */}

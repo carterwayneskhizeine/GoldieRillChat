@@ -464,14 +464,12 @@ export const SettingsModal = ({
             >
               Prompt
             </a>
-            {selectedProvider === 'siliconflow' && (
-              <a 
-                className={`tab ${activeTab === 'media_gen' ? 'tab-active' : ''}`}
-                onClick={() => setActiveTab('media_gen')}
-              >
-                Media
-              </a>
-            )}
+            <a 
+              className={`tab ${activeTab === 'media_gen' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('media_gen')}
+            >
+              Media
+            </a>
             <a 
               className={`tab ${activeTab === 'search' ? 'tab-active' : ''}`}
               onClick={() => setActiveTab('search')}
@@ -773,357 +771,216 @@ export const SettingsModal = ({
           </div>
 
           {/* Tab 3: 媒体生成设置 */}
-          {selectedProvider === 'siliconflow' && (
-            <div className={activeTab === 'media_gen' ? '' : 'hidden'}>
-              <div className="space-y-6">
-                {/* 图片生成API设置 */}
-                <div className="space-y-4">
-                  {/* SiliconFlow API 地址 */}
-                  <div>
-                    <div className="form-control w-full max-w-none">
-                      <label className="label">
-                        <span className="label-text font-medium text-base">SiliconFlow API 地址</span>
-                      </label>
-                      <input 
-                        type="text" 
-                        className="input input-bordered w-full h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary" 
-                        value={imageGenApiHost}
-                        onChange={(e) => handleImageGenApiHostChange(e.target.value)}
-                        placeholder="https://api.siliconflow.cn"
-                      />
-                      <label className="label">
-                        <span className="label-text-alt text-opacity-70">媒体生成功能使用的API地址</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* SiliconFlow API 密钥 */}
-                  <div>
-                    <div className="form-control w-full max-w-none">
-                      <label className="label">
-                        <span className="label-text font-medium text-base">SiliconFlow API 密钥</span>
-                      </label>
-                      <div className="input-group w-full max-w-none flex">
-                        <input 
-                          type={showImageGenApiKey ? "text" : "password"} 
-                          className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0" 
-                          value={imageGenApiKey}
-                          onChange={(e) => handleImageGenApiKeyChange(e.target.value)}
-                          placeholder="sk-..."
-                        />
-                        <button 
-                          className="btn btn-square btn-outline h-11 min-w-[3.5rem]" 
-                          onClick={handleImageGenApiKeyPaste}
-                          title="点击粘贴"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                          </svg>
-                        </button>
-                        <button 
-                          className="btn btn-square btn-outline h-11 min-w-[3.5rem]" 
-                          onClick={() => setShowImageGenApiKey(!showImageGenApiKey)}
-                          title={showImageGenApiKey ? "隐藏密钥" : "显示密钥"}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showImageGenApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
+          <div className={activeTab === 'media_gen' ? '' : 'hidden'}>
+            <div className="space-y-6">
+              {/* 图片生成API设置 */}
+              <div className="space-y-4">
+                {/* SiliconFlow API 地址 */}
+                <div>
+                  <div className="form-control w-full max-w-none">
+                    <label className="label">
+                      <span className="label-text font-medium text-base">SiliconFlow API 地址</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      className="input input-bordered w-full h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary" 
+                      value={imageGenApiHost}
+                      onChange={(e) => handleImageGenApiHostChange(e.target.value)}
+                      placeholder="https://api.siliconflow.cn"
+                    />
+                    <label className="label">
+                      <span className="label-text-alt text-opacity-70">媒体生成功能使用的API地址</span>
+                    </label>
                   </div>
                 </div>
 
-                <div className="divider"></div>
-
-                {/* 图片参数设置 */}
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold">图片参数设置</h3>
-                  
-                  {/* 生图模型选择 */}
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">生图模型</h3>
-                    <select 
-                      className="select select-bordered w-full"
-                      value={imageModel}
-                      onChange={(e) => handleImageModelChange(e.target.value)}
-                    >
-                      {IMAGE_MODELS.map(model => (
-                        <option key={model} value={model}>{model}</option>
-                      ))}
-                    </select>
-                    <div className="text-xs opacity-70 mt-2">
-                      选择用于图片生成的模型，使用 /image 命令时会使用此模型
-                      {imageModel === 'black-forest-labs/FLUX.1-pro' && (
-                        <div className="mt-1 text-info">
-                          使用固定分辨率：1024×768
-                        </div>
-                      )}
+                {/* SiliconFlow API 密钥 */}
+                <div>
+                  <div className="form-control w-full max-w-none">
+                    <label className="label">
+                      <span className="label-text font-medium text-base">SiliconFlow API 密钥</span>
+                    </label>
+                    <div className="input-group w-full max-w-none flex">
+                      <input 
+                        type={showImageGenApiKey ? "text" : "password"} 
+                        className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0" 
+                        value={imageGenApiKey}
+                        onChange={(e) => handleImageGenApiKeyChange(e.target.value)}
+                        placeholder="sk-..."
+                      />
+                      <button 
+                        className="btn btn-square btn-outline h-11 min-w-[3.5rem]" 
+                        onClick={handleImageGenApiKeyPaste}
+                        title="点击粘贴"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </button>
+                      <button 
+                        className="btn btn-square btn-outline h-11 min-w-[3.5rem]" 
+                        onClick={() => setShowImageGenApiKey(!showImageGenApiKey)}
+                        title={showImageGenApiKey ? "隐藏密钥" : "显示密钥"}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showImageGenApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
+                        </svg>
+                      </button>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* 根据不同的模型显示不同的设置选项 */}
-                  {imageModel === 'black-forest-labs/FLUX.1-pro' ? (
-                    <>
-                      {/* 步数设置 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">步数 (Steps)</h3>
-                        <div className="flex items-center gap-4">
+              <div className="divider"></div>
+
+              {/* 图片参数设置 */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold">图片参数设置</h3>
+                
+                {/* 生图模型选择 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">生图模型</h3>
+                  <select 
+                    className="select select-bordered w-full"
+                    value={imageModel}
+                    onChange={(e) => handleImageModelChange(e.target.value)}
+                  >
+                    {IMAGE_MODELS.map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                  <div className="text-xs opacity-70 mt-2">
+                    选择用于图片生成的模型，使用 /image 命令时会使用此模型
+                    {imageModel === 'black-forest-labs/FLUX.1-pro' && (
+                      <div className="mt-1 text-info">
+                        使用固定分辨率：1024×768
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 根据不同的模型显示不同的设置选项 */}
+                {imageModel === 'black-forest-labs/FLUX.1-pro' ? (
+                  <>
+                    {/* 步数设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">步数 (Steps)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="2"
+                          max="50"
+                          step="1"
+                          value={imageSteps}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            setImageSteps(value);
+                            localStorage.setItem('aichat_image_steps', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                          {imageSteps}
+                        </div>
+                      </div>
+                      <div className="text-xs opacity-70 mt-1">生成步数范围：2-50，步数越高，生成质量越好，但速度更慢</div>
+                    </div>
+
+                    {/* 引导系数设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">引导系数 (Guidance)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="1.5"
+                          max="5"
+                          step="0.1"
+                          value={imageGuidance}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setImageGuidance(value);
+                            localStorage.setItem('aichat_image_guidance', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                          {imageGuidance}
+                        </div>
+                      </div>
+                      <div className="text-xs opacity-70 mt-1">值越高越严格遵循提示词，值越低创造性越强</div>
+                    </div>
+
+                    {/* 安全容忍度设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">安全容忍度 (Safety Tolerance)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="0"
+                          max="6"
+                          step="1"
+                          value={imageSafety}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            setImageSafety(value);
+                            localStorage.setItem('aichat_image_safety', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                          {imageSafety}
+                        </div>
+                      </div>
+                      <div className="text-xs opacity-70 mt-1">0 最严格，6 最宽松，控制内容过滤级别</div>
+                    </div>
+
+                    {/* 间隔参数设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">间隔参数 (Interval)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="1"
+                          max="4"
+                          step="0.1"
+                          value={imageInterval}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setImageInterval(value);
+                            localStorage.setItem('aichat_image_interval', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                          {imageInterval}
+                        </div>
+                      </div>
+                      <div className="text-xs opacity-70 mt-1">引导控制的间隔参数，范围：1-4</div>
+                    </div>
+
+                    {/* 提示词上采样开关 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">提示词上采样</h3>
+                      <div className="form-control bg-base-200 rounded-lg p-3">
+                        <label className="label cursor-pointer">
+                          <span className="label-text font-medium">启用提示词上采样</span>
                           <input
-                            type="range"
-                            min="2"
-                            max="50"
-                            step="1"
-                            value={imageSteps}
+                            type="checkbox"
+                            className="toggle toggle-primary"
+                            checked={promptUpsampling}
                             onChange={(e) => {
-                              const value = parseInt(e.target.value);
-                              setImageSteps(value);
-                              localStorage.setItem('aichat_image_steps', value.toString());
+                              setPromptUpsampling(e.target.checked);
+                              localStorage.setItem('aichat_prompt_upsampling', e.target.checked.toString());
                             }}
-                            className="range range-primary flex-1"
                           />
-                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
-                            {imageSteps}
-                          </div>
-                        </div>
-                        <div className="text-xs opacity-70 mt-1">生成步数范围：2-50，步数越高，生成质量越好，但速度更慢</div>
+                        </label>
+                        <div className="text-xs opacity-70 mt-1">启用后将自动调整提示词以生成更具创意的内容</div>
                       </div>
-
-                      {/* 引导系数设置 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">引导系数 (Guidance)</h3>
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="range"
-                            min="1.5"
-                            max="5"
-                            step="0.1"
-                            value={imageGuidance}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value);
-                              setImageGuidance(value);
-                              localStorage.setItem('aichat_image_guidance', value.toString());
-                            }}
-                            className="range range-primary flex-1"
-                          />
-                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
-                            {imageGuidance}
-                          </div>
-                        </div>
-                        <div className="text-xs opacity-70 mt-1">值越高越严格遵循提示词，值越低创造性越强</div>
-                      </div>
-
-                      {/* 安全容忍度设置 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">安全容忍度 (Safety Tolerance)</h3>
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="range"
-                            min="0"
-                            max="6"
-                            step="1"
-                            value={imageSafety}
-                            onChange={(e) => {
-                              const value = parseInt(e.target.value);
-                              setImageSafety(value);
-                              localStorage.setItem('aichat_image_safety', value.toString());
-                            }}
-                            className="range range-primary flex-1"
-                          />
-                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
-                            {imageSafety}
-                          </div>
-                        </div>
-                        <div className="text-xs opacity-70 mt-1">0 最严格，6 最宽松，控制内容过滤级别</div>
-                      </div>
-
-                      {/* 间隔参数设置 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">间隔参数 (Interval)</h3>
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="range"
-                            min="1"
-                            max="4"
-                            step="0.1"
-                            value={imageInterval}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value);
-                              setImageInterval(value);
-                              localStorage.setItem('aichat_image_interval', value.toString());
-                            }}
-                            className="range range-primary flex-1"
-                          />
-                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
-                            {imageInterval}
-                          </div>
-                        </div>
-                        <div className="text-xs opacity-70 mt-1">引导控制的间隔参数，范围：1-4</div>
-                      </div>
-
-                      {/* 提示词上采样开关 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">提示词上采样</h3>
-                        <div className="form-control bg-base-200 rounded-lg p-3">
-                          <label className="label cursor-pointer">
-                            <span className="label-text font-medium">启用提示词上采样</span>
-                            <input
-                              type="checkbox"
-                              className="toggle toggle-primary"
-                              checked={promptUpsampling}
-                              onChange={(e) => {
-                                setPromptUpsampling(e.target.checked);
-                                localStorage.setItem('aichat_prompt_upsampling', e.target.checked.toString());
-                              }}
-                            />
-                          </label>
-                          <div className="text-xs opacity-70 mt-1">启用后将自动调整提示词以生成更具创意的内容</div>
-                        </div>
-                      </div>
-                    </>
-                  ) : imageModel === 'black-forest-labs/FLUX.1-dev' ? (
-                    <>
-                      {/* 默认分辨率设置 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
-                        <select 
-                          className="select select-bordered w-full"
-                          value={imageSize}
-                          onChange={(e) => handleImageSizeChange(e.target.value)}
-                        >
-                          {IMAGE_SIZES.map(size => (
-                            <option key={size.value} value={size.value}>{size.label}</option>
-                          ))}
-                        </select>
-                        <div className="text-xs opacity-70 mt-2">
-                          选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
-                        </div>
-                      </div>
-
-                      {/* 推理步骤数设置 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">推理步骤数 (Steps)</h3>
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="range"
-                            min="2"
-                            max="29"
-                            step="1"
-                            value={devImageSteps}
-                            onChange={(e) => {
-                              const value = parseInt(e.target.value);
-                              setDevImageSteps(value);
-                              localStorage.setItem('aichat_dev_image_steps', value.toString());
-                            }}
-                            className="range range-primary flex-1"
-                          />
-                          <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
-                            {devImageSteps}
-                          </div>
-                        </div>
-                        <div className="text-xs opacity-70 mt-1">推理步骤数范围：2-29，步数越高细节越丰富</div>
-                      </div>
-
-                      {/* 提示增强开关 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">提示增强</h3>
-                        <div className="form-control bg-base-200 rounded-lg p-3">
-                          <label className="label cursor-pointer">
-                            <span className="label-text font-medium">启用提示增强</span>
-                            <input
-                              type="checkbox"
-                              className="toggle toggle-primary"
-                              checked={devPromptEnhancement}
-                              onChange={(e) => {
-                                setDevPromptEnhancement(e.target.checked);
-                                localStorage.setItem('aichat_dev_prompt_enhancement', e.target.checked.toString());
-                              }}
-                            />
-                          </label>
-                          <div className="text-xs opacity-70 mt-1">启用后将自动优化提示词以生成更好的结果</div>
-                        </div>
-                      </div>
-                    </>
-                  ) : imageModel.includes('stable-diffusion-3') ? (
-                    <>
-                      {/* 默认分辨率设置 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
-                        <select 
-                          className="select select-bordered w-full"
-                          value={imageSize}
-                          onChange={(e) => handleImageSizeChange(e.target.value)}
-                        >
-                          {IMAGE_SIZES.map(size => (
-                            <option key={size.value} value={size.value}>{size.label}</option>
-                          ))}
-                        </select>
-                        <div className="text-xs opacity-70 mt-2">
-                          选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
-                        </div>
-                      </div>
-
-                      {/* 提示增强开关 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">提示增强</h3>
-                        <div className="form-control bg-base-200 rounded-lg p-3">
-                          <label className="label cursor-pointer">
-                            <span className="label-text font-medium">启用提示增强</span>
-                            <input
-                              type="checkbox"
-                              className="toggle toggle-primary"
-                              checked={sdPromptEnhancement}
-                              onChange={(e) => {
-                                setSdPromptEnhancement(e.target.checked);
-                                localStorage.setItem('aichat_sd_prompt_enhancement', e.target.checked.toString());
-                              }}
-                            />
-                          </label>
-                          <div className="text-xs opacity-70 mt-1">启用后将自动优化提示词以生成更好的结果</div>
-                        </div>
-                      </div>
-                    </>
-                  ) : imageModel.includes('FLUX.1-schnell') ? (
-                    <>
-                      {/* 默认分辨率设置 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
-                        <select 
-                          className="select select-bordered w-full"
-                          value={imageSize}
-                          onChange={(e) => handleImageSizeChange(e.target.value)}
-                        >
-                          {IMAGE_SIZES.map(size => (
-                            <option key={size.value} value={size.value}>{size.label}</option>
-                          ))}
-                        </select>
-                        <div className="text-xs opacity-70 mt-2">
-                          选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
-                        </div>
-                      </div>
-
-                      {/* 提示增强开关 */}
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">提示增强</h3>
-                        <div className="form-control bg-base-200 rounded-lg p-3">
-                          <label className="label cursor-pointer">
-                            <span className="label-text font-medium">启用提示增强</span>
-                            <input
-                              type="checkbox"
-                              className="toggle toggle-primary"
-                              checked={schnellPromptEnhancement}
-                              onChange={(e) => {
-                                setSchnellPromptEnhancement(e.target.checked);
-                                localStorage.setItem('aichat_schnell_prompt_enhancement', e.target.checked.toString());
-                              }}
-                            />
-                          </label>
-                          <div className="text-xs opacity-70 mt-1">启用后将自动优化提示词以生成更好的结果</div>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    // 其他模型的默认分辨率设置
+                    </div>
+                  </>
+                ) : imageModel === 'black-forest-labs/FLUX.1-dev' ? (
+                  <>
+                    {/* 默认分辨率设置 */}
                     <div>
                       <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
                       <select 
@@ -1139,86 +996,225 @@ export const SettingsModal = ({
                         选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
                       </div>
                     </div>
-                  )}
-                </div>
 
-                <div className="divider"></div>
+                    {/* 推理步骤数设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">推理步骤数 (Steps)</h3>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="2"
+                          max="29"
+                          step="1"
+                          value={devImageSteps}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            setDevImageSteps(value);
+                            localStorage.setItem('aichat_dev_image_steps', value.toString());
+                          }}
+                          className="range range-primary flex-1"
+                        />
+                        <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
+                          {devImageSteps}
+                        </div>
+                      </div>
+                      <div className="text-xs opacity-70 mt-1">推理步骤数范围：2-29，步数越高细节越丰富</div>
+                    </div>
 
-                {/* 视频参数设置 */}
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold">视频参数设置</h3>
-                  
-                  {/* 视频模型选择 */}
+                    {/* 提示增强开关 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">提示增强</h3>
+                      <div className="form-control bg-base-200 rounded-lg p-3">
+                        <label className="label cursor-pointer">
+                          <span className="label-text font-medium">启用提示增强</span>
+                          <input
+                            type="checkbox"
+                            className="toggle toggle-primary"
+                            checked={devPromptEnhancement}
+                            onChange={(e) => {
+                              setDevPromptEnhancement(e.target.checked);
+                              localStorage.setItem('aichat_dev_prompt_enhancement', e.target.checked.toString());
+                            }}
+                          />
+                        </label>
+                        <div className="text-xs opacity-70 mt-1">启用后将自动优化提示词以生成更好的结果</div>
+                      </div>
+                    </div>
+                  </>
+                ) : imageModel.includes('stable-diffusion-3') ? (
+                  <>
+                    {/* 默认分辨率设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                      <select 
+                        className="select select-bordered w-full"
+                        value={imageSize}
+                        onChange={(e) => handleImageSizeChange(e.target.value)}
+                      >
+                        {IMAGE_SIZES.map(size => (
+                          <option key={size.value} value={size.value}>{size.label}</option>
+                        ))}
+                      </select>
+                      <div className="text-xs opacity-70 mt-2">
+                        选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                      </div>
+                    </div>
+
+                    {/* 提示增强开关 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">提示增强</h3>
+                      <div className="form-control bg-base-200 rounded-lg p-3">
+                        <label className="label cursor-pointer">
+                          <span className="label-text font-medium">启用提示增强</span>
+                          <input
+                            type="checkbox"
+                            className="toggle toggle-primary"
+                            checked={sdPromptEnhancement}
+                            onChange={(e) => {
+                              setSdPromptEnhancement(e.target.checked);
+                              localStorage.setItem('aichat_sd_prompt_enhancement', e.target.checked.toString());
+                            }}
+                          />
+                        </label>
+                        <div className="text-xs opacity-70 mt-1">启用后将自动优化提示词以生成更好的结果</div>
+                      </div>
+                    </div>
+                  </>
+                ) : imageModel.includes('FLUX.1-schnell') ? (
+                  <>
+                    {/* 默认分辨率设置 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
+                      <select 
+                        className="select select-bordered w-full"
+                        value={imageSize}
+                        onChange={(e) => handleImageSizeChange(e.target.value)}
+                      >
+                        {IMAGE_SIZES.map(size => (
+                          <option key={size.value} value={size.value}>{size.label}</option>
+                        ))}
+                      </select>
+                      <div className="text-xs opacity-70 mt-2">
+                        选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
+                      </div>
+                    </div>
+
+                    {/* 提示增强开关 */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">提示增强</h3>
+                      <div className="form-control bg-base-200 rounded-lg p-3">
+                        <label className="label cursor-pointer">
+                          <span className="label-text font-medium">启用提示增强</span>
+                          <input
+                            type="checkbox"
+                            className="toggle toggle-primary"
+                            checked={schnellPromptEnhancement}
+                            onChange={(e) => {
+                              setSchnellPromptEnhancement(e.target.checked);
+                              localStorage.setItem('aichat_schnell_prompt_enhancement', e.target.checked.toString());
+                            }}
+                          />
+                        </label>
+                        <div className="text-xs opacity-70 mt-1">启用后将自动优化提示词以生成更好的结果</div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // 其他模型的默认分辨率设置
                   <div>
-                    <h3 className="text-lg font-medium mb-2">视频生成模型</h3>
+                    <h3 className="text-lg font-medium mb-2">默认分辨率</h3>
                     <select 
                       className="select select-bordered w-full"
-                      value={videoModel}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setVideoModel(value);
-                        localStorage.setItem('aichat_video_model', value);
-                      }}
+                      value={imageSize}
+                      onChange={(e) => handleImageSizeChange(e.target.value)}
                     >
-                      {VIDEO_MODELS.map(model => (
-                        <option key={model} value={model}>{model}</option>
+                      {IMAGE_SIZES.map(size => (
+                        <option key={size.value} value={size.value}>{size.label}</option>
                       ))}
                     </select>
                     <div className="text-xs opacity-70 mt-2">
-                      选择用于视频生成的模型，使用 /video 命令时会使用此模型
+                      选择图片生成的默认分辨率，也可以使用 /image 命令时通过 --size 参数指定其他分辨率
                     </div>
                   </div>
+                )}
+              </div>
 
-                  {/* 随机种子设置 */}
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">随机种子 (Seed)</h3>
-                    <div className="flex items-center gap-0 w-full input-group flex">
-                      <input
-                        type="number"
-                        min="0"
-                        max="9999999999"
-                        value={videoSeed}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          if (value >= 0 && value <= 9999999999) {
-                            setVideoSeed(value);
-                            localStorage.setItem('aichat_video_seed', value.toString());
-                          }
-                        }}
-                        className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
-                      />
-                      <button
-                        className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
-                        onClick={() => {
-                          const newSeed = Math.floor(Math.random() * 9999999999);
-                          setVideoSeed(newSeed);
-                          localStorage.setItem('aichat_video_seed', newSeed.toString());
-                        }}
-                        title="生成新的随机种子"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="text-xs opacity-70 mt-1">设置随机种子以获得可重复的结果（0-9999999999），留空则随机生成</div>
+              <div className="divider"></div>
+
+              {/* 视频参数设置 */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold">视频参数设置</h3>
+                
+                {/* 视频模型选择 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">视频生成模型</h3>
+                  <select 
+                    className="select select-bordered w-full"
+                    value={videoModel}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setVideoModel(value);
+                      localStorage.setItem('aichat_video_model', value);
+                    }}
+                  >
+                    {VIDEO_MODELS.map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                  <div className="text-xs opacity-70 mt-2">
+                    选择用于视频生成的模型，使用 /video 命令时会使用此模型
                   </div>
+                </div>
 
-                  {/* 帮助信息 */}
-                  <div className="text-xs opacity-70 space-y-2">
-                    <div className="settings-help-text">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {/* 随机种子设置 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">随机种子 (Seed)</h3>
+                  <div className="flex items-center gap-0 w-full input-group flex">
+                    <input
+                      type="number"
+                      min="0"
+                      max="9999999999"
+                      value={videoSeed}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (value >= 0 && value <= 9999999999) {
+                          setVideoSeed(value);
+                          localStorage.setItem('aichat_video_seed', value.toString());
+                        }
+                      }}
+                      className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
+                    />
+                    <button
+                      className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
+                      onClick={() => {
+                        const newSeed = Math.floor(Math.random() * 9999999999);
+                        setVideoSeed(newSeed);
+                        localStorage.setItem('aichat_video_seed', newSeed.toString());
+                      }}
+                      title="生成新的随机种子"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      <span>
-                        生成的视频链接有效期为1小时，请及时下载保存
-                      </span>
-                    </div>
+                    </button>
+                  </div>
+                  <div className="text-xs opacity-70 mt-1">设置随机种子以获得可重复的结果（0-9999999999），留空则随机生成</div>
+                </div>
+
+                {/* 帮助信息 */}
+                <div className="text-xs opacity-70 space-y-2">
+                  <div className="settings-help-text">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      生成的视频链接有效期为1小时，请及时下载保存
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Tab 4: 搜索设置 */}
           <div className={activeTab === 'search' ? '' : 'hidden'}>

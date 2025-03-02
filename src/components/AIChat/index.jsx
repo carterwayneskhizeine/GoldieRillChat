@@ -30,9 +30,19 @@ export const AIChat = ({
   onConversationRename,
   window,
   electron,
-  openInBrowserTab
+  openInBrowserTab,
+  selectedModel: appSelectedModel,
+  setSelectedModel: appSetSelectedModel,
+  availableModels: appAvailableModels,
+  setAvailableModels: appSetAvailableModels,
+  maxTokens: appMaxTokens,
+  setMaxTokens: appSetMaxTokens,
+  temperature: appTemperature,
+  setTemperature: appSetTemperature,
+  selectedProvider: appSelectedProvider,
+  setSelectedProvider: appSetSelectedProvider
 }) => {
-  // 使用状态管理 hooks
+  // 使用状态管理 hooks，但优先使用从App传递的状态
   const messageState = useMessageState(currentConversation);
   const modelState = useModelState();
   const inputState = useInputState();
@@ -40,15 +50,127 @@ export const AIChat = ({
   
   // 添加文件输入引用
   const fileInputRef = useRef(null);
-
-  // 添加新的状态
+  
+  // 使用从App传递的状态，如果没有则使用本地状态
   const [maxTokens, setMaxTokens] = useState(() => {
-    return parseInt(localStorage.getItem('aichat_max_tokens')) || 2000;
+    return appMaxTokens !== undefined ? appMaxTokens : (parseInt(localStorage.getItem('aichat_max_tokens')) || 2000);
   });
 
   const [temperature, setTemperature] = useState(() => {
-    return parseFloat(localStorage.getItem('aichat_temperature')) || 0.7;
+    return appTemperature !== undefined ? appTemperature : (parseFloat(localStorage.getItem('aichat_temperature')) || 0.7);
   });
+  
+  // 添加refs跟踪状态变化
+  const prevAppSelectedModelRef = useRef(appSelectedModel);
+  const prevModelStateSelectedModelRef = useRef(modelState.selectedModel);
+  const prevAppAvailableModelsRef = useRef(JSON.stringify(appAvailableModels || []));
+  const prevModelStateAvailableModelsRef = useRef(JSON.stringify(modelState.availableModels || []));
+  const prevAppSelectedProviderRef = useRef(appSelectedProvider);
+  const prevModelStateSelectedProviderRef = useRef(modelState.selectedProvider);
+  const prevAppMaxTokensRef = useRef(appMaxTokens);
+  const prevMaxTokensRef = useRef(maxTokens);
+  const prevAppTemperatureRef = useRef(appTemperature);
+  const prevTemperatureRef = useRef(temperature);
+
+  // 当App传递的状态变化时，更新本地状态
+  useEffect(() => {
+    if (appMaxTokens !== undefined) {
+      setMaxTokens(appMaxTokens);
+    }
+  }, [appMaxTokens]);
+
+  useEffect(() => {
+    if (appTemperature !== undefined) {
+      setTemperature(appTemperature);
+    }
+  }, [appTemperature]);
+
+  // 当App状态变化时，更新本地状态
+  useEffect(() => {
+    // 当App中的模型变化并且与上一次不同时，更新本地状态
+    if (appSelectedModel !== undefined && 
+        appSelectedModel !== prevAppSelectedModelRef.current && 
+        appSelectedModel !== modelState.selectedModel) {
+      modelState.setSelectedModel(appSelectedModel);
+    }
+    prevAppSelectedModelRef.current = appSelectedModel;
+  }, [appSelectedModel]);
+
+  useEffect(() => {
+    // 使用JSON字符串比较以检测数组变化
+    const currentAppModelsStr = JSON.stringify(appAvailableModels || []);
+    if (appAvailableModels !== undefined && 
+        currentAppModelsStr !== prevAppAvailableModelsRef.current &&
+        currentAppModelsStr !== JSON.stringify(modelState.availableModels || [])) {
+      modelState.setAvailableModels(appAvailableModels);
+    }
+    prevAppAvailableModelsRef.current = currentAppModelsStr;
+  }, [appAvailableModels]);
+
+  useEffect(() => {
+    if (appSelectedProvider !== undefined && 
+        appSelectedProvider !== prevAppSelectedProviderRef.current &&
+        appSelectedProvider !== modelState.selectedProvider) {
+      modelState.setSelectedProvider(appSelectedProvider);
+    }
+    prevAppSelectedProviderRef.current = appSelectedProvider;
+  }, [appSelectedProvider]);
+
+  // 当本地状态变化时，更新App状态
+  useEffect(() => {
+    if (appSetMaxTokens && 
+        maxTokens !== prevMaxTokensRef.current && 
+        maxTokens !== appMaxTokens) {
+      appSetMaxTokens(maxTokens);
+    }
+    prevMaxTokensRef.current = maxTokens;
+    prevAppMaxTokensRef.current = appMaxTokens;
+  }, [maxTokens, appMaxTokens, appSetMaxTokens]);
+
+  useEffect(() => {
+    if (appSetTemperature && 
+        temperature !== prevTemperatureRef.current && 
+        temperature !== appTemperature) {
+      appSetTemperature(temperature);
+    }
+    prevTemperatureRef.current = temperature;
+    prevAppTemperatureRef.current = appTemperature;
+  }, [temperature, appTemperature, appSetTemperature]);
+
+  useEffect(() => {
+    if (appSetSelectedModel && 
+        modelState.selectedModel !== prevModelStateSelectedModelRef.current && 
+        modelState.selectedModel !== appSelectedModel && 
+        modelState.selectedModel !== undefined) {
+      appSetSelectedModel(modelState.selectedModel);
+    }
+    prevModelStateSelectedModelRef.current = modelState.selectedModel;
+  }, [modelState.selectedModel, appSelectedModel, appSetSelectedModel]);
+
+  useEffect(() => {
+    // 使用JSON字符串比较以检测数组变化
+    const currentModelStateModelsStr = JSON.stringify(modelState.availableModels || []);
+    const currentAppModelsStr = JSON.stringify(appAvailableModels || []);
+    
+    if (appSetAvailableModels && 
+        currentModelStateModelsStr !== prevModelStateAvailableModelsRef.current && 
+        currentModelStateModelsStr !== currentAppModelsStr && 
+        modelState.availableModels !== undefined && 
+        modelState.availableModels.length > 0) {
+      appSetAvailableModels(modelState.availableModels);
+    }
+    prevModelStateAvailableModelsRef.current = currentModelStateModelsStr;
+  }, [modelState.availableModels, appAvailableModels, appSetAvailableModels]);
+
+  useEffect(() => {
+    if (appSetSelectedProvider && 
+        modelState.selectedProvider !== prevModelStateSelectedProviderRef.current && 
+        modelState.selectedProvider !== appSelectedProvider && 
+        modelState.selectedProvider !== undefined) {
+      appSetSelectedProvider(modelState.selectedProvider);
+    }
+    prevModelStateSelectedProviderRef.current = modelState.selectedProvider;
+  }, [modelState.selectedProvider, appSelectedProvider, appSetSelectedProvider]);
 
   // 添加网络搜索状态
   const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);

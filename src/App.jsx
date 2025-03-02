@@ -1227,6 +1227,28 @@ export default function App() {
     }
   };
 
+  // 添加AIChat模型状态
+  const [selectedModel, setSelectedModel] = useState(() => {
+    return localStorage.getItem('aichat_model') || 'gpt-4-0125-preview';
+  });
+  
+  const [availableModels, setAvailableModels] = useState(() => {
+    const savedModels = localStorage.getItem('aichat_available_models');
+    return savedModels ? JSON.parse(savedModels) : ['gpt-4-0125-preview', 'gpt-4-turbo', 'gpt-3.5-turbo'];
+  });
+  
+  const [maxTokens, setMaxTokens] = useState(() => {
+    return parseInt(localStorage.getItem('aichat_max_tokens')) || 2000;
+  });
+  
+  const [temperature, setTemperature] = useState(() => {
+    return parseFloat(localStorage.getItem('aichat_temperature')) || 0.7;
+  });
+  
+  const [selectedProvider, setSelectedProvider] = useState(() => {
+    return localStorage.getItem('aichat_provider') || 'openai';
+  });
+
   return (
     <div className="h-screen flex flex-col bg-base-100">
       <ThreeBackground />
@@ -1243,6 +1265,17 @@ export default function App() {
         showBookmarksPanel={showBookmarksPanel}
         onImportBookmarks={handleImportBookmarks}
         activeTabId={activeTabId}
+        selectedModel={selectedModel}
+        setSelectedModel={setSelectedModel}
+        availableModels={availableModels}
+        currentConversation={currentConversation}
+        maxTokens={maxTokens}
+        setMaxTokens={setMaxTokens}
+        temperature={temperature}
+        setTemperature={setTemperature}
+        systemPromptEnabled={false}
+        setShowSettings={setShowSettings}
+        selectedProvider={selectedProvider}
       />
       <ToastContainer />
       <div className="flex-1 flex overflow-hidden">
@@ -1412,6 +1445,16 @@ export default function App() {
               window={window}
               electron={window.electron}
               openInBrowserTab={openInBrowserTab}
+              selectedModel={selectedModel}
+              setSelectedModel={setSelectedModel}
+              availableModels={availableModels}
+              setAvailableModels={setAvailableModels}
+              maxTokens={maxTokens}
+              setMaxTokens={setMaxTokens}
+              temperature={temperature}
+              setTemperature={setTemperature}
+              selectedProvider={selectedProvider}
+              setSelectedProvider={setSelectedProvider}
             />
           </div>
         </div>
