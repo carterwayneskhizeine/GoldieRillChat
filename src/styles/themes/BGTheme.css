@@ -1,3 +1,6 @@
+/* 导入面板标题样式 */
+@import '../panel-titles.css';
+
 /* 基于pastel主题的透明背景主题 */
 [data-theme="bg-theme"] {
   /* 主要颜色 */
@@ -655,4 +658,43 @@
   .app-logo-container img {
     filter: brightness(1.2) drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
   }
+}
+
+/* 全局面板标题样式 - 确保在所有主题下保持一致 */
+:root, [data-theme] {
+  /* 所有面板标题都使用白色文本 */
+  --panel-title-color: white;
+  --panel-title-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  --panel-title-border: 1px solid rgba(255, 255, 255, 0.1);
+  --panel-title-radius: 4px;
+  --panel-title-padding: 2px 6px;
+}
+
+/* 通用面板标题样式 */
+.app-title, .chat-title, .conversation-title, 
+.browser-tab-title, .browser-panel-title,
+.threejs-title, .shaders-title, 
+.chat-title, .ai-chat-title, 
+.monaco-title, .editor-title, 
+.image-editor-title, .photo-editor-title,
+.embedding-title, .knowledge-title {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* 标签页和tabs样式 */
+.tabs .tab, .tab-content .tab, .tab-active,
+nav .tab, .header .tab, .tab[role="tab"] {
+  color: var(--panel-title-color) !important;
+  text-shadow: var(--panel-title-shadow);
+  padding: var(--panel-title-padding);
+  border-radius: var(--panel-title-radius);
+}
+
+/* 标题容器样式 */
+.title-container, .header-content, .panel-header, 
+.tab-header, .tool-header, .section-header {
+  border-bottom: var(--panel-title-border);
 }

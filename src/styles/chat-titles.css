@@ -1,0 +1,61 @@
+/**
+ * 聊天面板和消息标题样式
+ * 这个文件定义了聊天相关面板和消息标题的特定样式
+ */
+
+/* 导入面板标题样式 */
+@import './panel-titles.css';
+
+/* 聊天面板标题特定样式 */
+.chat-title, 
+.conversation-title,
+.ai-chat-title,
+.chat-header .title,
+.conversation-header .title {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  margin: 0 4px;
+  z-index: 15;
+}
+
+/* 消息标题样式 */
+.message-header,
+.message-sender,
+.message-meta,
+.message-timestamp,
+.message-actions {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* 消息内容标题样式 */
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* 激活聊天和对话标题悬停效果 */
+.chat-title:hover, 
+.conversation-title:hover,
+.ai-chat-title:hover {
+  box-shadow: 0 0 5px rgba(100, 150, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* 聊天相关容器标题增强 */
+.chat-container .header,
+.conversation-container .header,
+.messages-container .header,
+.chat-footer,
+.chat-input-container {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+} 

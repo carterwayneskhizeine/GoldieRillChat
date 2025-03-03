@@ -1,3 +1,6 @@
+/* 导入面板标题样式 */
+@import './panel-titles.css';
+
 /* 主容器 */
 .threejs-shaders-container {
   display: flex;
@@ -8,15 +11,29 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(3px);
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 20;
 }
 
 /* 标题头部容器 */
 .shader-header-container {
   display: flex;
-  background-color: var(--background-tertiary);
-  border-bottom: 1px solid var(--background-modifier-border);
+  background-color: rgba(0, 0, 0, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   justify-content: center;
   align-items: center;
+}
+
+/* ThreeJS面板标题样式覆盖 */
+.shader-header-container .title,
+.threejs-shaders-title,
+.threejs-panel-title {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  margin: 0 4px;
 }
 
 /* 标签页 */
@@ -37,11 +54,13 @@
 }
 
 .shader-tab:hover {
-  background-color: var(--background-modifier-hover);
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
 }
 
 .shader-tab.active {
-  background-color: var(--background-secondary);
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
   border-bottom: 2px solid var(--interactive-accent);
   font-weight: 600;
 }
@@ -204,18 +223,19 @@
 }
 
 .image-background-mode .shader-tab {
-  background-color: rgba(0, 0, 0, 0.6) !important;
   color: white !important;
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .image-background-mode .shader-tab:hover {
-  background-color: rgba(30, 30, 60, 0.7) !important;
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
 }
 
 .image-background-mode .shader-tab.active {
-  background-color: rgba(40, 40, 80, 0.8) !important;
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
   border-bottom: 2px solid rgba(100, 150, 255, 0.7);
 }
 
@@ -324,7 +344,6 @@ body, html, .app, .chat-container, .main-content,
 
 /* 增强着色器编辑器可见性 */
 .shader-tab {
-  background-color: rgba(0, 0, 0, 0.6) !important;
   color: white !important;
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -332,12 +351,15 @@ body, html, .app, .chat-container, .main-content,
 }
 
 .shader-tab:hover {
-  background-color: rgba(30, 30, 60, 0.7) !important;
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
 }
 
 .shader-tab.active {
-  background-color: rgba(40, 40, 80, 0.8) !important;
-  border-bottom: 2px solid rgba(100, 150, 255, 0.7);
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  border-bottom: 2px solid var(--interactive-accent);
+  font-weight: 600;
 }
 
 /* 增强代码编辑器可见性 */
@@ -427,4 +449,75 @@ body, html, .app, .chat-container, .main-content,
 .image-background-mode .loading-spinner,
 .image-background-mode .shader-preset-item {
   /* 保持与上面定义的样式一致 */
+}
+
+/* 统一所有面板名称的字体样式为白色 */
+.app-title, .chat-title, .conversation-title, 
+.tab-active, .panel-title, .sidebar-title,
+.flex.justify-between.items-center .font-semibold,
+.menu-title, .drawer-title, .header-title,
+[data-panel-title], [role="tab"], 
+.header .tabs .tab, .header .title,
+div[class*="flex"][class*="justify-between"][class*="items-center"] span.font-semibold,
+div[class*="flex"][class*="items-center"] span.font-semibold {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  font-weight: 600;
+  position: relative;
+  z-index: 10;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+/* 特定面板名称样式微调 */
+/* Browser面板 */
+.browser-tab-title, .browser-panel-title {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ThreeJS Shaders面板 */
+.threejs-title, .shaders-title, 
+.shader-header-container .title {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Chat面板 */
+.chat-title, .ai-chat-title, 
+.conversation-header .title {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Monaco Editor面板 */
+.monaco-title, .editor-title, 
+.code-editor-title {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Image Editor面板 */
+.image-editor-title, .photo-editor-title {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Embedding面板 */
+.embedding-title, .knowledge-title {
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
 }

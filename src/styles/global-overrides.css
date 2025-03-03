@@ -1,0 +1,62 @@
+/**
+ * 全局样式覆盖
+ * 此文件包含对所有主题和组件的全局样式覆盖
+ */
+
+/* 导入面板标题样式 */
+@import './panel-titles.css';
+
+/* 确保所有主题中的面板标题使用白色文本 */
+:root {
+  --panel-title-color: white !important;
+  --panel-title-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* 确保所有面板标题使用相同的样式 */
+[data-theme] .panel-title,
+[data-theme] .app-title, 
+[data-theme] .chat-title, 
+[data-theme] .conversation-title, 
+[data-theme] .browser-title,
+[data-theme] .editor-title,
+[data-theme] .image-editor-title,
+[data-theme] .embedding-title,
+[data-theme] .sidebar-title,
+[data-theme] .header-title,
+[data-theme] .tab-title,
+[data-theme] .tool-title,
+[data-theme] .section-title {
+  color: var(--panel-title-color);
+  text-shadow: var(--panel-title-shadow);
+}
+
+/* 标题文本通用样式覆盖 */
+[class*="title"], 
+[class*="header"] .title,
+[class*="panel"] .title,
+[class*="tab"] .title,
+.font-semibold {
+  color: var(--panel-title-color);
+  text-shadow: var(--panel-title-shadow);
+}
+
+/* 特定组件类名标题样式覆盖 */
+.flex.justify-between.items-center .font-semibold,
+div[class*="flex"][class*="justify-between"][class*="items-center"] span.font-semibold,
+div[class*="flex"][class*="items-center"] span.font-semibold {
+  color: var(--panel-title-color);
+  text-shadow: var(--panel-title-shadow);
+}
+
+/* 标签页样式覆盖 */
+.tabs .tab, 
+.tab-content .tab, 
+.tab-active,
+nav .tab, 
+.header .tab, 
+.tab[role="tab"],
+[data-panel-title], 
+[role="tab"] {
+  color: var(--panel-title-color);
+  text-shadow: var(--panel-title-shadow);
+} 

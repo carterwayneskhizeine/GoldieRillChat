@@ -1,0 +1,145 @@
+/**
+ * 面板标题样式
+ * 这个文件定义了所有面板标题的全局样式，
+ * 确保在所有主题下，面板标题都使用白色文本和半透明背景。
+ */
+
+/* 通用CSS变量 */
+:root {
+  --title-text-color: white;
+  --title-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
+  --title-radius: 4px;
+  --title-padding: 2px 6px;
+  --title-margin: 0 2px;
+  --title-font-weight: 600;
+}
+
+/* 基本面板标题样式 */
+.panel-title,
+.app-title, 
+.chat-title, 
+.conversation-title, 
+.browser-title,
+.editor-title,
+.image-editor-title,
+.embedding-title,
+.sidebar-title,
+.header-title,
+.tab-title,
+.tool-title,
+.section-title {
+  color: var(--title-text-color) !important;
+  text-shadow: var(--title-shadow);
+  padding: var(--title-padding);
+  border-radius: var(--title-radius);
+  font-weight: var(--title-font-weight);
+  z-index: 10;
+  position: relative;
+  margin: var(--title-margin);
+}
+
+/* 特定组件类名称的标题样式 */
+/* 通用flex容器标题 */
+.flex.justify-between.items-center .font-semibold,
+div[class*="flex"][class*="justify-between"][class*="items-center"] span.font-semibold,
+div[class*="flex"][class*="items-center"] span.font-semibold {
+  color: var(--title-text-color) !important;
+  text-shadow: var(--title-shadow);
+  padding: var(--title-padding);
+  border-radius: var(--title-radius);
+  font-weight: var(--title-font-weight);
+}
+
+/* Browser面板 */
+.browser-tab-title, 
+.browser-panel-title,
+.browser-tabs .tab,
+.browser-header .title {
+  color: var(--title-text-color) !important;
+  text-shadow: var(--title-shadow);
+  padding: var(--title-padding);
+  border-radius: var(--title-radius);
+}
+
+/* ThreeJS Shaders面板 */
+.threejs-title, 
+.shaders-title, 
+.shader-header-container .title,
+.shader-tab {
+  color: var(--title-text-color) !important;
+  text-shadow: var(--title-shadow);
+  padding: var(--title-padding);
+  border-radius: var(--title-radius);
+}
+
+/* AI Chat和Chat面板 */
+.ai-chat-title, 
+.conversation-header .title,
+.chat-header .title {
+  color: var(--title-text-color) !important;
+  text-shadow: var(--title-shadow);
+  padding: var(--title-padding);
+  border-radius: var(--title-radius);
+}
+
+/* Monaco Editor面板 */
+.monaco-title, 
+.code-editor-title,
+.editor-header .title {
+  color: var(--title-text-color) !important;
+  text-shadow: var(--title-shadow);
+  padding: var(--title-padding);
+  border-radius: var(--title-radius);
+}
+
+/* Image Editor面板 */
+.photo-editor-title,
+.image-editor-header .title {
+  color: var(--title-text-color) !important;
+  text-shadow: var(--title-shadow);
+  padding: var(--title-padding);
+  border-radius: var(--title-radius);
+}
+
+/* Embedding面板 */
+.knowledge-title,
+.embedding-header .title {
+  color: var(--title-text-color) !important;
+  text-shadow: var(--title-shadow);
+  padding: var(--title-padding);
+  border-radius: var(--title-radius);
+}
+
+/* 标签页标题 */
+.tabs .tab, 
+.tab-content .tab, 
+.tab-active,
+nav .tab, 
+.header .tab, 
+.tab[role="tab"],
+[data-panel-title], 
+[role="tab"] {
+  color: var(--title-text-color) !important;
+  text-shadow: var(--title-shadow);
+  padding: var(--title-padding);
+  border-radius: var(--title-radius);
+}
+
+/* 标题容器增强 */
+.title-container, 
+.header-content, 
+.panel-header, 
+.tab-header, 
+.tool-header, 
+.section-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 活动标签页增强 */
+.tab.tab-active,
+.tab[data-state="active"],
+.tab[aria-selected="true"],
+.tab.active {
+  font-weight: 600;
+  border-bottom: 2px solid rgba(100, 150, 255, 0.7);
+} 
