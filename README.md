@@ -455,7 +455,6 @@ npm run electron:build
 - **编辑器相关**
   - Monaco Editor - 强大的代码编辑器
   - CodeMirror - 优秀的文本编辑器
-  - Cherry Markdown - Markdown 编辑与渲染
   - KaTeX - 数学公式渲染
 
 - **UI 组件**

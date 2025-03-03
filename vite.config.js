@@ -40,7 +40,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['cherry-markdown'],
+    include: [],
   },
   css: {
     preprocessorOptions: {

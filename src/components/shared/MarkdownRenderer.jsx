@@ -92,6 +92,85 @@ import '../../styles/table.css';
     "\\compose": "\\circ"
   };
 
+// CSS 样式
+const treeViewStyles = {
+  container: {
+    fontFamily: 'monospace, Consolas, "Courier New", Courier, monospace',
+    whiteSpace: 'pre',
+    lineHeight: '1.5',
+    letterSpacing: '0',
+    overflow: 'visible',
+    fontSize: '0.9rem',
+  },
+  branch: {
+    color: 'inherit',
+    fontWeight: 'normal',
+  }
+};
+
+// 内联样式
+const inlineStyles = `
+  .tree-view {
+    font-family: monospace, Consolas, "Courier New", Courier, monospace;
+    white-space: pre;
+    line-height: 1.5;
+    letter-spacing: 0;
+    overflow: visible;
+    font-size: 0.9rem;
+  }
+  .tree-view ul {
+    list-style-type: none !important;
+    padding-left: 0 !important;
+    margin: 0.5em 0;
+  }
+  .tree-view li {
+    list-style-type: none !important;
+    padding-left: 0 !important;
+  }
+  .tree-view ul ul {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+  }
+  .tree-view p {
+    margin: 0.3em 0;
+  }
+  .tree-view code {
+    font-family: inherit !important;
+    background: none !important;
+    padding: 0 !important;
+  }
+`;
+
+// 树形结构容器组件
+const TreeView = ({ children }) => {
+  return (
+    <>
+      <style>{inlineStyles}</style>
+      <div className="tree-view">
+        {children}
+      </div>
+    </>
+  );
+};
+
+// 添加树形结构特殊字符识别函数
+const hasTreeStructure = (text) => {
+  if (typeof text !== 'string') return false;
+  return text.includes('┌─') || 
+         text.includes('├─') || 
+         text.includes('└─') || 
+         text.includes('│') ||
+         /^\s*[├└┬┼│]/.test(text);
+};
+
+// 检查内容是否包含树形结构
+const contentHasTreeStructure = (children) => {
+  const childrenArray = React.Children.toArray(children);
+  return childrenArray.some(child => 
+    typeof child === 'string' && hasTreeStructure(child)
+  );
+};
+
 // 添加内容处理的缓存函数
 const useProcessedContent = (content) => {
   return useMemo(() => {
@@ -167,26 +246,31 @@ const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLig
   },
   // 段落渲染
   p: ({node, children, ...props}) => {
-    const text = String(children).trim();
-    // 如果内容是纯文本，直接渲染
-    if (!text.includes('`') && !text.includes('*') && !text.includes('_')) {
+    // 检查是否包含树形结构特殊字符
+    const containsTreeStructure = contentHasTreeStructure(children);
+    
+    if (containsTreeStructure) {
       return (
-        <p {...props} style={{ 
-          whiteSpace: 'pre-wrap', 
-          wordBreak: 'break-word',
-          margin: '0.5em 0'
-        }}>
-          {text}
-        </p>
+        <TreeView>
+          <p {...props} 
+            data-selectable="true" 
+            onContextMenu={handleContextMenu}
+          >
+            {children}
+          </p>
+        </TreeView>
       );
     }
+    
+    const styles = { 
+      userSelect: 'text',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+      margin: '0.5em 0',
+    };
+    
     return (
-      <p {...props} data-selectable="true" style={{ 
-        userSelect: 'text',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-        margin: '0.5em 0'
-      }} onContextMenu={handleContextMenu}>
+      <p {...props} data-selectable="true" style={styles} onContextMenu={handleContextMenu}>
         {children}
       </p>
     );
@@ -199,20 +283,28 @@ const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLig
   ),
   // 修改列表项渲染
   li: ({node, children, ordered, ...props}) => {
-    // 处理 children 中的文本内容
-    const content = React.Children.map(children, child => {
-      // 如果是字符串，直接返回
-      if (typeof child === 'string') return child;
-      // 如果是 React 元素，返回其内容
-      if (React.isValidElement(child)) {
-        return child;
-      }
-      return child;
-    });
-
+    // 检查是否包含树形结构特殊字符
+    const containsTreeStructure = contentHasTreeStructure(children);
+    
+    if (containsTreeStructure) {
+      return (
+        <li {...props} 
+          data-selectable="true" 
+          style={treeViewStyles.container}
+          onContextMenu={handleContextMenu}
+        >
+          {children}
+        </li>
+      );
+    }
+    
     return (
-      <li {...props} style={{ userSelect: 'text' }} onContextMenu={handleContextMenu}>
-        {content}
+      <li {...props} 
+        data-selectable="true" 
+        style={{ userSelect: 'text' }} 
+        onContextMenu={handleContextMenu}
+      >
+        {children}
       </li>
     );
   },
@@ -1045,13 +1137,31 @@ export const MarkdownRenderer = React.memo(({
 
           // 段落渲染
           p({node, children, ...props}) {
+            // 检查是否包含树形结构特殊字符
+            const containsTreeStructure = contentHasTreeStructure(children);
+            
+            if (containsTreeStructure) {
+              return (
+                <TreeView>
+                  <p {...props} 
+                    data-selectable="true" 
+                    onContextMenu={handleContextMenu}
+                  >
+                    {children}
+                  </p>
+                </TreeView>
+              );
+            }
+            
+            const styles = { 
+              userSelect: 'text',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              margin: '0.5em 0',
+            };
+            
             return (
-              <p {...props} data-selectable="true" style={{ 
-                userSelect: 'text',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                margin: '0.5em 0'
-              }} onContextMenu={handleContextMenu}>
+              <p {...props} data-selectable="true" style={styles} onContextMenu={handleContextMenu}>
                 {children}
               </p>
             );
@@ -1059,8 +1169,27 @@ export const MarkdownRenderer = React.memo(({
 
           // 列表项渲染
           li({node, children, ...props}) {
+            // 检查是否包含树形结构特殊字符
+            const containsTreeStructure = contentHasTreeStructure(children);
+            
+            if (containsTreeStructure) {
+              return (
+                <li {...props} 
+                  data-selectable="true" 
+                  style={treeViewStyles.container}
+                  onContextMenu={handleContextMenu}
+                >
+                  {children}
+                </li>
+              );
+            }
+            
             return (
-              <li {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu}>
+              <li {...props} 
+                data-selectable="true" 
+                style={{ userSelect: 'text' }} 
+                onContextMenu={handleContextMenu}
+              >
                 {children}
               </li>
             );
@@ -1072,9 +1201,32 @@ export const MarkdownRenderer = React.memo(({
           ),
 
           // 添加无序列表组件
-          ul: ({node, ...props}) => (
-            <ul className="list-disc pl-6 my-4" {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
+          ul: ({node, children, ...props}) => {
+            const containsTreeStructure = contentHasTreeStructure(children);
+            
+            if (containsTreeStructure) {
+              return (
+                <TreeView>
+                  <ul className="tree-view-list" {...props} 
+                    data-selectable="true" 
+                    onContextMenu={handleContextMenu} 
+                  >
+                    {children}
+                  </ul>
+                </TreeView>
+              );
+            }
+            
+            return (
+              <ul className="list-disc pl-6 my-4" {...props} 
+                data-selectable="true" 
+                style={{ userSelect: 'text' }} 
+                onContextMenu={handleContextMenu} 
+              >
+                {children}
+              </ul>
+            );
+          },
 
           // 标题渲染
           h1: ({node, ...props}) => (
