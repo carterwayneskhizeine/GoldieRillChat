@@ -334,6 +334,26 @@
     fill: none !important;
     opacity: 0.9 !important;
   }
+
+  /* 网络搜索按钮 - 开启状态 */
+  .btn-ghost.text-primary {
+    color: var(--p) !important;
+    border-color: var(--p) !important;
+    background-color: rgba(var(--p-rgb), 0.1) !important;
+  }
+  
+  /* 网络搜索按钮 - 关闭状态 - 与其他按钮保持一致 */
+  .btn-ghost:not(.text-primary) {
+    color: var(--bc) !important;
+    /* 不添加特殊样式，保持与其他按钮一致 */
+  }
+
+  /* 应用图标容器样式 */
+  .app-logo-container {
+    position: relative;
+    z-index: 100;
+    transition: all 0.3s ease;
+  }
 }
 
 /* 图片背景模式下的样式 - 将应用所有特殊样式 */
@@ -591,5 +611,48 @@
     stroke: white !important;
     fill: none !important;
     opacity: 0.9 !important;
+  }
+
+  /* 网络搜索按钮 - 开启状态 */
+  .btn-ghost.text-primary, .search-enabled {
+    color: #4ade80 !important; /* 使用鲜明的绿色 */
+    border: 1px solid rgba(74, 222, 128, 0.6) !important;
+    background-color: rgba(74, 222, 128, 0.15) !important;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
+  }
+  
+  /* 网络搜索按钮 - 开启状态悬停效果 */
+  .btn-ghost.text-primary:hover, .search-enabled:hover {
+    background-color: rgba(74, 222, 128, 0.25) !important;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
+  }
+  
+  /* 网络搜索按钮 - 关闭状态 - 与普通按钮保持一致 */
+  .btn-ghost:not(.text-primary), .search-disabled {
+    color: rgba(255, 255, 255, 0.9) !important; /* 更亮的颜色 */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  
+  /* 网络搜索按钮 - 关闭状态悬停效果 */
+  .btn-ghost:not(.text-primary):hover, .search-disabled:hover {
+    color: rgba(255, 255, 255, 0.9) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  /* 应用图标容器样式 */
+  .app-logo-container {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  
+  .app-logo-container img {
+    filter: brightness(1.2) drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
   }
 }

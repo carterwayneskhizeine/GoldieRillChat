@@ -1,6 +1,27 @@
 /* 在文件顶部导入BGTheme */
 @import './themes/BGTheme.css';
 
+/* 网络搜索按钮样式 */
+.search-enabled {
+  border: 1px solid var(--p);
+  box-shadow: 0 0 0 1px rgba(var(--p-rgb), 0.1);
+  transition: all 0.2s ease;
+}
+
+.search-disabled {
+  transition: all 0.2s ease;
+}
+
+/* 应用图标容器基础样式 */
+.app-logo-container {
+  position: relative;
+  z-index: 100; /* 确保始终在顶层 */
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  padding: 2px;
+}
+
 /* Chat 界面媒体容器样式 */
 .chat-media-container {
   position: relative;

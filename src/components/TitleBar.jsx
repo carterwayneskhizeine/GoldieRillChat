@@ -243,8 +243,39 @@ export default function TitleBar({
     <div className="h-7 flex items-center bg-base-300 select-none app-drag-region">
       {/* 应用图标和名称 */}
       <div className="flex items-center px-2 gap-2 app-drag-region w-[200px]">
-        <img src={iconPath} alt="logo" className="w-3.5 h-3.5 app-drag-region" />
-        <span className="text-xs font-semibold app-drag-region">GoldieRillChat</span>
+        <div className="app-logo-container" style={{
+          position: 'relative',
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'center',
+          background: isImageBackground ? 'rgba(0, 0, 0, 0.6)' : 'transparent',
+          padding: isImageBackground ? '3px 8px' : '2px',
+          margin: isImageBackground ? '2px 0' : '0',
+          borderRadius: '4px',
+          backdropFilter: isImageBackground ? 'blur(4px)' : 'none',
+          WebkitBackdropFilter: isImageBackground ? 'blur(4px)' : 'none',
+          boxShadow: isImageBackground ? '0 0 10px rgba(0, 0, 0, 0.5)' : 'none',
+          border: isImageBackground ? '1px solid rgba(255, 255, 255, 0.15)' : 'none',
+        }}>
+          <img 
+            src={iconPath} 
+            alt="logo" 
+            className="w-3.5 h-3.5 app-drag-region" 
+            style={{
+              filter: isImageBackground ? 'drop-shadow(0 0 2px rgba(0, 0, 0, 0.8)) brightness(1.2)' : 'none',
+            }}
+          />
+          <span 
+            className="text-xs font-semibold app-drag-region ml-2" 
+            style={{
+              color: isImageBackground ? 'white' : 'inherit',
+              textShadow: isImageBackground ? '0px 0px 3px rgba(0, 0, 0, 0.8)' : 'none',
+              fontWeight: isImageBackground ? '600' : 'inherit',
+            }}
+          >
+            GoldieRillChat
+          </span>
+        </div>
       </div>
 
       {/* 中间区域：浏览器控制栏或聊天标题 */}
@@ -350,11 +381,11 @@ export default function TitleBar({
             </div>
           </div>
         ) : activeTool === 'aichat' ? (
-          <div className="w-full flex items-center gap-1 no-drag">
+          <div className="w-full flex items-center gap-1 no-drag app-drag-region">
             {/* 左侧模型选择 */}
-            <div className="flex-none" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
+            <div className="flex-none ml-5 no-drag" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
               <select 
-                className="select select-bordered select-xs w-[300px]"
+                className="select select-bordered select-xs w-[300px] no-drag"
                 value={selectedModel || ''}
                 onChange={(e) => {
                   setSelectedModel && setSelectedModel(e.target.value);
@@ -380,9 +411,9 @@ export default function TitleBar({
               </select>
             </div>
 
-            {/* 中间对话名称 */}
-            <div className="flex items-center gap-2 mx-2" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
-              <h2 className="text-xs opacity-70" 
+            {/* 中间对话名称 - 使用flex-1确保占据剩余空间并居中显示 */}
+            <div className="flex-1 flex justify-center items-center app-drag-region" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
+              <h2 className="text-xs opacity-70 app-drag-region" 
                   style={isImageBackground ? { 
                     textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
                     color: 'white',
@@ -390,97 +421,154 @@ export default function TitleBar({
                     padding: '2px 6px',
                     borderRadius: '4px'
                   } : {}}>
-                {currentConversation?.name || '当前会话'}
+                {currentConversation?.name || 'Current session'}
               </h2>
             </div>
 
             {/* 右侧设置区域 */}
-            <div className="flex items-center gap-4 ml-auto" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
-              {/* Max Tokens 控制 */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs opacity-70" 
-                      style={isImageBackground ? { 
-                        color: 'white', 
-                        textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        padding: '1px 4px',
-                        borderRadius: '2px'
-                      } : {}}>Max:</span>
-                <input
-                  type="range"
-                  min="1024"
-                  max="8192"
-                  step="128"
-                  value={safeMaxTokens > 8192 ? 8192 : safeMaxTokens}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    setMaxTokens && setMaxTokens(value);
-                    localStorage.setItem('aichat_max_tokens', value.toString());
-                  }}
-                  className="range range-xs range-primary w-[60px]"
-                  style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}
-                />
-                <span className="text-xs opacity-70 min-w-[25px]" 
-                      style={isImageBackground ? { 
-                        color: 'white', 
-                        textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        padding: '1px 4px',
-                        borderRadius: '2px'
-                      } : {}}>{safeMaxTokens === 999999 ? '∞' : safeMaxTokens}</span>
-                <button
-                  className="btn btn-xs btn-ghost btn-circle"
-                  onClick={() => {
-                    const value = safeMaxTokens === 999999 ? 2000 : 999999;
-                    setMaxTokens && setMaxTokens(value);
-                    localStorage.setItem('aichat_max_tokens', value.toString());
-                  }}
-                  title={safeMaxTokens === 999999 ? "点击设置为默认值" : "点击设置为无限制"}
+            <div className="flex-none flex items-center gap-4" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
+              {/* 参数控制下拉菜单 */}
+              <div className="dropdown dropdown-bottom dropdown-end">
+                <label tabIndex={0} className="btn btn-ghost btn-xs btn-circle m-1" style={isImageBackground ? { 
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  color: 'white',
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  position: 'relative',
+                  zIndex: 10
+                } : {}}>
+                  {/* 扁平化SVG图标 */}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2"/>
+                    <line x1="8" y1="12" x2="16" y2="12" strokeWidth="2"/>
+                    <line x1="8" y1="8" x2="16" y2="8" strokeWidth="2"/>
+                    <line x1="8" y1="16" x2="16" y2="16" strokeWidth="2"/>
+                  </svg>
+                </label>
+                <div tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-md w-[409px]" 
                   style={isImageBackground ? { 
-                    position: 'relative', 
-                    zIndex: 10,
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
                     color: 'white',
-                    borderColor: 'rgba(255, 255, 255, 0.2)'
-                  } : {}}
+                    right: 0,
+                    transform: 'translateX(-100%)'
+                  } : {
+                    right: 0,
+                    transform: 'translateX(-100%)'
+                  }}
                 >
-                  {safeMaxTokens === 999999 ? "↺" : "∞"}
-                </button>
+                  <div className="p-2">
+                    {/* Max Tokens 控制 */}
+                    <div className="flex flex-col gap-1 mb-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium" style={isImageBackground ? { 
+                          color: 'white', 
+                          textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
+                        } : {}}>Max Tokens:</span>
+                        <span className="text-xs min-w-[35px] text-right" 
+                          style={isImageBackground ? { 
+                            color: 'white', 
+                            textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            padding: '1px 4px',
+                            borderRadius: '2px'
+                          } : {}}
+                        >{safeMaxTokens === 999999 ? '∞' : safeMaxTokens}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1024"
+                        max="8192"
+                        step="128"
+                        value={safeMaxTokens > 8192 ? 8192 : safeMaxTokens}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          setMaxTokens && setMaxTokens(value);
+                          localStorage.setItem('aichat_max_tokens', value.toString());
+                        }}
+                        className="range range-xs range-primary w-full"
+                        style={isImageBackground ? { 
+                          position: 'relative', 
+                          zIndex: 10 
+                        } : {}}
+                      />
+                      <div className="flex justify-end mt-1">
+                        <button
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => {
+                            const value = safeMaxTokens === 999999 ? 2000 : 999999;
+                            setMaxTokens && setMaxTokens(value);
+                            localStorage.setItem('aichat_max_tokens', value.toString());
+                          }}
+                          title={safeMaxTokens === 999999 ? "点击设置为默认值" : "点击设置为无限制"}
+                          style={isImageBackground ? { 
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            color: 'white',
+                            borderColor: 'rgba(255, 255, 255, 0.2)'
+                          } : {}}
+                        >
+                          {safeMaxTokens === 999999 ? "设为默认值" : "设为无限制"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Temperature 控制 */}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium" style={isImageBackground ? { 
+                          color: 'white', 
+                          textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
+                        } : {}}>Temperature:</span>
+                        <span className="text-xs min-w-[35px] text-right" 
+                          style={isImageBackground ? { 
+                            color: 'white', 
+                            textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            padding: '1px 4px',
+                            borderRadius: '2px'
+                          } : {}}
+                        >{safeTemperature.toFixed(1)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.1"
+                        value={safeTemperature}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
+                          setTemperature && setTemperature(value);
+                          localStorage.setItem('aichat_temperature', e.target.value);
+                        }}
+                        className="range range-xs range-primary w-full"
+                        style={isImageBackground ? { 
+                          position: 'relative', 
+                          zIndex: 10 
+                        } : {}}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Temperature 控制 */}
-              <div className="flex items-center gap-1 mr-2">
-                <span className="text-xs opacity-70" 
-                      style={isImageBackground ? { 
-                        color: 'white', 
-                        textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        padding: '1px 4px',
-                        borderRadius: '2px'
-                      } : {}}>Temp:</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="2"
-                  step="0.1"
-                  value={safeTemperature}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    setTemperature && setTemperature(value);
-                    localStorage.setItem('aichat_temperature', e.target.value);
-                  }}
-                  className="range range-xs range-primary w-[60px]"
-                  style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}
-                />
-                <span className="text-xs opacity-70 min-w-[25px]" 
-                      style={isImageBackground ? { 
-                        color: 'white', 
-                        textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        padding: '1px 4px',
-                        borderRadius: '2px'
-                      } : {}}>{safeTemperature.toFixed(1)}</span>
-              </div>
+              {/* 设置按钮 */}
+              <button
+                className="btn btn-ghost btn-xs btn-circle"
+                onClick={() => setShowSettings(true)}
+                title="打开设置"
+                style={isImageBackground ? { 
+                  position: 'relative', 
+                  zIndex: 10,
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  color: 'white',
+                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                } : {}}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
             </div>
           </div>
         ) : null}

@@ -152,7 +152,7 @@ export const InputArea = ({
             </svg>
           </button>
           <button
-            className={`btn btn-ghost btn-sm btn-circle ${isNetworkEnabled ? 'text-primary' : ''}`}
+            className={`btn btn-ghost btn-sm btn-circle ${isNetworkEnabled ? 'text-primary search-enabled' : 'search-disabled'}`}
             onClick={() => setIsNetworkEnabled(!isNetworkEnabled)}
             title={isNetworkEnabled ? '关闭网络搜索' : '开启网络搜索'}
           >
