@@ -7,8 +7,8 @@ export const toolDisplayNames = {
   'threejs-shaders': 'ThreeJS Shaders',
   aichat: 'AI Chat',
   chat: 'Chat',
-  monaco: 'Monaco Editor',
-  editor: 'Image Editor',
+  monaco: '',
+  editor: 'Image EMonaco Editorditor',
   embedding: 'Embedding'
 }
 

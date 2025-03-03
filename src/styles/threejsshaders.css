@@ -4,9 +4,10 @@
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background-color: var(--background-secondary);
-  color: var(--text-normal);
   font-family: var(--font-sans);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
 }
 
 /* 标题头部容器 */
@@ -50,6 +51,9 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  margin: 5px;
+  border-radius: 4px;
 }
 
 /* 编辑器 */
@@ -88,6 +92,8 @@
   gap: 15px;
   padding: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.2);
 }
 
 /* 透明扁平按钮 */
@@ -185,126 +191,240 @@
 
 /* 图片背景模式下的样式增强 */
 .image-background-mode .threejs-shaders-container {
-  position: relative;
-  z-index: 15;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.8) !important;
   backdrop-filter: blur(3px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  z-index: 20;
 }
 
-.image-background-mode .shader-header-container,
-.image-background-mode .shader-tabs {
-  background-color: rgba(0, 0, 0, 0.7);
+.image-background-mode .shader-header-container {
+  background-color: rgba(0, 0, 0, 0.7) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  z-index: 20;
 }
 
 .image-background-mode .shader-tab {
-  color: white;
-  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
-  position: relative;
-  z-index: 20;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  color: white !important;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .image-background-mode .shader-tab:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(30, 30, 60, 0.7) !important;
 }
 
 .image-background-mode .shader-tab.active {
-  background-color: rgba(30, 30, 60, 0.7);
+  background-color: rgba(40, 40, 80, 0.8) !important;
   border-bottom: 2px solid rgba(100, 150, 255, 0.7);
 }
 
 .image-background-mode .shaders-content {
-  position: relative;
-  z-index: 15;
+  background-color: rgba(0, 0, 0, 0.6) !important;
 }
 
 .image-background-mode .shaders-editor {
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(3px);
-  border-radius: 6px;
-  position: relative;
-  z-index: 20;
+  background-color: rgba(0, 0, 0, 0.7) !important;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .image-background-mode .shader-code-editor {
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  color: white !important;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  z-index: 20;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
 .image-background-mode .shaders-button-container {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(0, 0, 0, 0.7);
-  position: relative;
-  z-index: 25;
+  background-color: rgba(0, 0, 0, 0.7) !important;
 }
 
 .image-background-mode .shader-btn {
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  color: white !important;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
-  position: relative;
-  z-index: 25;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
 }
 
 .image-background-mode .save-btn {
-  background-color: rgba(80, 140, 80, 0.3);
+  background-color: rgba(60, 100, 60, 0.7) !important;
 }
 
 .image-background-mode .save-btn:hover:not(:disabled) {
-  background-color: rgba(80, 140, 80, 0.5);
+  background-color: rgba(70, 120, 70, 0.8) !important;
 }
 
 .image-background-mode .shader-btn:hover:not(:disabled) {
-  background-color: rgba(60, 60, 150, 0.5);
-  border-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(40, 40, 80, 0.8) !important;
 }
 
 .image-background-mode .shaders-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(0, 0, 0, 0.7);
-  position: relative;
-  z-index: 20;
+  background-color: rgba(0, 0, 0, 0.7) !important;
 }
 
 .image-background-mode .status-bar {
-  color: rgba(255, 255, 255, 0.7);
-  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
-  position: relative;
-  z-index: 20;
+  color: white !important;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
 }
 
 .image-background-mode .current-preset-id {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
+  background-color: rgba(40, 40, 80, 0.8) !important;
+  color: white !important;
 }
 
 .image-background-mode .loading-spinner {
-  color: white;
-  position: relative;
-  z-index: 20;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  color: white !important;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  padding: 10px;
+  border-radius: 5px;
 }
 
-/* 图片背景模式下的侧边栏预设样式 */
 .image-background-mode .shader-preset-item {
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  color: white !important;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
 }
 
 .image-background-mode .shader-preset-item:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(40, 40, 80, 0.8) !important;
 }
 
 .image-background-mode .shader-preset-item.active {
-  background-color: rgba(30, 30, 60, 0.7);
+  background-color: rgba(60, 80, 120, 0.8) !important;
+}
+
+/* 确保ThreeJS背景在所有主题下都完全可见 */
+canvas.three-background {
+  opacity: 1 !important;
+  z-index: 0 !important;
+}
+
+/* 确保UI元素在ThreeJS背景之上 */
+.app, .chat-container, .main-content, 
+.drawer-content, .drawer-side, .sidebar,
+.header, .app-header, .modal, .dropdown,
+.card, .btn, .input, .textarea, .select,
+.menu, .tabs, .tab {
+  position: relative;
+  z-index: 1;
+}
+
+/* 确保文本在ThreeJS背景上可读 */
+body, html, .app, .chat-container, .main-content,
+.drawer-content, .drawer-side, .sidebar,
+.header, .app-header, .modal, .dropdown,
+.card, .btn, .input, .textarea, .select,
+.menu, .tabs, .tab, .prose, .chat-bubble {
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
+  color: white;
+}
+
+/* 增强着色器编辑器可见性 */
+.shader-tab {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  color: white !important;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0 2px;
+}
+
+.shader-tab:hover {
+  background-color: rgba(30, 30, 60, 0.7) !important;
+}
+
+.shader-tab.active {
+  background-color: rgba(40, 40, 80, 0.8) !important;
+  border-bottom: 2px solid rgba(100, 150, 255, 0.7);
+}
+
+/* 增强代码编辑器可见性 */
+.shader-code-editor {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  color: white !important;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* 增强按钮可见性 */
+.shader-btn {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.shader-btn:hover:not(:disabled) {
+  background-color: rgba(40, 40, 80, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.save-btn {
+  background-color: rgba(60, 100, 60, 0.7) !important;
+}
+
+.save-btn:hover:not(:disabled) {
+  background-color: rgba(70, 120, 70, 0.8) !important;
+}
+
+/* 状态栏可见性 */
+.shaders-footer {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-bar, .current-preset-id {
+  color: white !important;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+.current-preset-id {
+  background-color: rgba(40, 40, 80, 0.8) !important;
+}
+
+/* 确保头部也可见 */
+.shader-header-container {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 加载状态文字可见性 */
+.loading-spinner {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  padding: 10px;
+  border-radius: 5px;
+}
+
+/* 预设列表项可见性 */
+.shader-preset-item {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  color: white !important;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.shader-preset-item:hover {
+  background-color: rgba(40, 40, 80, 0.8) !important;
+}
+
+.shader-preset-item.active {
+  background-color: rgba(60, 80, 120, 0.8) !important;
   border-left: 3px solid rgba(100, 150, 255, 0.7);
-} 
+}
+
+/* 图片背景模式下保持统一样式 */
+.image-background-mode .shader-tab,
+.image-background-mode .shader-code-editor,
+.image-background-mode .shader-btn,
+.image-background-mode .shaders-footer,
+.image-background-mode .shader-header-container,
+.image-background-mode .loading-spinner,
+.image-background-mode .shader-preset-item {
+  /* 保持与上面定义的样式一致 */
+}

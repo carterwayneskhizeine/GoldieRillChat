@@ -104,7 +104,7 @@ const ThreeBackground = () => {
           width: '100vw',
           height: '100vh',
           zIndex: 0,
-          opacity: isHidden ? 0 : 0.2, // 当使用自定义背景时隐藏
+          opacity: isHidden ? 0 : 1, // 将0.2改为1，确保完全可见
           pointerEvents: 'none',
           background: isCustomBackground ? 'transparent' : 'rgba(0,0,0,0)',
           transition: 'opacity 0.3s ease',
