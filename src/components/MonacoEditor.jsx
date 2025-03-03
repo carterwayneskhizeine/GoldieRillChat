@@ -8,6 +8,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import '../styles/markdown-preview.css';
+import '../styles/monaco-editor.css';
 
 // 配置 Monaco Editor 加载器
 loader.config({
@@ -226,7 +227,7 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
   // 支持的主题
   const themes = [
     "vs-dark",
-    "light",
+    "vs-light",
     "hc-black"
   ];
 
@@ -293,16 +294,13 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+    <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden monaco-editor-container">
       {/* 工具栏 */}
       <div 
-        className={`grid grid-cols-12 gap-3 items-center p-3 rounded-lg ${isImageBackground ? '' : 'bg-base-200'}`}
+        className={`grid grid-cols-12 gap-3 items-center p-3 rounded-lg monaco-editor-toolbar ${isImageBackground ? '' : 'bg-base-200'}`}
         style={isImageBackground ? { 
           position: 'relative', 
           zIndex: 10,
-          backgroundColor: 'rgba(30, 30, 30, 0.7)',
-          color: 'white',
-          padding: '0.75rem'
         } : {}}
       >
         {/* 左侧组：语言和主题选择 */}
@@ -313,17 +311,11 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
             disabled={!isEditorReady}
-            style={isImageBackground ? { 
-              backgroundColor: 'rgba(40, 40, 40, 0.9)',
-              color: 'white',
-              border: '1px solid rgba(200, 200, 200, 0.3)'
-            } : {}}
           >
             {languages.map(lang => (
               <option 
                 key={lang} 
-                value={lang} 
-                style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
+                value={lang}
               >
                 {lang}
               </option>
@@ -336,71 +328,44 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
             value={theme}
             onChange={(e) => setTheme(e.target.value)}
             disabled={!isEditorReady}
-            style={isImageBackground ? { 
-              backgroundColor: 'rgba(40, 40, 40, 0.9)',
-              color: 'white',
-              border: '1px solid rgba(200, 200, 200, 0.3)'
-            } : {}}
           >
             {themes.map(t => (
               <option 
                 key={t} 
-                value={t} 
-                style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
+                value={t}
               >
-                {t}
+                {t === 'vs-dark' ? '深色' : t === 'vs-light' ? '浅色' : t === 'hc-black' ? '高对比' : t}
               </option>
             ))}
           </select>
         </div>
 
-        {/* 中部组：字体大小调整 */}
-        <div className="col-span-3 flex items-center justify-center">
-          <div 
-            className="flex items-center gap-2 h-9 px-2 rounded-md"
-            style={isImageBackground ? { 
-              backgroundColor: 'rgba(40, 40, 40, 0.8)',
-              border: '1px solid rgba(200, 200, 200, 0.3)'
-            } : { border: '1px solid #ddd' }}
+        {/* 中间组：字体大小调整 */}
+        <div className="col-span-3 flex justify-center gap-2 monaco-font-size-controls">
+          <button 
+            className="btn btn-sm btn-square h-9 min-h-[2.25rem] w-9"
+            onClick={() => handleFontSizeChange(-1)}
+            disabled={!isEditorReady}
           >
-            <button 
-              className="btn btn-sm btn-square h-7 w-7 min-h-0"
-              onClick={() => handleFontSizeChange(-2)}
-              disabled={!isEditorReady}
-              style={isImageBackground ? { 
-                backgroundColor: 'rgba(60, 60, 60, 0.8)',
-                color: 'white',
-              } : {}}
-            >
-              -
-            </button>
-            <span 
-              className="text-sm font-medium w-12 text-center" 
-              style={isImageBackground ? { 
-                color: 'white'
-              } : {}}
-            >
-              {fontSize}px
-            </span>
-            <button 
-              className="btn btn-sm btn-square h-7 w-7 min-h-0"
-              onClick={() => handleFontSizeChange(2)}
-              disabled={!isEditorReady}
-              style={isImageBackground ? { 
-                backgroundColor: 'rgba(60, 60, 60, 0.8)',
-                color: 'white'
-              } : {}}
-            >
-              +
-            </button>
+            <span className="text-lg">-</span>
+          </button>
+          <div className="flex items-center font-mono">
+            <span className="monaco-autosave-control">{fontSize}px</span>
           </div>
+          <button 
+            className="btn btn-sm btn-square h-9 min-h-[2.25rem] w-9"
+            onClick={() => handleFontSizeChange(1)}
+            disabled={!isEditorReady}
+          >
+            <span className="text-lg">+</span>
+          </button>
         </div>
 
-        {/* 右侧组：自动保存开关和保存按钮 */}
+        {/* 右侧组：功能按钮 */}
         <div className="col-span-5 flex items-center justify-end gap-4">
           {/* 自动保存开关 */}
-          <div className="form-control flex-row items-center">
-            <span className="mr-2 text-sm font-medium" style={isImageBackground ? { color: 'white' } : {}}>自动保存</span>
+          <div className="form-control flex-row items-center monaco-autosave-control">
+            <span className="mr-2 text-sm font-medium">自动保存</span>
             <input 
               type="checkbox" 
               className="toggle toggle-primary toggle-sm" 
@@ -414,11 +379,6 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
             className="btn btn-sm btn-primary h-9 min-h-[2.25rem] min-w-[80px] px-3"
             onClick={handleManualSave}
             disabled={!isEditorReady}
-            style={isImageBackground ? { 
-              backgroundColor: 'rgba(40, 40, 40, 0.8)',
-              color: 'white',
-              border: '1px solid rgba(200, 200, 200, 0.3)'
-            } : {}}
           >
             保存
           </button>
@@ -429,11 +389,7 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
               className="btn btn-sm h-9 min-h-[2.25rem] min-w-[80px] px-3"
               onClick={() => setShowPreview(!showPreview)}
               disabled={!isEditorReady}
-              style={isImageBackground ? { 
-                backgroundColor: showPreview ? 'rgba(60, 60, 200, 0.6)' : 'rgba(40, 40, 40, 0.8)',
-                color: 'white',
-                border: '1px solid rgba(200, 200, 200, 0.3)'
-              } : {}}
+              style={showPreview ? {backgroundColor: 'rgba(60, 60, 200, 0.6)'} : {}}
             >
               {showPreview ? "编辑" : "预览"}
             </button>
@@ -445,38 +401,30 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
               className="btn btn-sm h-9 min-h-[2.25rem] min-w-[80px] px-3"
               onClick={runPythonCode}
               disabled={!isEditorReady || isRunning}
-              style={isImageBackground ? { 
-                backgroundColor: 'rgba(40, 120, 40, 0.8)',
-                color: 'white',
-                border: '1px solid rgba(200, 200, 200, 0.3)'
-              } : {}}
+              style={{backgroundColor: 'rgba(40, 120, 40, 0.8)'}}
             >
               {isRunning ? "运行中..." : "运行"}
             </button>
           )}
         </div>
       </div>
-      
-      {/* 主要内容区域 */}
+
+      {/* 编辑器和预览区域 */}
       <div className="flex-1 flex gap-4 overflow-hidden">
-        {/* 编辑器区域 */}
-        <div className={`flex-1 overflow-hidden bg-base-200 rounded-lg ${
-          (showPreview && (language === "python" || language === "markdown")) ? 'w-1/2' : 'w-full'
-        }`}>
+        {/* 编辑器区域 - 宽度根据是否显示预览决定 */}
+        <div className={`${(showPreview || language === "python" && output) ? 'w-1/2' : 'w-full'} monaco-editor-wrapper`}>
           <Editor
             height="100%"
-            defaultLanguage="plaintext"
             language={language}
             theme={theme}
-            loading={<div className="flex items-center justify-center h-full">加载编辑器中...</div>}
-            beforeMount={handleEditorWillMount}
+            value={currentNote?.content || ''}
             onMount={handleEditorDidMount}
+            beforeMount={handleEditorWillMount}
             options={{
               fontSize: fontSize,
-              minimap: { enabled: true },
-              scrollBeyondLastLine: false,
               wordWrap: "on",
-              automaticLayout: true,
+              minimap: { enabled: true },
+              scrollBeyondLastLine: true,
               lineNumbers: "on",
               roundedSelection: true,
               selectOnLineNumbers: true,
@@ -490,7 +438,7 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
 
         {/* Markdown 预览区域 */}
         {showPreview && language === "markdown" && (
-          <div className="w-1/2 bg-base-100 rounded-lg p-4 overflow-auto">
+          <div className="w-1/2 rounded-lg p-4 overflow-auto monaco-editor-preview">
             <div className="prose max-w-none">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
@@ -568,14 +516,21 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
         )}
 
         {/* Python 输出区域 */}
-        {showPreview && language === "python" && (
-          <div className="w-1/2 bg-base-200 rounded-lg p-4 overflow-auto">
-            <div className="font-mono whitespace-pre-wrap">
-              {output || "运行代码后输出将显示在这里..."}
+        {language === "python" && output && (
+          <div className="w-1/2 rounded-lg p-4 overflow-auto monaco-editor-preview">
+            <div className="font-mono text-sm whitespace-pre-wrap">
+              {output}
             </div>
           </div>
         )}
       </div>
+
+      {/* 最后保存时间提示 */}
+      {lastSaved && (
+        <div className="text-xs opacity-70 text-right mt-2">
+          上次保存: {lastSaved}
+        </div>
+      )}
     </div>
   );
 }; 

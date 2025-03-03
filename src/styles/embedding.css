@@ -1,0 +1,111 @@
+/**
+ * Embedding组件样式
+ * 提供黑色半透明背景和边框效果
+ */
+
+/* 主容器样式 */
+.embedding-container {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  color: white;
+}
+
+/* 内部容器样式 */
+.embedding-container .bg-base-100,
+.embedding-container .bg-base-200,
+.embedding-container .bg-base-300 {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  color: white;
+}
+
+/* 左侧面板 */
+.embedding-left-panel {
+  background-color: rgba(0, 0, 0, 0.6);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 右侧内容区 */
+.embedding-content-panel {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* 选项卡样式 */
+.embedding-container .tabs-boxed {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.embedding-container .tab {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.embedding-container .tab:hover {
+  color: white;
+}
+
+.embedding-container .tab-active {
+  background-color: rgba(60, 80, 120, 0.7) !important;
+  color: white !important;
+  border-bottom: 2px solid rgba(100, 150, 255, 0.7);
+}
+
+/* 表格样式 */
+.embedding-container table {
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.embedding-container th,
+.embedding-container td {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: white;
+}
+
+/* 按钮样式 */
+.embedding-container .btn {
+  background-color: rgba(30, 30, 60, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.embedding-container .btn:hover {
+  background-color: rgba(50, 50, 80, 0.8);
+}
+
+/* 输入框样式 */
+.embedding-container .input,
+.embedding-container .select {
+  background-color: rgba(20, 20, 40, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* 模态框样式 */
+.embedding-container .modal-box {
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+}
+
+/* 顶部和底部栏 */
+.embedding-top-bar,
+.embedding-bottom-bar {
+  background-color: rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 知识库列表项 */
+.knowledge-base-item {
+  background-color: rgba(20, 20, 40, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.knowledge-base-item:hover {
+  background-color: rgba(40, 40, 60, 0.8);
+  box-shadow: 0 0 10px rgba(0, 0, 50, 0.3);
+} 

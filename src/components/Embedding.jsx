@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '../styles/embedding.css';
 
 const Embedding = () => {
   // 状态管理
@@ -53,29 +54,36 @@ const Embedding = () => {
   const renderKnowledgeBaseList = () => {
     return (
       <div className="space-y-2">
-        {knowledgeBases.map(kb => (
-          <div 
-            key={kb.id}
-            className={`p-3 border rounded-lg cursor-pointer hover:bg-base-200 ${selectedKnowledgeBase?.id === kb.id ? 'bg-base-300 border-primary' : 'border-base-300'}`}
-            onClick={() => setSelectedKnowledgeBase(kb)}
+        <div className="flex justify-between">
+          <h3 className="font-bold">我的知识库</h3>
+          <button 
+            className="btn btn-sm btn-primary"
+            onClick={() => setShowAddDialog(true)}
           >
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium">{kb.name}</h3>
-              <div className="badge badge-primary">{kb.itemCount}项</div>
-            </div>
-            <div className="text-sm opacity-70 mt-1 flex justify-between">
-              <span>模型: {kb.model}</span>
-              <span>更新: {kb.lastUpdated}</span>
-            </div>
-          </div>
-        ))}
+            新建
+          </button>
+        </div>
         
-        <button 
-          className="btn btn-outline btn-block btn-sm mt-4"
-          onClick={() => setShowAddDialog(true)}
-        >
-          <span className="mr-1">+</span> 创建知识库
-        </button>
+        <div className="overflow-auto max-h-full">
+          {knowledgeBases.map(kb => (
+            <div 
+              key={kb.id} 
+              className={`knowledge-base-item p-3 cursor-pointer ${selectedKnowledgeBase?.id === kb.id ? 'border-primary border-2' : ''}`}
+              onClick={() => setSelectedKnowledgeBase(kb)}
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold">{kb.name}</h3>
+                <span className="badge badge-sm">{kb.itemCount} 项</span>
+              </div>
+              <div className="text-sm opacity-70 mt-1">
+                模型: {kb.model}
+              </div>
+              <div className="text-xs opacity-50 mt-1">
+                更新于: {kb.lastUpdated}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
@@ -657,9 +665,9 @@ const Embedding = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-base-100 overflow-hidden">
+    <div className="flex flex-col h-full embedding-container overflow-hidden">
       {/* 顶部工具栏 */}
-      <div className="flex items-center p-2 border-b border-base-300">
+      <div className="flex items-center p-2 border-b border-base-300 embedding-top-bar">
         <h2 className="text-xl font-semibold px-2">知识库</h2>
         <div className="flex-grow"></div>
         <div className="btn-group">
@@ -671,7 +679,7 @@ const Embedding = () => {
       {/* 主体内容区域 */}
       <div className="flex flex-1 overflow-hidden">
         {/* 左侧面板 */}
-        <div className="w-1/3 border-r border-base-300 flex flex-col overflow-hidden">
+        <div className="w-1/3 border-r border-base-300 flex flex-col overflow-hidden embedding-left-panel">
           {/* 选项卡导航 */}
           <div className="tabs tabs-boxed bg-base-200 p-1 m-2">
             <a 
@@ -696,7 +704,7 @@ const Embedding = () => {
         </div>
 
         {/* 右侧主内容区 */}
-        <div className="flex-1 flex flex-col overflow-hidden p-4">
+        <div className="flex-1 flex flex-col overflow-hidden p-4 embedding-content-panel">
           {renderKnowledgeBaseContent()}
         </div>
       </div>
@@ -706,7 +714,7 @@ const Embedding = () => {
       {renderSettingsDialog()}
 
       {/* 底部状态栏 */}
-      <div className="p-2 border-t border-base-300 text-sm text-base-content text-opacity-60 flex justify-between">
+      <div className="p-2 border-t border-base-300 text-sm text-base-content text-opacity-60 flex justify-between embedding-bottom-bar">
         <span>已加载 {knowledgeBases.length} 个知识库</span>
         <span>
           {processingQueue.filter(item => item.status === 'processing').length} 个项目处理中, 

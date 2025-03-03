@@ -1,0 +1,87 @@
+/**
+ * Monaco Editor 组件样式
+ * 提供黑色半透明背景和边框效果
+ */
+
+/* 主容器样式 */
+.monaco-editor-container {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  color: white;
+}
+
+/* 工具栏样式 */
+.monaco-editor-toolbar {
+  background-color: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5rem;
+}
+
+/* 编辑器区域样式 */
+.monaco-editor-wrapper {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* 预览区域样式（Markdown 和 Python）*/
+.monaco-editor-preview {
+  background-color: rgba(0, 0, 0, 0.5);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 按钮样式 */
+.monaco-editor-container .btn {
+  background-color: rgba(30, 30, 60, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.monaco-editor-container .btn:hover {
+  background-color: rgba(50, 50, 80, 0.8);
+}
+
+/* 下拉菜单样式 */
+.monaco-editor-container .select {
+  background-color: rgba(20, 20, 40, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.monaco-editor-container .select option {
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+}
+
+/* 字体大小调整按钮容器 */
+.monaco-font-size-controls {
+  background-color: rgba(40, 40, 40, 0.8);
+  border: 1px solid rgba(200, 200, 200, 0.3);
+}
+
+/* 自动保存开关 */
+.monaco-autosave-control {
+  color: white;
+}
+
+/* 确保图片背景模式下的样式 */
+.image-background-mode .monaco-editor-container {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.image-background-mode .monaco-editor-toolbar {
+  background-color: rgba(30, 30, 30, 0.7);
+}
+
+.image-background-mode .monaco-editor-wrapper {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.image-background-mode .monaco-editor-preview {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.image-background-mode .monaco-font-size-controls {
+  background-color: rgba(40, 40, 40, 0.8);
+} 
