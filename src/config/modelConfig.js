@@ -1,14 +1,15 @@
 // 工具列表配置
-export const tools = ['browser', 'aichat', 'chat', 'monaco', 'editor']
+export const tools = ['browser', 'threejs-shaders', 'aichat', 'chat', 'monaco', 'embedding']
 
 // 工具显示名称映射
 export const toolDisplayNames = {
   browser: 'Browser',
-  embedding: 'Embedding',
+  'threejs-shaders': 'ThreeJS Shaders',
   aichat: 'AI Chat',
   chat: 'Chat',
   monaco: 'Monaco Editor',
-  editor: 'Image Editor'
+  editor: 'Image Editor',
+  embedding: 'Embedding'
 }
 
 // 模型提供商配置

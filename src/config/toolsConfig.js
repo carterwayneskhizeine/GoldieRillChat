@@ -1,5 +1,5 @@
 // 工具列表配置
-export const tools = ['browser', 'aichat', 'chat', 'monaco', 'threejs-shaders', 'embedding']
+export const tools = ['browser', 'threejs-shaders', 'aichat', 'chat', 'monaco', 'embedding']
 
 // 工具显示名称映射
 export const toolDisplayNames = {

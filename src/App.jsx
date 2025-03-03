@@ -78,8 +78,8 @@ const useBookmarkStore = {
 };
 
 export default function App() {
-  // 修改初始工具为 chat
-  const [activeTool, setActiveTool] = useState('chat')
+  // 修改初始工具为 aichat
+  const [activeTool, setActiveTool] = useState('aichat')
   
   // 侧边栏状态
   const initialSidebarState = initializeSidebarState()
