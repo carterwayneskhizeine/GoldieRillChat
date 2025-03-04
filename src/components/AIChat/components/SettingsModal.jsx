@@ -622,7 +622,7 @@ export const SettingsModal = ({
                 </div>
               </div>
 
-              {/* 添加翻译设置到提供商设置 */}
+              {/* 原有的翻译设置 */}
               <div className="divider my-6"></div>
               <div className="space-y-4 px-0">
                 <h3 className="text-lg font-medium">翻译设置</h3>
@@ -693,7 +693,7 @@ export const SettingsModal = ({
           {/* Tab 2: 系统提示词设置 */}
           <div className={activeTab === 'system' ? '' : 'hidden'}>
             <div className="space-y-4">
-              {/* 系统提示词启用开关 */}
+              {/* 原有的系统提示词设置 */}
               <div>
                 <h3 className="text-lg font-medium mb-2">系统提示词</h3>
                 <div className="form-control bg-base-200 rounded-lg p-3">

@@ -1,5 +1,82 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { toggleTheme, themes } from '../components/themeHandlers'
+// 移除 react-hot-toast 导入
+// import { toast } from 'react-hot-toast'
+
+// 导入翻译服务
+// import { translateText, getGoogleTranslateConfig } from '../services/webTranslationService'
+
+// 添加简化的翻译按钮组件
+const TranslateButton = ({ currentUrl, activeTabId }) => {
+  const [isTranslating, setIsTranslating] = useState(false);
+  
+  // 创建一个简单的通知函数
+  const showNotification = (message, type = 'info') => {
+    console.log(`[${type}] ${message}`);
+    if (type === 'error') {
+      alert(`错误: ${message}`);
+    } else if (type === 'success') {
+      alert(`成功: ${message}`);
+    }
+  };
+  
+  const handleTranslate = async () => {
+    try {
+      setIsTranslating(true);
+      
+      // 统一使用Google翻译服务（免费方式），固定翻译为中文
+      const url = currentUrl || window.location.href;
+      
+      // 检查URL是否有效
+      if (!url || url.startsWith('file:') || url.startsWith('electron:') || url.startsWith('about:')) {
+        showNotification('当前页面无法翻译', 'error');
+        setIsTranslating(false);
+        return;
+      }
+      
+      // 使用Google翻译服务在新窗口打开
+      showNotification('正在使用Google翻译服务...');
+      openGoogleTranslateInNewWindow(url, 'zh-CN');
+      
+      setIsTranslating(false);
+    } catch (error) {
+      console.error('翻译失败:', error);
+      showNotification(`翻译失败: ${error.message}`, 'error');
+      setIsTranslating(false);
+    }
+  };
+
+  // 辅助函数：在新窗口打开Google翻译
+  const openGoogleTranslateInNewWindow = (url, targetLang) => {
+    const googleTranslateUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodeURIComponent(url)}`;
+    
+    // 使用Electron的shell.openExternal如果可用，否则使用window.open
+    if (window.electron && window.electron.shell && window.electron.shell.openExternal) {
+      window.electron.shell.openExternal(googleTranslateUrl);
+    } else {
+      window.open(googleTranslateUrl, '_blank');
+    }
+    
+    showNotification('已在新窗口中打开Google翻译服务', 'success');
+  };
+
+  return (
+    <button 
+      className={`btn btn-xs btn-ghost ${isTranslating ? 'opacity-50 cursor-not-allowed' : ''}`}
+      onClick={handleTranslate}
+      disabled={isTranslating}
+      title="翻译当前页面为中文"
+    >
+      {isTranslating ? (
+        <span className="loading loading-spinner loading-xs"></span>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+        </svg>
+      )}
+    </button>
+  );
+};
 
 export default function TitleBar({ 
   activeTool, 
@@ -314,6 +391,9 @@ export default function TitleBar({
                   </svg>
                 )}
               </button>
+              
+              {/* 添加翻译按钮 */}
+              <TranslateButton currentUrl={currentUrl} activeTabId={activeTabId} />
             </div>
             <input
               type="text"

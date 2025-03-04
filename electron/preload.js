@@ -209,6 +209,21 @@ contextBridge.exposeInMainWorld('electron', {
     }
   },
 
+  // 添加网页翻译相关API
+  translator: {
+    // 获取当前页面内容用于翻译
+    getPageContent: () => ipcRenderer.invoke('get-page-content'),
+    
+    // 翻译整个网页
+    translateWebpage: (targetLang) => ipcRenderer.invoke('translate-webpage', targetLang),
+    
+    // 将翻译后的内容应用到页面
+    applyTranslatedContent: (content) => ipcRenderer.invoke('apply-translated-content', content),
+    
+    // 翻译特定元素
+    translateElements: (selectors, targetLang) => ipcRenderer.invoke('translate-elements', selectors, targetLang)
+  },
+
   // 获取配置文件路径
   getPath: (name) => {
     if (name === 'tailwindConfig') {

@@ -166,6 +166,111 @@ app.whenReady().then(async () => {
   ipcMain.handle('reset-default-shader-preset', async () => {
     return await resetDefaultShaderPreset();
   });
+
+  // 处理翻译相关IPC请求（添加在其他IPC处理函数附近，确保在createWindow函数里面的ipcMain处理部分）
+
+  // 获取当前页面内容用于翻译
+  ipcMain.handle('get-page-content', async () => {
+    try {
+      if (!browserWindow || !activeTabId) return { success: false, error: '没有活动的浏览器窗口' };
+      
+      const view = viewMap.get(activeTabId);
+      if (!view) return { success: false, error: '找不到活动的标签页视图' };
+      
+      // 获取页面内容
+      const htmlContent = await view.webContents.executeJavaScript(`
+        document.documentElement.outerHTML
+      `);
+      
+      return { success: true, content: htmlContent };
+    } catch (error) {
+      console.error('获取页面内容失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 翻译整个网页
+  ipcMain.handle('translate-webpage', async (event, targetLang) => {
+    try {
+      if (!browserWindow || !activeTabId) return { success: false, error: '没有活动的浏览器窗口' };
+      
+      const view = viewMap.get(activeTabId);
+      if (!view) return { success: false, error: '找不到活动的标签页视图' };
+      
+      // 获取当前页面内容
+      const htmlContent = await view.webContents.executeJavaScript(`
+        document.documentElement.outerHTML
+      `);
+      
+      return { success: true, content: htmlContent };
+    } catch (error) {
+      console.error('获取页面内容失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 应用翻译后的内容到页面
+  ipcMain.handle('apply-translated-content', async (event, translatedContent) => {
+    try {
+      if (!browserWindow || !activeTabId) return { success: false, error: '没有活动的浏览器窗口' };
+      
+      const view = viewMap.get(activeTabId);
+      if (!view) return { success: false, error: '找不到活动的标签页视图' };
+      
+      // 将翻译后的内容应用到页面
+      await view.webContents.executeJavaScript(`
+        (function() {
+          // 保存当前滚动位置
+          const scrollX = window.scrollX;
+          const scrollY = window.scrollY;
+          
+          // 更新页面内容
+          document.open();
+          document.write(${JSON.stringify(translatedContent)});
+          document.close();
+          
+          // 恢复滚动位置
+          window.scrollTo(scrollX, scrollY);
+          
+          return true;
+        })()
+      `);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('应用翻译内容失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 翻译特定元素
+  ipcMain.handle('translate-elements', async (event, selectors, targetLang) => {
+    try {
+      if (!browserWindow || !activeTabId) return { success: false, error: '没有活动的浏览器窗口' };
+      
+      const view = viewMap.get(activeTabId);
+      if (!view) return { success: false, error: '找不到活动的标签页视图' };
+      
+      // 获取指定选择器的元素
+      const elementsData = await view.webContents.executeJavaScript(`
+        (function() {
+          const elements = document.querySelectorAll('${selectors}');
+          return Array.from(elements).map(el => {
+            return { 
+              id: el.id || null,
+              text: el.innerText,
+              path: el.id ? '#' + el.id : null
+            };
+          });
+        })()
+      `);
+      
+      return { success: true, elements: elementsData };
+    } catch (error) {
+      console.error('获取元素失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
 })
 
 // Handle folder selection

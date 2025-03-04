@@ -16,6 +16,8 @@ export default function BrowserView() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // 添加翻译状态
+  const [isTranslating, setIsTranslating] = useState(false);
 
   // 设置初始标签页
   useEffect(() => {
@@ -112,6 +114,15 @@ export default function BrowserView() {
     }
   };
 
+  // 处理翻译功能
+  const handleTranslate = () => {
+    setIsTranslating(true);
+    // 这里暂时只是切换状态，实际翻译功能将在后续实现
+    setTimeout(() => setIsTranslating(false), 1000);
+    // 翻译功能将在这里实现
+    console.log('翻译功能待实现');
+  };
+
   return (
     <div className="browser-container h-full flex flex-col">
       {/* 标签栏 */}
@@ -182,6 +193,17 @@ export default function BrowserView() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           )}
+        </button>
+        
+        {/* 添加翻译按钮 */}
+        <button 
+          onClick={handleTranslate} 
+          className={`btn btn-circle btn-sm ${isTranslating ? 'btn-primary' : ''}`}
+          title="翻译页面"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+          </svg>
         </button>
         
         <div className="form-control flex-1">
