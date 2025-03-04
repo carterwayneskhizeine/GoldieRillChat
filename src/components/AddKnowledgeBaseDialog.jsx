@@ -12,10 +12,7 @@ const modelOptions = [
   { id: 'netease-youdao/bce-embedding-base_v1', name: 'netease-youdao/bce-embedding-base_v1', provider: 'SiliconFlow', dimensions: 768, tokens: 512 },
   { id: 'BAAI/bge-large-zh-v1.5', name: 'BAAI/bge-large-zh-v1.5', provider: 'SiliconFlow', dimensions: 1024, tokens: 512 },
   { id: 'BAAI/bge-large-en-v1.5', name: 'BAAI/bge-large-en-v1.5', provider: 'SiliconFlow', dimensions: 1024, tokens: 512 },
-  { id: 'Pro/BAAI/bge-m3', name: 'Pro/BAAI/bge-m3', provider: 'SiliconFlow', dimensions: 1024, tokens: 8192 },
-  { id: 'text-embedding-3-small', name: 'text-embedding-3-small', provider: 'OpenAI', dimensions: 1536, tokens: 8191 },
-  { id: 'text-embedding-3-large', name: 'text-embedding-3-large', provider: 'OpenAI', dimensions: 3072, tokens: 8191 },
-  { id: 'text-embedding-ada-002', name: 'text-embedding-ada-002', provider: 'OpenAI', dimensions: 1536, tokens: 8191 }
+  { id: 'Pro/BAAI/bge-m3', name: 'Pro/BAAI/bge-m3', provider: 'SiliconFlow', dimensions: 1024, tokens: 8192 }
 ];
 
 /**
@@ -32,7 +29,7 @@ const AddKnowledgeBaseDialog = ({ isOpen, onClose, onAdd }) => {
   
   // 本地状态
   const [name, setName] = useState('');
-  const [selectedModelId, setSelectedModelId] = useState('BAAI/bge-large-zh-v1.5');
+  const [selectedModelId, setSelectedModelId] = useState('BAAI/bge-m3');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -46,7 +43,7 @@ const AddKnowledgeBaseDialog = ({ isOpen, onClose, onAdd }) => {
   useEffect(() => {
     if (isOpen) {
       setName('');
-      setSelectedModelId('BAAI/bge-large-zh-v1.5');
+      setSelectedModelId('BAAI/bge-m3');
       setError('');
       
       // 聚焦输入框
@@ -93,42 +90,58 @@ const AddKnowledgeBaseDialog = ({ isOpen, onClose, onAdd }) => {
   if (!isOpen) return null;
   
   return (
-    <div className="dialog-overlay">
-      <div className="dialog-container">
-        <h2>添加知识库</h2>
+    <div className="modal modal-open" style={{backgroundColor: "rgba(0, 0, 0, 0.2)"}}>
+      <div className="modal-box max-w-lg" style={{
+        backgroundColor: "#0a0a0f", 
+        color: "white",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+        boxShadow: "0 0 30px rgba(0, 0, 0, 0.8)",
+        opacity: 1,
+        backdropFilter: "none",
+        transform: "scale(1)",
+        transition: "transform 0.2s ease",
+        position: "relative",
+        zIndex: 5
+      }}>
+        <h3 className="font-bold text-lg text-white">添加知识库</h3>
         <button 
-          className="close-button"
+          className="btn btn-sm btn-circle absolute right-2 top-2"
           onClick={onClose}
-        >
-          ✕
-        </button>
+          style={{backgroundColor: "#1e1e28", color: "white", border: "1px solid rgba(255, 255, 255, 0.1)"}}
+        >✕</button>
         
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="py-2">
           {error && (
-            <div className="error-message">
+            <div className="alert alert-error mb-4 text-sm" style={{backgroundColor: "#5a1010", border: "1px solid #6a2020"}}>
               {error}
             </div>
           )}
           
-          <div className="form-group">
-            <label htmlFor="knowledge-base-name">知识库名称</label>
+          <div className="form-control w-full mb-2">
+            <label className="label py-1">
+              <span className="label-text text-white"><span className="text-error">*</span> 知识库名称</span>
+            </label>
             <input
-              id="knowledge-base-name"
               ref={nameInputRef}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="输入知识库名称"
+              className="input input-bordered w-full h-10"
+              style={{backgroundColor: "#14141e", color: "white", border: "1px solid rgba(255, 255, 255, 0.15)"}}
               disabled={loading}
             />
           </div>
           
-          <div className="form-group">
-            <label htmlFor="knowledge-base-model">嵌入模型</label>
+          <div className="form-control w-full mb-2">
+            <label className="label py-1">
+              <span className="label-text text-white"><span className="text-error">*</span> 嵌入模型 <span className="text-xs opacity-70">ⓘ</span></span>
+            </label>
             <select
-              id="knowledge-base-model"
               value={selectedModelId}
               onChange={(e) => setSelectedModelId(e.target.value)}
+              className="select select-bordered w-full h-10"
+              style={{backgroundColor: "#14141e", color: "white", border: "1px solid rgba(255, 255, 255, 0.15)"}}
               disabled={loading}
             >
               {modelOptions.map(model => (
@@ -139,33 +152,59 @@ const AddKnowledgeBaseDialog = ({ isOpen, onClose, onAdd }) => {
             </select>
             
             {selectedModel && (
-              <div className="model-info">
-                <div>维度: {selectedModel.dimensions}</div>
-                <div>最大Token: {selectedModel.tokens}</div>
-                <div>提供商: {selectedModel.provider}</div>
+              <div style={{backgroundColor: "#14141e", border: "1px solid rgba(255, 255, 255, 0.05)"}} className="p-3 rounded-md mt-2">
+                <div className="flex justify-between mb-1">
+                  <span className="font-medium">{selectedModel.name}</span>
+                  <span className="badge badge-sm" style={{backgroundColor: "#32323c", color: "white"}}>{selectedModel.provider}</span>
+                </div>
+                <div className="text-sm opacity-70">
+                  <div>维度: {selectedModel.dimensions}</div>
+                  <div>最大Token: {selectedModel.tokens}</div>
+                </div>
+                <div className="text-xs opacity-50 mt-1">
+                  创建知识库后无法更改嵌入模型
+                </div>
               </div>
             )}
           </div>
           
-          <div className="dialog-actions">
+          <div className="modal-action">
             <button 
-              type="button" 
-              className="cancel-button"
+              type="button"
+              className="btn"
               onClick={onClose}
               disabled={loading}
+              style={{backgroundColor: "#14141e", color: "white", border: "1px solid rgba(255, 255, 255, 0.1)"}}
             >
               取消
             </button>
             <button 
-              type="submit" 
-              className="submit-button"
+              type="submit"
+              className="btn btn-primary"
               disabled={loading}
+              style={{backgroundColor: "#1e234c", color: "white", border: "none"}}
             >
-              {loading ? '创建中...' : '创建知识库'}
+              {loading ? 
+                <span className="flex items-center gap-2">
+                  <span className="loading loading-spinner loading-xs"></span> 创建中...
+                </span> : '创建知识库'}
             </button>
           </div>
         </form>
       </div>
+      <div 
+        className="modal-backdrop" 
+        onClick={onClose} 
+        style={{
+          backgroundColor: "rgba(0, 0, 0, 0.2)", 
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0
+        }}
+      ></div>
     </div>
   );
 };

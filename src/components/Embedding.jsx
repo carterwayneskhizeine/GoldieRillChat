@@ -10,14 +10,11 @@ const modelOptions = [
   { id: 'BAAI/bge-large-zh-v1.5', name: 'BAAI/bge-large-zh-v1.5', provider: 'SiliconFlow', dimensions: 1024, tokens: 512 },
   { id: 'BAAI/bge-large-en-v1.5', name: 'BAAI/bge-large-en-v1.5', provider: 'SiliconFlow', dimensions: 1024, tokens: 512 },
   { id: 'Pro/BAAI/bge-m3', name: 'Pro/BAAI/bge-m3', provider: 'SiliconFlow', dimensions: 1024, tokens: 8192 },
-  { id: 'text-embedding-3-small', name: 'text-embedding-3-small', provider: 'OpenAI', dimensions: 1536, tokens: 8191 },
-  { id: 'text-embedding-3-large', name: 'text-embedding-3-large', provider: 'OpenAI', dimensions: 3072, tokens: 8191 },
-  { id: 'text-embedding-ada-002', name: 'text-embedding-ada-002', provider: 'OpenAI', dimensions: 1536, tokens: 8191 }
 ];
 
 const Embedding = () => {
   // 状态管理
-  const [activeTab, setActiveTab] = useState('knowledgeBases');
+  const [activeTab, setActiveTab] = useState('knowledge');
   const [activeContentTab, setActiveContentTab] = useState('items');
   const [selectedKnowledgeBase, setSelectedKnowledgeBase] = useState(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -150,85 +147,71 @@ const Embedding = () => {
   // 渲染知识库列表
   const renderKnowledgeBaseList = () => {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex justify-between items-center mb-4 px-1">
-          <h3 className="text-lg font-bold">我的知识库</h3>
-          <button 
-            className="btn btn-sm btn-primary gap-2"
-            onClick={() => setShowAddDialog(true)}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      <div className="h-full">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-full py-12 text-base-content/60">
+            <div className="loading loading-spinner loading-lg mb-4"></div>
+            <p>加载知识库...</p>
+          </div>
+        ) : knowledgeBases.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full py-12 text-base-content/60">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            新建
-          </button>
-        </div>
-        
-        <div className="overflow-auto flex-1 pr-2">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center h-full py-12 text-base-content/60">
-              <div className="loading loading-spinner loading-lg mb-4"></div>
-              <p>加载知识库...</p>
-            </div>
-          ) : knowledgeBases.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-12 text-base-content/60">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            <p className="mb-4">尚未创建知识库</p>
+            <button 
+              className="btn btn-sm btn-outline btn-accent gap-2"
+              onClick={() => setShowAddDialog(true)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <p className="mb-4">尚未创建知识库</p>
-              <button 
-                className="btn btn-sm btn-primary gap-2"
-                onClick={() => setShowAddDialog(true)}
+              创建知识库
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {knowledgeBases.map(kb => (
+              <div 
+                key={kb.id}
+                className={`knowledge-base-item p-3 rounded-lg transition-all cursor-pointer
+                  ${selectedKnowledgeBase?.id === kb.id 
+                    ? 'border-2 border-accent/40'
+                    : 'border border-base-content/10 hover:border-base-content/20'}
+                  shadow-sm hover:shadow-md`}
+                onClick={() => setSelectedKnowledgeBase(kb)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                创建知识库
-              </button>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {knowledgeBases.map(kb => (
-                <div 
-                  key={kb.id} 
-                  className={`knowledge-base-item p-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer
-                    ${selectedKnowledgeBase?.id === kb.id 
-                      ? 'bg-primary/5 border-primary border-2' 
-                      : 'bg-base-100 border border-base-200 hover:border-primary/30'}`}
-                  onClick={() => setSelectedKnowledgeBase(kb)}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-base">{kb.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="badge badge-sm badge-primary badge-outline font-normal">
-                          {kb.itemCount || kb.documentCount || 0} 项
-                        </span>
-                        <span className="text-sm text-base-content/70">
-                          {kb.model.name}
-                        </span>
-                      </div>
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-base">{kb.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="badge badge-sm badge-neutral font-normal">
+                        {kb.itemCount || kb.documentCount || 0} 项
+                      </span>
+                      <span className="text-xs text-base-content/60">
+                        {kb.model.name}
+                      </span>
                     </div>
-                    <button 
-                      className="btn btn-square btn-ghost btn-sm text-error hover:bg-error/10"
-                      onClick={(e) => handleDeleteKnowledgeBase(kb, e)}
-                      title="删除知识库"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
                   </div>
-                  <div className="flex justify-between items-center text-xs text-base-content/50 mt-2">
-                    <span>提供商: {kb.model.provider}</span>
-                    <span>维度: {kb.model.dimensions}</span>
-                    <span>更新: {new Date(kb.updatedAt).toLocaleDateString()}</span>
-                  </div>
+                  <button 
+                    className="btn btn-square btn-ghost btn-xs text-error hover:bg-error/10"
+                    onClick={(e) => handleDeleteKnowledgeBase(kb, e)}
+                    title="删除知识库"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="flex justify-between items-center text-xs text-base-content/40 mt-2">
+                  <span>{kb.model.provider}</span>
+                  <span>维度: {kb.model.dimensions}</span>
+                  <span>{new Date(kb.updatedAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -465,23 +448,7 @@ const Embedding = () => {
       return (
         <div className="flex flex-col items-center justify-center h-full p-8 text-center">
           <div className="text-6xl mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-24 h-24">
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
-              <path d="M8 7h6"></path>
-              <path d="M8 11h8"></path>
-              <path d="M8 15h6"></path>
-            </svg>
           </div>
-          <h3 className="text-xl font-semibold mb-4">选择一个知识库</h3>
-          <p className="text-base-content text-opacity-70 mb-6">
-            从左侧选择一个知识库查看其内容，或创建一个新的知识库
-          </p>
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowAddDialog(true)}
-          >
-            创建知识库
-          </button>
         </div>
       );
     }
@@ -766,22 +733,23 @@ const Embedding = () => {
     };
     
     return (
-      <div className="modal modal-open">
+      <div className="modal modal-open" style={{backgroundColor: "rgba(0,0,0,0.95)"}}>
         <div className="modal-box max-w-lg" style={{
-          backgroundColor: "#1a1a2e", 
+          backgroundColor: "#0a0a0f", 
           color: "white",
-          border: "1px solid rgba(255, 255, 255, 0.2)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
           boxShadow: "0 0 30px rgba(0, 0, 0, 0.8)",
           opacity: 1,
           backdropFilter: "none",
           transform: "scale(1)",
-          transition: "transform 0.2s ease"
+          transition: "transform 0.2s ease",
+          position: "relative",
         }}>
           <h3 className="font-bold text-lg text-white">知识库设置</h3>
           <button 
             className="btn btn-sm btn-circle absolute right-2 top-2"
             onClick={() => setShowSettingsDialog(false)}
-            style={{backgroundColor: "rgba(60, 60, 60, 0.9)", color: "white"}}
+            style={{backgroundColor: "#1e1e28", color: "white", border: "1px solid rgba(255, 255, 255, 0.1)"}}
           >✕</button>
           
           <div className="py-2">
@@ -794,18 +762,18 @@ const Embedding = () => {
                 value={knowledgeBaseName}
                 onChange={(e) => setKnowledgeBaseName(e.target.value)}
                 className="input input-bordered w-full h-10" 
-                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
+                style={{backgroundColor: "#14141e", color: "white", border: "1px solid rgba(255, 255, 255, 0.15)"}}
               />
             </div>
             
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text text-white"><span className="text-error">*</span> 嵌入模型 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white"><span className="text-error">*</span> 嵌入模型</span>
               </label>
-              <div className="bg-base-300 p-3 rounded-md">
+              <div style={{backgroundColor: "#14141e", border: "1px solid rgba(255, 255, 255, 0.05)"}} className="p-3 rounded-md">
                 <div className="flex justify-between mb-1">
                   <span className="font-medium">{selectedKnowledgeBase.model.name}</span>
-                  <span className="badge badge-sm">{selectedKnowledgeBase.model.provider}</span>
+                  <span className="badge badge-sm" style={{backgroundColor: "#32323c", color: "white"}}>{selectedKnowledgeBase.model.provider}</span>
                 </div>
                 <div className="text-sm opacity-70">
                   <div>维度: {selectedKnowledgeBase.model.dimensions}</div>
@@ -819,7 +787,7 @@ const Embedding = () => {
             
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text text-white">请求文档分段数量 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white">请求文档分段数量</span>
               </label>
               <div className="flex items-center gap-4">
                 <div className="flex-1">
@@ -838,7 +806,7 @@ const Embedding = () => {
             
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text text-white">分段大小 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white">分段大小</span>
               </label>
               <input 
                 type="text" 
@@ -846,13 +814,13 @@ const Embedding = () => {
                 value={chunkSize}
                 onChange={(e) => setChunkSize(e.target.value)}
                 className="input input-bordered w-full h-10" 
-                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
+                style={{backgroundColor: "#14141e", color: "white", border: "1px solid rgba(255, 255, 255, 0.15)"}}
               />
             </div>
 
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text text-white">重叠大小 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white">重叠大小</span>
               </label>
               <input 
                 type="text" 
@@ -860,13 +828,13 @@ const Embedding = () => {
                 value={chunkOverlap}
                 onChange={(e) => setChunkOverlap(e.target.value)}
                 className="input input-bordered w-full h-10" 
-                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
+                style={{backgroundColor: "#14141e", color: "white", border: "1px solid rgba(255, 255, 255, 0.15)"}}
               />
             </div>
 
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text text-white">匹配度阈值 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white">匹配度阈值</span>
               </label>
               <div className="flex items-center gap-4">
                 <div className="flex-1">
@@ -944,39 +912,76 @@ const Embedding = () => {
   };
 
   return (
-    <div className="flex flex-col h-full embedding-container overflow-hidden">
-      {/* 顶部工具栏 */}
-      <div className="flex items-center p-2 border-b border-base-300 embedding-top-bar">
-        <h2 className="text-xl font-semibold px-2">知识库</h2>
-        <div className="flex-grow"></div>
-        <div className="btn-group">
-          <button className="btn btn-sm" onClick={refreshBases}>刷新</button>
-          <button className="btn btn-sm">帮助</button>
+    <div className="embedding-container h-screen flex flex-col relative" style={{backgroundColor: "#000000"}}>
+      {/* 背景覆盖层 */}
+      <div className="absolute inset-0 bg-black" style={{zIndex: -1}}></div>
+      
+      {/* 顶部搜索栏 */}
+      <div className="p-3 border-b border-base-content/10 flex justify-between items-center embedding-top-bar bg-[#08080c] relative">
+        <div className="relative w-full max-w-xs">
+          <input 
+            type="text" 
+            placeholder="搜索知识库..." 
+            className="input input-sm w-full bg-[#14141e] focus:outline-none border-none"
+          />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-3 top-2.5 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            className="btn btn-sm btn-outline gap-2 border-none hover:bg-[#14141e]"
+            onClick={() => setShowAddDialog(true)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            新建
+          </button>
+          <button 
+            className="btn btn-sm btn-square btn-ghost text-base-content/70 hover:bg-[#14141e]"
+            onClick={() => {
+              // 触发刷新
+              refreshBases();
+            }}
+          >
+            {loading ? (
+              <span className="loading loading-spinner loading-xs"></span>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
       {/* 主体内容区域 */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative" style={{backgroundColor: "#000000"}}>
         {/* 左侧面板 */}
-        <div className="w-1/3 border-r border-base-300 flex flex-col overflow-hidden embedding-left-panel">
-          {/* 选项卡导航 */}
-          <div className="tabs tabs-boxed bg-base-200 p-1 m-2">
-            <a 
-              className={`tab ${activeTab === 'knowledgeBases' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('knowledgeBases')}
-            >
-              知识库
-            </a>
+        <div className="w-1/3 border-r border-base-content/10 flex flex-col overflow-hidden embedding-left-panel bg-[#0a0a0f]">
+          {/* 搜索框 */}
+          <div className="p-3 border-b border-base-content/5">
+            <div className="relative">
+              <input 
+                type="text" 
+                placeholder="搜索知识库..." 
+                className="input input-sm w-full bg-[rgba(30,30,40,0.6)] focus:outline-none border-none"
+              />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-3 top-2.5 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
           </div>
 
-          {/* 选项卡内容 */}
-          <div className="flex-1 overflow-auto p-2">
-            {activeTab === 'knowledgeBases' && renderKnowledgeBaseList()}
+          {/* 选项卡内容 - 修改这里确保滚动正常 */}
+          <div className="flex-1 overflow-y-auto p-3">
+            {renderKnowledgeBaseList()}
           </div>
         </div>
 
         {/* 右侧主内容区 */}
-        <div className="flex-1 flex flex-col overflow-hidden p-4 embedding-content-panel">
+        <div className="flex-1 flex flex-col overflow-hidden p-4 embedding-content-panel bg-[rgba(25,25,35,0.4)]">
           {renderKnowledgeBaseContent()}
         </div>
       </div>
@@ -987,8 +992,8 @@ const Embedding = () => {
       
       {/* 删除知识库确认对话框 */}
       {showDeleteDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-base-100 p-6 rounded-lg shadow-lg max-w-md w-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
+          <div className="bg-[rgba(30,30,40,0.95)] p-6 rounded-lg shadow-xl max-w-md w-full border border-base-content/10">
             <h3 className="font-bold text-lg mb-4">确认删除</h3>
             <p className="mb-6">
               您确定要删除知识库 "{knowledgeBaseToDelete?.name}" 吗？
@@ -997,13 +1002,13 @@ const Embedding = () => {
             </p>
             <div className="flex justify-end gap-2">
               <button 
-                className="btn btn-ghost"
+                className="btn btn-sm btn-ghost"
                 onClick={cancelDeleteKnowledgeBase}
               >
                 取消
               </button>
               <button 
-                className="btn btn-error"
+                className="btn btn-sm btn-error"
                 onClick={confirmDeleteKnowledgeBase}
               >
                 确认删除
@@ -1014,15 +1019,15 @@ const Embedding = () => {
       )}
 
       {/* 底部状态栏 */}
-      <div className="p-2 border-t border-base-300 text-sm text-base-content text-opacity-60 flex justify-between embedding-bottom-bar">
-        <span>已加载 {knowledgeBases.length} 个知识库</span>
+      <div className="p-2 border-t border-base-content/10 text-xs text-base-content/50 flex justify-between embedding-bottom-bar bg-[#08080c]">
+        <span>共 {knowledgeBases.length} 个知识库</span>
         <span>
-          {processingQueue.filter(item => item.status === 'processing').length} 个项目处理中, 
-          {processingQueue.filter(item => item.status === 'pending').length} 个等待处理
+          {processingQueue.filter(item => item.status === 'processing').length} 个处理中 | 
+          {processingQueue.filter(item => item.status === 'pending').length} 个待处理
         </span>
       </div>
     </div>
   );
 };
 
-export default Embedding; 
+export default Embedding;

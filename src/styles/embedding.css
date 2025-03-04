@@ -1,111 +1,221 @@
 /**
  * Embedding组件样式
- * 提供黑色半透明背景和边框效果
+ * 提供黑色背景和边框效果
  */
 
-/* 主容器样式 */
-.embedding-container {
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
-  color: white;
+
+/* 确保app的根元素也不透明 */
+#root, body, html {
+  background-color: #000000;
 }
 
 /* 内部容器样式 */
 .embedding-container .bg-base-100,
 .embedding-container .bg-base-200,
 .embedding-container .bg-base-300 {
-  background-color: rgba(0, 0, 0, 0.5) !important;
+  background-color: #0a0a0f !important;
   color: white;
 }
 
 /* 左侧面板 */
 .embedding-left-panel {
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: #0a0a0f;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 2;
 }
 
-/* 右侧内容区 */
+/* 知识库列表 */
+.embedding-left-panel .knowledge-base-list {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+}
+
+/* 内容面板 */
 .embedding-content-panel {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: #0f0f14;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 2;
 }
 
-/* 选项卡样式 */
+/* 选项卡容器 */
 .embedding-container .tabs-boxed {
-  background-color: rgba(0, 0, 0, 0.6) !important;
+  background-color: #14141e;
 }
 
+/* 选项卡 */
 .embedding-container .tab {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.6);
 }
 
+/* 选项卡悬停 */
 .embedding-container .tab:hover {
-  color: white;
+  color: rgba(255, 255, 255, 0.8);
 }
 
+/* 活动选项卡 */
 .embedding-container .tab-active {
-  background-color: rgba(60, 80, 120, 0.7) !important;
+  background-color: #28283c !important;
   color: white !important;
-  border-bottom: 2px solid rgba(100, 150, 255, 0.7);
+  border: none !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-/* 表格样式 */
+/* 表格容器 */
 .embedding-container table {
-  background-color: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: transparent;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
+/* 表格头和单元格 */
 .embedding-container th,
 .embedding-container td {
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: #14141e;
+  border: 1px solid rgba(255, 255, 255, 0.05);
   color: white;
 }
 
-/* 按钮样式 */
+/* 按钮 */
 .embedding-container .btn {
-  background-color: rgba(30, 30, 60, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #1e1e28;
   color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* 按钮悬停 */
 .embedding-container .btn:hover {
-  background-color: rgba(50, 50, 80, 0.8);
+  background-color: #32323c;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* 输入框样式 */
+/* 输入框 */
 .embedding-container .input,
-.embedding-container .select {
-  background-color: rgba(20, 20, 40, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.embedding-container .select,
+.embedding-container .textarea {
+  background-color: #14141e;
   color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* 模态框样式 */
+/* 模态框 */
 .embedding-container .modal-box {
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: #0a0a0f;
+  color: white;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* 顶部和底部栏 */
 .embedding-top-bar,
 .embedding-bottom-bar {
-  background-color: rgba(0, 0, 0, 0.6);
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: #08080c !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
 }
 
-/* 知识库列表项 */
+/* 知识库项目 */
 .knowledge-base-item {
-  background-color: rgba(20, 20, 40, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
+  background-color: #14141e !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  color: white;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
+/* 知识库项目悬停 */
 .knowledge-base-item:hover {
-  background-color: rgba(40, 40, 60, 0.8);
-  box-shadow: 0 0 10px rgba(0, 0, 50, 0.3);
-} 
+  background-color: #1e1e28 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 知识库项目列表滚动条 */
+.knowledge-base-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.knowledge-base-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.knowledge-base-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.knowledge-base-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 选中的知识库项 */
+.knowledge-base-item.selected {
+  background-color: #28283c !important;
+  border: 1px solid rgba(100, 100, 255, 0.3) !important;
+}
+
+/* 下拉菜单内容 */
+.dropdown-content {
+  background-color: #0f0f14;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  color: white;
+}
+
+/* 表格 */
+.table {
+  background-color: #0f0f14;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 表格头 */
+.table th {
+  background-color: #14141e;
+  color: white;
+}
+
+/* 表格行悬停 */
+.table tr:hover {
+  background-color: #28283c;
+}
+
+/* 输入框 */
+.input {
+  background-color: #14141e;
+  color: white;
+}
+
+/* 输入框聚焦 */
+.input:focus {
+  outline: none;
+  border-color: rgba(100, 100, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(100, 100, 255, 0.2);
+}
+
+/* 卡片 */
+.card {
+  background-color: #14141e;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: white;
+}
+
+/* 滚动条样式 */
+.overflow-auto, .overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.3);
+}
+
+/* 小屏幕适配 */
+@media (max-height: 600px) {
+  .knowledge-base-item {
+    padding: 0.5rem !important;
+  }
+}
