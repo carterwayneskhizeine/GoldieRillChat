@@ -2,9 +2,8 @@
  * 知识库选择器组件
  * 用于在聊天界面中选择要使用的知识库
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useKnowledgeBases } from '../hooks/useKnowledgeBase';
-import AddKnowledgeBaseDialog from './AddKnowledgeBaseDialog';
 import '../styles/KnowledgeBaseSelector.css';
 
 /**
@@ -20,7 +19,6 @@ const KnowledgeBaseSelector = ({ selectedBases = [], onSelect }) => {
   
   // 本地状态，跟踪选中的知识库ID
   const [selectedIds, setSelectedIds] = useState([]);
-  const [showAddDialog, setShowAddDialog] = useState(false);
   
   // 初始化选中状态
   useEffect(() => {
@@ -28,6 +26,11 @@ const KnowledgeBaseSelector = ({ selectedBases = [], onSelect }) => {
       setSelectedIds(selectedBases.map(base => base.id));
     }
   }, [selectedBases]);
+
+  // 组件加载时刷新知识库列表
+  useEffect(() => {
+    refreshBases();
+  }, [refreshBases]);
   
   // 处理知识库选择
   const handleToggleBase = (base) => {
@@ -48,17 +51,6 @@ const KnowledgeBaseSelector = ({ selectedBases = [], onSelect }) => {
     onSelect(selectedBases);
   };
   
-  // 清除所有选择
-  const handleClearSelection = () => {
-    setSelectedIds([]);
-    onSelect([]);
-  };
-  
-  // 刷新知识库列表
-  const handleRefresh = () => {
-    refreshBases();
-  };
-  
   // 渲染知识库列表
   const renderBases = () => {
     if (loading) {
@@ -66,7 +58,7 @@ const KnowledgeBaseSelector = ({ selectedBases = [], onSelect }) => {
     }
     
     if (!bases || bases.length === 0) {
-      return <div className="knowledge-base-empty">暂无知识库，请先创建知识库</div>;
+      return <div className="knowledge-base-empty">暂无知识库，请前往知识库页面创建</div>;
     }
     
     return (
@@ -80,7 +72,7 @@ const KnowledgeBaseSelector = ({ selectedBases = [], onSelect }) => {
             <div className="knowledge-base-item-name">{base.name}</div>
             <div className="knowledge-base-item-info">
               <span className="knowledge-base-item-count">{base.documentCount || 0} 文档</span>
-              <span className="knowledge-base-item-model">{base.model}</span>
+              <span className="knowledge-base-item-model">{base.model.name}</span>
             </div>
           </div>
         ))}
@@ -92,35 +84,10 @@ const KnowledgeBaseSelector = ({ selectedBases = [], onSelect }) => {
     <div className="knowledge-base-selector">
       <div className="knowledge-base-selector-header">
         <h3>选择知识库</h3>
-        <div className="knowledge-base-selector-actions">
-          <button 
-            className={`clear-button ${selectedIds.length === 0 ? 'disabled' : ''}`}
-            onClick={handleClearSelection}
-            disabled={selectedIds.length === 0}
-          >
-            清除
-          </button>
-          <button className="refresh-button" onClick={handleRefresh}>
-            刷新
-          </button>
-          <button className="add-button" onClick={() => setShowAddDialog(true)}>
-            添加
-          </button>
-        </div>
+        <small className="knowledge-base-selector-tip">前往Embedding页面添加管理知识库</small>
       </div>
       
       {renderBases()}
-      
-      {showAddDialog && (
-        <AddKnowledgeBaseDialog 
-          isOpen={showAddDialog}
-          onClose={() => setShowAddDialog(false)}
-          onAdd={(newBase) => {
-            refreshBases();
-            setShowAddDialog(false);
-          }}
-        />
-      )}
     </div>
   );
 };

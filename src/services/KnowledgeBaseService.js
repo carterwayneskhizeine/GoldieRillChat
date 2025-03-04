@@ -5,6 +5,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../utils/db';
 import toastManager from '../utils/toastManager';
+import { getApiKey } from '../components/AIChat/utils/storageUtils';
+import { STORAGE_KEYS } from '../components/AIChat/constants';
 
 // 向量相似度计算函数
 const cosineSimilarity = (vecA, vecB) => {
@@ -34,10 +36,38 @@ export const getKnowledgeBaseParams = (base) => {
   return {
     id: base.id,
     name: base.name,
-    model: base.model,
+    model: base.model.id,
     dimensions: base.dimensions,
     threshold: base.threshold || 0.7,
     documentCount: base.documentCount || 0
+  };
+};
+
+/**
+ * 获取嵌入API配置
+ * @param {string} provider 嵌入服务提供商
+ * @returns {Object} API配置
+ */
+export const getEmbeddingApiConfig = (provider) => {
+  if (provider === 'SiliconFlow') {
+    let apiHost = localStorage.getItem(`${STORAGE_KEYS.API_HOST}_siliconflow`) || 'https://api.siliconflow.cn/v1/embeddings';
+    if (!apiHost.includes('/v1/embeddings')) {
+      apiHost = apiHost.replace(/\/+$/, '') + '/v1/embeddings';
+    }
+    return {
+      apiKey: getApiKey('siliconflow'),
+      apiHost
+    };
+  } else if (provider === 'OpenAI') {
+    return {
+      apiKey: getApiKey('openai'),
+      apiHost: localStorage.getItem(`${STORAGE_KEYS.API_HOST}_openai`) || 'https://api.openai.com/v1/embeddings'
+    };
+  }
+  
+  return {
+    apiKey: '',
+    apiHost: ''
   };
 };
 
@@ -72,33 +102,126 @@ const mockEmbedText = (text, dimensions = 1536) => {
 };
 
 /**
+ * 使用SiliconFlow API嵌入文本
+ * @param {string} text 要嵌入的文本
+ * @param {string} model 嵌入模型
+ * @param {string} apiKey API密钥
+ * @param {string} apiHost API主机地址
+ * @returns {Promise<Array<number>>} 嵌入向量
+ */
+const siliconFlowEmbed = async (text, model, apiKey, apiHost) => {
+  try {
+    const response = await fetch(apiHost, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        input: text,
+        encoding_format: 'float'
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`SiliconFlow API错误: ${errorData.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data[0].embedding;
+  } catch (error) {
+    console.error('SiliconFlow嵌入请求失败:', error);
+    throw error;
+  }
+};
+
+/**
+ * 使用OpenAI API嵌入文本
+ * @param {string} text 要嵌入的文本 
+ * @param {string} model 嵌入模型
+ * @param {string} apiKey API密钥
+ * @param {string} apiHost API主机地址
+ * @returns {Promise<Array<number>>} 嵌入向量
+ */
+const openaiEmbed = async (text, model, apiKey, apiHost) => {
+  try {
+    const response = await fetch(apiHost, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        input: text
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`OpenAI API错误: ${errorData.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data[0].embedding;
+  } catch (error) {
+    console.error('OpenAI嵌入请求失败:', error);
+    throw error;
+  }
+};
+
+/**
  * 嵌入文本
  * 将文本转换为向量表示
  * 
  * @param {string} text 要嵌入的文本
- * @param {string} model 嵌入模型
- * @param {number} dimensions 向量维度
+ * @param {Object} model 嵌入模型对象
  * @returns {Promise<Array<number>>} 嵌入向量
  */
-export const embedText = async (text, model = 'text-embedding-3-small', dimensions = 1536) => {
-  // 开发阶段使用模拟嵌入
-  return mockEmbedText(text, dimensions);
+export const embedText = async (text, model) => {
+  if (!model) {
+    throw new Error('未指定嵌入模型');
+  }
   
-  // TODO: 实现真实的嵌入API调用
-  // const response = await fetch('https://api.openai.com/v1/embeddings', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //     'Authorization': `Bearer ${apiKey}`
-  //   },
-  //   body: JSON.stringify({
-  //     input: text,
-  //     model: model
-  //   })
-  // });
+  if (!text.trim()) {
+    throw new Error('嵌入文本不能为空');
+  }
   
-  // const data = await response.json();
-  // return data.data[0].embedding;
+  // 获取API配置
+  const config = getEmbeddingApiConfig(model.provider);
+  
+  console.log(`嵌入文本使用模型: ${model.name} (${model.provider}), API密钥: ${config.apiKey ? '已配置' : '未配置'}`);
+  
+  if (!config.apiKey) {
+    console.warn(`未配置${model.provider} API密钥，使用模拟嵌入`);
+    return mockEmbedText(text, model.dimensions);
+  }
+  
+  try {
+    console.log(`使用${model.provider}的真实API进行嵌入，API主机: ${config.apiHost}`);
+    
+    // 根据提供商选择不同的嵌入方法
+    let embedding;
+    if (model.provider === 'SiliconFlow') {
+      embedding = await siliconFlowEmbed(text, model.id, config.apiKey, config.apiHost);
+    } else if (model.provider === 'OpenAI') {
+      embedding = await openaiEmbed(text, model.id, config.apiKey, config.apiHost);
+    } else {
+      console.warn(`不支持的嵌入提供商: ${model.provider}，使用模拟嵌入`);
+      return mockEmbedText(text, model.dimensions);
+    }
+    
+    console.log(`嵌入成功，向量维度: ${embedding.length}`);
+    return embedding;
+  } catch (error) {
+    console.error('嵌入文本失败:', error);
+    toastManager.error(`嵌入失败: ${error.message}，使用模拟嵌入`);
+    // 失败时使用模拟嵌入
+    console.warn('嵌入失败，使用模拟嵌入');
+    return mockEmbedText(text, model.dimensions);
+  }
 };
 
 /**
@@ -121,7 +244,7 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
     }
     
     // 嵌入用户消息
-    const queryEmbedding = await embedText(message, base.model, base.dimensions);
+    const queryEmbedding = await embedText(message, base.model);
     
     // 计算相似度并排序
     const results = [];
@@ -206,25 +329,52 @@ export const getKnowledgeBaseReferences = async ({ message, knowledgeBaseIds, li
 /**
  * 添加知识库
  * @param {string} name 知识库名称
- * @param {string} model 嵌入模型
+ * @param {string} modelId 嵌入模型ID
  * @returns {Promise<Object>} 知识库对象
  */
-export const addKnowledgeBase = async (name, model = 'text-embedding-3-small') => {
+export const addKnowledgeBase = async (name, modelId) => {
   if (!name) {
     throw new Error('知识库名称不能为空');
   }
+  
+  // 获取模型信息
+  const modelOptions = [
+    { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'SiliconFlow', dimensions: 1024, tokens: 8192 },
+    { id: 'netease-youdao/bce-embedding-base_v1', name: 'netease-youdao/bce-embedding-base_v1', provider: 'SiliconFlow', dimensions: 768, tokens: 512 },
+    { id: 'BAAI/bge-large-zh-v1.5', name: 'BAAI/bge-large-zh-v1.5', provider: 'SiliconFlow', dimensions: 1024, tokens: 512 },
+    { id: 'BAAI/bge-large-en-v1.5', name: 'BAAI/bge-large-en-v1.5', provider: 'SiliconFlow', dimensions: 1024, tokens: 512 },
+    { id: 'Pro/BAAI/bge-m3', name: 'Pro/BAAI/bge-m3', provider: 'SiliconFlow', dimensions: 1024, tokens: 8192 },
+    { id: 'text-embedding-3-small', name: 'text-embedding-3-small', provider: 'OpenAI', dimensions: 1536, tokens: 8191 },
+    { id: 'text-embedding-3-large', name: 'text-embedding-3-large', provider: 'OpenAI', dimensions: 3072, tokens: 8191 },
+    { id: 'text-embedding-ada-002', name: 'text-embedding-ada-002', provider: 'OpenAI', dimensions: 1536, tokens: 8191 }
+  ];
+  
+  const model = modelOptions.find(m => m.id === modelId) || {
+    id: modelId,
+    name: modelId,
+    provider: 'Unknown',
+    dimensions: 1536,
+    tokens: 512
+  };
   
   try {
     // 创建知识库对象
     const base = {
       id: uuidv4(),
       name,
-      model,
-      dimensions: model.includes('3-small') ? 1536 : 3072, // 根据模型设置维度
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      model: {
+        id: model.id,
+        name: model.name,
+        provider: model.provider,
+        dimensions: model.dimensions,
+        tokens: model.tokens
+      },
+      dimensions: model.dimensions,
       threshold: 0.7, // 默认相似度阈值
-      documentCount: 0
+      documentCount: 0,
+      itemCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
     // 保存到数据库
@@ -257,12 +407,12 @@ export const updateKnowledgeItemStatus = async (itemId, status, data = {}) => {
     await db.knowledgeItems.update(itemId, {
       status,
       ...data,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
     
     // 更新知识库的更新时间
     await db.knowledgeBases.update(item.baseId, {
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     });
     
   } catch (error) {
@@ -300,8 +450,8 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
       size: file.size,
       path: file.path || URL.createObjectURL(file),
       status: 'processing', // 初始状态为处理中
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
     // 保存到数据库
@@ -309,8 +459,9 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
     
     // 更新知识库的更新时间和文档数量
     await db.knowledgeBases.update(baseId, {
-      updatedAt: new Date(),
-      documentCount: (base.documentCount || 0) + 1
+      updatedAt: new Date().toISOString(),
+      documentCount: (base.documentCount || 0) + 1,
+      itemCount: (base.itemCount || 0) + 1
     });
     
     // TODO: 处理文件内容，提取文本并生成嵌入向量
@@ -318,7 +469,7 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
     setTimeout(async () => {
       try {
         // 生成嵌入向量
-        const embedding = await embedText(file.name, base.model, base.dimensions);
+        const embedding = await embedText(file.name, base.model);
         
         // 更新项目状态和嵌入向量
         await updateKnowledgeItemStatus(item.id, 'ready', {
@@ -327,11 +478,13 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
         });
         
         console.log(`文件 ${file.name} 处理完成`);
+        toastManager.success(`文件 ${file.name} 处理完成`);
       } catch (error) {
         console.error(`处理文件 ${file.name} 失败:`, error);
         await updateKnowledgeItemStatus(item.id, 'error', {
           error: error.message
         });
+        toastManager.error(`处理文件 ${file.name} 失败: ${error.message}`);
       }
     }, 1000);
     
@@ -370,8 +523,8 @@ export const addUrlToKnowledgeBase = async (baseId, url) => {
       type: 'url',
       url,
       status: 'processing', // 初始状态为处理中
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
     // 保存到数据库
@@ -379,8 +532,9 @@ export const addUrlToKnowledgeBase = async (baseId, url) => {
     
     // 更新知识库的更新时间和文档数量
     await db.knowledgeBases.update(baseId, {
-      updatedAt: new Date(),
-      documentCount: (base.documentCount || 0) + 1
+      updatedAt: new Date().toISOString(),
+      documentCount: (base.documentCount || 0) + 1,
+      itemCount: (base.itemCount || 0) + 1
     });
     
     // TODO: 抓取URL内容，提取文本并生成嵌入向量
@@ -388,7 +542,7 @@ export const addUrlToKnowledgeBase = async (baseId, url) => {
     setTimeout(async () => {
       try {
         // 生成嵌入向量
-        const embedding = await embedText(url, base.model, base.dimensions);
+        const embedding = await embedText(url, base.model);
         
         // 更新项目状态和嵌入向量
         await updateKnowledgeItemStatus(item.id, 'ready', {
@@ -397,11 +551,13 @@ export const addUrlToKnowledgeBase = async (baseId, url) => {
         });
         
         console.log(`URL ${url} 处理完成`);
+        toastManager.success(`URL ${url} 处理完成`);
       } catch (error) {
         console.error(`处理URL ${url} 失败:`, error);
         await updateKnowledgeItemStatus(item.id, 'error', {
           error: error.message
         });
+        toastManager.error(`处理URL ${url} 失败: ${error.message}`);
       }
     }, 1000);
     
@@ -441,8 +597,8 @@ export const addNoteToKnowledgeBase = async (baseId, title, content) => {
       type: 'note',
       content,
       status: 'processing', // 初始状态为处理中
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
     // 保存到数据库
@@ -450,15 +606,16 @@ export const addNoteToKnowledgeBase = async (baseId, title, content) => {
     
     // 更新知识库的更新时间和文档数量
     await db.knowledgeBases.update(baseId, {
-      updatedAt: new Date(),
-      documentCount: (base.documentCount || 0) + 1
+      updatedAt: new Date().toISOString(),
+      documentCount: (base.documentCount || 0) + 1,
+      itemCount: (base.itemCount || 0) + 1
     });
     
     // 生成嵌入向量
     setTimeout(async () => {
       try {
         // 生成嵌入向量
-        const embedding = await embedText(content, base.model, base.dimensions);
+        const embedding = await embedText(content, base.model);
         
         // 更新项目状态和嵌入向量
         await updateKnowledgeItemStatus(item.id, 'ready', {
@@ -466,11 +623,13 @@ export const addNoteToKnowledgeBase = async (baseId, title, content) => {
         });
         
         console.log(`笔记 ${title || '未命名笔记'} 处理完成`);
+        toastManager.success(`笔记 ${title || '未命名笔记'} 处理完成`);
       } catch (error) {
         console.error(`处理笔记 ${title || '未命名笔记'} 失败:`, error);
         await updateKnowledgeItemStatus(item.id, 'error', {
           error: error.message
         });
+        toastManager.error(`处理笔记 ${title || '未命名笔记'} 失败: ${error.message}`);
       }
     }, 500);
     

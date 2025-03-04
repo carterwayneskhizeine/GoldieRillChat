@@ -9,25 +9,36 @@
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
+  animation: fade-in 0.2s ease-out;
 }
 
 .dialog-container {
   background-color: var(--bg-primary, #fff);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  width: 95%;
+  width: 100%;
   max-width: 480px;
-  overflow: hidden;
-  animation: dialog-fade-in 0.3s ease-out;
+  padding: 24px;
+  position: relative;
+  animation: slide-up 0.3s ease-out;
 }
 
-@keyframes dialog-fade-in {
+@keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -35,44 +46,36 @@
   }
 }
 
-.dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-}
-
-.dialog-header h2 {
-  margin: 0;
-  font-size: 18px;
+.dialog-container h2 {
+  margin: 0 0 20px 0;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-primary, #333);
 }
 
-.dialog-close-button {
+.close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
   background: none;
   border: none;
-  color: var(--text-secondary, #666);
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1;
-  padding: 0;
+  color: var(--text-secondary, #666);
   cursor: pointer;
-  transition: color 0.2s;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
-.dialog-close-button:hover {
-  color: var(--text-primary, #333);
+.close-button:hover {
+  background-color: var(--hover-color, #f0f0f0);
 }
 
-.dialog-content {
-  padding: 20px;
-}
-
-.dialog-error {
-  background-color: rgba(255, 0, 0, 0.1);
-  color: #d32f2f;
-  padding: 10px 12px;
+.error-message {
+  background-color: var(--error-bg, #fff2f0);
+  color: var(--error-color, #f5222d);
+  padding: 8px 12px;
   border-radius: 4px;
   margin-bottom: 16px;
   font-size: 14px;
@@ -82,14 +85,9 @@
   margin-bottom: 16px;
 }
 
-.form-group:last-child {
-  margin-bottom: 0;
-}
-
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  font-size: 14px;
   font-weight: 500;
   color: var(--text-primary, #333);
 }
@@ -97,36 +95,46 @@
 .form-group input,
 .form-group select {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #d9d9d9);
   border-radius: 4px;
   font-size: 14px;
+  background-color: var(--input-bg, #fff);
   color: var(--text-primary, #333);
-  background-color: var(--bg-primary, #fff);
   transition: border-color 0.2s;
 }
 
 .form-group input:focus,
 .form-group select:focus {
+  border-color: var(--primary-color, #1890ff);
   outline: none;
-  border-color: var(--primary-color, #2a85ff);
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-.form-help-text {
-  margin-top: 6px;
-  font-size: 12px;
+.form-group input:disabled,
+.form-group select:disabled {
+  background-color: var(--disabled-bg, #f5f5f5);
+  cursor: not-allowed;
+}
+
+.model-info {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: var(--info-bg, #f0f7ff);
+  border-radius: 4px;
+  font-size: 13px;
   color: var(--text-secondary, #666);
 }
 
-.dialog-footer {
+.dialog-actions {
   display: flex;
   justify-content: flex-end;
-  padding: 16px 20px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
-  background-color: var(--bg-secondary, #f5f5f5);
+  margin-top: 24px;
+  gap: 12px;
 }
 
-.dialog-button {
+.cancel-button,
+.submit-button {
   padding: 8px 16px;
   border-radius: 4px;
   font-size: 14px;
@@ -135,30 +143,28 @@
   transition: all 0.2s;
 }
 
-.dialog-button:disabled {
+.cancel-button {
+  background-color: var(--button-secondary-bg, #f0f0f0);
+  color: var(--text-primary, #333);
+  border: 1px solid var(--border-color, #d9d9d9);
+}
+
+.cancel-button:hover {
+  background-color: var(--button-secondary-hover, #e0e0e0);
+}
+
+.submit-button {
+  background-color: var(--primary-color, #1890ff);
+  color: white;
+  border: none;
+}
+
+.submit-button:hover {
+  background-color: var(--primary-hover, #40a9ff);
+}
+
+.cancel-button:disabled,
+.submit-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.dialog-button-secondary {
-  margin-right: 8px;
-  background-color: transparent;
-  border: 1px solid var(--border-color, #e0e0e0);
-  color: var(--text-secondary, #666);
-}
-
-.dialog-button-secondary:hover:not(:disabled) {
-  background-color: var(--hover-color, #f0f0f0);
-  color: var(--text-primary, #333);
-}
-
-.dialog-button-primary {
-  background-color: var(--primary-color, #2a85ff);
-  border: 1px solid var(--primary-color, #2a85ff);
-  color: #fff;
-}
-
-.dialog-button-primary:hover:not(:disabled) {
-  background-color: var(--primary-dark, #0064e6);
-  border-color: var(--primary-dark, #0064e6);
 } 

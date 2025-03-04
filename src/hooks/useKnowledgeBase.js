@@ -3,8 +3,14 @@
  * 用于在React组件中使用知识库功能
  */
 import { useState, useEffect, useCallback } from 'react';
-import { KnowledgeDB } from '../utils/db';
-import KnowledgeService from '../services/KnowledgeBaseService';
+import { db } from '../utils/db';
+import toastManager from '../utils/toastManager';
+import {
+  addKnowledgeBase as addKnowledgeBaseService,
+  addFileToKnowledgeBase as addFileService,
+  addUrlToKnowledgeBase as addUrlService,
+  addNoteToKnowledgeBase as addNoteService
+} from '../services/KnowledgeBaseService';
 import { KnowledgeItemTypes } from '../types/knowledgeBase';
 
 /**
@@ -16,84 +22,103 @@ export const useKnowledgeBases = () => {
   const [loading, setLoading] = useState(true);
   
   // 加载所有知识库
-  const loadBases = useCallback(async () => {
-    setLoading(true);
+  const loadAllBases = useCallback(async () => {
     try {
-      const allBases = await KnowledgeDB.getAllBases();
+      setLoading(true);
+      const allBases = await db.knowledgeBases.toArray();
       setBases(allBases);
     } catch (error) {
-      console.error('Failed to load knowledge bases:', error);
+      console.error('加载知识库失败:', error);
+      toastManager.error('加载知识库失败: ' + error.message);
     } finally {
       setLoading(false);
     }
   }, []);
   
   // 添加知识库
-  const addBase = useCallback(async (name, model) => {
+  const addBase = useCallback(async (name, modelId) => {
     try {
-      const newBase = await KnowledgeService.addKnowledgeBase(name, model);
+      const newBase = await addKnowledgeBaseService(name, modelId);
       setBases(prev => [...prev, newBase]);
       return newBase;
     } catch (error) {
-      console.error('Failed to add knowledge base:', error);
+      console.error('添加知识库失败:', error);
+      toastManager.error('添加知识库失败: ' + error.message);
       throw error;
     }
   }, []);
   
   // 重命名知识库
-  const renameBase = useCallback(async (baseId, name) => {
+  const renameBase = useCallback(async (baseId, newName) => {
     try {
-      await KnowledgeDB.updateBase(baseId, { name });
-      setBases(prev => 
-        prev.map(base => 
-          base.id === baseId ? { ...base, name } : base
-        )
-      );
+      await db.knowledgeBases.update(baseId, { 
+        name: newName,
+        updatedAt: new Date().toISOString()
+      });
+      
+      setBases(prev => prev.map(base => 
+        base.id === baseId ? { ...base, name: newName, updatedAt: new Date().toISOString() } : base
+      ));
     } catch (error) {
-      console.error('Failed to rename knowledge base:', error);
-      throw error;
+      console.error('重命名知识库失败:', error);
+      toastManager.error('重命名知识库失败: ' + error.message);
     }
   }, []);
   
   // 删除知识库
   const deleteBase = useCallback(async (baseId) => {
     try {
-      await KnowledgeDB.deleteBase(baseId);
+      // 获取知识库中的所有项目
+      const items = await db.knowledgeItems.where('baseId').equals(baseId).toArray();
+      
+      // 删除所有项目
+      for (const item of items) {
+        await db.knowledgeItems.delete(item.id);
+      }
+      
+      // 删除知识库
+      await db.knowledgeBases.delete(baseId);
+      
+      // 更新状态
       setBases(prev => prev.filter(base => base.id !== baseId));
+      
+      toastManager.success('删除知识库成功');
     } catch (error) {
-      console.error('Failed to delete knowledge base:', error);
-      throw error;
+      console.error('删除知识库失败:', error);
+      toastManager.error('删除知识库失败: ' + error.message);
     }
   }, []);
   
   // 更新知识库设置
-  const updateBaseSettings = useCallback(async (baseId, settings) => {
+  const updateBase = useCallback(async (baseId, updates) => {
     try {
-      await KnowledgeDB.updateBase(baseId, settings);
-      setBases(prev => 
-        prev.map(base => 
-          base.id === baseId ? { ...base, ...settings } : base
-        )
-      );
+      await db.knowledgeBases.update(baseId, {
+        ...updates,
+        updatedAt: new Date().toISOString()
+      });
+      
+      setBases(prev => prev.map(base => 
+        base.id === baseId ? { ...base, ...updates, updatedAt: new Date().toISOString() } : base
+      ));
     } catch (error) {
-      console.error('Failed to update knowledge base settings:', error);
-      throw error;
+      console.error('更新知识库设置失败:', error);
+      toastManager.error('更新知识库设置失败: ' + error.message);
     }
   }, []);
   
   // 组件挂载时加载所有知识库
   useEffect(() => {
-    loadBases();
-  }, [loadBases]);
+    loadAllBases();
+  }, [loadAllBases]);
   
   return {
     bases,
     loading,
+    refreshBases: loadAllBases,
     addBase,
     renameBase,
     deleteBase,
-    updateBaseSettings,
-    refreshBases: loadBases
+    updateBase
   };
 };
 
@@ -102,259 +127,182 @@ export const useKnowledgeBases = () => {
  * @param {string} baseId 知识库ID
  * @returns {Object} 知识库操作对象
  */
-export const useKnowledgeBase = (baseId) => {
+export const useKnowledge = (baseId) => {
   const [base, setBase] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
-  const [processingItems, setProcessingItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   // 加载知识库
   const loadBase = useCallback(async () => {
     if (!baseId) return;
     
-    setLoading(true);
     try {
-      const knowledgeBase = await KnowledgeDB.getBase(baseId);
-      if (knowledgeBase) {
-        setBase(knowledgeBase);
-        setItems(knowledgeBase.items || []);
-        
-        // 过滤正在处理的项目
-        const processing = (knowledgeBase.items || []).filter(
-          item => item.processingStatus === 'pending' || item.processingStatus === 'processing'
-        );
-        setProcessingItems(processing);
+      setLoading(true);
+      
+      // 加载知识库数据
+      const baseData = await db.knowledgeBases.get(baseId);
+      
+      if (baseData) {
+        // 加载知识库项目
+        const itemsData = await db.knowledgeItems.where('baseId').equals(baseId).toArray();
+        setBase(baseData);
+        setItems(itemsData);
+      } else {
+        console.error(`知识库 ${baseId} 不存在`);
       }
     } catch (error) {
-      console.error('Failed to load knowledge base:', error);
+      console.error('加载知识库失败:', error);
+      toastManager.error('加载知识库失败: ' + error.message);
     } finally {
       setLoading(false);
     }
   }, [baseId]);
   
   // 添加文件
-  const addFiles = useCallback(async (files) => {
-    if (!baseId || !files.length) return;
+  const addFile = useCallback(async (file) => {
+    if (!baseId) return;
     
     try {
-      const newItems = [];
+      const newItem = await addFileService(baseId, file);
+      setItems(prev => [...prev, newItem]);
       
-      for (const file of files) {
-        const item = await KnowledgeService.addFileToKnowledgeBase(baseId, file);
-        newItems.push(item);
-      }
+      // 更新知识库的更新时间和文档数量
+      setBase(prev => ({
+        ...prev,
+        documentCount: (prev.documentCount || 0) + 1,
+        itemCount: (prev.itemCount || 0) + 1,
+        updatedAt: new Date().toISOString()
+      }));
       
-      setItems(prev => [...prev, ...newItems]);
-      setProcessingItems(prev => [...prev, ...newItems]);
-      
-      return newItems;
+      return newItem;
     } catch (error) {
-      console.error('Failed to add files:', error);
-      throw error;
+      console.error('添加文件失败:', error);
+      toastManager.error('添加文件失败: ' + error.message);
     }
   }, [baseId]);
   
   // 添加URL
   const addUrl = useCallback(async (url) => {
-    if (!baseId || !url) return;
+    if (!baseId) return;
     
     try {
-      const item = await KnowledgeService.addUrlToKnowledgeBase(baseId, url);
-      setItems(prev => [...prev, item]);
-      setProcessingItems(prev => [...prev, item]);
-      return item;
+      const newItem = await addUrlService(baseId, url);
+      setItems(prev => [...prev, newItem]);
+      
+      // 更新知识库的更新时间和文档数量
+      setBase(prev => ({
+        ...prev,
+        documentCount: (prev.documentCount || 0) + 1,
+        itemCount: (prev.itemCount || 0) + 1,
+        updatedAt: new Date().toISOString()
+      }));
+      
+      return newItem;
     } catch (error) {
-      console.error('Failed to add URL:', error);
-      throw error;
+      console.error('添加URL失败:', error);
+      toastManager.error('添加URL失败: ' + error.message);
     }
   }, [baseId]);
   
   // 添加笔记
-  const addNote = useCallback(async (content) => {
-    if (!baseId || !content) return;
+  const addNote = useCallback(async (title, content) => {
+    if (!baseId) return;
     
     try {
-      const item = await KnowledgeService.addNoteToKnowledgeBase(baseId, content);
-      setItems(prev => [...prev, item]);
-      setProcessingItems(prev => [...prev, item]);
-      return item;
+      const newItem = await addNoteService(baseId, title, content);
+      setItems(prev => [...prev, newItem]);
+      
+      // 更新知识库的更新时间和文档数量
+      setBase(prev => ({
+        ...prev,
+        documentCount: (prev.documentCount || 0) + 1,
+        itemCount: (prev.itemCount || 0) + 1,
+        updatedAt: new Date().toISOString()
+      }));
+      
+      return newItem;
     } catch (error) {
-      console.error('Failed to add note:', error);
-      throw error;
+      console.error('添加笔记失败:', error);
+      toastManager.error('添加笔记失败: ' + error.message);
     }
   }, [baseId]);
   
-  // 更新笔记内容
-  const updateNoteContent = useCallback(async (itemId, content) => {
-    if (!itemId || !content) return;
-    
-    try {
-      await KnowledgeDB.updateNoteContent(itemId, content);
-      
-      // 更新项目处理状态
-      await KnowledgeService.updateItemStatus(itemId, 'pending', 0);
-      setItems(prev => 
-        prev.map(item => 
-          item.id === itemId 
-            ? { ...item, processingStatus: 'pending', processingProgress: 0 } 
-            : item
-        )
-      );
-      
-      // 模拟处理过程
-      setTimeout(async () => {
-        await KnowledgeService.updateItemStatus(itemId, 'processing', 50);
-        setItems(prev => 
-          prev.map(item => 
-            item.id === itemId 
-              ? { ...item, processingStatus: 'processing', processingProgress: 50 } 
-              : item
-          )
-        );
-        
-        setTimeout(async () => {
-          await KnowledgeService.updateItemStatus(itemId, 'completed', 100);
-          setItems(prev => 
-            prev.map(item => 
-              item.id === itemId 
-                ? { ...item, processingStatus: 'completed', processingProgress: 100 } 
-                : item
-            )
-          );
-          setProcessingItems(prev => prev.filter(item => item.id !== itemId));
-        }, 1000);
-      }, 500);
-    } catch (error) {
-      console.error('Failed to update note content:', error);
-      throw error;
-    }
-  }, []);
-  
-  // 获取笔记内容
-  const getNoteContent = useCallback(async (itemId) => {
-    if (!itemId) return '';
-    
-    try {
-      return await KnowledgeDB.getNoteContent(itemId);
-    } catch (error) {
-      console.error('Failed to get note content:', error);
-      return '';
-    }
-  }, []);
-  
-  // 更新项目
-  const updateItem = useCallback(async (itemId, updates) => {
-    if (!itemId) return;
-    
-    try {
-      await KnowledgeDB.updateItem(itemId, updates);
-      setItems(prev => 
-        prev.map(item => 
-          item.id === itemId ? { ...item, ...updates } : item
-        )
-      );
-    } catch (error) {
-      console.error('Failed to update item:', error);
-      throw error;
-    }
-  }, []);
-  
   // 删除项目
   const removeItem = useCallback(async (itemId) => {
-    if (!itemId) return;
+    if (!baseId) return;
     
     try {
-      await KnowledgeDB.deleteItem(itemId);
+      // 获取项目
+      const item = await db.knowledgeItems.get(itemId);
+      
+      if (!item) {
+        throw new Error(`项目 ${itemId} 不存在`);
+      }
+      
+      // 删除项目
+      await db.knowledgeItems.delete(itemId);
+      
+      // 更新状态
       setItems(prev => prev.filter(item => item.id !== itemId));
-      setProcessingItems(prev => prev.filter(item => item.id !== itemId));
+      
+      // 更新知识库的更新时间和文档数量
+      setBase(prev => ({
+        ...prev,
+        documentCount: Math.max(0, (prev.documentCount || 0) - 1),
+        itemCount: Math.max(0, (prev.itemCount || 0) - 1),
+        updatedAt: new Date().toISOString()
+      }));
     } catch (error) {
-      console.error('Failed to remove item:', error);
-      throw error;
+      console.error('删除项目失败:', error);
+      toastManager.error('删除项目失败: ' + error.message);
     }
-  }, []);
+  }, [baseId]);
   
-  // 获取处理状态
-  const getProcessingStatus = useCallback((itemId) => {
-    const item = items.find(item => item.id === itemId);
-    return item ? item.processingStatus : null;
-  }, [items]);
+  // 更新知识库信息
+  const updateBaseInfo = useCallback(async (updates) => {
+    if (!baseId) return;
+    
+    try {
+      await db.knowledgeBases.update(baseId, {
+        ...updates,
+        updatedAt: new Date().toISOString()
+      });
+      
+      setBase(prev => ({
+        ...prev,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error('更新知识库信息失败:', error);
+      toastManager.error('更新知识库信息失败: ' + error.message);
+    }
+  }, [baseId]);
   
-  // 获取处理进度
-  const getProcessingProgress = useCallback((itemId) => {
-    const item = items.find(item => item.id === itemId);
-    return item ? item.processingProgress || 0 : 0;
-  }, [items]);
-  
-  // 过滤指定类型的项目
-  const getItemsByType = useCallback((type) => {
-    return items.filter(item => item.type === type);
-  }, [items]);
-  
-  // 获取指定类型的正在处理的项目
-  const getProcessingItemsByType = useCallback((type) => {
-    return processingItems.filter(item => item.type === type);
-  }, [processingItems]);
-  
-  // 清除已完成的项目
-  const clearCompleted = useCallback(() => {
-    setProcessingItems(prev => 
-      prev.filter(item => 
-        item.processingStatus !== 'completed' && item.processingStatus !== 'failed'
-      )
-    );
-  }, []);
+  // 刷新知识库数据
+  const refreshBase = useCallback(() => {
+    loadBase();
+  }, [loadBase]);
   
   // 组件挂载时加载知识库
   useEffect(() => {
     loadBase();
-    
-    // 定期更新处理状态
-    const intervalId = setInterval(() => {
-      processingItems.forEach(async (item) => {
-        const updatedItem = await KnowledgeDB.getBase(baseId)
-          .then(base => base.items.find(i => i.id === item.id));
-          
-        if (updatedItem && updatedItem.processingStatus !== item.processingStatus) {
-          setItems(prev => 
-            prev.map(i => 
-              i.id === item.id ? { ...i, ...updatedItem } : i
-            )
-          );
-          
-          if (updatedItem.processingStatus === 'completed' || updatedItem.processingStatus === 'failed') {
-            setProcessingItems(prev => prev.filter(i => i.id !== item.id));
-          }
-        }
-      });
-    }, 2000);
-    
-    return () => clearInterval(intervalId);
-  }, [baseId, loadBase, processingItems]);
+  }, [loadBase]);
   
   return {
     base,
-    loading,
     items,
-    processingItems,
-    addFiles,
+    loading,
+    refreshBase,
+    addFile,
     addUrl,
     addNote,
-    updateNoteContent,
-    getNoteContent,
-    updateItem,
     removeItem,
-    getProcessingStatus,
-    getProcessingProgress,
-    getItemsByType,
-    getProcessingItemsByType,
-    clearCompleted,
-    refreshBase: loadBase,
-    fileItems: getItemsByType(KnowledgeItemTypes.FILE),
-    urlItems: getItemsByType(KnowledgeItemTypes.URL),
-    noteItems: getItemsByType(KnowledgeItemTypes.NOTE),
-    sitemapItems: getItemsByType(KnowledgeItemTypes.SITEMAP),
-    directoryItems: getItemsByType(KnowledgeItemTypes.DIRECTORY)
+    updateBaseInfo
   };
 };
 
-export default useKnowledgeBase; 
+export default {
+  useKnowledgeBases,
+  useKnowledge
+}; 

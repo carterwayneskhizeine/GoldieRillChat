@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/embedding.css';
+import { useKnowledgeBases, useKnowledge } from '../hooks/useKnowledgeBase';
+import AddKnowledgeBaseDialog from './AddKnowledgeBaseDialog';
+
+// 定义嵌入模型选项
+const modelOptions = [
+  { id: 'BAAI/bge-m3', name: 'BAAI/bge-m3', provider: 'SiliconFlow', dimensions: 1024, tokens: 8192 },
+  { id: 'netease-youdao/bce-embedding-base_v1', name: 'netease-youdao/bce-embedding-base_v1', provider: 'SiliconFlow', dimensions: 768, tokens: 512 },
+  { id: 'BAAI/bge-large-zh-v1.5', name: 'BAAI/bge-large-zh-v1.5', provider: 'SiliconFlow', dimensions: 1024, tokens: 512 },
+  { id: 'BAAI/bge-large-en-v1.5', name: 'BAAI/bge-large-en-v1.5', provider: 'SiliconFlow', dimensions: 1024, tokens: 512 },
+  { id: 'Pro/BAAI/bge-m3', name: 'Pro/BAAI/bge-m3', provider: 'SiliconFlow', dimensions: 1024, tokens: 8192 },
+  { id: 'text-embedding-3-small', name: 'text-embedding-3-small', provider: 'OpenAI', dimensions: 1536, tokens: 8191 },
+  { id: 'text-embedding-3-large', name: 'text-embedding-3-large', provider: 'OpenAI', dimensions: 3072, tokens: 8191 },
+  { id: 'text-embedding-ada-002', name: 'text-embedding-ada-002', provider: 'OpenAI', dimensions: 1536, tokens: 8191 }
+];
 
 const Embedding = () => {
   // 状态管理
@@ -12,42 +26,87 @@ const Embedding = () => {
   // 添加分段数量状态到组件顶层，默认值改为6
   const [segmentCount, setSegmentCount] = useState(6);
   
-  // 模拟数据 - 实际应用中应从后端获取
-  const [knowledgeBases, setKnowledgeBases] = useState([
-    { id: 1, name: '工作文档', model: 'text-embedding-3-small', itemCount: 12, lastUpdated: '2023-10-15' },
-    { id: 2, name: '学习资料', model: 'text-embedding-3-small', itemCount: 8, lastUpdated: '2023-11-20' },
-  ]);
+  // 从钩子获取知识库数据
+  const { bases: knowledgeBases, loading, refreshBases, addBase, renameBase, deleteBase, updateBase } = useKnowledgeBases();
   
-  const [processingQueue, setProcessingQueue] = useState([
-    { id: 101, type: 'file', name: '项目说明.pdf', status: 'completed', progress: 100, knowledgeBaseId: 1 },
-    { id: 102, type: 'url', name: 'https://example.com/docs', status: 'processing', progress: 65, knowledgeBaseId: 1 },
-    { id: 103, type: 'folder', name: '研究文献', status: 'pending', progress: 0, knowledgeBaseId: 2 }
-  ]);
+  // 处理队列相关
+  const [processingQueue, setProcessingQueue] = useState([]);
+  
+  // 当知识库列表发生变化时，更新选中的知识库
+  useEffect(() => {
+    if (knowledgeBases.length > 0 && !selectedKnowledgeBase) {
+      setSelectedKnowledgeBase(knowledgeBases[0]);
+    } else if (selectedKnowledgeBase && knowledgeBases.length > 0) {
+      // 检查选中的知识库是否仍然存在
+      const stillExists = knowledgeBases.some(kb => kb.id === selectedKnowledgeBase.id);
+      if (!stillExists) {
+        setSelectedKnowledgeBase(knowledgeBases[0]);
+      } else {
+        // 更新选中的知识库信息
+        const updatedBase = knowledgeBases.find(kb => kb.id === selectedKnowledgeBase.id);
+        if (updatedBase) {
+          setSelectedKnowledgeBase(updatedBase);
+        }
+      }
+    } else if (knowledgeBases.length === 0) {
+      setSelectedKnowledgeBase(null);
+    }
+  }, [knowledgeBases, selectedKnowledgeBase]);
+  
+  // 使用useKnowledge钩子获取选中知识库的详细信息和处理队列
+  const { items = [], loading: itemsLoading, refreshBase, addFile, addUrl, addNote, removeItem } = 
+    useKnowledge(selectedKnowledgeBase?.id);
+  
+  // 当选中的知识库变化时，更新处理队列
+  useEffect(() => {
+    if (items.length > 0) {
+      const queue = items.filter(item => 
+        item.status === 'pending' || item.status === 'processing' || item.status === 'completed'
+      );
+      setProcessingQueue(queue);
+    } else {
+      setProcessingQueue([]);
+    }
+  }, [items]);
   
   // 创建新知识库
-  const createKnowledgeBase = (name, model) => {
-    const newKnowledgeBase = {
-      id: Date.now(),
-      name,
-      model,
-      itemCount: 0,
-      lastUpdated: new Date().toISOString().split('T')[0]
-    };
-    setKnowledgeBases([...knowledgeBases, newKnowledgeBase]);
-    return newKnowledgeBase;
+  const createKnowledgeBase = async (name, modelId) => {
+    try {
+      const newBase = await addBase(name, modelId);
+      return newBase;
+    } catch (error) {
+      console.error('创建知识库失败:', error);
+      throw error;
+    }
   };
   
   // 添加内容到知识库
-  const addContentToKnowledgeBase = (knowledgeBaseId, content) => {
-    const newItem = {
-      id: Date.now(),
-      type: content.type,
-      name: content.name,
-      status: 'pending',
-      progress: 0,
-      knowledgeBaseId
-    };
-    setProcessingQueue([...processingQueue, newItem]);
+  const addContentToKnowledgeBase = async (knowledgeBaseId, content) => {
+    if (!knowledgeBaseId) return;
+    
+    try {
+      let newItem;
+      
+      switch (content.type) {
+        case 'file':
+          newItem = await addFile(content.file);
+          break;
+        case 'url':
+          newItem = await addUrl(content.url);
+          break;
+        case 'note':
+          newItem = await addNote(content.title, content.content);
+          break;
+        default:
+          console.error('不支持的内容类型:', content.type);
+          return;
+      }
+      
+      return newItem;
+    } catch (error) {
+      console.error('添加内容到知识库失败:', error);
+      throw error;
+    }
   };
   
   // 渲染知识库列表
@@ -65,24 +124,45 @@ const Embedding = () => {
         </div>
         
         <div className="overflow-auto max-h-full">
-          {knowledgeBases.map(kb => (
-            <div 
-              key={kb.id} 
-              className={`knowledge-base-item p-3 cursor-pointer ${selectedKnowledgeBase?.id === kb.id ? 'border-primary border-2' : ''}`}
-              onClick={() => setSelectedKnowledgeBase(kb)}
-            >
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold">{kb.name}</h3>
-                <span className="badge badge-sm">{kb.itemCount} 项</span>
-              </div>
-              <div className="text-sm opacity-70 mt-1">
-                模型: {kb.model}
-              </div>
-              <div className="text-xs opacity-50 mt-1">
-                更新于: {kb.lastUpdated}
-              </div>
+          {loading ? (
+            <div className="text-center py-8 text-base-content text-opacity-60">
+              <div className="loading loading-spinner loading-md"></div>
+              <p>加载知识库...</p>
             </div>
-          ))}
+          ) : knowledgeBases.length === 0 ? (
+            <div className="text-center py-8 text-base-content text-opacity-60">
+              <p className="mb-4">尚未创建知识库</p>
+              <button 
+                className="btn btn-sm btn-primary"
+                onClick={() => setShowAddDialog(true)}
+              >
+                创建知识库
+              </button>
+            </div>
+          ) : (
+            knowledgeBases.map(kb => (
+              <div 
+                key={kb.id} 
+                className={`knowledge-base-item p-3 cursor-pointer ${selectedKnowledgeBase?.id === kb.id ? 'border-primary border-2' : ''}`}
+                onClick={() => setSelectedKnowledgeBase(kb)}
+              >
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold">{kb.name}</h3>
+                  <span className="badge badge-sm">{kb.itemCount || kb.documentCount || 0} 项</span>
+                </div>
+                <div className="text-sm opacity-70 mt-1">
+                  模型: {kb.model.name}
+                </div>
+                <div className="text-xs opacity-50 mt-1 flex justify-between">
+                  <span>提供商: {kb.model.provider}</span>
+                  <span>维度: {kb.model.dimensions}</span>
+                </div>
+                <div className="text-xs opacity-50 mt-1">
+                  更新于: {new Date(kb.updatedAt).toLocaleDateString()}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     );
@@ -91,7 +171,7 @@ const Embedding = () => {
   // 渲染处理队列
   const renderProcessingQueue = () => {
     const filteredQueue = selectedKnowledgeBase 
-      ? processingQueue.filter(item => item.knowledgeBaseId === selectedKnowledgeBase.id)
+      ? processingQueue.filter(item => item.baseId === selectedKnowledgeBase.id)
       : processingQueue;
       
     return (
@@ -108,24 +188,26 @@ const Embedding = () => {
                 <div className="flex items-center">
                   {item.type === 'file' && <span className="mr-2">📄</span>}
                   {item.type === 'url' && <span className="mr-2">🔗</span>}
+                  {item.type === 'note' && <span className="mr-2">📝</span>}
                   {item.type === 'folder' && <span className="mr-2">📁</span>}
-                  <span className="font-medium">{item.name}</span>
+                  <span className="font-medium">{item.name || item.title}</span>
                 </div>
               </div>
               
               <div className="flex justify-between items-center">
                 <div className="badge badge-sm">
+                  {item.status === 'ready' && <span className="text-success">已完成</span>}
                   {item.status === 'completed' && <span className="text-success">已完成</span>}
                   {item.status === 'processing' && <span className="text-warning">处理中</span>}
                   {item.status === 'pending' && <span className="text-info">等待中</span>}
-                  {item.status === 'failed' && <span className="text-error">失败</span>}
+                  {item.status === 'error' && <span className="text-error">失败</span>}
                 </div>
               </div>
               
               {item.status === 'processing' && (
                 <progress 
                   className="progress progress-primary w-full mt-2" 
-                  value={item.progress} 
+                  value={50} 
                   max="100"
                 ></progress>
               )}
@@ -170,18 +252,6 @@ const Embedding = () => {
             网址
           </a>
           <a 
-            className={`tab ${addContentType === 'folder' ? 'tab-active' : ''}`}
-            onClick={() => setAddContentType('folder')}
-          >
-            文件夹
-          </a>
-          <a 
-            className={`tab ${addContentType === 'sitemap' ? 'tab-active' : ''}`}
-            onClick={() => setAddContentType('sitemap')}
-          >
-            网站地图
-          </a>
-          <a 
             className={`tab ${addContentType === 'note' ? 'tab-active' : ''}`}
             onClick={() => setAddContentType('note')}
           >
@@ -194,12 +264,38 @@ const Embedding = () => {
             <div className="border-2 border-dashed border-base-300 rounded-lg flex flex-col items-center justify-center p-10 mb-4">
               <div className="text-5xl mb-4">📄</div>
               <p className="mb-4 text-center">拖放文件到此处或点击上传</p>
-              <button className="btn btn-outline">选择文件</button>
+              <button 
+                className="btn btn-outline"
+                onClick={() => {
+                  // 这里应该触发文件选择对话框
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.pdf,.docx,.txt,.md';
+                  input.onchange = async (e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const file = e.target.files[0];
+                      try {
+                        await addContentToKnowledgeBase(selectedKnowledgeBase.id, {
+                          type: 'file',
+                          file: file
+                        });
+                        // 刷新知识库
+                        refreshBase();
+                      } catch (error) {
+                        console.error('添加文件失败:', error);
+                        // 显示错误提示
+                      }
+                    }
+                  };
+                  input.click();
+                }}
+              >
+                选择文件
+              </button>
               <p className="mt-4 text-sm text-base-content text-opacity-60">
                 支持 PDF, DOCX, TXT, MD 等文件格式
               </p>
             </div>
-            <button className="btn btn-primary">添加到知识库</button>
           </div>
         )}
         
@@ -209,45 +305,39 @@ const Embedding = () => {
               <label className="label">
                 <span className="label-text">输入网址</span>
               </label>
-              <input type="text" placeholder="https://example.com" className="input input-bordered" />
+              <input 
+                type="text" 
+                placeholder="https://example.com" 
+                className="input input-bordered" 
+                id="url-input"
+              />
               <label className="label">
                 <span className="label-text-alt">网页内容将被抓取并添加到知识库</span>
               </label>
             </div>
-            <button className="btn btn-primary">添加到知识库</button>
-          </div>
-        )}
-        
-        {addContentType === 'folder' && (
-          <div className="flex flex-col">
-            <div className="form-control mb-4">
-              <label className="label">
-                <span className="label-text">选择文件夹</span>
-              </label>
-              <div className="flex">
-                <input type="text" placeholder="选择文件夹路径" className="input input-bordered flex-1" readOnly />
-                <button className="btn ml-2">浏览...</button>
-              </div>
-              <label className="label">
-                <span className="label-text-alt">文件夹中的所有支持文件类型都将被处理</span>
-              </label>
-            </div>
-            <button className="btn btn-primary">添加到知识库</button>
-          </div>
-        )}
-        
-        {addContentType === 'sitemap' && (
-          <div className="flex flex-col">
-            <div className="form-control mb-4">
-              <label className="label">
-                <span className="label-text">网站地图 URL</span>
-              </label>
-              <input type="text" placeholder="https://example.com/sitemap.xml" className="input input-bordered" />
-              <label className="label">
-                <span className="label-text-alt">网站地图中的所有 URL 将被抓取</span>
-              </label>
-            </div>
-            <button className="btn btn-primary">添加到知识库</button>
+            <button 
+              className="btn btn-primary"
+              onClick={async () => {
+                const urlInput = document.getElementById('url-input');
+                if (urlInput && urlInput.value) {
+                  try {
+                    await addContentToKnowledgeBase(selectedKnowledgeBase.id, {
+                      type: 'url',
+                      url: urlInput.value
+                    });
+                    // 清空输入框
+                    urlInput.value = '';
+                    // 刷新知识库
+                    refreshBase();
+                  } catch (error) {
+                    console.error('添加URL失败:', error);
+                    // 显示错误提示
+                  }
+                }
+              }}
+            >
+              添加到知识库
+            </button>
           </div>
         )}
         
@@ -255,11 +345,49 @@ const Embedding = () => {
           <div className="flex flex-col">
             <div className="form-control mb-4">
               <label className="label">
+                <span className="label-text">笔记标题</span>
+              </label>
+              <input 
+                type="text" 
+                placeholder="输入笔记标题" 
+                className="input input-bordered mb-2" 
+                id="note-title-input"
+              />
+              <label className="label">
                 <span className="label-text">笔记内容</span>
               </label>
-              <textarea className="textarea textarea-bordered h-32" placeholder="输入笔记内容..."></textarea>
+              <textarea 
+                className="textarea textarea-bordered h-32" 
+                placeholder="输入笔记内容..."
+                id="note-content-input"
+              ></textarea>
             </div>
-            <button className="btn btn-primary">添加到知识库</button>
+            <button 
+              className="btn btn-primary"
+              onClick={async () => {
+                const titleInput = document.getElementById('note-title-input');
+                const contentInput = document.getElementById('note-content-input');
+                if (contentInput && contentInput.value) {
+                  try {
+                    await addContentToKnowledgeBase(selectedKnowledgeBase.id, {
+                      type: 'note',
+                      title: titleInput ? titleInput.value : '未命名笔记',
+                      content: contentInput.value
+                    });
+                    // 清空输入框
+                    if (titleInput) titleInput.value = '';
+                    contentInput.value = '';
+                    // 刷新知识库
+                    refreshBase();
+                  } catch (error) {
+                    console.error('添加笔记失败:', error);
+                    // 显示错误提示
+                  }
+                }
+              }}
+            >
+              添加到知识库
+            </button>
           </div>
         )}
       </div>
@@ -314,9 +442,27 @@ const Embedding = () => {
                   boxShadow: "0 0 15px rgba(0, 0, 0, 0.8)",
                   opacity: 1
                 }}>
-                <li><a style={{color: "white"}}>重新构建索引</a></li>
+                <li><a style={{color: "white"}} onClick={refreshBase}>刷新数据</a></li>
                 <li><a style={{color: "white"}}>导出数据</a></li>
-                <li><a className="text-error">删除知识库</a></li>
+                <li>
+                  <a 
+                    className="text-error" 
+                    onClick={async () => {
+                      // 删除知识库前确认
+                      if (window.confirm(`确定要删除知识库 "${selectedKnowledgeBase.name}" 吗？此操作不可逆。`)) {
+                        try {
+                          await deleteBase(selectedKnowledgeBase.id);
+                          // 删除成功后会通过钩子自动更新知识库列表
+                        } catch (error) {
+                          console.error('删除知识库失败:', error);
+                          // 显示错误提示
+                        }
+                      }
+                    }}
+                  >
+                    删除知识库
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
@@ -374,28 +520,41 @@ const Embedding = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {processingQueue
-                    .filter(item => item.knowledgeBaseId === selectedKnowledgeBase.id)
-                    .map(item => (
+                  {itemsLoading ? (
+                    <tr>
+                      <td colSpan="5" className="text-center py-4">
+                        <div className="loading loading-spinner loading-md"></div>
+                        <p>加载内容项...</p>
+                      </td>
+                    </tr>
+                  ) : items.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="text-center py-4">
+                        <p>暂无内容项，请添加内容</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map(item => (
                       <tr key={item.id}>
                         <td>
                           <div className="flex items-center space-x-3">
                             {item.type === 'file' && <span>📄</span>}
                             {item.type === 'url' && <span>🔗</span>}
-                            {item.type === 'folder' && <span>📁</span>}
+                            {item.type === 'note' && <span>📝</span>}
                             <div>
-                              <div className="font-bold">{item.name}</div>
+                              <div className="font-bold">{item.name || item.title}</div>
                             </div>
                           </div>
                         </td>
                         <td>{item.type}</td>
-                        <td>2023-12-05</td>
+                        <td>{new Date(item.createdAt).toLocaleDateString()}</td>
                         <td>
                           <div>
+                            {item.status === 'ready' && <span className="badge badge-success">已完成</span>}
                             {item.status === 'completed' && <span className="badge badge-success">已完成</span>}
                             {item.status === 'processing' && <span className="badge badge-warning">处理中</span>}
                             {item.status === 'pending' && <span className="badge badge-info">等待中</span>}
-                            {item.status === 'failed' && <span className="badge badge-error">失败</span>}
+                            {item.status === 'error' && <span className="badge badge-error">失败</span>}
                           </div>
                         </td>
                         <td>
@@ -412,12 +571,32 @@ const Embedding = () => {
                               }}>
                               <li><a style={{color: "white"}}>查看详情</a></li>
                               <li><a style={{color: "white"}}>重新处理</a></li>
-                              <li><a className="text-error">删除</a></li>
+                              <li>
+                                <a 
+                                  className="text-error" 
+                                  onClick={async () => {
+                                    // 删除项目前确认
+                                    if (window.confirm(`确定要删除 "${item.name || item.title}" 吗？`)) {
+                                      try {
+                                        await removeItem(item.id);
+                                        // 刷新知识库
+                                        refreshBase();
+                                      } catch (error) {
+                                        console.error('删除项目失败:', error);
+                                        // 显示错误提示
+                                      }
+                                    }
+                                  }}
+                                >
+                                  删除
+                                </a>
+                              </li>
                             </ul>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -457,19 +636,19 @@ const Embedding = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>嵌入模型:</span>
-                    <span>{selectedKnowledgeBase.model}</span>
+                    <span>{selectedKnowledgeBase.model.name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>内容项数量:</span>
-                    <span>{selectedKnowledgeBase.itemCount}</span>
+                    <span>{selectedKnowledgeBase.itemCount || selectedKnowledgeBase.documentCount || items.length || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>创建时间:</span>
-                    <span>2023-09-01</span>
+                    <span>{new Date(selectedKnowledgeBase.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>最后更新:</span>
-                    <span>{selectedKnowledgeBase.lastUpdated}</span>
+                    <span>{new Date(selectedKnowledgeBase.updatedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
@@ -481,19 +660,19 @@ const Embedding = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>向量数量:</span>
-                    <span>1,248</span>
+                    <span>{items.filter(item => item.embedding).length}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>维度:</span>
-                    <span>1,536</span>
+                    <span>{selectedKnowledgeBase.model.dimensions}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>文本块数:</span>
-                    <span>356</span>
+                    <span>{items.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>总存储大小:</span>
-                    <span>24.5 MB</span>
+                    <span>相似度阈值:</span>
+                    <span>{selectedKnowledgeBase.threshold || 0.7}</span>
                   </div>
                 </div>
               </div>
@@ -509,85 +688,46 @@ const Embedding = () => {
     if (!showAddDialog) return null;
     
     return (
-      <div className="modal modal-open">
-        <div className="modal-box" style={{
-          backgroundColor: "#1a1a2e", 
-          color: "white",
-          border: "1px solid rgba(255, 255, 255, 0.2)",
-          boxShadow: "0 0 30px rgba(0, 0, 0, 0.8)",
-          opacity: 1,
-          backdropFilter: "none",
-          transform: "scale(1)",
-          transition: "transform 0.2s ease"
-        }}>
-          <h3 className="font-bold text-lg text-white">创建新知识库</h3>
-          <button 
-            className="btn btn-sm btn-circle absolute right-2 top-2"
-            onClick={() => setShowAddDialog(false)}
-            style={{backgroundColor: "rgba(60, 60, 60, 0.9)", color: "white"}}
-          >✕</button>
-          
-          <div className="py-4">
-            <div className="form-control w-full">
-              <label className="label">
-                <span className="label-text text-white">知识库名称</span>
-              </label>
-              <input 
-                type="text" 
-                placeholder="输入知识库名称" 
-                className="input input-bordered w-full" 
-                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
-              />
-            </div>
-            
-            <div className="form-control w-full mt-4">
-              <label className="label">
-                <span className="label-text text-white">嵌入模型</span>
-              </label>
-              <select 
-                className="select select-bordered w-full"
-                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
-              >
-                <option value="text-embedding-3-small">text-embedding-3-small (OpenAI)</option>
-                <option value="text-embedding-3-large">text-embedding-3-large (OpenAI)</option>
-                <option value="text-embedding-ada-002">text-embedding-ada-002 (OpenAI)</option>
-                <option value="bge-large-zh-v1.5">bge-large-zh-v1.5</option>
-                <option value="m3e-large">m3e-large</option>
-              </select>
-              <label className="label">
-                <span className="label-text-alt text-gray-300">不同模型的向量维度和性能各不相同</span>
-              </label>
-            </div>
-          </div>
-          
-          <div className="modal-action">
-            <button 
-              className="btn"
-              onClick={() => setShowAddDialog(false)}
-              style={{backgroundColor: "#353551", color: "white", border: "1px solid rgba(255, 255, 255, 0.15)"}}
-            >
-              取消
-            </button>
-            <button 
-              className="btn btn-primary"
-              onClick={() => {
-                createKnowledgeBase('新知识库', 'text-embedding-3-small');
-                setShowAddDialog(false);
-              }}
-              style={{backgroundColor: "#4554b4", color: "white"}}
-            >
-              创建
-            </button>
-          </div>
-        </div>
-        <div className="modal-backdrop" onClick={() => setShowAddDialog(false)}></div>
-      </div>
+      <AddKnowledgeBaseDialog 
+        isOpen={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onAdd={(newBase) => {
+          // 选中新创建的知识库
+          setSelectedKnowledgeBase(newBase);
+          setShowAddDialog(false);
+        }}
+      />
     );
   };
   
   // 知识库设置对话框
   const renderSettingsDialog = () => {
     if (!showSettingsDialog || !selectedKnowledgeBase) return null;
+    
+    // 本地状态管理
+    const [knowledgeBaseName, setKnowledgeBaseName] = useState(selectedKnowledgeBase.name);
+    const [threshold, setThreshold] = useState(selectedKnowledgeBase.threshold || 0.7);
+    const [chunkSize, setChunkSize] = useState(selectedKnowledgeBase.chunkSize || '');
+    const [chunkOverlap, setChunkOverlap] = useState(selectedKnowledgeBase.chunkOverlap || '');
+    
+    // 保存设置
+    const saveSettings = async () => {
+      try {
+        const updatedBase = {
+          ...selectedKnowledgeBase,
+          name: knowledgeBaseName,
+          threshold: threshold,
+          chunkSize: chunkSize || undefined,
+          chunkOverlap: chunkOverlap || undefined
+        };
+        
+        await updateBase(selectedKnowledgeBase.id, updatedBase);
+        setShowSettingsDialog(false);
+      } catch (error) {
+        console.error('更新知识库设置失败:', error);
+        // 显示错误提示
+      }
+    };
     
     return (
       <div className="modal modal-open">
@@ -615,7 +755,8 @@ const Embedding = () => {
               </label>
               <input 
                 type="text" 
-                defaultValue={selectedKnowledgeBase.name} 
+                value={knowledgeBaseName}
+                onChange={(e) => setKnowledgeBaseName(e.target.value)}
                 className="input input-bordered w-full h-10" 
                 style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
               />
@@ -625,17 +766,19 @@ const Embedding = () => {
               <label className="label py-1">
                 <span className="label-text text-white"><span className="text-error">*</span> 嵌入模型 <span className="text-xs opacity-70">ⓘ</span></span>
               </label>
-              <select 
-                className="select select-bordered w-full h-10"
-                defaultValue={selectedKnowledgeBase.model}
-                disabled
-                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
-              >
-                <option value="text-embedding-3-small">text-embedding-3-small (OpenAI)</option>
-                <option value="text-embedding-3-large">text-embedding-3-large (OpenAI)</option>
-                <option value="text-embedding-ada-002">text-embedding-ada-002 (OpenAI)</option>
-                <option value="bge-m3">BAAI/bge-m3</option>
-              </select>
+              <div className="bg-base-300 p-3 rounded-md">
+                <div className="flex justify-between mb-1">
+                  <span className="font-medium">{selectedKnowledgeBase.model.name}</span>
+                  <span className="badge badge-sm">{selectedKnowledgeBase.model.provider}</span>
+                </div>
+                <div className="text-sm opacity-70">
+                  <div>维度: {selectedKnowledgeBase.model.dimensions}</div>
+                  <div>最大Token: {selectedKnowledgeBase.model.tokens}</div>
+                </div>
+                <div className="text-xs opacity-50 mt-1">
+                  创建知识库后无法更改嵌入模型
+                </div>
+              </div>
             </div>
             
             <div className="form-control w-full mb-2">
@@ -664,6 +807,8 @@ const Embedding = () => {
               <input 
                 type="text" 
                 placeholder="默认值（不建议修改）" 
+                value={chunkSize}
+                onChange={(e) => setChunkSize(e.target.value)}
                 className="input input-bordered w-full h-10" 
                 style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
               />
@@ -676,6 +821,8 @@ const Embedding = () => {
               <input 
                 type="text" 
                 placeholder="默认值（不建议修改）" 
+                value={chunkOverlap}
+                onChange={(e) => setChunkOverlap(e.target.value)}
                 className="input input-bordered w-full h-10" 
                 style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
               />
@@ -685,12 +832,23 @@ const Embedding = () => {
               <label className="label py-1">
                 <span className="label-text text-white">匹配度阈值 <span className="text-xs opacity-70">ⓘ</span></span>
               </label>
-              <input 
-                type="text" 
-                placeholder="未设置" 
-                className="input input-bordered w-full h-10" 
-                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
-              />
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="1" 
+                    step="0.05"
+                    value={threshold}
+                    onChange={(e) => setThreshold(parseFloat(e.target.value))} 
+                    className="range range-xs range-primary w-full" 
+                  />
+                </div>
+                <span className="text-xl font-medium text-white">{threshold}</span>
+              </div>
+              <label className="label">
+                <span className="label-text-alt text-gray-300">较高的阈值会过滤掉更多不太相关的内容</span>
+              </label>
             </div>
           </div>
           
@@ -704,7 +862,7 @@ const Embedding = () => {
             </button>
             <button 
               className="btn btn-primary"
-              onClick={() => setShowSettingsDialog(false)}
+              onClick={saveSettings}
               style={{backgroundColor: "#4554b4", color: "white"}}
             >
               确定
@@ -723,7 +881,7 @@ const Embedding = () => {
         <h2 className="text-xl font-semibold px-2">知识库</h2>
         <div className="flex-grow"></div>
         <div className="btn-group">
-          <button className="btn btn-sm">刷新</button>
+          <button className="btn btn-sm" onClick={refreshBases}>刷新</button>
           <button className="btn btn-sm">帮助</button>
         </div>
       </div>
