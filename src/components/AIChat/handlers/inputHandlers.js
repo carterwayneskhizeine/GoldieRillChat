@@ -8,6 +8,8 @@ import { handleAudioCommand } from './audioCommandHandler';
 import toastManager from '../../../utils/toastManager';
 import { translateText } from '../../../services/translationService';
 import { generateImage } from '../../../services/imageGenerationService';
+import { getKnowledgeBaseReferences } from '../../../services/KnowledgeBaseService';
+import { FOOTNOTE_PROMPT } from '../../../utils/prompts';
 
 export const createInputHandlers = ({
   messageInput,
@@ -43,7 +45,7 @@ export const createInputHandlers = ({
   systemPromptEnabled
 }) => {
   // 处理发送消息
-  const handleSendMessage = async (isRetry = false, retryContent = null, forceNetworkSearch = false) => {
+  const handleSendMessage = async (messageParams = {}, isRetry = false, retryContent = null, forceNetworkSearch = false) => {
     if (!messageInput.trim() && !isRetry) return;
     if (!currentConversation) {
       toastManager.warning('请先创建或选择一个会话');
@@ -52,6 +54,10 @@ export const createInputHandlers = ({
 
     // 获取要发送的内容
     const content = isRetry ? retryContent : messageInput;
+    
+    // 获取知识库IDs和网络搜索设置
+    const knowledgeBaseIds = messageParams?.knowledgeBaseIds || [];
+    const useWebSearch = messageParams?.useWebSearch !== undefined ? messageParams.useWebSearch : isNetworkEnabled;
 
     // 检查是否是语音生成命令
     if (content.startsWith('/tts ')) {
@@ -194,7 +200,8 @@ export const createInputHandlers = ({
           id: Date.now(),
           content: content,
           type: 'user',
-          timestamp: new Date()
+          timestamp: new Date(),
+          knowledgeBaseIds: knowledgeBaseIds // 保存知识库IDs
         };
 
         // 保存用户消息到txt文件
@@ -294,7 +301,8 @@ export const createInputHandlers = ({
           }],
           seed: result.seed,
           model: model,  // 添加模型信息
-          originalPrompt: prompt  // 保存原始提示词，方便重新生成
+          originalPrompt: prompt,  // 保存原始提示词，方便重新生成
+          knowledgeBaseIds: knowledgeBaseIds // 保存知识库IDs
         };
 
         // 更新消息列表
@@ -353,7 +361,8 @@ export const createInputHandlers = ({
         id: Date.now(),
         content: isRetry && retryContent.originalPrompt ? `/image ${retryContent.originalPrompt}` : content,
         type: 'user',
-        timestamp: new Date()
+        timestamp: new Date(),
+        knowledgeBaseIds: knowledgeBaseIds // 保存知识库IDs
       };
 
       // 保存用户消息到txt文件
@@ -408,11 +417,42 @@ export const createInputHandlers = ({
       const messagesWithAI = [...messagesWithUser, aiMessage];
       setMessages(messagesWithAI);
 
-      // 如果启用了网络搜索或强制搜索，进行搜索
+      // 构建系统消息
       let systemMessage = '';
       let searchResults = null;
+      let knowledgeReferences = null;
 
-      if (isNetworkEnabled || forceNetworkSearch) {
+      // 处理知识库引用
+      if (knowledgeBaseIds && knowledgeBaseIds.length > 0) {
+        try {
+          console.log('获取知识库引用:', knowledgeBaseIds);
+          // 获取知识库引用
+          const references = await getKnowledgeBaseReferences({
+            message: content,
+            knowledgeBaseIds
+          });
+          
+          if (references && references.length > 0) {
+            console.log('找到知识库引用:', references.length);
+            // 使用脚注格式提示词
+            systemMessage = FOOTNOTE_PROMPT + '\n\n参考资料:\n\n' + 
+              references.map((ref, index) => (
+                `[${index + 1}] ${ref.title || '未命名文档'}\n${ref.content}\n---\n`
+              )).join('\n');
+            
+            knowledgeReferences = references;
+          } else {
+            console.log('未找到相关知识库引用');
+            toastManager.info('未找到相关知识库引用，将使用模型自身知识回答');
+          }
+        } catch (error) {
+          console.error('获取知识库引用失败:', error);
+          toastManager.error('获取知识库引用失败: ' + error.message);
+        }
+      }
+
+      // 如果启用了网络搜索或强制搜索，进行搜索
+      if ((useWebSearch || forceNetworkSearch) && !knowledgeReferences) {
         try {
           console.log('开始网络搜索:', content);
           const searchResponse = await searchService.searchAndFetchContent(content);
@@ -444,7 +484,7 @@ export const createInputHandlers = ({
         });
       }
       
-      // 如果有搜索系统消息，添加到消息列表
+      // 如果有搜索系统消息或知识库引用，添加到消息列表
       if (systemMessage) {
         messagesHistory.push({
           role: 'system',
@@ -525,7 +565,8 @@ export const createInputHandlers = ({
         txtFile: aiTxtFile,
         model: selectedModel,
         tokens: response.usage?.total_tokens || 0,
-        searchResults: searchResults
+        searchResults: searchResults,
+        knowledgeReferences: knowledgeReferences
       };
 
       // 更新消息列表

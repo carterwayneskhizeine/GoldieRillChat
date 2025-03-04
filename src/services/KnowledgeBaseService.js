@@ -1,0 +1,494 @@
+/**
+ * 知识库服务模块
+ * 处理知识库的各种操作
+ */
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../utils/db';
+import toastManager from '../utils/toastManager';
+
+// 向量相似度计算函数
+const cosineSimilarity = (vecA, vecB) => {
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  
+  if (normA === 0 || normB === 0) return 0;
+  
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+};
+
+/**
+ * 获取知识库参数
+ * @param {Object} base 知识库对象
+ * @returns {Object} 知识库参数
+ */
+export const getKnowledgeBaseParams = (base) => {
+  if (!base) return null;
+  
+  return {
+    id: base.id,
+    name: base.name,
+    model: base.model,
+    dimensions: base.dimensions,
+    threshold: base.threshold || 0.7,
+    documentCount: base.documentCount || 0
+  };
+};
+
+/**
+ * 模拟嵌入文本
+ * 生成指定维度的随机向量，用于开发测试
+ * 
+ * @param {string} text 要嵌入的文本
+ * @param {number} dimensions 向量维度
+ * @returns {Array<number>} 嵌入向量
+ */
+const mockEmbedText = (text, dimensions = 1536) => {
+  // 使用文本的哈希值作为随机种子，确保相同文本生成相似的向量
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+    hash |= 0; // 转换为32位整数
+  }
+  
+  // 使用哈希值作为种子生成伪随机向量
+  const vector = [];
+  for (let i = 0; i < dimensions; i++) {
+    // 使用简单的线性同余生成器
+    hash = (hash * 1664525 + 1013904223) % 4294967296;
+    // 归一化到 [-1, 1] 范围
+    vector.push((hash / 2147483648) - 1);
+  }
+  
+  // 归一化向量长度
+  const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
+  return vector.map(val => val / magnitude);
+};
+
+/**
+ * 嵌入文本
+ * 将文本转换为向量表示
+ * 
+ * @param {string} text 要嵌入的文本
+ * @param {string} model 嵌入模型
+ * @param {number} dimensions 向量维度
+ * @returns {Promise<Array<number>>} 嵌入向量
+ */
+export const embedText = async (text, model = 'text-embedding-3-small', dimensions = 1536) => {
+  // 开发阶段使用模拟嵌入
+  return mockEmbedText(text, dimensions);
+  
+  // TODO: 实现真实的嵌入API调用
+  // const response = await fetch('https://api.openai.com/v1/embeddings', {
+  //   method: 'POST',
+  //   headers: {
+  //     'Content-Type': 'application/json',
+  //     'Authorization': `Bearer ${apiKey}`
+  //   },
+  //   body: JSON.stringify({
+  //     input: text,
+  //     model: model
+  //   })
+  // });
+  
+  // const data = await response.json();
+  // return data.data[0].embedding;
+};
+
+/**
+ * 从知识库获取相关引用
+ * @param {Object} base 知识库
+ * @param {string} message 用户消息
+ * @param {number} limit 最大返回数量
+ * @returns {Promise<Array>} 相关引用列表
+ */
+export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
+  if (!base || !message) return [];
+  
+  try {
+    // 获取知识库中的所有项目
+    const items = await db.knowledgeItems.where('baseId').equals(base.id).toArray();
+    
+    if (!items || items.length === 0) {
+      console.log(`知识库 ${base.name} 中没有项目`);
+      return [];
+    }
+    
+    // 嵌入用户消息
+    const queryEmbedding = await embedText(message, base.model, base.dimensions);
+    
+    // 计算相似度并排序
+    const results = [];
+    
+    for (const item of items) {
+      // 如果项目没有嵌入向量，跳过
+      if (!item.embedding || item.embedding.length === 0) {
+        console.log(`项目 ${item.id} 没有嵌入向量，跳过`);
+        continue;
+      }
+      
+      // 计算相似度
+      const similarity = cosineSimilarity(queryEmbedding, item.embedding);
+      
+      // 如果相似度低于阈值，跳过
+      if (similarity < (base.threshold || 0.7)) {
+        continue;
+      }
+      
+      // 添加到结果列表
+      results.push({
+        id: item.id,
+        title: item.title || item.name,
+        content: item.content,
+        similarity,
+        type: item.type
+      });
+    }
+    
+    // 按相似度降序排序并限制数量
+    return results
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit);
+      
+  } catch (error) {
+    console.error(`从知识库 ${base.name} 获取引用失败:`, error);
+    throw error;
+  }
+};
+
+/**
+ * 获取所有知识库引用
+ * @param {Object} params 参数对象
+ * @param {string} params.message 用户消息
+ * @param {Array<string>} params.knowledgeBaseIds 知识库ID列表
+ * @param {number} params.limit 每个知识库的最大返回数量
+ * @returns {Promise<Array>} 所有相关引用列表
+ */
+export const getKnowledgeBaseReferences = async ({ message, knowledgeBaseIds, limit = 5 }) => {
+  if (!message || !knowledgeBaseIds || knowledgeBaseIds.length === 0) {
+    return [];
+  }
+  
+  try {
+    // 获取所有相关知识库
+    const bases = await db.knowledgeBases.where('id').anyOf(knowledgeBaseIds).toArray();
+    
+    if (!bases || bases.length === 0) {
+      console.log('未找到指定的知识库');
+      return [];
+    }
+    
+    // 从每个知识库获取引用
+    const allReferences = [];
+    
+    for (const base of bases) {
+      const references = await getKnowledgeBaseReference(base, message, limit);
+      allReferences.push(...references);
+    }
+    
+    // 按相似度降序排序并限制总数量
+    return allReferences
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit * 2); // 返回所有知识库引用的两倍数量，确保有足够的内容
+      
+  } catch (error) {
+    console.error('获取知识库引用失败:', error);
+    throw error;
+  }
+};
+
+/**
+ * 添加知识库
+ * @param {string} name 知识库名称
+ * @param {string} model 嵌入模型
+ * @returns {Promise<Object>} 知识库对象
+ */
+export const addKnowledgeBase = async (name, model = 'text-embedding-3-small') => {
+  if (!name) {
+    throw new Error('知识库名称不能为空');
+  }
+  
+  try {
+    // 创建知识库对象
+    const base = {
+      id: uuidv4(),
+      name,
+      model,
+      dimensions: model.includes('3-small') ? 1536 : 3072, // 根据模型设置维度
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      threshold: 0.7, // 默认相似度阈值
+      documentCount: 0
+    };
+    
+    // 保存到数据库
+    await db.knowledgeBases.add(base);
+    
+    return base;
+  } catch (error) {
+    console.error('添加知识库失败:', error);
+    throw error;
+  }
+};
+
+/**
+ * 更新知识库项目状态
+ * @param {string} itemId 项目ID
+ * @param {string} status 状态
+ * @param {Object} data 附加数据
+ * @returns {Promise<void>}
+ */
+export const updateKnowledgeItemStatus = async (itemId, status, data = {}) => {
+  try {
+    // 获取项目
+    const item = await db.knowledgeItems.get(itemId);
+    
+    if (!item) {
+      throw new Error(`项目 ${itemId} 不存在`);
+    }
+    
+    // 更新状态
+    await db.knowledgeItems.update(itemId, {
+      status,
+      ...data,
+      updatedAt: new Date()
+    });
+    
+    // 更新知识库的更新时间
+    await db.knowledgeBases.update(item.baseId, {
+      updatedAt: new Date()
+    });
+    
+  } catch (error) {
+    console.error('更新知识库项目状态失败:', error);
+    throw error;
+  }
+};
+
+/**
+ * 添加文件到知识库
+ * @param {string} baseId 知识库ID
+ * @param {File} file 文件对象
+ * @returns {Promise<Object>} 知识库项目
+ */
+export const addFileToKnowledgeBase = async (baseId, file) => {
+  if (!baseId || !file) {
+    throw new Error('知识库ID和文件不能为空');
+  }
+  
+  try {
+    // 获取知识库
+    const base = await db.knowledgeBases.get(baseId);
+    
+    if (!base) {
+      throw new Error(`知识库 ${baseId} 不存在`);
+    }
+    
+    // 创建知识库项目
+    const item = {
+      id: uuidv4(),
+      baseId,
+      name: file.name,
+      type: 'file',
+      mimeType: file.type,
+      size: file.size,
+      path: file.path || URL.createObjectURL(file),
+      status: 'processing', // 初始状态为处理中
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // 保存到数据库
+    await db.knowledgeItems.add(item);
+    
+    // 更新知识库的更新时间和文档数量
+    await db.knowledgeBases.update(baseId, {
+      updatedAt: new Date(),
+      documentCount: (base.documentCount || 0) + 1
+    });
+    
+    // TODO: 处理文件内容，提取文本并生成嵌入向量
+    // 这里简化处理，直接使用文件名作为内容
+    setTimeout(async () => {
+      try {
+        // 生成嵌入向量
+        const embedding = await embedText(file.name, base.model, base.dimensions);
+        
+        // 更新项目状态和嵌入向量
+        await updateKnowledgeItemStatus(item.id, 'ready', {
+          content: `这是文件 ${file.name} 的内容`,
+          embedding
+        });
+        
+        console.log(`文件 ${file.name} 处理完成`);
+      } catch (error) {
+        console.error(`处理文件 ${file.name} 失败:`, error);
+        await updateKnowledgeItemStatus(item.id, 'error', {
+          error: error.message
+        });
+      }
+    }, 1000);
+    
+    return item;
+  } catch (error) {
+    console.error('添加文件到知识库失败:', error);
+    throw error;
+  }
+};
+
+/**
+ * 添加URL到知识库
+ * @param {string} baseId 知识库ID
+ * @param {string} url URL地址
+ * @returns {Promise<Object>} 知识库项目
+ */
+export const addUrlToKnowledgeBase = async (baseId, url) => {
+  if (!baseId || !url) {
+    throw new Error('知识库ID和URL不能为空');
+  }
+  
+  try {
+    // 获取知识库
+    const base = await db.knowledgeBases.get(baseId);
+    
+    if (!base) {
+      throw new Error(`知识库 ${baseId} 不存在`);
+    }
+    
+    // 创建知识库项目
+    const item = {
+      id: uuidv4(),
+      baseId,
+      name: url,
+      title: url,
+      type: 'url',
+      url,
+      status: 'processing', // 初始状态为处理中
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // 保存到数据库
+    await db.knowledgeItems.add(item);
+    
+    // 更新知识库的更新时间和文档数量
+    await db.knowledgeBases.update(baseId, {
+      updatedAt: new Date(),
+      documentCount: (base.documentCount || 0) + 1
+    });
+    
+    // TODO: 抓取URL内容，提取文本并生成嵌入向量
+    // 这里简化处理，直接使用URL作为内容
+    setTimeout(async () => {
+      try {
+        // 生成嵌入向量
+        const embedding = await embedText(url, base.model, base.dimensions);
+        
+        // 更新项目状态和嵌入向量
+        await updateKnowledgeItemStatus(item.id, 'ready', {
+          content: `这是URL ${url} 的内容`,
+          embedding
+        });
+        
+        console.log(`URL ${url} 处理完成`);
+      } catch (error) {
+        console.error(`处理URL ${url} 失败:`, error);
+        await updateKnowledgeItemStatus(item.id, 'error', {
+          error: error.message
+        });
+      }
+    }, 1000);
+    
+    return item;
+  } catch (error) {
+    console.error('添加URL到知识库失败:', error);
+    throw error;
+  }
+};
+
+/**
+ * 添加笔记到知识库
+ * @param {string} baseId 知识库ID
+ * @param {string} title 笔记标题
+ * @param {string} content 笔记内容
+ * @returns {Promise<Object>} 知识库项目
+ */
+export const addNoteToKnowledgeBase = async (baseId, title, content) => {
+  if (!baseId || !content) {
+    throw new Error('知识库ID和笔记内容不能为空');
+  }
+  
+  try {
+    // 获取知识库
+    const base = await db.knowledgeBases.get(baseId);
+    
+    if (!base) {
+      throw new Error(`知识库 ${baseId} 不存在`);
+    }
+    
+    // 创建知识库项目
+    const item = {
+      id: uuidv4(),
+      baseId,
+      name: title || '未命名笔记',
+      title: title || '未命名笔记',
+      type: 'note',
+      content,
+      status: 'processing', // 初始状态为处理中
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // 保存到数据库
+    await db.knowledgeItems.add(item);
+    
+    // 更新知识库的更新时间和文档数量
+    await db.knowledgeBases.update(baseId, {
+      updatedAt: new Date(),
+      documentCount: (base.documentCount || 0) + 1
+    });
+    
+    // 生成嵌入向量
+    setTimeout(async () => {
+      try {
+        // 生成嵌入向量
+        const embedding = await embedText(content, base.model, base.dimensions);
+        
+        // 更新项目状态和嵌入向量
+        await updateKnowledgeItemStatus(item.id, 'ready', {
+          embedding
+        });
+        
+        console.log(`笔记 ${title || '未命名笔记'} 处理完成`);
+      } catch (error) {
+        console.error(`处理笔记 ${title || '未命名笔记'} 失败:`, error);
+        await updateKnowledgeItemStatus(item.id, 'error', {
+          error: error.message
+        });
+      }
+    }, 500);
+    
+    return item;
+  } catch (error) {
+    console.error('添加笔记到知识库失败:', error);
+    throw error;
+  }
+};
+
+export default {
+  getKnowledgeBaseParams,
+  embedText,
+  getKnowledgeBaseReference,
+  getKnowledgeBaseReferences,
+  addKnowledgeBase,
+  updateKnowledgeItemStatus,
+  addFileToKnowledgeBase,
+  addUrlToKnowledgeBase,
+  addNoteToKnowledgeBase
+}; 

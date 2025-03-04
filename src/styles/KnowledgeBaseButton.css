@@ -1,0 +1,86 @@
+/**
+ * 知识库按钮样式
+ */
+.knowledge-base-button-container {
+  position: relative;
+  z-index: 2000;
+}
+
+.knowledge-base-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background-color: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+  z-index: 2001;
+}
+
+.knowledge-base-button:hover {
+  background-color: var(--hover-color, #f0f0f0);
+}
+
+.knowledge-base-button.active {
+  background-color: var(--active-bg, rgba(42, 133, 255, 0.1));
+}
+
+.knowledge-base-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.knowledge-base-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.knowledge-base-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background-color: var(--primary-color, #2a85ff);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  z-index: 2002;
+}
+
+.knowledge-base-popover {
+  position: absolute;
+  bottom: 50px;
+  left: 0;
+  z-index: 2100;
+  animation: popover-fade-in 0.2s ease-out;
+  transform-origin: bottom left;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+}
+
+@keyframes popover-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 576px) {
+  .knowledge-base-popover {
+    left: -100px;
+  }
+} 

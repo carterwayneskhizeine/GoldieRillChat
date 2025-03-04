@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { translateText } from '../../../services/translationService';
 import toastManager from '../../../utils/toastManager';
+import KnowledgeBaseButton from './KnowledgeBaseButton';
 
 export const InputArea = ({
   messageInput,
@@ -19,6 +20,7 @@ export const InputArea = ({
   apiHost
 }) => {
   const [isTranslating, setIsTranslating] = useState(false);
+  const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState([]);
 
   // 处理翻译功能
   const handleTranslation = async () => {
@@ -82,6 +84,35 @@ export const InputArea = ({
     window.dispatchEvent(contextMenuEvent);
   };
 
+  // 处理知识库选择
+  const handleKnowledgeBaseSelect = (bases) => {
+    setSelectedKnowledgeBases(bases);
+  };
+
+  // 发送消息时包含知识库信息
+  const sendMessage = () => {
+    console.log('发送消息，当前选中的知识库:', selectedKnowledgeBases?.length || 0);
+    
+    // 创建包含知识库信息的参数
+    const messageParams = {
+      knowledgeBaseIds: selectedKnowledgeBases.map(base => base.id),
+      useWebSearch: isNetworkEnabled
+    };
+    
+    // 调用父组件的发送消息函数，传递知识库信息
+    handleSendMessage(messageParams);
+    
+    // 清空输入框
+    setMessageInput('');
+    
+    // 重置输入框高度
+    const textarea = document.querySelector('.aichat-input');
+    if (textarea) {
+      textarea.style.height = '64px';
+      textarea.style.overflowY = 'hidden';
+    }
+  };
+
   return (
     <div className="border-t border-base-300 p-4 bg-transparent">
       <div className="relative max-w-[750px] mx-auto">
@@ -125,10 +156,7 @@ export const InputArea = ({
           onKeyPress={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              handleSendMessage();
-              setMessageInput('');
-              e.target.style.height = '64px';
-              e.target.style.overflowY = 'hidden';
+              sendMessage();
             }
           }}
           onKeyDown={handleKeyDown}
@@ -137,10 +165,12 @@ export const InputArea = ({
             backgroundColor: 'transparent',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)', // 为 Safari 添加支持
+            position: 'relative',
+            zIndex: 1 // 设置较低的z-index值
           }}
           rows="2"
         />
-        <div className="absolute right-4 bottom-3 flex items-center gap-2">
+        <div className="absolute right-4 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
           <button
             className={`btn btn-ghost btn-sm btn-circle ${isTranslating ? 'loading' : ''}`}
             onClick={handleTranslation}
@@ -160,15 +190,10 @@ export const InputArea = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </button>
-          <button
-            className="btn btn-ghost btn-sm btn-circle"
-            onClick={() => console.log('知识库功能点击')}
-            title="知识库查询"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-          </button>
+          <KnowledgeBaseButton 
+            selectedBases={selectedKnowledgeBases}
+            onSelect={handleKnowledgeBaseSelect}
+          />
           <button
             className="btn btn-ghost btn-sm btn-circle"
             onClick={() => fileInputRef.current?.click()}
@@ -180,16 +205,7 @@ export const InputArea = ({
           </button>
           <button 
             className="btn btn-ghost btn-sm btn-circle"
-            onClick={() => {
-              console.log('发送消息，当前选中的文件:', selectedFiles?.length || 0);
-              handleSendMessage();
-              setMessageInput('');
-              const textarea = document.querySelector('.aichat-input');
-              if (textarea) {
-                textarea.style.height = '64px';
-                textarea.style.overflowY = 'hidden';
-              }
-            }}
+            onClick={sendMessage}
             title="发送消息"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

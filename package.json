@@ -55,7 +55,9 @@
                         {
                               "from": "resources/",
                               "to": "resources",
-                              "filter": ["**/*"]
+                              "filter": [
+                                    "**/*"
+                              ]
                         }
                   ]
             },
@@ -91,6 +93,7 @@
             "@tanstack/react-virtual": "^3.13.0",
             "@uiw/react-codemirror": "^4.23.7",
             "cheerio": "^1.0.0",
+            "dexie": "^4.0.11",
             "electron-as-browser": "^1.0.0",
             "katex": "^0.16.21",
             "lightgallery": "^2.8.2",
@@ -113,6 +116,7 @@
             "remark-math": "^6.0.0",
             "styled-components": "^6.1.15",
             "three": "^0.173.0",
+            "uuid": "^11.1.0",
             "yet-another-react-lightbox": "^3.21.7"
       },
       "devDependencies": {

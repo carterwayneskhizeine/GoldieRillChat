@@ -1,0 +1,164 @@
+/**
+ * 添加知识库对话框样式
+ */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.dialog-container {
+  background-color: var(--bg-primary, #fff);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 95%;
+  max-width: 480px;
+  overflow: hidden;
+  animation: dialog-fade-in 0.3s ease-out;
+}
+
+@keyframes dialog-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.dialog-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+.dialog-close-button {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #666);
+  font-size: 24px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.dialog-close-button:hover {
+  color: var(--text-primary, #333);
+}
+
+.dialog-content {
+  padding: 20px;
+}
+
+.dialog-error {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #d32f2f;
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--text-primary, #333);
+  background-color: var(--bg-primary, #fff);
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color, #2a85ff);
+}
+
+.form-help-text {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  background-color: var(--bg-secondary, #f5f5f5);
+}
+
+.dialog-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dialog-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dialog-button-secondary {
+  margin-right: 8px;
+  background-color: transparent;
+  border: 1px solid var(--border-color, #e0e0e0);
+  color: var(--text-secondary, #666);
+}
+
+.dialog-button-secondary:hover:not(:disabled) {
+  background-color: var(--hover-color, #f0f0f0);
+  color: var(--text-primary, #333);
+}
+
+.dialog-button-primary {
+  background-color: var(--primary-color, #2a85ff);
+  border: 1px solid var(--primary-color, #2a85ff);
+  color: #fff;
+}
+
+.dialog-button-primary:hover:not(:disabled) {
+  background-color: var(--primary-dark, #0064e6);
+  border-color: var(--primary-dark, #0064e6);
+} 
