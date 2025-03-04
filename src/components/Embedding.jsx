@@ -306,9 +306,16 @@ const Embedding = () => {
             </button>
             <div className="dropdown dropdown-bottom">
               <label tabIndex={0} className="btn btn-sm">操作</label>
-              <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40 right-0 left-auto">
-                <li><a>重新构建索引</a></li>
-                <li><a>导出数据</a></li>
+              <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow rounded-box w-40 right-0 left-auto" 
+                style={{
+                  backgroundColor: "#1a1a2e", 
+                  color: "white",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  boxShadow: "0 0 15px rgba(0, 0, 0, 0.8)",
+                  opacity: 1
+                }}>
+                <li><a style={{color: "white"}}>重新构建索引</a></li>
+                <li><a style={{color: "white"}}>导出数据</a></li>
                 <li><a className="text-error">删除知识库</a></li>
               </ul>
             </div>
@@ -392,11 +399,19 @@ const Embedding = () => {
                           </div>
                         </td>
                         <td>
-                          <div className="dropdown dropdown-bottom">
+                          <div className="dropdown dropdown-left">
                             <label tabIndex={0} className="btn btn-sm btn-ghost">⋮</label>
-                            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40 right-0 left-auto">
-                              <li><a>查看详情</a></li>
-                              <li><a>重新处理</a></li>
+                            <ul tabIndex={0} className="dropdown-content z-[500] menu p-2 shadow rounded-box w-40 right-auto left-auto"
+                              style={{
+                                backgroundColor: "#1a1a2e", 
+                                color: "white",
+                                border: "1px solid rgba(255, 255, 255, 0.2)",
+                                boxShadow: "0 0 15px rgba(0, 0, 0, 0.8)",
+                                opacity: 1,
+                                position: "absolute"
+                              }}>
+                              <li><a style={{color: "white"}}>查看详情</a></li>
+                              <li><a style={{color: "white"}}>重新处理</a></li>
                               <li><a className="text-error">删除</a></li>
                             </ul>
                           </div>
@@ -495,26 +510,44 @@ const Embedding = () => {
     
     return (
       <div className="modal modal-open">
-        <div className="modal-box">
-          <h3 className="font-bold text-lg">创建新知识库</h3>
+        <div className="modal-box" style={{
+          backgroundColor: "#1a1a2e", 
+          color: "white",
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+          boxShadow: "0 0 30px rgba(0, 0, 0, 0.8)",
+          opacity: 1,
+          backdropFilter: "none",
+          transform: "scale(1)",
+          transition: "transform 0.2s ease"
+        }}>
+          <h3 className="font-bold text-lg text-white">创建新知识库</h3>
           <button 
             className="btn btn-sm btn-circle absolute right-2 top-2"
             onClick={() => setShowAddDialog(false)}
+            style={{backgroundColor: "rgba(60, 60, 60, 0.9)", color: "white"}}
           >✕</button>
           
           <div className="py-4">
             <div className="form-control w-full">
               <label className="label">
-                <span className="label-text">知识库名称</span>
+                <span className="label-text text-white">知识库名称</span>
               </label>
-              <input type="text" placeholder="输入知识库名称" className="input input-bordered w-full" />
+              <input 
+                type="text" 
+                placeholder="输入知识库名称" 
+                className="input input-bordered w-full" 
+                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
+              />
             </div>
             
             <div className="form-control w-full mt-4">
               <label className="label">
-                <span className="label-text">嵌入模型</span>
+                <span className="label-text text-white">嵌入模型</span>
               </label>
-              <select className="select select-bordered w-full">
+              <select 
+                className="select select-bordered w-full"
+                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
+              >
                 <option value="text-embedding-3-small">text-embedding-3-small (OpenAI)</option>
                 <option value="text-embedding-3-large">text-embedding-3-large (OpenAI)</option>
                 <option value="text-embedding-ada-002">text-embedding-ada-002 (OpenAI)</option>
@@ -522,15 +555,16 @@ const Embedding = () => {
                 <option value="m3e-large">m3e-large</option>
               </select>
               <label className="label">
-                <span className="label-text-alt">不同模型的向量维度和性能各不相同</span>
+                <span className="label-text-alt text-gray-300">不同模型的向量维度和性能各不相同</span>
               </label>
             </div>
           </div>
           
           <div className="modal-action">
             <button 
-              className="btn btn-ghost"
+              className="btn"
               onClick={() => setShowAddDialog(false)}
+              style={{backgroundColor: "#353551", color: "white", border: "1px solid rgba(255, 255, 255, 0.15)"}}
             >
               取消
             </button>
@@ -540,6 +574,7 @@ const Embedding = () => {
                 createKnowledgeBase('新知识库', 'text-embedding-3-small');
                 setShowAddDialog(false);
               }}
+              style={{backgroundColor: "#4554b4", color: "white"}}
             >
               创建
             </button>
@@ -556,33 +591,45 @@ const Embedding = () => {
     
     return (
       <div className="modal modal-open">
-        <div className="modal-box max-w-lg bg-base-100">
-          <h3 className="font-bold text-lg">知识库设置</h3>
+        <div className="modal-box max-w-lg" style={{
+          backgroundColor: "#1a1a2e", 
+          color: "white",
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+          boxShadow: "0 0 30px rgba(0, 0, 0, 0.8)",
+          opacity: 1,
+          backdropFilter: "none",
+          transform: "scale(1)",
+          transition: "transform 0.2s ease"
+        }}>
+          <h3 className="font-bold text-lg text-white">知识库设置</h3>
           <button 
             className="btn btn-sm btn-circle absolute right-2 top-2"
             onClick={() => setShowSettingsDialog(false)}
+            style={{backgroundColor: "rgba(60, 60, 60, 0.9)", color: "white"}}
           >✕</button>
           
           <div className="py-2">
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text"><span className="text-error">*</span> 名称</span>
+                <span className="label-text text-white"><span className="text-error">*</span> 名称</span>
               </label>
               <input 
                 type="text" 
                 defaultValue={selectedKnowledgeBase.name} 
-                className="input input-bordered w-full bg-base-200 h-10" 
+                className="input input-bordered w-full h-10" 
+                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
               />
             </div>
             
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text"><span className="text-error">*</span> 嵌入模型 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white"><span className="text-error">*</span> 嵌入模型 <span className="text-xs opacity-70">ⓘ</span></span>
               </label>
               <select 
-                className="select select-bordered w-full bg-base-200 h-10"
+                className="select select-bordered w-full h-10"
                 defaultValue={selectedKnowledgeBase.model}
                 disabled
+                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
               >
                 <option value="text-embedding-3-small">text-embedding-3-small (OpenAI)</option>
                 <option value="text-embedding-3-large">text-embedding-3-large (OpenAI)</option>
@@ -593,7 +640,7 @@ const Embedding = () => {
             
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text">请求文档分段数量 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white">请求文档分段数量 <span className="text-xs opacity-70">ⓘ</span></span>
               </label>
               <div className="flex items-center gap-4">
                 <div className="flex-1">
@@ -606,54 +653,59 @@ const Embedding = () => {
                     className="range range-xs range-primary w-full" 
                   />
                 </div>
-                <span className="text-xl font-medium">{segmentCount}</span>
+                <span className="text-xl font-medium text-white">{segmentCount}</span>
               </div>
             </div>
             
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text">分段大小 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white">分段大小 <span className="text-xs opacity-70">ⓘ</span></span>
               </label>
               <input 
                 type="text" 
                 placeholder="默认值（不建议修改）" 
-                className="input input-bordered w-full bg-base-200 h-10" 
+                className="input input-bordered w-full h-10" 
+                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
               />
             </div>
 
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text">重叠大小 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white">重叠大小 <span className="text-xs opacity-70">ⓘ</span></span>
               </label>
               <input 
                 type="text" 
                 placeholder="默认值（不建议修改）" 
-                className="input input-bordered w-full bg-base-200 h-10" 
+                className="input input-bordered w-full h-10" 
+                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
               />
             </div>
 
             <div className="form-control w-full mb-2">
               <label className="label py-1">
-                <span className="label-text">匹配度阈值 <span className="text-xs opacity-70">ⓘ</span></span>
+                <span className="label-text text-white">匹配度阈值 <span className="text-xs opacity-70">ⓘ</span></span>
               </label>
               <input 
                 type="text" 
                 placeholder="未设置" 
-                className="input input-bordered w-full bg-base-200 h-10" 
+                className="input input-bordered w-full h-10" 
+                style={{backgroundColor: "#292941", color: "white", border: "1px solid rgba(255, 255, 255, 0.2)"}}
               />
             </div>
           </div>
           
           <div className="modal-action">
             <button 
-              className="btn btn-outline"
+              className="btn"
               onClick={() => setShowSettingsDialog(false)}
+              style={{backgroundColor: "#353551", color: "white", border: "1px solid rgba(255, 255, 255, 0.15)"}}
             >
               取消
             </button>
             <button 
               className="btn btn-primary"
               onClick={() => setShowSettingsDialog(false)}
+              style={{backgroundColor: "#4554b4", color: "white"}}
             >
               确定
             </button>
