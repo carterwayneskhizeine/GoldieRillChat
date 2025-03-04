@@ -59,11 +59,6 @@ export const getEmbeddingApiConfig = (provider) => {
       apiKey: getApiKey('siliconflow'),
       apiHost
     };
-  } else if (provider === 'OpenAI') {
-    return {
-      apiKey: getApiKey('openai'),
-      apiHost: localStorage.getItem(`${STORAGE_KEYS.API_HOST}_openai`) || 'https://api.openai.com/v1/embeddings'
-    };
   }
   
   return {
@@ -134,41 +129,6 @@ const siliconFlowEmbed = async (text, model, apiKey, apiHost) => {
     return data.data[0].embedding;
   } catch (error) {
     console.error('SiliconFlow嵌入请求失败:', error);
-    throw error;
-  }
-};
-
-/**
- * 使用OpenAI API嵌入文本
- * @param {string} text 要嵌入的文本 
- * @param {string} model 嵌入模型
- * @param {string} apiKey API密钥
- * @param {string} apiHost API主机地址
- * @returns {Promise<Array<number>>} 嵌入向量
- */
-const openaiEmbed = async (text, model, apiKey, apiHost) => {
-  try {
-    const response = await fetch(apiHost, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        input: text
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`OpenAI API错误: ${errorData.error?.message || response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.data[0].embedding;
-  } catch (error) {
-    console.error('OpenAI嵌入请求失败:', error);
     throw error;
   }
 };

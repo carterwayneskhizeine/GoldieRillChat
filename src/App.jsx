@@ -1424,7 +1424,7 @@ export default function App() {
               height: 'calc(100vh - 40px)'
             }} 
             className="flex-1 flex flex-col overflow-hidden">
-            <Embedding />
+            <Embedding isActive={activeTool === 'embedding'} />
           </div>
 
           {/* Browser content */}

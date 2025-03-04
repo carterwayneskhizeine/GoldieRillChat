@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import '../styles/embedding.css';
 import { useKnowledgeBases, useKnowledge } from '../hooks/useKnowledgeBase';
 import AddKnowledgeBaseDialog from './AddKnowledgeBaseDialog';
@@ -12,7 +12,7 @@ const modelOptions = [
   { id: 'Pro/BAAI/bge-m3', name: 'Pro/BAAI/bge-m3', provider: 'SiliconFlow', dimensions: 1024, tokens: 8192 },
 ];
 
-const Embedding = () => {
+const Embedding = ({ isActive = false }) => {
   // 状态管理
   const [activeTab, setActiveTab] = useState('knowledge');
   const [activeContentTab, setActiveContentTab] = useState('items');
@@ -54,21 +54,101 @@ const Embedding = () => {
     setSelectedItems([]);
   }, [knowledgeBases, selectedKnowledgeBase]);
   
-  // 当选中的知识库变化时，更新处理队列
+  // 添加面板可见状态的跟踪
+  const [isPanelVisible, setIsPanelVisible] = useState(true);
+  const isActiveRef = useRef(isActive);
+  
+  // 更新活动状态引用
   useEffect(() => {
-    if (items && items.length > 0) {
-      // 过滤出正在处理中的项目
-      const processing = items.filter(item => 
-        item.status === 'processing' || 
-        item.status === 'pending' || 
-        item.status === 'indexing'
-      );
-      
-      if (processing.length > 0) {
-        setProcessingQueue(processing);
+    isActiveRef.current = isActive;
+    console.log('Embedding活动状态变化:', isActive);
+  }, [isActive]);
+  
+  // 检测面板可见性
+  useEffect(() => {
+    // 初始设置为可见
+    setIsPanelVisible(true);
+    
+    // 添加可见性变化监听器
+    const handleVisibilityChange = () => {
+      setIsPanelVisible(!document.hidden);
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // 清理监听器
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+  
+  // 创建一个ref来跟踪定时器状态
+  const refreshTimerRef = useRef(null);
+  const hasProcessingItemsRef = useRef(false);
+  
+  // 检查是否有正在处理的项目
+  const checkProcessingItems = () => {
+    // 查找是否有正在处理中的项目
+    const processingItems = items.filter(item => 
+      item.status === 'processing' || 
+      item.status === 'pending' || 
+      item.status === 'indexing'
+    );
+    
+    hasProcessingItemsRef.current = processingItems.length > 0;
+    return hasProcessingItemsRef.current;
+  };
+  
+  // 安全地调用refreshBase函数并返回Promise
+  const safeRefreshBase = () => {
+    if (refreshBase && typeof refreshBase === 'function') {
+      try {
+        const result = refreshBase();
+        if (result && typeof result.then === 'function') {
+          return result;
+        }
+      } catch (error) {
+        console.error('刷新知识库失败:', error);
       }
     }
-  }, [items]);
+    // 如果refreshBase不存在或出错，返回一个已解析的Promise
+    return Promise.resolve();
+  };
+  
+  // 当选中的知识库变化时，检查并开始或停止刷新
+  useEffect(() => {
+    if (selectedKnowledgeBase?.id && isActiveRef.current) {
+      // 初始刷新一次，然后检查是否需要持续刷新
+      safeRefreshBase().then(() => {
+        if (checkProcessingItems()) {
+          startRefreshTimer();
+        }
+      });
+    } else {
+      stopRefreshTimer();
+    }
+    
+    // 在组件卸载或选中的知识库变化时清除定时器
+    return stopRefreshTimer;
+  }, [selectedKnowledgeBase?.id, isActive]);
+  
+  // 当items变化时，检查是否有处理中的项目，必要时启动定时器
+  useEffect(() => {
+    if (selectedKnowledgeBase?.id && isActiveRef.current && items.length > 0) {
+      if (checkProcessingItems()) {
+        startRefreshTimer();
+      }
+    }
+  }, [items, selectedKnowledgeBase?.id, isActive]);
+  
+  // 当可见性或活动状态变化时，可能需要重新评估刷新逻辑
+  useEffect(() => {
+    if (!isPanelVisible || !isActiveRef.current) {
+      stopRefreshTimer();
+    } else if (selectedKnowledgeBase?.id && hasProcessingItemsRef.current) {
+      startRefreshTimer();
+    }
+  }, [isPanelVisible, isActive, selectedKnowledgeBase?.id]);
   
   // 当选中的知识库改变或设置对话框打开时，更新设置状态
   useEffect(() => {
@@ -159,28 +239,19 @@ const Embedding = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
             <p className="mb-4">尚未创建知识库</p>
-            <button 
-              className="btn btn-sm btn-outline btn-accent gap-2"
-              onClick={() => setShowAddDialog(true)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              创建知识库
-            </button>
-          </div>
+        </div>
         ) : (
           <div className="space-y-2">
-            {knowledgeBases.map(kb => (
-              <div 
-                key={kb.id}
+          {knowledgeBases.map(kb => (
+            <div 
+              key={kb.id} 
                 className={`knowledge-base-item p-3 rounded-lg transition-all cursor-pointer
                   ${selectedKnowledgeBase?.id === kb.id 
                     ? 'border-2 border-accent/40'
                     : 'border border-base-content/10 hover:border-base-content/20'}
                   shadow-sm hover:shadow-md`}
-                onClick={() => setSelectedKnowledgeBase(kb)}
-              >
+              onClick={() => setSelectedKnowledgeBase(kb)}
+            >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h3 className="font-medium text-base">{kb.name}</h3>
@@ -191,8 +262,8 @@ const Embedding = () => {
                       <span className="text-xs text-base-content/60">
                         {kb.model.name}
                       </span>
-                    </div>
-                  </div>
+              </div>
+              </div>
                   <button 
                     className="btn btn-square btn-ghost btn-xs text-error hover:bg-error/10"
                     onClick={(e) => handleDeleteKnowledgeBase(kb, e)}
@@ -207,10 +278,10 @@ const Embedding = () => {
                   <span>{kb.model.provider}</span>
                   <span>维度: {kb.model.dimensions}</span>
                   <span>{new Date(kb.updatedAt).toLocaleDateString()}</span>
-                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
         )}
       </div>
     );
@@ -703,8 +774,8 @@ const Embedding = () => {
         onAdd={(newBase) => {
           // 选中新创建的知识库
           setSelectedKnowledgeBase(newBase);
-          setShowAddDialog(false);
-        }}
+                setShowAddDialog(false);
+              }}
       />
     );
   };
@@ -838,7 +909,7 @@ const Embedding = () => {
               </label>
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <input 
+              <input 
                     type="range" 
                     min="0" 
                     max="1" 
@@ -911,22 +982,44 @@ const Embedding = () => {
     setKnowledgeBaseToDelete(null);
   };
 
+  // 开始刷新定时器
+  const startRefreshTimer = () => {
+    if (refreshTimerRef.current) return; // 已经存在定时器，不重复创建
+    
+    console.log('启动知识库状态刷新...');
+    refreshTimerRef.current = setInterval(() => {
+      // 只有在文档可见且Embedding是活动工具时才刷新
+      if (isPanelVisible && !document.hidden && isActiveRef.current) {
+        console.log('刷新知识库状态...');
+        safeRefreshBase().then(() => {
+          // 刷新后检查是否还有处理中的项目
+          if (!checkProcessingItems() && refreshTimerRef.current) {
+            console.log('所有项目处理完成，停止自动刷新');
+            clearInterval(refreshTimerRef.current);
+            refreshTimerRef.current = null;
+          }
+        });
+      }
+    }, 3000); // 每3秒刷新一次
+  };
+
+  // 停止刷新定时器
+  const stopRefreshTimer = () => {
+    if (refreshTimerRef.current) {
+      console.log('停止知识库状态刷新');
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  };
+
   return (
     <div className="embedding-container h-screen flex flex-col relative" style={{backgroundColor: "#000000"}}>
       {/* 背景覆盖层 */}
       <div className="absolute inset-0 bg-black" style={{zIndex: -1}}></div>
       
       {/* 顶部搜索栏 */}
-      <div className="p-3 border-b border-base-content/10 flex justify-between items-center embedding-top-bar bg-[#08080c] relative">
+      {/* <div className="p-3 border-b border-base-content/10 flex justify-between items-center embedding-top-bar bg-[#08080c] relative">
         <div className="relative w-full max-w-xs">
-          <input 
-            type="text" 
-            placeholder="搜索知识库..." 
-            className="input input-sm w-full bg-[#14141e] focus:outline-none border-none"
-          />
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-3 top-2.5 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
         </div>
         <div className="flex gap-2">
           <button 
@@ -954,23 +1047,39 @@ const Embedding = () => {
             )}
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* 主体内容区域 */}
       <div className="flex flex-1 overflow-hidden relative" style={{backgroundColor: "#000000"}}>
         {/* 左侧面板 */}
         <div className="w-1/3 border-r border-base-content/10 flex flex-col overflow-hidden embedding-left-panel bg-[#0a0a0f]">
-          {/* 搜索框 */}
+          {/* 新建和刷新按钮 */}
           <div className="p-3 border-b border-base-content/5">
-            <div className="relative">
-              <input 
-                type="text" 
-                placeholder="搜索知识库..." 
-                className="input input-sm w-full bg-[rgba(30,30,40,0.6)] focus:outline-none border-none"
-              />
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute right-3 top-2.5 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+            <div className="flex gap-2">
+              <button 
+                className="btn btn-sm btn-outline gap-2 border-none hover:bg-[#14141e]"
+                onClick={() => setShowAddDialog(true)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                新建
+              </button>
+              <button 
+                className="btn btn-sm btn-square btn-ghost text-base-content/70 hover:bg-[#14141e]"
+                onClick={() => {
+                  // 触发刷新
+                  refreshBases();
+                }}
+              >
+                {loading ? (
+                  <span className="loading loading-spinner loading-xs"></span>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
 
@@ -1030,4 +1139,4 @@ const Embedding = () => {
   );
 };
 
-export default Embedding;
+export default Embedding; 
