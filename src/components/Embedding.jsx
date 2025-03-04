@@ -22,12 +22,66 @@ const Embedding = () => {
   const [selectedKnowledgeBase, setSelectedKnowledgeBase] = useState(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [knowledgeBaseToDelete, setKnowledgeBaseToDelete] = useState(null);
   const [addContentType, setAddContentType] = useState('file');
   // 添加分段数量状态到组件顶层，默认值改为6
-  const [segmentCount, setSegmentCount] = useState(6);
+  const [chunkCount, setChunkCount] = useState(6);
+  
+  // 设置对话框状态管理（移至顶层）
+  const [knowledgeBaseName, setKnowledgeBaseName] = useState('');
+  const [threshold, setThreshold] = useState(0.7);
+  const [chunkSize, setChunkSize] = useState('');
+  const [chunkOverlap, setChunkOverlap] = useState('');
   
   // 从钩子获取知识库数据
-  const { bases: knowledgeBases, loading, refreshBases, addBase, renameBase, deleteBase, updateBase } = useKnowledgeBases();
+  const {
+    bases: knowledgeBases = [],
+    loading,
+    refreshBases,
+    addBase,
+    renameBase,
+    deleteBase,
+    updateBase
+  } = useKnowledgeBases();
+  
+  // 使用useKnowledge钩子获取选中知识库的详细信息和处理队列
+  const { items = [], loading: itemsLoading, refreshBase, addFile, addUrl, addNote, removeItem } = 
+    useKnowledge(selectedKnowledgeBase?.id);
+  
+  // 存储选中的知识库项
+  const [selectedItems, setSelectedItems] = useState([]);
+  
+  // 当选中的知识库变化时，清空选中的项目
+  useEffect(() => {
+    setSelectedItems([]);
+  }, [knowledgeBases, selectedKnowledgeBase]);
+  
+  // 当选中的知识库变化时，更新处理队列
+  useEffect(() => {
+    if (items && items.length > 0) {
+      // 过滤出正在处理中的项目
+      const processing = items.filter(item => 
+        item.status === 'processing' || 
+        item.status === 'pending' || 
+        item.status === 'indexing'
+      );
+      
+      if (processing.length > 0) {
+        setProcessingQueue(processing);
+      }
+    }
+  }, [items]);
+  
+  // 当选中的知识库改变或设置对话框打开时，更新设置状态
+  useEffect(() => {
+    if (selectedKnowledgeBase && showSettingsDialog) {
+      setKnowledgeBaseName(selectedKnowledgeBase.name || '');
+      setThreshold(selectedKnowledgeBase.threshold || 0.7);
+      setChunkSize(selectedKnowledgeBase.chunkSize || '');
+      setChunkOverlap(selectedKnowledgeBase.chunkOverlap || '');
+    }
+  }, [selectedKnowledgeBase, showSettingsDialog]);
   
   // 处理队列相关
   const [processingQueue, setProcessingQueue] = useState([]);
@@ -52,22 +106,6 @@ const Embedding = () => {
       setSelectedKnowledgeBase(null);
     }
   }, [knowledgeBases, selectedKnowledgeBase]);
-  
-  // 使用useKnowledge钩子获取选中知识库的详细信息和处理队列
-  const { items = [], loading: itemsLoading, refreshBase, addFile, addUrl, addNote, removeItem } = 
-    useKnowledge(selectedKnowledgeBase?.id);
-  
-  // 当选中的知识库变化时，更新处理队列
-  useEffect(() => {
-    if (items.length > 0) {
-      const queue = items.filter(item => 
-        item.status === 'pending' || item.status === 'processing' || item.status === 'completed'
-      );
-      setProcessingQueue(queue);
-    } else {
-      setProcessingQueue([]);
-    }
-  }, [items]);
   
   // 创建新知识库
   const createKnowledgeBase = async (name, modelId) => {
@@ -112,56 +150,83 @@ const Embedding = () => {
   // 渲染知识库列表
   const renderKnowledgeBaseList = () => {
     return (
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <h3 className="font-bold">我的知识库</h3>
+      <div className="flex flex-col h-full">
+        <div className="flex justify-between items-center mb-4 px-1">
+          <h3 className="text-lg font-bold">我的知识库</h3>
           <button 
-            className="btn btn-sm btn-primary"
+            className="btn btn-sm btn-primary gap-2"
             onClick={() => setShowAddDialog(true)}
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
             新建
           </button>
         </div>
         
-        <div className="overflow-auto max-h-full">
+        <div className="overflow-auto flex-1 pr-2">
           {loading ? (
-            <div className="text-center py-8 text-base-content text-opacity-60">
-              <div className="loading loading-spinner loading-md"></div>
+            <div className="flex flex-col items-center justify-center h-full py-12 text-base-content/60">
+              <div className="loading loading-spinner loading-lg mb-4"></div>
               <p>加载知识库...</p>
             </div>
           ) : knowledgeBases.length === 0 ? (
-            <div className="text-center py-8 text-base-content text-opacity-60">
+            <div className="flex flex-col items-center justify-center h-full py-12 text-base-content/60">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
               <p className="mb-4">尚未创建知识库</p>
               <button 
-                className="btn btn-sm btn-primary"
+                className="btn btn-sm btn-primary gap-2"
                 onClick={() => setShowAddDialog(true)}
               >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
                 创建知识库
               </button>
             </div>
           ) : (
-            knowledgeBases.map(kb => (
-              <div 
-                key={kb.id} 
-                className={`knowledge-base-item p-3 cursor-pointer ${selectedKnowledgeBase?.id === kb.id ? 'border-primary border-2' : ''}`}
-                onClick={() => setSelectedKnowledgeBase(kb)}
-              >
-                <div className="flex justify-between items-center">
-                  <h3 className="font-semibold">{kb.name}</h3>
-                  <span className="badge badge-sm">{kb.itemCount || kb.documentCount || 0} 项</span>
+            <div className="grid gap-3">
+              {knowledgeBases.map(kb => (
+                <div 
+                  key={kb.id} 
+                  className={`knowledge-base-item p-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer
+                    ${selectedKnowledgeBase?.id === kb.id 
+                      ? 'bg-primary/5 border-primary border-2' 
+                      : 'bg-base-100 border border-base-200 hover:border-primary/30'}`}
+                  onClick={() => setSelectedKnowledgeBase(kb)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-base">{kb.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="badge badge-sm badge-primary badge-outline font-normal">
+                          {kb.itemCount || kb.documentCount || 0} 项
+                        </span>
+                        <span className="text-sm text-base-content/70">
+                          {kb.model.name}
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      className="btn btn-square btn-ghost btn-sm text-error hover:bg-error/10"
+                      onClick={(e) => handleDeleteKnowledgeBase(kb, e)}
+                      title="删除知识库"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-base-content/50 mt-2">
+                    <span>提供商: {kb.model.provider}</span>
+                    <span>维度: {kb.model.dimensions}</span>
+                    <span>更新: {new Date(kb.updatedAt).toLocaleDateString()}</span>
+                  </div>
                 </div>
-                <div className="text-sm opacity-70 mt-1">
-                  模型: {kb.model.name}
-                </div>
-                <div className="text-xs opacity-50 mt-1 flex justify-between">
-                  <span>提供商: {kb.model.provider}</span>
-                  <span>维度: {kb.model.dimensions}</span>
-                </div>
-                <div className="text-xs opacity-50 mt-1">
-                  更新于: {new Date(kb.updatedAt).toLocaleDateString()}
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -433,7 +498,6 @@ const Embedding = () => {
               设置
             </button>
             <div className="dropdown dropdown-bottom">
-              <label tabIndex={0} className="btn btn-sm">操作</label>
               <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow rounded-box w-40 right-0 left-auto" 
                 style={{
                   backgroundColor: "#1a1a2e", 
@@ -442,27 +506,6 @@ const Embedding = () => {
                   boxShadow: "0 0 15px rgba(0, 0, 0, 0.8)",
                   opacity: 1
                 }}>
-                <li><a style={{color: "white"}} onClick={refreshBase}>刷新数据</a></li>
-                <li><a style={{color: "white"}}>导出数据</a></li>
-                <li>
-                  <a 
-                    className="text-error" 
-                    onClick={async () => {
-                      // 删除知识库前确认
-                      if (window.confirm(`确定要删除知识库 "${selectedKnowledgeBase.name}" 吗？此操作不可逆。`)) {
-                        try {
-                          await deleteBase(selectedKnowledgeBase.id);
-                          // 删除成功后会通过钩子自动更新知识库列表
-                        } catch (error) {
-                          console.error('删除知识库失败:', error);
-                          // 显示错误提示
-                        }
-                      }
-                    }}
-                  >
-                    删除知识库
-                  </a>
-                </li>
               </ul>
             </div>
           </div>
@@ -570,7 +613,6 @@ const Embedding = () => {
                                 position: "absolute"
                               }}>
                               <li><a style={{color: "white"}}>查看详情</a></li>
-                              <li><a style={{color: "white"}}>重新处理</a></li>
                               <li>
                                 <a 
                                   className="text-error" 
@@ -704,12 +746,6 @@ const Embedding = () => {
   const renderSettingsDialog = () => {
     if (!showSettingsDialog || !selectedKnowledgeBase) return null;
     
-    // 本地状态管理
-    const [knowledgeBaseName, setKnowledgeBaseName] = useState(selectedKnowledgeBase.name);
-    const [threshold, setThreshold] = useState(selectedKnowledgeBase.threshold || 0.7);
-    const [chunkSize, setChunkSize] = useState(selectedKnowledgeBase.chunkSize || '');
-    const [chunkOverlap, setChunkOverlap] = useState(selectedKnowledgeBase.chunkOverlap || '');
-    
     // 保存设置
     const saveSettings = async () => {
       try {
@@ -791,12 +827,12 @@ const Embedding = () => {
                     type="range" 
                     min="1" 
                     max="30" 
-                    value={segmentCount}
-                    onChange={(e) => setSegmentCount(parseInt(e.target.value))} 
+                    value={chunkCount}
+                    onChange={(e) => setChunkCount(parseInt(e.target.value))} 
                     className="range range-xs range-primary w-full" 
                   />
                 </div>
-                <span className="text-xl font-medium text-white">{segmentCount}</span>
+                <span className="text-xl font-medium text-white">{chunkCount}</span>
               </div>
             </div>
             
@@ -874,6 +910,39 @@ const Embedding = () => {
     );
   };
 
+  // 处理删除知识库
+  const handleDeleteKnowledgeBase = (kb, e) => {
+    e.stopPropagation(); // 阻止事件冒泡，避免触发选择知识库
+    setKnowledgeBaseToDelete(kb);
+    setShowDeleteDialog(true);
+  };
+  
+  // 执行删除知识库
+  const confirmDeleteKnowledgeBase = async () => {
+    if (!knowledgeBaseToDelete) return;
+    
+    try {
+      await deleteBase(knowledgeBaseToDelete.id);
+      
+      // 如果删除的是当前选中的知识库，则清除选中状态
+      if (selectedKnowledgeBase?.id === knowledgeBaseToDelete.id) {
+        setSelectedKnowledgeBase(null);
+      }
+      
+      // 关闭对话框
+      setShowDeleteDialog(false);
+      setKnowledgeBaseToDelete(null);
+    } catch (error) {
+      console.error('删除知识库失败:', error);
+    }
+  };
+  
+  // 关闭删除对话框
+  const cancelDeleteKnowledgeBase = () => {
+    setShowDeleteDialog(false);
+    setKnowledgeBaseToDelete(null);
+  };
+
   return (
     <div className="flex flex-col h-full embedding-container overflow-hidden">
       {/* 顶部工具栏 */}
@@ -898,18 +967,11 @@ const Embedding = () => {
             >
               知识库
             </a>
-            <a 
-              className={`tab ${activeTab === 'queue' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('queue')}
-            >
-              处理队列
-            </a>
           </div>
 
           {/* 选项卡内容 */}
           <div className="flex-1 overflow-auto p-2">
             {activeTab === 'knowledgeBases' && renderKnowledgeBaseList()}
-            {activeTab === 'queue' && renderProcessingQueue()}
           </div>
         </div>
 
@@ -922,6 +984,34 @@ const Embedding = () => {
       {/* 弹窗组件 */}
       {renderAddKnowledgeBaseDialog()}
       {renderSettingsDialog()}
+      
+      {/* 删除知识库确认对话框 */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-base-100 p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 className="font-bold text-lg mb-4">确认删除</h3>
+            <p className="mb-6">
+              您确定要删除知识库 "{knowledgeBaseToDelete?.name}" 吗？
+              <br />
+              <span className="text-error">此操作不可逆，知识库中的所有内容将被永久删除。</span>
+            </p>
+            <div className="flex justify-end gap-2">
+              <button 
+                className="btn btn-ghost"
+                onClick={cancelDeleteKnowledgeBase}
+              >
+                取消
+              </button>
+              <button 
+                className="btn btn-error"
+                onClick={confirmDeleteKnowledgeBase}
+              >
+                确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 底部状态栏 */}
       <div className="p-2 border-t border-base-300 text-sm text-base-content text-opacity-60 flex justify-between embedding-bottom-bar">

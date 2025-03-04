@@ -7,6 +7,7 @@ import { db } from '../utils/db';
 import toastManager from '../utils/toastManager';
 import { getApiKey } from '../components/AIChat/utils/storageUtils';
 import { STORAGE_KEYS } from '../components/AIChat/constants';
+import * as cheerio from 'cheerio';
 
 // 向量相似度计算函数
 const cosineSimilarity = (vecA, vecB) => {
@@ -499,71 +500,217 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
  * 添加URL到知识库
  * @param {string} baseId 知识库ID
  * @param {string} url URL地址
- * @returns {Promise<Object>} 知识库项目
+ * @returns {Promise<Object>} 添加的项目
  */
 export const addUrlToKnowledgeBase = async (baseId, url) => {
   if (!baseId || !url) {
     throw new Error('知识库ID和URL不能为空');
   }
   
+  // 验证URL格式
+  let validUrl;
   try {
-    // 获取知识库
+    validUrl = new URL(url);
+    // 确保URL有协议
+    if (!validUrl.protocol || (validUrl.protocol !== 'http:' && validUrl.protocol !== 'https:')) {
+      validUrl = new URL(`https://${url}`);
+    }
+  } catch (error) {
+    try {
+      // 尝试添加https前缀
+      validUrl = new URL(`https://${url}`);
+    } catch (error) {
+      throw new Error(`无效的URL格式: ${url}`);
+    }
+  }
+  
+  // 使用格式化后的URL
+  const formattedUrl = validUrl.toString();
+  
+  try {
+    // 获取知识库信息
     const base = await db.knowledgeBases.get(baseId);
-    
     if (!base) {
       throw new Error(`知识库 ${baseId} 不存在`);
     }
     
-    // 创建知识库项目
+    // 先创建一个处理中的项目
     const item = {
       id: uuidv4(),
       baseId,
-      name: url,
-      title: url,
       type: 'url',
-      url,
-      status: 'processing', // 初始状态为处理中
+      name: formattedUrl,
+      title: validUrl.pathname.split('/').pop() || validUrl.hostname || formattedUrl,
+      url: formattedUrl,
+      content: `URL: ${formattedUrl}\n来源: ${validUrl.hostname}\n路径: ${validUrl.pathname}`,
+      embedding: [],
+      status: 'pending',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     
-    // 保存到数据库
     await db.knowledgeItems.add(item);
     
-    // 更新知识库的更新时间和文档数量
-    await db.knowledgeBases.update(baseId, {
-      updatedAt: new Date().toISOString(),
-      documentCount: (base.documentCount || 0) + 1,
-      itemCount: (base.itemCount || 0) + 1
-    });
-    
-    // TODO: 抓取URL内容，提取文本并生成嵌入向量
-    // 这里简化处理，直接使用URL作为内容
+    // 异步处理网页内容
     setTimeout(async () => {
       try {
-        // 生成嵌入向量
-        const embedding = await embedText(url, base.model);
+        // 更新状态为处理中
+        await db.knowledgeItems.update(item.id, { status: 'processing' });
         
-        // 更新项目状态和嵌入向量
-        await updateKnowledgeItemStatus(item.id, 'ready', {
-          content: `这是URL ${url} 的内容`,
-          embedding
+        // 定义多个CORS代理选项
+        const corsProxies = [
+          { name: '无代理', url: formattedUrl },
+          { name: 'corsproxy.io', url: `https://corsproxy.io/?${encodeURIComponent(formattedUrl)}` },
+          { name: 'cors-anywhere', url: `https://cors-anywhere.herokuapp.com/${formattedUrl}` },
+          { name: 'allOrigins', url: `https://api.allorigins.win/raw?url=${encodeURIComponent(formattedUrl)}` }
+        ];
+        
+        let html = null;
+        let response = null;
+        let successProxy = null;
+        
+        // 尝试所有代理选项直到一个成功
+        for (const proxy of corsProxies) {
+          try {
+            console.log(`尝试使用代理 [${proxy.name}] 抓取: ${proxy.url}`);
+            
+            response = await fetch(proxy.url, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+              },
+              // AbortController可以用来设置超时，但简单起见这里使用fetch自带的timeout
+              timeout: 15000 // 15秒超时
+            });
+            
+            if (response.ok) {
+              html = await response.text();
+              successProxy = proxy.name;
+              console.log(`使用代理 [${proxy.name}] 抓取成功`);
+              break;
+            } else {
+              console.log(`使用代理 [${proxy.name}] 抓取失败: ${response.status} ${response.statusText}`);
+            }
+          } catch (error) {
+            console.log(`使用代理 [${proxy.name}] 发生错误: ${error.message}`);
+          }
+        }
+        
+        // 如果没有成功抓取内容，创建一个基本的表示
+        if (!html) {
+          console.log('所有代理均失败，使用基本URL信息');
+          
+          // 生成嵌入向量 - 使用URL和标题作为内容
+          const simpleContent = `${item.title}\n${formattedUrl}\n${validUrl.hostname}`;
+          const embedding = await embedText(simpleContent, base.model);
+          
+          // 更新项目状态，但标记为部分完成
+          await db.knowledgeItems.update(item.id, {
+            content: `无法抓取此URL的内容。\n\nURL: ${formattedUrl}\n域名: ${validUrl.hostname}\n路径: ${validUrl.pathname}`,
+            embedding,
+            status: 'partial',
+            updatedAt: new Date().toISOString()
+          });
+          
+          console.log(`URL ${formattedUrl} 部分处理完成（仅URL信息）`);
+          toastManager.warning(`无法抓取 "${item.title}" 的内容，已保存基本信息`);
+          return;
+        }
+        
+        // 使用cheerio解析HTML
+        const $ = cheerio.load(html);
+        
+        // 获取网页标题
+        const pageTitle = $('title').text().trim() || item.title;
+        
+        // 获取网页描述
+        const description = $('meta[name="description"]').attr('content') || 
+                          $('meta[property="og:description"]').attr('content') || '';
+        
+        // 移除脚本、样式和其他不必要的元素
+        $('script, style, nav, footer, header, aside, iframe, noscript').remove();
+        
+        // 获取正文内容
+        let content = $('body').text()
+          .replace(/[\r\n]+/g, '\n')  // 规范化换行
+          .replace(/\s+/g, ' ')       // 规范化空格
+          .trim();                    // 移除首尾空格
+        
+        // 如果内容太长，分割成多个块
+        const maxLength = 8000;
+        let chunks = [];
+        
+        if (content.length > maxLength) {
+          // 分割文本
+          const paragraphs = content.split('\n');
+          let currentChunk = '';
+          
+          for (const paragraph of paragraphs) {
+            if (currentChunk.length + paragraph.length > maxLength) {
+              chunks.push(currentChunk);
+              currentChunk = paragraph;
+            } else {
+              currentChunk += (currentChunk ? '\n' : '') + paragraph;
+            }
+          }
+          
+          if (currentChunk) {
+            chunks.push(currentChunk);
+          }
+        } else {
+          chunks = [content];
+        }
+        
+        // 构建结构化内容
+        const structuredContent = `# ${pageTitle}\n\n${description ? `## 描述\n${description}\n\n` : ''}## 内容\n${chunks[0]}\n\n## 来源\n${formattedUrl}`;
+        
+        // 使用第一个chunk生成嵌入向量
+        const embedding = await embedText(structuredContent.substring(0, 8000), base.model);
+        
+        // 更新项目
+        await db.knowledgeItems.update(item.id, {
+          title: pageTitle,
+          content: structuredContent,
+          embedding,
+          status: 'completed',
+          updatedAt: new Date().toISOString()
         });
         
-        console.log(`URL ${url} 处理完成`);
-        toastManager.success(`URL ${url} 处理完成`);
+        console.log(`URL ${formattedUrl} 处理完成: ${chunks.length} 个块，总长度 ${content.length}，使用代理 [${successProxy}]`);
+        toastManager.success(`成功添加 "${pageTitle}" 到知识库`);
       } catch (error) {
-        console.error(`处理URL ${url} 失败:`, error);
-        await updateKnowledgeItemStatus(item.id, 'error', {
-          error: error.message
-        });
-        toastManager.error(`处理URL ${url} 失败: ${error.message}`);
+        console.error(`处理URL失败: ${formattedUrl}`, error);
+        
+        try {
+          // 尝试创建一个基本项目
+          const simpleContent = `${item.title}\n${formattedUrl}`;
+          const embedding = await embedText(simpleContent, base.model);
+          
+          // 更新状态为部分完成
+          await db.knowledgeItems.update(item.id, {
+            content: `无法处理此URL的内容。错误信息: ${error.message}\n\nURL: ${formattedUrl}`,
+            embedding,
+            status: 'partial',
+            error: error.message,
+            updatedAt: new Date().toISOString()
+          });
+          
+          toastManager.warning(`无法完全处理 "${item.title}"，已保存基本信息`);
+        } catch (fallbackError) {
+          // 如果连基本处理也失败，则标记为失败
+          await db.knowledgeItems.update(item.id, {
+            status: 'failed',
+            error: error.message,
+            updatedAt: new Date().toISOString()
+          });
+          
+          toastManager.error(`处理URL失败: ${error.message}`);
+        }
       }
-    }, 1000);
+    }, 0);
     
     return item;
   } catch (error) {
-    console.error('添加URL到知识库失败:', error);
+    console.error(`添加URL到知识库失败: ${url}`, error);
     throw error;
   }
 };

@@ -206,7 +206,9 @@ export const MessageItem = ({
                 console.log('Code copied:', code);
               }}
               onLinkClick={(href) => {
-                window.electron.openExternal(href);
+                if (href.startsWith('http://') || href.startsWith('https://')) {
+                  window.electron.openExternal(href);
+                }
               }}
             />
           </div>
@@ -271,7 +273,9 @@ export const MessageItem = ({
                 console.log('Code copied:', code);
               }}
               onLinkClick={(href) => {
-                window.electron.openExternal(href);
+                if (href.startsWith('http://') || href.startsWith('https://')) {
+                  window.electron.openExternal(href);
+                }
               }}
             />
           </div>
@@ -429,7 +433,9 @@ export const MessageItem = ({
                                   console.log('Code copied:', code);
                                 }}
                                 onLinkClick={(href) => {
-                                  window.electron.openExternal(href);
+                                  if (href.startsWith('http://') || href.startsWith('https://')) {
+                                    window.electron.openExternal(href);
+                                  }
                                 }}
                               />
                             </div>
@@ -454,7 +460,9 @@ export const MessageItem = ({
                                   console.log('Code copied:', code);
                                 }}
                                 onLinkClick={(href) => {
-                                  window.electron.openExternal(href);
+                                  if (href.startsWith('http://') || href.startsWith('https://')) {
+                                    window.electron.openExternal(href);
+                                  }
                                 }}
                               />
                             </div>
@@ -479,7 +487,9 @@ export const MessageItem = ({
                                   console.log('Code copied:', code);
                                 }}
                                 onLinkClick={(href) => {
-                                  window.electron.openExternal(href);
+                                  if (href.startsWith('http://') || href.startsWith('https://')) {
+                                    window.electron.openExternal(href);
+                                  }
                                 }}
                               />
                             </div>
@@ -512,7 +522,9 @@ export const MessageItem = ({
                                 console.log('Code copied:', code);
                               }}
                               onLinkClick={(href) => {
-                                window.electron.openExternal(href);
+                                if (href.startsWith('http://') || href.startsWith('https://')) {
+                                  window.electron.openExternal(href);
+                                }
                               }}
                             />
                           )}

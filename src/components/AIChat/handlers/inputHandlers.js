@@ -434,11 +434,11 @@ export const createInputHandlers = ({
           
           if (references && references.length > 0) {
             console.log('找到知识库引用:', references.length);
-            // 使用脚注格式提示词
-            systemMessage = FOOTNOTE_PROMPT + '\n\n参考资料:\n\n' + 
-              references.map((ref, index) => (
-                `[${index + 1}] ${ref.title || '未命名文档'}\n${ref.content}\n---\n`
-              )).join('\n');
+            // 将引用内容格式化为JSON字符串
+            const referenceContent = `\`\`\`json\n${JSON.stringify(references, null, 2)}\n\`\`\``;
+            
+            // 使用脚注格式提示词，替换占位符
+            systemMessage = FOOTNOTE_PROMPT.replace('{question}', content).replace('{references}', referenceContent);
             
             knowledgeReferences = references;
           } else {

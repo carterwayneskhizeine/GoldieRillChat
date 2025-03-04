@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, shell } = require('electron')
 const path = require('path')
 const fs = require('fs').promises
 
@@ -408,6 +408,8 @@ contextBridge.exposeInMainWorld('electron', {
     // 重置指定的预设（只对Shaders1有效）
     resetDefaultPreset: () => ipcRenderer.invoke('reset-default-shader-preset')
   },
+
+  openExternal: (url) => shell.openExternal(url),
 })
 
 // 添加视频生成相关的 API
