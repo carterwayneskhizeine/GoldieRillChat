@@ -9,7 +9,8 @@ import {
   addKnowledgeBase as addKnowledgeBaseService,
   addFileToKnowledgeBase as addFileService,
   addUrlToKnowledgeBase as addUrlService,
-  addNoteToKnowledgeBase as addNoteService
+  addNoteToKnowledgeBase as addNoteService,
+  addDirectoryToKnowledgeBase as addDirectoryService
 } from '../services/KnowledgeBaseService';
 import { KnowledgeItemTypes } from '../types/knowledgeBase';
 
@@ -227,6 +228,29 @@ export const useKnowledge = (baseId) => {
     }
   }, [baseId]);
   
+  // 添加目录
+  const addDirectory = useCallback(async (directoryPath) => {
+    if (!baseId) return;
+    
+    try {
+      const newItem = await addDirectoryService(baseId, directoryPath);
+      setItems(prev => [...prev, newItem]);
+      
+      // 更新知识库的更新时间和文档数量
+      setBase(prev => ({
+        ...prev,
+        documentCount: (prev.documentCount || 0) + 1,
+        itemCount: (prev.itemCount || 0) + 1,
+        updatedAt: new Date().toISOString()
+      }));
+      
+      return newItem;
+    } catch (error) {
+      console.error('添加目录失败:', error);
+      toastManager.error('添加目录失败: ' + error.message);
+    }
+  }, [baseId]);
+  
   // 删除项目
   const removeItem = useCallback(async (itemId) => {
     if (!baseId) return;
@@ -297,6 +321,7 @@ export const useKnowledge = (baseId) => {
     addFile,
     addUrl,
     addNote,
+    addDirectory,
     removeItem,
     updateBaseInfo
   };

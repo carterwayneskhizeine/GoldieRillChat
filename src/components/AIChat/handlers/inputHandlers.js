@@ -9,7 +9,9 @@ import toastManager from '../../../utils/toastManager';
 import { translateText } from '../../../services/translationService';
 import { generateImage } from '../../../services/imageGenerationService';
 import { getKnowledgeBaseReferences } from '../../../services/KnowledgeBaseService';
-import { FOOTNOTE_PROMPT } from '../../../utils/prompts';
+import { getWebSearchPrompt, FOOTNOTE_PROMPT } from '../../../utils/prompts';
+import { formatISODate } from '../../../utils/dateUtils';
+import { formatReferencesForModel, sortAndFilterReferences } from '../../../utils/referenceUtils';
 
 export const createInputHandlers = ({
   messageInput,
@@ -434,13 +436,25 @@ export const createInputHandlers = ({
           
           if (references && references.length > 0) {
             console.log('找到知识库引用:', references.length);
-            // 将引用内容格式化为JSON字符串
-            const referenceContent = `\`\`\`json\n${JSON.stringify(references, null, 2)}\n\`\`\``;
             
-            // 使用脚注格式提示词，替换占位符
-            systemMessage = FOOTNOTE_PROMPT.replace('{question}', content).replace('{references}', referenceContent);
+            // 对引用进行排序和过滤
+            const optimizedReferences = sortAndFilterReferences(references, {
+              similarityThreshold: 0.6,
+              maxResults: 8,
+              removeDuplicates: true
+            });
             
-            knowledgeReferences = references;
+            // 格式化引用，适合模型处理
+            const formattedReferences = formatReferencesForModel(optimizedReferences, {
+              maxContentLength: 800,
+              includeMetadata: true
+            });
+            
+            // 使用更新后的FOOTNOTE_PROMPT
+            systemMessage = `${FOOTNOTE_PROMPT.replace('{question}', content).replace('{references}', formattedReferences)}`;
+            
+            // 保存原始引用对象以供后续处理
+            knowledgeReferences = optimizedReferences;
           } else {
             console.log('未找到相关知识库引用');
             toastManager.info('未找到相关知识库引用，将使用模型自身知识回答');
@@ -459,11 +473,13 @@ export const createInputHandlers = ({
           console.log('搜索结果:', searchResponse);
           
           if (searchResponse.results && searchResponse.results.length > 0) {
-            systemMessage = `以下是与问题相关的网络搜索结果：\n\n${
-              searchResponse.results.map((result, index) => (
-                `[${index + 1}] ${result.title}\n${result.snippet}\n${result.content}\n---\n`
-              )).join('\n')
-            }\n\n请基于以上搜索结果回答用户的问题："${content}"。如果搜索结果不足以完整回答问题，也可以使用你自己的知识来补充。请在回答末尾列出使用的参考来源编号。`;
+            // 格式化搜索结果为文本
+            const formattedSearchResults = searchResponse.results.map((result, index) => (
+              `[${index + 1}] ${result.title}\n${result.snippet}\n${result.content}\n---\n`
+            )).join('\n');
+            
+            // 使用新的getWebSearchPrompt函数
+            systemMessage = getWebSearchPrompt(content, formattedSearchResults);
             
             searchResults = searchResponse.results;
             console.log('搜索结果处理完成');

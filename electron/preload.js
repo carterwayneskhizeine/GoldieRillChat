@@ -417,4 +417,9 @@ contextBridge.exposeInMainWorld('video', {
   generate: (params) => ipcRenderer.invoke('generate-video', params),
   getStatus: (params) => ipcRenderer.invoke('get-video-status', params),
   download: (params) => ipcRenderer.invoke('download-video', params)
-}); 
+});
+
+// 在electron对象中添加选择目录的方法
+contextBridge.exposeInMainWorld('electronAPI', {
+  selectDirectory: () => ipcRenderer.invoke('select-directory')
+}) 

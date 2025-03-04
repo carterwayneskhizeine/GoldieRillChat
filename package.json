@@ -99,6 +99,7 @@
             "lightgallery": "^2.8.2",
             "lucide-react": "^0.474.0",
             "monaco-editor": "^0.52.2",
+            "officeparser": "^5.1.1",
             "pyodide": "^0.27.2",
             "react": "^18.2.0",
             "react-audio-player": "^0.17.0",

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import '../styles/embedding.css';
 import { useKnowledgeBases, useKnowledge } from '../hooks/useKnowledgeBase';
 import AddKnowledgeBaseDialog from './AddKnowledgeBaseDialog';
+import { detectFileType, TEXT_FILE_TYPES, DOCUMENT_FILE_TYPES } from '../utils/fileTypes';
 
 // 定义嵌入模型选项
 const modelOptions = [
@@ -43,7 +44,7 @@ const Embedding = ({ isActive = false }) => {
   } = useKnowledgeBases();
   
   // 使用useKnowledge钩子获取选中知识库的详细信息和处理队列
-  const { items = [], loading: itemsLoading, refreshBase, addFile, addUrl, addNote, removeItem } = 
+  const { items = [], loading: itemsLoading, refreshBase, addFile, addUrl, addNote, addDirectory, removeItem } = 
     useKnowledge(selectedKnowledgeBase?.id);
   
   // 存储选中的知识库项
@@ -195,23 +196,44 @@ const Embedding = ({ isActive = false }) => {
     }
   };
   
-  // 添加内容到知识库
+  // 修改addContentToKnowledgeBase函数，直接使用顶层已获取的钩子方法
   const addContentToKnowledgeBase = async (knowledgeBaseId, content) => {
     if (!knowledgeBaseId) return;
     
     try {
       let newItem;
+      // 已经移除了对useKnowledge的错误调用
       
       switch (content.type) {
         case 'file':
+          // 获取文件类型
+          const fileType = detectFileType(content.file.name);
+          console.log(`添加文件: ${content.file.name}, 类型: ${fileType}`);
+          
+          // 直接使用顶层获取的addFile方法
           newItem = await addFile(content.file);
           break;
+          
         case 'url':
+          // 检查是否为站点地图
+          if (content.url.toLowerCase().includes('sitemap.xml')) {
+            console.log(`添加站点地图: ${content.url}`);
+          }
+          // 直接使用顶层获取的addUrl方法
           newItem = await addUrl(content.url);
           break;
+          
         case 'note':
+          // 直接使用顶层获取的addNote方法
           newItem = await addNote(content.title, content.content);
           break;
+          
+        case 'directory':
+          console.log(`添加目录: ${content.path}`);
+          // 直接使用顶层获取的addDirectory方法
+          newItem = await addDirectory(content.path);
+          break;
+          
         default:
           console.error('不支持的内容类型:', content.type);
           return;
@@ -371,6 +393,18 @@ const Embedding = ({ isActive = false }) => {
             网址
           </a>
           <a 
+            className={`tab ${addContentType === 'directory' ? 'tab-active' : ''}`}
+            onClick={() => setAddContentType('directory')}
+          >
+            目录
+          </a>
+          <a 
+            className={`tab ${addContentType === 'sitemap' ? 'tab-active' : ''}`}
+            onClick={() => setAddContentType('sitemap')}
+          >
+            站点地图
+          </a>
+          <a 
             className={`tab ${addContentType === 'note' ? 'tab-active' : ''}`}
             onClick={() => setAddContentType('note')}
           >
@@ -389,7 +423,12 @@ const Embedding = ({ isActive = false }) => {
                   // 这里应该触发文件选择对话框
                   const input = document.createElement('input');
                   input.type = 'file';
-                  input.accept = '.pdf,.docx,.txt,.md';
+                  // 支持更多文件类型
+                  const supportedExtensions = [...TEXT_FILE_TYPES, ...DOCUMENT_FILE_TYPES]
+                    .map(ext => ext.replace('.', ''))
+                    .join(',');
+                  input.accept = supportedExtensions;
+                  
                   input.onchange = async (e) => {
                     if (e.target.files && e.target.files[0]) {
                       const file = e.target.files[0];
@@ -412,7 +451,7 @@ const Embedding = ({ isActive = false }) => {
                 选择文件
               </button>
               <p className="mt-4 text-sm text-base-content text-opacity-60">
-                支持 PDF, DOCX, TXT, MD 等文件格式
+                支持 PDF, DOCX, TXT, MD, ODT, PPTX, XLSX 等文件格式
               </p>
             </div>
           </div>
@@ -451,6 +490,101 @@ const Embedding = ({ isActive = false }) => {
                   } catch (error) {
                     console.error('添加URL失败:', error);
                     // 显示错误提示
+                  }
+                }
+              }}
+            >
+              添加到知识库
+            </button>
+          </div>
+        )}
+        
+        {addContentType === 'sitemap' && (
+          <div className="flex flex-col">
+            <div className="form-control mb-4">
+              <label className="label">
+                <span className="label-text">站点地图URL</span>
+              </label>
+              <input 
+                type="text" 
+                placeholder="https://example.com/sitemap.xml" 
+                className="input input-bordered" 
+                id="sitemap-url-input"
+              />
+              <label className="label">
+                <span className="label-text-alt">站点地图中的所有URL将被抓取并添加到知识库</span>
+              </label>
+            </div>
+            <button 
+              className="btn btn-primary"
+              onClick={async () => {
+                const urlInput = document.getElementById('sitemap-url-input');
+                if (urlInput && urlInput.value) {
+                  try {
+                    await addContentToKnowledgeBase(selectedKnowledgeBase.id, {
+                      type: 'url', // URL类型，内部会检测是否为站点地图
+                      url: urlInput.value
+                    });
+                    // 清空输入框
+                    urlInput.value = '';
+                    // 刷新知识库
+                    refreshBase();
+                  } catch (error) {
+                    console.error('添加站点地图失败:', error);
+                  }
+                }
+              }}
+            >
+              添加到知识库
+            </button>
+          </div>
+        )}
+        
+        {addContentType === 'directory' && (
+          <div className="flex flex-col">
+            <div className="form-control mb-4">
+              <label className="label">
+                <span className="label-text">选择文件夹</span>
+              </label>
+              <div className="flex items-center">
+                <input 
+                  type="text" 
+                  placeholder="选择文件夹路径..." 
+                  className="input input-bordered flex-1" 
+                  id="directory-path-input"
+                  readOnly
+                />
+                <button 
+                  className="btn ml-2"
+                  onClick={() => {
+                    // 调用Electron的选择文件夹对话框
+                    window.electronAPI?.selectDirectory?.().then(result => {
+                      if (result && !result.canceled) {
+                        document.getElementById('directory-path-input').value = result.filePaths[0];
+                      }
+                    });
+                  }}
+                >
+                  浏览...
+                </button>
+              </div>
+            </div>
+            <button 
+              className="btn btn-primary"
+              onClick={async () => {
+                const pathInput = document.getElementById('directory-path-input');
+                if (pathInput && pathInput.value) {
+                  try {
+                    await addContentToKnowledgeBase(selectedKnowledgeBase.id, {
+                      type: 'directory',
+                      path: pathInput.value
+                    });
+                    // 清空输入框
+                    pathInput.value = '';
+                    // 刷新知识库
+                    refreshBase();
+                  } catch (error) {
+                    console.error('添加目录失败:', error);
                   }
                 }
               }}

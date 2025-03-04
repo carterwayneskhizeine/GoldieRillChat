@@ -2318,3 +2318,17 @@ app.on('will-quit', () => {
   // 取消注册所有快捷键
   globalShortcut.unregisterAll();
 });
+
+// 添加目录选择功能
+ipcMain.handle('select-directory', async () => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+      title: '选择文件夹'
+    });
+    return result;
+  } catch (error) {
+    console.error('选择目录失败:', error);
+    throw error;
+  }
+});
