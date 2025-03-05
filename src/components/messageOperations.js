@@ -37,6 +37,13 @@ export const updateMessage = async (
         currentConversation.id,
         updatedMessages
       )
+      
+      // 更新文件夹修改时间
+      try {
+        await electronApi.updateFolderMtime(currentConversation.path);
+      } catch (error) {
+        console.error('更新文件夹修改时间失败:', error);
+      }
 
       return updatedMessages;
     } catch (error) {
@@ -96,6 +103,13 @@ export const sendMessage = async (
       currentConversation.id,
       updatedMessages
     )
+    
+    // 更新文件夹修改时间
+    try {
+      await electronApi.updateFolderMtime(currentConversation.path);
+    } catch (error) {
+      console.error('更新文件夹修改时间失败:', error);
+    }
   }
 
   return {
@@ -133,6 +147,13 @@ export const deleteMessage = async (
         currentConversation.id,
         updatedMessages
       )
+      
+      // 更新文件夹修改时间
+      try {
+        await electronApi.updateFolderMtime(currentConversation.path);
+      } catch (error) {
+        console.error('更新文件夹修改时间失败:', error);
+      }
       
       return updatedMessages
     }

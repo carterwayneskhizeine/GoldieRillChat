@@ -103,9 +103,18 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
   for (const conv of filteredExisting) {
     if (conv.path) {
       try {
-        // 获取文件夹的最后修改时间
-        const modifiedTime = await window.electron.getFileModifiedTime(conv.path);
-        conv.modifiedTime = modifiedTime;
+        // 先尝试从 messages.json 获取 folderMtime
+        const messageData = await window.electron.loadMessages(conv.path, conv.id);
+        if (messageData && messageData.folderMtime) {
+          conv.modifiedTime = messageData.folderMtime;
+        } else {
+          // 如果不存在 folderMtime，则使用文件系统的修改时间
+          const modifiedTime = await window.electron.getFileModifiedTime(conv.path);
+          conv.modifiedTime = modifiedTime;
+          
+          // 创建或更新 folderMtime
+          await window.electron.updateFolderMtime(conv.path);
+        }
       } catch (error) {
         console.warn(`获取文件夹修改时间失败: ${conv.path}`, error);
         conv.modifiedTime = new Date(conv.timestamp).getTime();
@@ -118,9 +127,18 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
   for (const conv of scanned) {
     if (conv.path) {
       try {
-        // 获取文件夹的最后修改时间
-        const modifiedTime = await window.electron.getFileModifiedTime(conv.path);
-        conv.modifiedTime = modifiedTime;
+        // 先尝试从 messages.json 获取 folderMtime
+        const messageData = await window.electron.loadMessages(conv.path, conv.id || Date.now().toString());
+        if (messageData && messageData.folderMtime) {
+          conv.modifiedTime = messageData.folderMtime;
+        } else {
+          // 如果不存在 folderMtime，则使用文件系统的修改时间
+          const modifiedTime = await window.electron.getFileModifiedTime(conv.path);
+          conv.modifiedTime = modifiedTime;
+          
+          // 创建或更新 folderMtime
+          await window.electron.updateFolderMtime(conv.path);
+        }
       } catch (error) {
         console.warn(`获取文件夹修改时间失败: ${conv.path}`, error);
         conv.modifiedTime = new Date(conv.timestamp).getTime();

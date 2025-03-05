@@ -304,14 +304,8 @@ export default function App() {
       // 创建文件夹
       await window.electron.mkdir(folderPath);
       
-      // 获取文件夹的修改时间
-      let modifiedTime;
-      try {
-        modifiedTime = await window.electron.getFileModifiedTime(folderPath);
-      } catch (error) {
-        console.warn('获取文件修改时间失败，使用当前时间:', error);
-        modifiedTime = Date.now();
-      }
+      // 创建 messages.json 文件并设置 folderMtime
+      const folderMtime = await window.electron.updateFolderMtime(folderPath);
       
       // 构造新会话对象
       const newConversation = {
@@ -319,7 +313,7 @@ export default function App() {
         name: newName,
         timestamp: new Date().toISOString(),
         path: folderPath,
-        modifiedTime: modifiedTime
+        modifiedTime: folderMtime // 使用 folderMtime 作为修改时间
       };
       
       // 更新状态
@@ -410,6 +404,42 @@ export default function App() {
       setMessageInput('')
       setSelectedFiles([])
       
+      // 发送消息后，更新当前对话的修改时间并重新排序对话列表
+      if (currentConversation) {
+        try {
+          // 尝试获取更新后的 folderMtime
+          const folderMtime = await window.electron.updateFolderMtime(currentConversation.path);
+          
+          // 更新对话列表中当前对话的 modifiedTime
+          const updatedConversations = conversations.map(conv => {
+            if (conv.id === currentConversation.id) {
+              return { ...conv, modifiedTime: folderMtime };
+            }
+            return conv;
+          });
+          
+          // 按修改时间重新排序
+          const sortedConversations = updatedConversations.sort((a, b) => 
+            b.modifiedTime - a.modifiedTime
+          );
+          
+          setConversations(sortedConversations);
+          
+          // 更新本地存储
+          localStorage.setItem('aichat_conversations', JSON.stringify(
+            sortedConversations.map(conv => ({
+              id: conv.id,
+              name: conv.name,
+              path: conv.path,
+              timestamp: conv.timestamp,
+              modifiedTime: conv.modifiedTime
+            }))
+          ));
+        } catch (error) {
+          console.error('更新对话修改时间失败:', error);
+        }
+      }
+      
       // Reset textarea height and scrollbar
       const textarea = document.querySelector('textarea')
       if (textarea) {
@@ -435,6 +465,42 @@ export default function App() {
       )
       setMessages(updatedMessages)
       setDeletingMessageId(null)
+      
+      // 删除消息后，更新当前对话的修改时间并重新排序对话列表
+      if (currentConversation) {
+        try {
+          // 尝试获取更新后的 folderMtime
+          const folderMtime = await window.electron.updateFolderMtime(currentConversation.path);
+          
+          // 更新对话列表中当前对话的 modifiedTime
+          const updatedConversations = conversations.map(conv => {
+            if (conv.id === currentConversation.id) {
+              return { ...conv, modifiedTime: folderMtime };
+            }
+            return conv;
+          });
+          
+          // 按修改时间重新排序
+          const sortedConversations = updatedConversations.sort((a, b) => 
+            b.modifiedTime - a.modifiedTime
+          );
+          
+          setConversations(sortedConversations);
+          
+          // 更新本地存储
+          localStorage.setItem('aichat_conversations', JSON.stringify(
+            sortedConversations.map(conv => ({
+              id: conv.id,
+              name: conv.name,
+              path: conv.path,
+              timestamp: conv.timestamp,
+              modifiedTime: conv.modifiedTime
+            }))
+          ));
+        } catch (error) {
+          console.error('更新对话修改时间失败:', error);
+        }
+      }
     } catch (error) {
       alert(error.message)
     }
@@ -457,12 +523,10 @@ export default function App() {
   }
 
   const updateMessageInApp = async (messageId, newContent) => {
-    // Get the message being edited
-    const message = messages.find(msg => msg.id === messageId)
-    if (!message) return
-
     try {
-      // 使用提取出的 updateMessage 函数
+      const message = messages.find(msg => msg.id === messageId)
+      if (!message) return
+      
       const updatedMessages = await updateMessage(
         messageId,
         newContent,
@@ -471,15 +535,48 @@ export default function App() {
         currentConversation,
         window.electron
       )
-
-      // Update state after successful file operations
+      
       setMessages(updatedMessages)
+      setEditingMessage(null)
+      
+      // 更新消息后，更新当前对话的修改时间并重新排序对话列表
+      if (currentConversation) {
+        try {
+          // 尝试获取更新后的 folderMtime
+          const folderMtime = await window.electron.updateFolderMtime(currentConversation.path);
+          
+          // 更新对话列表中当前对话的 modifiedTime
+          const updatedConversations = conversations.map(conv => {
+            if (conv.id === currentConversation.id) {
+              return { ...conv, modifiedTime: folderMtime };
+            }
+            return conv;
+          });
+          
+          // 按修改时间重新排序
+          const sortedConversations = updatedConversations.sort((a, b) => 
+            b.modifiedTime - a.modifiedTime
+          );
+          
+          setConversations(sortedConversations);
+          
+          // 更新本地存储
+          localStorage.setItem('aichat_conversations', JSON.stringify(
+            sortedConversations.map(conv => ({
+              id: conv.id,
+              name: conv.name,
+              path: conv.path,
+              timestamp: conv.timestamp,
+              modifiedTime: conv.modifiedTime
+            }))
+          ));
+        } catch (error) {
+          console.error('更新对话修改时间失败:', error);
+        }
+      }
     } catch (error) {
       alert(error.message)
-      return
     }
-
-    exitEditMode()
   }
 
   // Add renameMessageFile function

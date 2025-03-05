@@ -273,41 +273,41 @@
   .scrollbar-thin {
     scrollbar-width: thin;
     position: relative;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
   
   .scrollbar-thin::-webkit-scrollbar {
     width: 8px !important;
     height: 8px !important;
     position: relative;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
   
   .scrollbar-thin::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.2) !important;
     border-radius: 4px;
     position: relative;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
   
   .scrollbar-thumb-base-content::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.4) !important;
     border-radius: 4px;
     position: relative;
-    z-index: 9999 !important;
+    z-index: 5 !important;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   .scrollbar-thumb-opacity-20::-webkit-scrollbar-thumb {
     opacity: 0.4;
     position: relative;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
   
   .hover\:scrollbar-thumb-opacity-50:hover::-webkit-scrollbar-thumb {
     opacity: 0.6;
     position: relative;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
 
   /* 针对bg-theme主题的滚动条容器 */
@@ -316,19 +316,19 @@
   [data-theme="bg-theme"] .overflow-x-auto,
   [data-theme="bg-theme"] .overflow-auto {
     position: relative; 
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
   
   [data-theme="bg-theme"] .scrollbar-thumb-base-content::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.4) !important;
     border-radius: 4px;
-    z-index: 9999 !important;
+    z-index: 5 !important;
     border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
   [data-theme="bg-theme"] .hover\:scrollbar-thumb-opacity-50:hover::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.6) !important;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
 
   /* 增强滚动条在背景主题下的可见性 */
@@ -336,19 +336,19 @@
     width: 10px !important;
     height: 10px !important;
     background-color: rgba(0, 0, 0, 0.2) !important;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
   
   [data-theme="bg-theme"] ::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.4) !important;
     border-radius: 4px !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
   
   [data-theme="bg-theme"] ::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.6) !important;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
 
   /* 确保侧边栏容器可以正常接收滚动事件 */
@@ -356,7 +356,7 @@
   [data-theme="bg-theme"] .sidebar-content,
   [data-theme="bg-theme"] .sidebar .overflow-y-auto {
     pointer-events: auto !important;
-    z-index: 9999 !important;
+    z-index: 5 !important;
   }
 
   /* 添加新的滚动条样式规则 */
