@@ -304,8 +304,38 @@ export default function App() {
       // 创建文件夹
       await window.electron.mkdir(folderPath);
       
-      // 创建 messages.json 文件并设置 folderMtime
-      const folderMtime = await window.electron.updateFolderMtime(folderPath);
+      // 尝试不同的方法获取或设置修改时间
+      let modifiedTime;
+      try {
+        // 方法1: 使用 updateFolderMtime 函数
+        modifiedTime = await window.electron.updateFolderMtime(folderPath);
+        console.log('成功使用 updateFolderMtime 获取修改时间:', modifiedTime);
+      } catch (error1) {
+        console.warn('使用 updateFolderMtime 失败, 尝试其他方法:', error1);
+        
+        try {
+          // 方法2: 手动创建 messages.json 文件
+          const messagesFilePath = window.electron.path.join(folderPath, 'messages.json');
+          const initialData = {
+            folderMtime: Date.now(),
+            messages: []
+          };
+          await window.electron.writeFile(messagesFilePath, JSON.stringify(initialData, null, 2), 'utf8');
+          modifiedTime = initialData.folderMtime;
+          console.log('成功通过手动创建 messages.json 设置修改时间:', modifiedTime);
+        } catch (error2) {
+          console.warn('无法手动创建 messages.json 文件:', error2);
+          
+          try {
+            // 方法3: 使用当前时间
+            modifiedTime = Date.now();
+            console.log('使用当前时间作为修改时间:', modifiedTime);
+          } catch (error3) {
+            console.error('所有获取修改时间的方法都失败:', error3);
+            modifiedTime = Date.now(); // 最后的回退
+          }
+        }
+      }
       
       // 构造新会话对象
       const newConversation = {
@@ -313,7 +343,7 @@ export default function App() {
         name: newName,
         timestamp: new Date().toISOString(),
         path: folderPath,
-        modifiedTime: folderMtime // 使用 folderMtime 作为修改时间
+        modifiedTime: modifiedTime // 使用获取到的修改时间
       };
       
       // 更新状态

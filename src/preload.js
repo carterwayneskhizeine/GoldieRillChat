@@ -2,9 +2,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
 
-// 创建一个统一的 API 对象
+// 创建一个完整的 API 对象
 const electronAPI = {
-  // 文件系统操作
+  // 文件操作相关的方法
   getFileStats: async (filePath) => {
     try {
       return await fs.stat(filePath);
@@ -24,7 +24,7 @@ const electronAPI = {
     }
   },
 
-  // 保存消息到 messages.json 文件并更新修改时间
+  // 消息文件操作
   saveMessages: async (conversationPath, conversationId, messages) => {
     try {
       // 确保存在消息数组
@@ -184,7 +184,58 @@ const electronAPI = {
     basename: (p) => path.basename(p)
   },
 
-  // ... 其他现有的 API 函数 ...
+  // 文件访问检测
+  access: async (path) => {
+    try {
+      await fs.access(path);
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // 电子通信
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+  on: (channel, func) => {
+    ipcRenderer.on(channel, (event, ...args) => func(...args));
+    return () => ipcRenderer.removeListener(channel, func);
+  },
+  once: (channel, func) => {
+    ipcRenderer.once(channel, (event, ...args) => func(...args));
+  },
+  removeAllListeners: (channel) => {
+    ipcRenderer.removeAllListeners(channel);
+  },
+  
+  // 文件操作
+  readFile: async (path, options) => {
+    try {
+      return await fs.readFile(path, options);
+    } catch (error) {
+      console.error('读取文件失败:', error);
+      throw error;
+    }
+  },
+  
+  writeFile: async (path, data, options) => {
+    try {
+      await fs.writeFile(path, data, options);
+    } catch (error) {
+      console.error('写入文件失败:', error);
+      throw error;
+    }
+  },
+  
+  scanFolders: (folderPath) => ipcRenderer.invoke('scan-folders', folderPath),
+  createChatFolder: (folderPath) => ipcRenderer.invoke('create-chat-folder', folderPath),
+  renameChatFolder: (folderPath, newName) => ipcRenderer.invoke('rename-chat-folder', folderPath, newName),
+  moveFolderToRecycle: (folderPath) => ipcRenderer.invoke('move-folder-to-recycle', folderPath),
+  saveMessageAsTxt: (folderPath, message) => ipcRenderer.invoke('save-message-as-txt', folderPath, message),
+  deleteMessage: (folderPath, message) => ipcRenderer.invoke('delete-message', folderPath, message),
+  saveFile: (folderPath, filePath, fileName) => ipcRenderer.invoke('save-file', folderPath, filePath, fileName),
+  removeFile: (filePath) => ipcRenderer.invoke('remove-file', filePath),
+  showItemInFolder: (path) => ipcRenderer.invoke('show-item-in-folder', path),
+  openExternal: (url) => ipcRenderer.invoke('open-external', url)
 };
 
 // 将 API 暴露给渲染进程
