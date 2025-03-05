@@ -20,6 +20,9 @@ export const useMessageState = (currentConversation) => {
   // 消息状态和动画状态
   const [messageStates, setMessageStates] = useState({});
   const [animationStates, setAnimationStates] = useState({});
+  
+  // 文件夹修改时间
+  const [folderMtime, setFolderMtime] = useState(null);
 
   // 当对话改变时重置状态
   useEffect(() => {
@@ -41,6 +44,7 @@ export const useMessageState = (currentConversation) => {
       setFailedMessages(new Set());
       setMessageStates({});
       setAnimationStates({});
+      setFolderMtime(null);
       return;
     }
     
@@ -65,16 +69,51 @@ export const useMessageState = (currentConversation) => {
     
     // 清空消息，避免显示旧对话的消息
     setMessages([]);
+    setFolderMtime(null);
 
     // 加载新对话的消息
     if (currentConversation?.path) {
       window.electron.loadMessages(currentConversation.path)
-        .then(loadedMessages => {
-          if (Array.isArray(loadedMessages)) {
-            console.log('成功加载消息，对话ID:', currentConversation.id, '消息数量:', loadedMessages.length);
-            setMessages(loadedMessages);
+        .then(loadedData => {
+          if (loadedData) {
+            if (typeof loadedData === 'object' && loadedData.messages && Array.isArray(loadedData.messages)) {
+              // 新格式数据
+              console.log('成功加载消息（新格式），对话ID:', currentConversation.id, '消息数量:', loadedData.messages.length);
+              setMessages(loadedData.messages);
+              
+              // 设置文件夹修改时间
+              if (loadedData.folderMtime) {
+                console.log('设置文件夹修改时间:', new Date(loadedData.folderMtime).toLocaleString());
+                setFolderMtime(loadedData.folderMtime);
+                
+                // 如果存在修改时间但不匹配，更新对话列表中的修改时间
+                if (currentConversation.modifiedTime !== loadedData.folderMtime) {
+                  window.electron.updateFolderMtime(currentConversation.path)
+                    .then(newMtime => {
+                      console.log('已更新文件夹修改时间:', new Date(newMtime).toLocaleString());
+                      setFolderMtime(newMtime);
+                    })
+                    .catch(error => console.error('更新文件夹修改时间失败:', error));
+                }
+              }
+            } else if (Array.isArray(loadedData)) {
+              // 旧格式数据
+              console.log('成功加载消息（旧格式），对话ID:', currentConversation.id, '消息数量:', loadedData.length);
+              setMessages(loadedData);
+              
+              // 为旧格式创建修改时间
+              window.electron.updateFolderMtime(currentConversation.path)
+                .then(newMtime => {
+                  console.log('已创建文件夹修改时间:', new Date(newMtime).toLocaleString());
+                  setFolderMtime(newMtime);
+                })
+                .catch(error => console.error('创建文件夹修改时间失败:', error));
+            } else {
+              console.warn('加载的消息格式不正确:', loadedData);
+              setMessages([]);
+            }
           } else {
-            console.warn('加载的消息不是数组:', loadedMessages);
+            console.warn('加载消息返回空数据');
             setMessages([]);
           }
         })
@@ -102,6 +141,11 @@ export const useMessageState = (currentConversation) => {
           messages
         );
         console.log('消息已保存，对话ID:', currentConversation.id);
+        
+        // 更新修改时间
+        const newMtime = await window.electron.updateFolderMtime(currentConversation.path);
+        setFolderMtime(newMtime);
+        console.log('文件夹修改时间已更新:', new Date(newMtime).toLocaleString());
       } catch (error) {
         console.error('保存消息失败:', error);
       }
@@ -127,6 +171,8 @@ export const useMessageState = (currentConversation) => {
     messageStates,
     setMessageStates,
     animationStates,
-    setAnimationStates
+    setAnimationStates,
+    folderMtime,
+    setFolderMtime
   };
 }; 

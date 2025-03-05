@@ -30,6 +30,75 @@ contextBridge.exposeInMainWorld('electron', {
   mkdir: (dirPath) => ipcRenderer.invoke('mkdir', dirPath),
   access: (filePath) => ipcRenderer.invoke('access', filePath),
   
+  // 获取文件的修改时间
+  getFileModifiedTime: async (filePath) => {
+    try {
+      const stats = await fs.stat(filePath);
+      return stats.mtime.getTime();
+    } catch (error) {
+      console.error('获取文件修改时间失败:', error);
+      throw error;
+    }
+  },
+
+  // 更新文件夹修改时间
+  updateFolderMtime: async (conversationPath) => {
+    try {
+      const messagesFilePath = path.join(conversationPath, 'messages.json');
+      
+      // 检查文件是否存在
+      try {
+        await fs.access(messagesFilePath);
+      } catch (error) {
+        // 文件不存在，创建新文件
+        const initialData = {
+          folderMtime: Date.now(),
+          messages: []
+        };
+        await fs.writeFile(messagesFilePath, JSON.stringify(initialData, null, 2), 'utf8');
+        return initialData.folderMtime;
+      }
+      
+      // 读取当前文件内容
+      const content = await fs.readFile(messagesFilePath, 'utf8');
+      let data;
+      
+      try {
+        data = JSON.parse(content);
+        
+        // 处理老格式的 messages.json
+        if (Array.isArray(data)) {
+          data = {
+            folderMtime: Date.now(),
+            messages: data
+          };
+        } else if (!data.folderMtime) {
+          // 添加 folderMtime 字段
+          data.folderMtime = Date.now();
+        } else {
+          // 更新 folderMtime 字段
+          data.folderMtime = Date.now();
+        }
+        
+        // 保存更新后的数据
+        await fs.writeFile(messagesFilePath, JSON.stringify(data, null, 2), 'utf8');
+        return data.folderMtime;
+      } catch (error) {
+        console.error('解析或更新消息文件失败:', error);
+        // 如果解析失败，创建新的数据结构
+        const newData = {
+          folderMtime: Date.now(),
+          messages: []
+        };
+        await fs.writeFile(messagesFilePath, JSON.stringify(newData, null, 2), 'utf8');
+        return newData.folderMtime;
+      }
+    } catch (error) {
+      console.error('更新文件夹修改时间失败:', error);
+      throw error;
+    }
+  },
+  
   // 添加书签文件相关处理函数
   selectBookmarkFile: () => ipcRenderer.invoke('select-bookmark-file'),
   readFile: async (filePath) => {
