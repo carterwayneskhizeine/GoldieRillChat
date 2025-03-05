@@ -659,7 +659,7 @@ export default function TitleBar({
       <div className="flex items-center space-x-2 no-drag">
         {/* 主题切换按钮 */}
         <button
-          className="btn btn-ghost btn-xs w-6 h-6 hover:rounded-none"
+          className="btn btn-ghost btn-xs w-6 h-6 window-control-btn"
           onClick={async () => {
             try {
               await toggleTheme(currentTheme, themes, setCurrentTheme);
@@ -674,7 +674,7 @@ export default function TitleBar({
         
         {/* 最小化按钮 */}
         <button
-          className="btn btn-ghost btn-xs w-6 h-6 hover:rounded-none"
+          className="btn btn-ghost btn-xs w-6 h-6 window-control-btn"
           onClick={() => window.electron.window.minimize()}
         >
           ─
@@ -682,7 +682,7 @@ export default function TitleBar({
 
         {/* 最大化按钮 */}
         <button
-          className="btn btn-ghost btn-xs w-6 h-6 hover:rounded-none"
+          className="btn btn-ghost btn-xs w-6 h-6 window-control-btn"
           onClick={() => window.electron.window.maximize()}
         >
           {isMaximized ? '❐' : '□'}
@@ -690,7 +690,7 @@ export default function TitleBar({
 
         {/* 关闭按钮 */}
         <button
-          className="btn btn-ghost btn-xs w-6 h-6 hover:rounded-none text-base-content hover:bg-error hover:text-error-content"
+          className="btn btn-ghost btn-xs w-6 h-6 window-control-btn window-close-btn"
           onClick={() => window.electron.window.close()}
         >
           ×
