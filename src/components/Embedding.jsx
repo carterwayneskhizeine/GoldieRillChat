@@ -1,8 +1,26 @@
+/**
+ * 知识库组件
+ * 用于管理和使用向量知识库
+ */
 import React, { useState, useEffect, useRef } from 'react';
-import '../styles/embedding.css';
+import { nanoid } from 'nanoid';
+import '../styles/Embedding.css';
 import { useKnowledgeBases, useKnowledge } from '../hooks/useKnowledgeBase';
 import AddKnowledgeBaseDialog from './AddKnowledgeBaseDialog';
 import { detectFileType, TEXT_FILE_TYPES, DOCUMENT_FILE_TYPES } from '../utils/fileTypes';
+
+// 自定义样式，解决滚动条问题
+const customStyles = {
+  kbListContainer: {
+    overflowY: 'auto',
+    overflowX: 'hidden',
+  },
+  // 使用内容自动高度
+  autoHeight: {
+    height: 'auto',
+    minHeight: 'min-content',
+  }
+};
 
 // 定义嵌入模型选项
 const modelOptions = [
@@ -13,6 +31,12 @@ const modelOptions = [
   { id: 'Pro/BAAI/bge-m3', name: 'Pro/BAAI/bge-m3', provider: 'SiliconFlow', dimensions: 1024, tokens: 8192 },
 ];
 
+/**
+ * 知识库组件
+ * @param {Object} props 组件属性
+ * @param {boolean} props.isActive 是否激活
+ * @returns {JSX.Element} 知识库组件
+ */
 const Embedding = ({ isActive = false }) => {
   // 状态管理
   const [activeTab, setActiveTab] = useState('knowledge');
@@ -249,21 +273,21 @@ const Embedding = ({ isActive = false }) => {
   // 渲染知识库列表
   const renderKnowledgeBaseList = () => {
     return (
-      <div className="h-full">
+      <div style={customStyles.autoHeight}>
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-full py-12 text-base-content/60">
+          <div className="flex flex-col items-center justify-center py-12 text-base-content/60">
             <div className="loading loading-spinner loading-lg mb-4"></div>
             <p>加载知识库...</p>
           </div>
         ) : knowledgeBases.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full py-12 text-base-content/60">
+          <div className="flex flex-col items-center justify-center py-12 text-base-content/60">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
             <p className="mb-4">尚未创建知识库</p>
-        </div>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2" style={customStyles.autoHeight}>
           {knowledgeBases.map(kb => (
             <div 
               key={kb.id} 
@@ -295,7 +319,7 @@ const Embedding = ({ isActive = false }) => {
                 <h3 className="font-medium text-sm truncate">{kb.name}</h3>
                 <div className="flex items-center mt-1.5 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="badge badge-sm badge-neutral font-normal py-0.5 h-auto min-h-0">
+                    <span className="text-base-content/60">
                       {kb.itemCount || kb.documentCount || 0} 项
                     </span>
                     <span className="text-base-content/60">
@@ -1239,7 +1263,7 @@ const Embedding = ({ isActive = false }) => {
           </div>
 
           {/* 选项卡内容 - 修改这里确保滚动正常 */}
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 p-3 kb-list-container" style={customStyles.kbListContainer}>
             {renderKnowledgeBaseList()}
           </div>
         </div>

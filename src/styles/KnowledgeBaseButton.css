@@ -61,10 +61,11 @@
 .knowledge-base-popover {
   position: absolute;
   bottom: 50px;
-  left: 0;
+  right: 0;
+  left: auto;
   z-index: 2100;
   animation: popover-fade-in 0.2s ease-out;
-  transform-origin: bottom left;
+  transform-origin: bottom right;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
 }
 
@@ -82,6 +83,7 @@
 /* Responsive styles */
 @media (max-width: 576px) {
   .knowledge-base-popover {
-    left: -100px;
+    right: -100px;
+    left: auto;
   }
 } 

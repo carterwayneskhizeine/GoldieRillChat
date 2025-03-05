@@ -74,10 +74,6 @@ const KnowledgeBaseSelector = ({ selectedBases = [], onSelect }) => {
 
   return (
     <div className="knowledge-base-selector">
-      <div className="knowledge-base-selector-header">
-        <h3>选择知识库</h3>
-      </div>
-      
       {loading ? (
         <div className="knowledge-base-loading">
           <div className="loading-spinner" />
