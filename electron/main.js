@@ -611,28 +611,28 @@ ipcMain.handle('openFileLocation', async (event, filePath) => {
 ipcMain.handle('scanFolders', async (event, basePath) => {
   try {
     // 获取基础目录下的所有文件和文件夹
-    const items = await fs.readdir(basePath, { withFileTypes: true });
+    const items = await fs.readdir(basePath, { withFileTypes: true })
     
     console.log('扫描到的所有项目:', items.map(item => item.name));
     
     // 只处理文件夹，排除 RecycleBin 和 Notes
     const folders = items.filter(item => 
       item.isDirectory() && item.name !== 'RecycleBin' && item.name !== 'Notes'
-    );
+    )
     
     console.log('过滤后的文件夹:', folders.map(folder => folder.name));
     
     // 处理每个文件夹
     const processedFolders = await Promise.all(folders.map(async folder => {
-      const folderPath = path.join(basePath, folder.name);
-      const folderContents = await fs.readdir(folderPath, { withFileTypes: true });
+      const folderPath = path.join(basePath, folder.name)
+      const folderContents = await fs.readdir(folderPath, { withFileTypes: true })
       
       // 获取文件夹中的所有文件
       const files = await Promise.all(folderContents
         .filter(item => item.isFile())
         .map(async file => {
-          const filePath = path.join(folderPath, file.name);
-          const stats = await fs.stat(filePath);
+          const filePath = path.join(folderPath, file.name)
+          const stats = await fs.stat(filePath)
           
           return {
             name: file.name,
@@ -640,64 +640,52 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
             type: path.extname(file.name).toLowerCase(),
             size: stats.size,
             timestamp: stats.mtime.toISOString()
-          };
-        }));
+          }
+        }))
       
       // 读取 messages.json 如果存在
-      let messages = [];
-      let folderMtime = Date.now(); // 默认使用当前时间
-      
-      const messagesPath = path.join(folderPath, 'messages.json');
+      let messages = []
+      let folderMtime = null;
       
       try {
-        const messagesContent = await fs.readFile(messagesPath, 'utf8');
-        const messagesData = JSON.parse(messagesContent);
+        const messagesPath = path.join(folderPath, 'messages.json')
+        const messagesContent = await fs.readFile(messagesPath, 'utf8')
+        const parsedData = JSON.parse(messagesContent)
         
-        // 检查是否是新格式（包含folderMtime字段）
-        if (typeof messagesData === 'object' && !Array.isArray(messagesData)) {
-          // 新格式
-          if (messagesData.folderMtime) {
-            folderMtime = messagesData.folderMtime; // 使用已有的folderMtime
-          }
-          
-          if (Array.isArray(messagesData.messages)) {
-            messages = messagesData.messages;
+        // 检查是否是新格式（带有 folderMtime 的对象）
+        if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
+          if (parsedData.messages) {
+            messages = parsedData.messages;
           } else {
             messages = [];
           }
-        } else if (Array.isArray(messagesData)) {
-          // 旧格式，是直接的消息数组
-          messages = messagesData;
           
-          // 将其转换为新格式
-          await fs.writeFile(
-            messagesPath,
-            JSON.stringify({ 
-              folderMtime: folderMtime,
-              messages: messages 
-            }, null, 2),
-            'utf8'
-          );
+          // 获取 folderMtime
+          if (parsedData.folderMtime) {
+            folderMtime = parsedData.folderMtime;
+          }
+        } else {
+          // 旧格式（直接是消息数组）
+          messages = parsedData;
         }
-        
+
         // 获取已存在文件的路径列表
-        const existingFilePaths = new Set();
+        const existingFilePaths = new Set()
         messages.forEach(msg => {
           if (msg.txtFile) {
-            existingFilePaths.add(msg.txtFile.path);
+            existingFilePaths.add(msg.txtFile.path)
           }
           if (msg.files) {
-            msg.files.forEach(file => existingFilePaths.add(file.path));
+            msg.files.forEach(file => existingFilePaths.add(file.path))
           }
-        });
-        
+        })
+
         // 处理新的文本文件
         const newTxtFiles = files.filter(f => 
           f.type === '.txt' && !existingFilePaths.has(f.path)
-        );
-        
+        )
         for (const txtFile of newTxtFiles) {
-          const content = await fs.readFile(txtFile.path, 'utf8');
+          const content = await fs.readFile(txtFile.path, 'utf8')
           messages.push({
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             content: content,
@@ -707,48 +695,57 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
               displayName: txtFile.name.replace('.txt', ''),
               path: txtFile.path
             }
-          });
+          })
         }
-        
+
         // 处理新的媒体文件
         const newMediaFiles = files.filter(f => 
           f.type !== '.txt' && 
           f.type !== '.json' && 
           !existingFilePaths.has(f.path)
-        );
-        
+        )
         newMediaFiles.forEach(file => {
           messages.push({
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             content: '',
             timestamp: file.timestamp,
             files: [file]
-          });
-        });
-        
-        // 如果有新文件，重新排序并保存，并更新folderMtime
+          })
+        })
+
+        // 如果有新文件，重新排序并保存，同时更新 folderMtime
         if (newTxtFiles.length > 0 || newMediaFiles.length > 0) {
-          messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-          folderMtime = Date.now(); // 更新修改时间
+          messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
           
+          // 更新 folderMtime
+          folderMtime = Date.now();
+          
+          // 保存带有 folderMtime 的新格式
           await fs.writeFile(
-            messagesPath,
-            JSON.stringify({ 
-              folderMtime: folderMtime,
-              messages: messages 
-            }, null, 2),
+            path.join(folderPath, 'messages.json'),
+            JSON.stringify({ folderMtime, messages }, null, 2),
             'utf8'
-          );
+          )
+        } else if (!folderMtime) {
+          // 如果没有 folderMtime，设置一个
+          folderMtime = Date.now();
+          
+          // 保存带有新添加的 folderMtime 的格式
+          await fs.writeFile(
+            path.join(folderPath, 'messages.json'),
+            JSON.stringify({ folderMtime, messages }, null, 2),
+            'utf8'
+          )
         }
       } catch (error) {
-        // 如果 messages.json 不存在或解析失败，创建新的消息数组
-        messages = [];
-        folderMtime = Date.now(); // 使用当前时间作为修改时间
+        // 如果 messages.json 不存在，创建新的消息数组
+        messages = []
+        folderMtime = Date.now(); // 设置当前时间作为 folderMtime
         
         // 处理文本文件
-        const txtFiles = files.filter(f => f.type === '.txt');
+        const txtFiles = files.filter(f => f.type === '.txt')
         for (const txtFile of txtFiles) {
-          const content = await fs.readFile(txtFile.path, 'utf8');
+          const content = await fs.readFile(txtFile.path, 'utf8')
           messages.push({
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             content: content,
@@ -758,53 +755,53 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
               displayName: txtFile.name.replace('.txt', ''),
               path: txtFile.path
             }
-          });
+          })
         }
         
         // 处理媒体文件和其他文件
-        const mediaFiles = files.filter(f => f.type !== '.txt' && f.type !== '.json');
+        const mediaFiles = files.filter(f => f.type !== '.txt' && f.type !== '.json')
         if (mediaFiles.length > 0) {
           // 为每个文件创建独立的消息
           mediaFiles.forEach(file => {
-            messages.push({
-              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-              content: '',
+          messages.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            content: '',
               timestamp: file.timestamp,
               files: [file]
-            });
-          });
+            })
+          })
         }
         
         // 按时间戳排序消息
-        messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         
-        // 保存新的 messages.json，包含folderMtime
+        // 保存新的 messages.json，带有 folderMtime
         await fs.writeFile(
-          messagesPath,
-          JSON.stringify({
-            folderMtime: folderMtime,
-            messages: messages
-          }, null, 2),
+          path.join(folderPath, 'messages.json'),
+          JSON.stringify({ folderMtime, messages }, null, 2),
           'utf8'
-        );
+        )
       }
+      
+      // 获取文件系统的修改时间作为备用
+      const folderStats = await fs.stat(folderPath);
+      const folderModifiedTime = folderStats.mtime.getTime();
       
       return {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         name: folder.name,
         path: folderPath,
         timestamp: new Date().toISOString(),
-        modifiedTime: folderMtime // 添加修改时间字段
-      };
-    }));
+        modifiedTime: folderMtime || folderModifiedTime // 优先使用 folderMtime
+      }
+    }))
     
-    // 按修改时间排序文件夹
-    return processedFolders.sort((a, b) => b.modifiedTime - a.modifiedTime);
+    return processedFolders
   } catch (error) {
-    console.error('Failed to scan folders:', error);
-    throw error;
+    console.error('Failed to scan folders:', error)
+    throw error
   }
-});
+})
 
 // Create the browser window
 function createWindow() {
@@ -1357,32 +1354,7 @@ ipcMain.handle('save-messages', async (event, conversationPath, conversationId, 
     }
 
     const messagesPath = path.join(conversationPath, 'messages.json');
-    
-    // 读取现有的 messages.json (如果存在)
-    let folderMtime = Date.now();
-    try {
-      const existingContent = await fs.readFile(messagesPath, 'utf8');
-      const existingData = JSON.parse(existingContent);
-      
-      // 如果已经是新格式，保留原来的 folderMtime
-      if (typeof existingData === 'object' && !Array.isArray(existingData) && existingData.folderMtime) {
-        folderMtime = existingData.folderMtime;
-      }
-    } catch (error) {
-      // 如果文件不存在或解析失败，使用当前时间
-      console.log('无法读取现有消息文件，使用当前时间作为修改时间');
-    }
-    
-    // 更新 folderMtime
-    folderMtime = Date.now();
-    
-    // 保存带有 folderMtime 的消息数据
-    const messageData = {
-      folderMtime: folderMtime,
-      messages: messages
-    };
-    
-    await fs.writeFile(messagesPath, JSON.stringify(messageData, null, 2), 'utf8');
+    await fs.writeFile(messagesPath, JSON.stringify(messages, null, 2), 'utf8');
     return true;
   } catch (error) {
     console.error('保存消息失败:', error);
@@ -1398,13 +1370,9 @@ ipcMain.handle('load-messages', async (event, conversationPath) => {
     try {
       await fs.access(messagesPath);
     } catch (error) {
-      // 如果文件不存在，创建一个带有 folderMtime 的空消息数组文件
-      const initialData = {
-        folderMtime: Date.now(),
-        messages: []
-      };
-      await fs.writeFile(messagesPath, JSON.stringify(initialData, null, 2), 'utf8');
-      return initialData;
+      // 如果文件不存在，创建一个空的消息数组文件
+      await fs.writeFile(messagesPath, '[]', 'utf8');
+      return [];
     }
 
     // 读取消息文件
@@ -1412,50 +1380,24 @@ ipcMain.handle('load-messages', async (event, conversationPath) => {
     
     // 检查文件内容是否为空
     if (!content.trim()) {
-      const initialData = {
-        folderMtime: Date.now(),
-        messages: []
-      };
-      await fs.writeFile(messagesPath, JSON.stringify(initialData, null, 2), 'utf8');
-      return initialData;
+      await fs.writeFile(messagesPath, '[]', 'utf8');
+      return [];
     }
 
     try {
       // 尝试解析 JSON
-      const data = JSON.parse(content);
-      
-      // 检查数据格式
-      if (Array.isArray(data)) {
-        // 旧格式，直接是消息数组
-        const newData = {
-          folderMtime: Date.now(),
-          messages: data
-        };
-        
-        // 转换为新格式并保存
-        await fs.writeFile(messagesPath, JSON.stringify(newData, null, 2), 'utf8');
-        return newData;
-      } else if (typeof data === 'object' && data.messages && Array.isArray(data.messages)) {
-        // 新格式，带有 folderMtime 和 messages 字段
-        return data;
-      } else {
-        // 格式错误，重置文件
+      const messages = JSON.parse(content);
+      // 确保返回的是数组
+      if (!Array.isArray(messages)) {
         console.error('消息文件格式错误，重置文件');
-        const initialData = {
-          folderMtime: Date.now(),
-          messages: []
-        };
-        await fs.writeFile(messagesPath, JSON.stringify(initialData, null, 2), 'utf8');
-        return initialData;
+        await fs.writeFile(messagesPath, '[]', 'utf8');
+        return [];
       }
+      return messages;
     } catch (parseError) {
       console.error('JSON 解析失败，重置文件:', parseError);
-      const initialData = {
-        folderMtime: Date.now(),
-        messages: []
-      };
-      await fs.writeFile(messagesPath, JSON.stringify(initialData, null, 2), 'utf8');
-      return initialData;
+      await fs.writeFile(messagesPath, '[]', 'utf8');
+      return [];
     }
   } catch (error) {
     console.error('加载消息失败:', error);
@@ -2557,64 +2499,6 @@ ipcMain.handle('select-directory', async () => {
     return result;
   } catch (error) {
     console.error('选择目录失败:', error);
-    throw error;
-  }
-});
-
-// 添加更新文件夹修改时间的IPC处理程序
-ipcMain.handle('updateFolderMtime', async (event, conversationPath) => {
-  try {
-    const messagesPath = path.join(conversationPath, 'messages.json');
-    
-    // 检查文件是否存在
-    try {
-      await fs.access(messagesPath);
-    } catch (error) {
-      // 文件不存在，创建新文件
-      const initialData = {
-        folderMtime: Date.now(),
-        messages: []
-      };
-      await fs.writeFile(messagesPath, JSON.stringify(initialData, null, 2), 'utf8');
-      return initialData.folderMtime;
-    }
-    
-    // 读取当前文件内容
-    const content = await fs.readFile(messagesPath, 'utf8');
-    let data;
-    
-    try {
-      data = JSON.parse(content);
-      
-      // 处理老格式的 messages.json
-      if (Array.isArray(data)) {
-        data = {
-          folderMtime: Date.now(),
-          messages: data
-        };
-      } else if (!data.folderMtime) {
-        // 添加 folderMtime 字段
-        data.folderMtime = Date.now();
-      } else {
-        // 更新 folderMtime 字段
-        data.folderMtime = Date.now();
-      }
-      
-      // 保存更新后的数据
-      await fs.writeFile(messagesPath, JSON.stringify(data, null, 2), 'utf8');
-      return data.folderMtime;
-    } catch (error) {
-      console.error('解析或更新消息文件失败:', error);
-      // 如果解析失败，创建新的数据结构
-      const newData = {
-        folderMtime: Date.now(),
-        messages: []
-      };
-      await fs.writeFile(messagesPath, JSON.stringify(newData, null, 2), 'utf8');
-      return newData.folderMtime;
-    }
-  } catch (error) {
-    console.error('更新文件夹修改时间失败:', error);
     throw error;
   }
 });
