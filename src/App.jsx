@@ -1028,11 +1028,19 @@ export default function App() {
     const handleSwitchTool = (event) => {
       const { tool, conversation } = event.detail;
       
+      // 记录上一个工具
+      const prevTool = activeTool;
       // 切换工具
       setActiveTool(tool);
       
-      // 如果提供了对话信息，创建并加载对话
-      if (conversation) {
+      // 如果从Chat切换到AIChat，确保使用最新的对话
+      if (prevTool === 'chat' && tool === 'aichat' && currentConversation) {
+        console.log('从Chat切换到AIChat，强制使用当前对话:', currentConversation.name);
+        // 强制使用当前选中的对话，而不是事件中的对话
+        handleConversationSelect(currentConversation.id);
+      }
+      // 正常处理其他情况
+      else if (conversation) {
         handleConversationCreate(conversation)
           .then(() => {
             // 加载对话消息
@@ -1047,7 +1055,7 @@ export default function App() {
 
     window.addEventListener('switchTool', handleSwitchTool);
     return () => window.removeEventListener('switchTool', handleSwitchTool);
-  }, []);
+  }, [activeTool, currentConversation, handleConversationSelect, handleConversationCreate]);
 
   // 添加处理导入书签的函数
   const handleImportBookmarks = () => {
