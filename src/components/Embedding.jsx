@@ -40,13 +40,13 @@ const modelOptions = [
 const Embedding = ({ isActive = false }) => {
   // 状态管理
   const [activeTab, setActiveTab] = useState('knowledge');
-  const [activeContentTab, setActiveContentTab] = useState('items');
+  const [activeContentTab, setActiveContentTab] = useState('add');
   const [selectedKnowledgeBase, setSelectedKnowledgeBase] = useState(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [knowledgeBaseToDelete, setKnowledgeBaseToDelete] = useState(null);
-  const [addContentType, setAddContentType] = useState('file');
+  const [addContentType, setAddContentType] = useState('note');
   // 添加分段数量状态到组件顶层，默认值改为6
   const [chunkCount, setChunkCount] = useState(6);
   
@@ -419,6 +419,12 @@ const Embedding = ({ isActive = false }) => {
       <div className="space-y-4">
         <div className="tabs tabs-boxed bg-base-200 p-1">
           <a 
+            className={`tab ${addContentType === 'note' ? 'tab-active' : ''}`}
+            onClick={() => setAddContentType('note')}
+          >
+            笔记
+          </a>
+          <a 
             className={`tab ${addContentType === 'file' ? 'tab-active' : ''}`}
             onClick={() => setAddContentType('file')}
           >
@@ -441,12 +447,6 @@ const Embedding = ({ isActive = false }) => {
             onClick={() => setAddContentType('sitemap')}
           >
             站点地图
-          </a>
-          <a 
-            className={`tab ${addContentType === 'note' ? 'tab-active' : ''}`}
-            onClick={() => setAddContentType('note')}
-          >
-            笔记
           </a>
         </div>
         
@@ -726,16 +726,16 @@ const Embedding = ({ isActive = false }) => {
         
         <div className="tabs tabs-boxed bg-base-200 p-1 w-fit mb-4">
           <a 
-            className={`tab ${activeContentTab === 'items' ? 'tab-active' : ''}`}
-            onClick={() => setActiveContentTab('items')}
-          >
-            内容项
-          </a>
-          <a 
             className={`tab ${activeContentTab === 'add' ? 'tab-active' : ''}`}
             onClick={() => setActiveContentTab('add')}
           >
             添加内容
+          </a>
+          <a 
+            className={`tab ${activeContentTab === 'items' ? 'tab-active' : ''}`}
+            onClick={() => setActiveContentTab('items')}
+          >
+            内容项
           </a>
           <a 
             className={`tab ${activeContentTab === 'search' ? 'tab-active' : ''}`}
@@ -753,26 +753,15 @@ const Embedding = ({ isActive = false }) => {
         
         {activeContentTab === 'items' && (
           <div className="flex-1 overflow-auto flex flex-col">
-            <div className="mb-4">
-              <div className="form-control w-full max-w-xs">
-                <div className="input-group flex">
-                  <input type="text" placeholder="搜索内容项..." className="input input-bordered input-sm flex-1" />
-                  <button className="btn btn-square btn-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto flex-1">
-              <table className="table table-zebra w-full">
+            <div className="overflow-x-auto flex-1 rounded-lg border border-base-300 bg-base-100/50">
+              <table className="table table-zebra w-full table-compact">
                 <thead>
                   <tr>
-                    <th>名称</th>
-                    <th>类型</th>
-                    <th>添加时间</th>
-                    <th>状态</th>
-                    <th>操作</th>
+                    <th className="w-[45%]">名称</th>
+                    <th className="w-[10%]">类型</th>
+                    <th className="w-[20%]">添加时间</th>
+                    <th className="w-[15%]">状态</th>
+                    <th className="w-[10%]">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -792,7 +781,11 @@ const Embedding = ({ isActive = false }) => {
                   ) : (
                     items.map(item => (
                       <tr key={item.id}>
-                        <td>{item.name || item.url || '未命名项目'}</td>
+                        <td className="max-w-0">
+                          <div className="truncate" title={item.name || item.url || '未命名项目'}>
+                            {item.name || item.url || '未命名项目'}
+                          </div>
+                        </td>
                         <td>
                           {item.type === 'file' && <span>File</span>}
                           {item.type === 'url' && <span>URL</span>}
@@ -800,15 +793,15 @@ const Embedding = ({ isActive = false }) => {
                           {item.type === 'sitemap' && <span>SiteMap</span>}
                           {item.type === 'directory' && <span>TOC</span>}
                         </td>
-                        <td>{new Date(item.createdAt || item.created_at).toLocaleString()}</td>
+                        <td className="whitespace-nowrap">{new Date(item.createdAt || item.created_at).toLocaleString()}</td>
                         <td>
                           {console.log(`项目状态: ${item.id}, 状态: ${item.status}`, item)}
-                          {item.status === 'ready' && <span className="badge badge-sm bg-opacity-20 bg-gray-700 text-white">已完成</span>}
-                          {item.status === 'completed' && <span className="badge badge-sm bg-opacity-20 bg-gray-700 text-white">已完成</span>}
-                          {item.status === 'processing' && <span className="badge badge-sm bg-opacity-20 bg-gray-700 text-white">处理中</span>}
-                          {item.status === 'pending' && <span className="badge badge-sm bg-opacity-20 bg-gray-700 text-white">等待中</span>}
-                          {item.status === 'error' && <span className="badge badge-sm bg-opacity-20 bg-gray-700 text-white">失败</span>}
-                          {!item.status && <span className="badge badge-sm bg-opacity-20 bg-gray-700 text-white">未知</span>}
+                          {item.status === 'ready' && <span className="text-xs text-success">已完成</span>}
+                          {item.status === 'completed' && <span className="text-xs text-success">已完成</span>}
+                          {item.status === 'processing' && <span className="text-xs text-warning">处理中</span>}
+                          {item.status === 'pending' && <span className="text-xs text-info">等待中</span>}
+                          {item.status === 'error' && <span className="text-xs text-error">失败</span>}
+                          {!item.status && <span className="text-xs text-gray-500">未知</span>}
                         </td>
                         <td>
                           <div className="dropdown dropdown-left">
@@ -819,8 +812,6 @@ const Embedding = ({ isActive = false }) => {
                                 color: "white",
                                 border: "1px solid rgba(255, 255, 255, 0.2)",
                                 boxShadow: "0 0 15px rgba(0, 0, 0, 0.8)",
-                                opacity: 1,
-                                position: "absolute",
                                 maxHeight: "300px",
                                 overflowY: "auto",
                                 overflowX: "hidden"
