@@ -304,16 +304,29 @@ export default function App() {
       // 创建文件夹
       await window.electron.mkdir(folderPath);
       
+      // 获取文件夹的修改时间
+      let modifiedTime;
+      try {
+        modifiedTime = await window.electron.getFileModifiedTime(folderPath);
+      } catch (error) {
+        console.warn('获取文件修改时间失败，使用当前时间:', error);
+        modifiedTime = Date.now();
+      }
+      
       // 构造新会话对象
       const newConversation = {
         id: newId,
         name: newName,
         timestamp: new Date().toISOString(),
-        path: folderPath
+        path: folderPath,
+        modifiedTime: modifiedTime
       };
       
       // 更新状态
-      const updatedConversations = [...conversations, newConversation];
+      const updatedConversations = [...conversations];
+      // 将新对话插入到列表开头
+      updatedConversations.unshift(newConversation);
+      
       setConversations(updatedConversations);
       setCurrentConversation(newConversation);
       setMessages([]);
@@ -324,10 +337,13 @@ export default function App() {
           id: conv.id,
           name: conv.name,
           path: conv.path,
-          timestamp: conv.timestamp
+          timestamp: conv.timestamp,
+          modifiedTime: conv.modifiedTime
         }))
       ));
       localStorage.setItem('aichat_current_conversation', JSON.stringify(newConversation));
+      
+      toastManager.success('创建新会话成功');
     } catch (error) {
       console.error('创建新会话失败:', error);
       toastManager.error('创建新会话失败: ' + error.message);

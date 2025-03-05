@@ -59,7 +59,7 @@ export const handleUpdateFolders = async (storagePath, setConversations, window,
     validConversations = validConversations.filter((_, index) => validationResults[index]);
     
     // 合并对话列表，但只保留当前存储路径的对话
-    const mergedConversations = mergeConversationsWithPath(validConversations, folders, storagePath);
+    const mergedConversations = await mergeConversationsWithPath(validConversations, folders, storagePath);
     
     // 更新应用状态
     setConversations(mergedConversations);
@@ -90,7 +90,7 @@ export const handleUpdateFolders = async (storagePath, setConversations, window,
  * @param {string} currentPath - 当前存储路径
  * @returns {Array} 合并后的对话列表
  */
-export const mergeConversationsWithPath = (existing, scanned, currentPath) => {
+export const mergeConversationsWithPath = async (existing, scanned, currentPath) => {
   // 只保留以当前存储路径开头的对话
   const filteredExisting = existing.filter(conv => 
     conv.path && conv.path.startsWith(currentPath)
@@ -100,32 +100,50 @@ export const mergeConversationsWithPath = (existing, scanned, currentPath) => {
   const mergedMap = new Map();
   
   // 添加过滤后的现有对话
-  filteredExisting.forEach(conv => {
+  for (const conv of filteredExisting) {
     if (conv.path) {
+      try {
+        // 获取文件夹的最后修改时间
+        const modifiedTime = await window.electron.getFileModifiedTime(conv.path);
+        conv.modifiedTime = modifiedTime;
+      } catch (error) {
+        console.warn(`获取文件夹修改时间失败: ${conv.path}`, error);
+        conv.modifiedTime = new Date(conv.timestamp).getTime();
+      }
       mergedMap.set(conv.path, conv);
     }
-  });
+  }
   
   // 添加或更新扫描到的对话
-  scanned.forEach(conv => {
+  for (const conv of scanned) {
     if (conv.path) {
+      try {
+        // 获取文件夹的最后修改时间
+        const modifiedTime = await window.electron.getFileModifiedTime(conv.path);
+        conv.modifiedTime = modifiedTime;
+      } catch (error) {
+        console.warn(`获取文件夹修改时间失败: ${conv.path}`, error);
+        conv.modifiedTime = new Date(conv.timestamp).getTime();
+      }
+      
       // 如果已存在路径相同的对话，保留原始ID和名称，但更新路径和时间戳
       if (mergedMap.has(conv.path)) {
         const existingConv = mergedMap.get(conv.path);
         mergedMap.set(conv.path, {
           ...conv,
           id: existingConv.id,
-          name: existingConv.name
+          name: existingConv.name,
+          modifiedTime: conv.modifiedTime
         });
       } else {
         mergedMap.set(conv.path, conv);
       }
     }
-  });
+  }
   
-  // 转换回数组并按时间戳排序
+  // 转换回数组并按修改时间排序
   return Array.from(mergedMap.values())
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    .sort((a, b) => b.modifiedTime - a.modifiedTime);
 };
 
 /**
