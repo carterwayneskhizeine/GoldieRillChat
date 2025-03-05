@@ -190,6 +190,22 @@
     padding: 2px 4px;
   }
   
+  /* 针对标题栏控制按钮(最小化、最大化、关闭按钮)移除背景 */
+  .btn.btn-ghost.btn-xs.w-6.h-6.window-control-btn,
+  .window-control-btn,
+  .window-close-btn,
+  .app-header button,
+  .flex.items-center.space-x-2.no-drag > button {
+    background: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+  }
+  
   /* 针对特定的聊天标题元素 */
   .flex.justify-between.items-center .font-semibold,
   div.flex.justify-between.items-center span.font-semibold,
@@ -256,30 +272,104 @@
   /* 添加滚动条样式，但使用更通用的样式 */
   .scrollbar-thin {
     scrollbar-width: thin;
+    position: relative;
+    z-index: 5 !important; /* 确保滚动条元素显示在背景之上 */
   }
   
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
     height: 6px;
+    position: relative;
+    z-index: 5 !important; /* 确保滚动条元素显示在背景之上 */
   }
   
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
     border-radius: 3px;
+    position: relative;
+    z-index: 5 !important; /* 确保滚动条轨道显示在背景之上 */
   }
   
   .scrollbar-thumb-base-content::-webkit-scrollbar-thumb {
     background-color: var(--base-content);
     opacity: 0.3;
     border-radius: 3px;
+    position: relative;
+    z-index: 5 !important; /* 确保滚动条滑块显示在背景之上 */
   }
   
   .scrollbar-thumb-opacity-20::-webkit-scrollbar-thumb {
     opacity: 0.2;
+    position: relative;
+    z-index: 5 !important; /* 确保滚动条滑块显示在背景之上 */
   }
   
   .hover\:scrollbar-thumb-opacity-50:hover::-webkit-scrollbar-thumb {
     opacity: 0.5;
+    position: relative;
+    z-index: 5 !important; /* 确保滚动条滑块显示在背景之上 */
+  }
+
+  /* 专门针对bg-theme主题的滚动条样式 */
+  [data-theme="bg-theme"] .scrollbar-thin,
+  [data-theme="bg-theme"] .overflow-y-auto,
+  [data-theme="bg-theme"] .overflow-x-auto,
+  [data-theme="bg-theme"] .overflow-auto {
+    position: relative; 
+    z-index: 5 !important; /* 确保滚动容器显示在背景之上 */
+  }
+  
+  /* 专门针对聊天侧边栏的滚动条和滚动容器 */
+  [data-theme="bg-theme"] .sidebar .overflow-y-auto,
+  [data-theme="bg-theme"] .sidebar-content .overflow-y-auto,
+  [data-theme="bg-theme"] .sidebar .scrollbar-thin,
+  [data-theme="bg-theme"] .flex-1.overflow-y-auto,
+  [data-theme="bg-theme"] .max-h-\[calc\(100vh-200px\)\],
+  [data-theme="bg-theme"] .flex-1.mt-2.overflow-hidden.h-full.flex.flex-col,
+  [data-theme="bg-theme"] .flex-1.overflow-y-auto.max-h-\[calc\(100vh-200px\)\],
+  [data-theme="bg-theme"] .p-2.flex-1.flex.flex-col.overflow-y-auto.overflow-x-hidden {
+    position: relative;
+    z-index: 5 !important; /* 确保侧边栏滚动区域显示在背景之上 */
+  }
+  
+  /* 确保滚动条滑块在bg-theme主题下有足够的可见度 */
+  [data-theme="bg-theme"] .scrollbar-thumb-base-content::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.3) !important; /* 更明显的滚动条颜色 */
+    border-radius: 3px;
+    z-index: 5 !important; /* 确保滚动条滑块显示在背景之上 */
+  }
+  
+  [data-theme="bg-theme"] .hover\:scrollbar-thumb-opacity-50:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.5) !important; /* 悬停时更明显 */
+    z-index: 5 !important; /* 确保滚动条滑块显示在背景之上 */
+  }
+  
+  /* 增强滚动条在背景主题下的可见性 */
+  [data-theme="bg-theme"] ::-webkit-scrollbar {
+    width: 8px !important; /* 稍微增加宽度提高可见性 */
+    height: 8px !important;
+    background-color: rgba(0, 0, 0, 0.1) !important;
+    z-index: 5 !important; /* 确保滚动条显示在背景之上 */
+  }
+  
+  [data-theme="bg-theme"] ::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+    border-radius: 4px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    z-index: 5 !important; /* 确保滚动条滑块显示在背景之上 */
+  }
+  
+  [data-theme="bg-theme"] ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.5) !important;
+    z-index: 5 !important; /* 确保滚动条滑块显示在背景之上 */
+  }
+  
+  /* 确保侧边栏容器可以正常接收滚动事件 */
+  [data-theme="bg-theme"] .sidebar,
+  [data-theme="bg-theme"] .sidebar-content,
+  [data-theme="bg-theme"] .sidebar .overflow-y-auto {
+    pointer-events: auto !important;
+    z-index: 5 !important; /* 确保侧边栏元素显示在背景之上 */
   }
 
   /* 折叠按钮样式修复 - 更高优先级 */
