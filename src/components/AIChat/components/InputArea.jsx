@@ -17,7 +17,8 @@ export const InputArea = ({
   selectedProvider,
   selectedModel,
   apiKey,
-  apiHost
+  apiHost,
+  isCompact = false
 }) => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState([]);
@@ -140,7 +141,9 @@ export const InputArea = ({
         )}
         
         <textarea
-          className="textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-transparent aichat-input"
+          className={`textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-transparent scrollbar-hide aichat-input ${
+            isCompact ? 'text-sm shadow-lg' : ''
+          }`}
           placeholder="Send a message..."
           value={messageInput}
           onChange={(e) => {
@@ -162,6 +165,8 @@ export const InputArea = ({
           onKeyDown={handleKeyDown}
           onContextMenu={handleContextMenu}
           style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
             backgroundColor: 'transparent',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)', // 为 Safari 添加支持

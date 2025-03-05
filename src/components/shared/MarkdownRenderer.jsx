@@ -222,7 +222,54 @@ const useProcessedContent = (content) => {
 // 将 markdownComponents 移到组件外部
 const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox) => ({
   // 链接渲染
-  a: ({node, children, href, ...props}) => {
+  a: ({node, children, href, className, ...props}) => {
+    // 处理脚注引用链接
+    if (className?.includes('footnote-ref')) {
+      return (
+        <a
+          href={href}
+          className="footnote-ref"
+          {...props}
+          data-selectable="true"
+          onClick={(e) => {
+            e.preventDefault();
+            // 平滑滚动到脚注位置
+            const id = href.substring(1); // 移除 # 符号
+            const element = document.getElementById(id);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+        >
+          {children}
+        </a>
+      );
+    }
+
+    // 处理脚注返回链接
+    if (className?.includes('footnote-backref')) {
+      return (
+        <a
+          href={href}
+          className="footnote-backref"
+          {...props}
+          data-selectable="true"
+          onClick={(e) => {
+            e.preventDefault();
+            // 平滑滚动回引用位置
+            const id = href.substring(1); // 移除 # 符号
+            const element = document.getElementById(id);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+        >
+          ↩ 返回
+        </a>
+      );
+    }
+
+    // 处理普通URL链接
     if (typeof href === 'string') {
       return (
         <a
@@ -238,10 +285,11 @@ const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLig
           onContextMenu={handleContextMenu}
           {...props}
         >
-          {href}
+          {children}
         </a>
       );
     }
+    
     return <span>{children}</span>;
   },
   // 段落渲染
@@ -991,6 +1039,61 @@ export const MarkdownRenderer = React.memo(({
               max-width: 100%;
             }
           }
+
+          /* 脚注样式 */
+          .markdown-content .footnotes {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--b3);
+            font-size: 0.9em;
+          }
+
+          .markdown-content .footnotes ol {
+            padding-left: 1.5rem;
+          }
+
+          .markdown-content .footnote-ref {
+            font-size: 0.75em;
+            vertical-align: super;
+            line-height: 0;
+            background-color: var(--b2);
+            padding: 1px 4px;
+            border-radius: 4px;
+            color: var(--p);
+            font-weight: bold;
+            text-decoration: none;
+          }
+
+          .markdown-content .footnote-ref:hover {
+            text-decoration: underline;
+          }
+
+          .markdown-content .footnote-backref {
+            display: inline-block;
+            margin-left: 0.5rem;
+            font-weight: bold;
+            color: var(--p);
+            text-decoration: none;
+          }
+
+          .markdown-content .footnote-backref:hover {
+            text-decoration: underline;
+          }
+
+          .markdown-content .footnote-item {
+            margin-bottom: 0.5rem;
+            position: relative;
+            padding-left: 1.5rem;
+          }
+
+          .markdown-content .footnote-item p {
+            display: inline;
+            margin: 0;
+          }
+
+          .markdown-content a.footnote-backref {
+            font-size: 0.85em;
+          }
         `}
       </style>
 
@@ -1111,27 +1214,6 @@ export const MarkdownRenderer = React.memo(({
                   </SyntaxHighlighter>
                 </div>
               </div>
-            );
-          },
-
-          // 链接渲染
-          a({node, children, href, ...props}) {
-            return (
-              <a
-                href={href}
-                className="text-primary hover:text-primary-focus"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onLinkClick(href);
-                }}
-                onContextMenu={handleContextMenu}
-                {...props}
-              >
-                {children}
-              </a>
             );
           },
 
@@ -1320,6 +1402,134 @@ export const MarkdownRenderer = React.memo(({
                   </div>
                 )}
               </div>
+            );
+          },
+          // 添加脚注参考的自定义组件
+          sup: ({node, children, ...props}) => {
+            // 检查是否是脚注的引用
+            const isFootnoteRef = node?.children?.[0]?.tagName === 'a' && 
+                                 node?.children?.[0]?.properties?.className?.includes('footnote-ref');
+            
+            if (isFootnoteRef) {
+              return (
+                <sup 
+                  {...props} 
+                  className="footnote-ref"
+                  style={{
+                    fontSize: '0.75em',
+                    lineHeight: '0',
+                    position: 'relative',
+                    top: '-0.5em',
+                    fontWeight: 'bold',
+                    color: 'var(--p)',
+                    cursor: 'pointer',
+                    marginLeft: '2px',
+                    marginRight: '2px',
+                    textDecoration: 'none',
+                    background: 'var(--b2)',
+                    padding: '1px 4px',
+                    borderRadius: '4px',
+                  }}
+                  data-selectable="true"
+                  onContextMenu={handleContextMenu}
+                >
+                  {children}
+                </sup>
+              );
+            }
+            
+            return (
+              <sup {...props} data-selectable="true" onContextMenu={handleContextMenu}>
+                {children}
+              </sup>
+            );
+          },
+          // 添加脚注定义列表的自定义组件
+          section: ({node, className, children, ...props}) => {
+            // 检查是否是脚注区域
+            if (className?.includes('footnotes')) {
+              return (
+                <section 
+                  {...props} 
+                  className={`footnotes ${className || ''}`}
+                  style={{
+                    marginTop: '2rem',
+                    paddingTop: '1rem',
+                    borderTop: '1px solid var(--b3)',
+                    fontSize: '0.9em',
+                    color: 'var(--bc)',
+                    opacity: 0.85
+                  }}
+                  data-selectable="true"
+                  onContextMenu={handleContextMenu}
+                >
+                  {children}
+                </section>
+              );
+            }
+            
+            return (
+              <section {...props} className={className} data-selectable="true" onContextMenu={handleContextMenu}>
+                {children}
+              </section>
+            );
+          },
+          // 给脚注中的列表项添加样式
+          li: ({node, className, children, id, ...props}) => {
+            // 检查是否是脚注项
+            if (id?.startsWith('fn-')) {
+              return (
+                <li 
+                  {...props}
+                  id={id}
+                  className={`footnote-item ${className || ''}`}
+                  style={{
+                    marginBottom: '0.5rem',
+                    lineHeight: '1.6',
+                    position: 'relative',
+                    paddingLeft: '1.5rem'
+                  }}
+                  data-selectable="true"
+                  onContextMenu={handleContextMenu}
+                >
+                  <span 
+                    style={{
+                      position: 'absolute',
+                      left: '0',
+                      fontWeight: 'bold',
+                      color: 'var(--p)'
+                    }}
+                  >
+                    {id.replace('fn-', '')}:
+                  </span>
+                  {children}
+                </li>
+              );
+            }
+            
+            // 已有的列表项逻辑
+            const containsTreeStructure = contentHasTreeStructure(children);
+            
+            if (containsTreeStructure) {
+              return (
+                <li {...props} 
+                  data-selectable="true" 
+                  style={treeViewStyles.container}
+                  onContextMenu={handleContextMenu}
+                >
+                  {children}
+                </li>
+              );
+            }
+            
+            return (
+              <li {...props} 
+                data-selectable="true" 
+                style={{ userSelect: 'text' }} 
+                onContextMenu={handleContextMenu}
+              >
+                {children}
+              </li>
             );
           }
         }}

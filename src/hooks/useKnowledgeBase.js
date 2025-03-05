@@ -40,14 +40,15 @@ export const useKnowledgeBases = () => {
   const addBase = useCallback(async (name, modelId) => {
     try {
       const newBase = await addKnowledgeBaseService(name, modelId);
-      setBases(prev => [...prev, newBase]);
+      // 添加新知识库后立即刷新所有知识库列表，而不仅仅是更新本地状态
+      await loadAllBases();
       return newBase;
     } catch (error) {
       console.error('添加知识库失败:', error);
       toastManager.error('添加知识库失败: ' + error.message);
       throw error;
     }
-  }, []);
+  }, [loadAllBases]);
   
   // 重命名知识库
   const renameBase = useCallback(async (baseId, newName) => {

@@ -102,7 +102,7 @@ export const sortAndFilterReferences = (references, options = {}) => {
   }
   
   const {
-    similarityThreshold = 0.6,
+    similarityThreshold = 0.1,
     maxResults = 5,
     removeDuplicates = true,
     duplicateContentThreshold = 0.9

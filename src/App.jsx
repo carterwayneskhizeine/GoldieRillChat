@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import TitleBar from './components/TitleBar'
 import ThreeBackground from './components/ThreeBackground'
 import Embedding from './components/Embedding'
@@ -70,6 +70,7 @@ import ToastContainer from './components/ToastContainer'
 import toastManager from './utils/toastManager'
 import BookmarksPanel from './components/BookmarksPanel'
 import ThreeJSShaders from './components/ThreeJSShaders'
+import { openUrl, switchToBrowserEvent } from './utils/browserUtils'
 
 // 模拟引入书签Store
 const useBookmarkStore = {
@@ -164,6 +165,7 @@ export default function App() {
 
   // 书签状态
   const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
   
   // 在useEffect中添加电子书签store的连接
   useEffect(() => {
@@ -720,8 +722,60 @@ export default function App() {
     setFolderNameInput(conversation.name)
   }
 
+  // 添加工具状态存储
+  const [toolStates, setToolStates] = useState({
+    aichat: {
+      currentConversationId: null
+    }
+  });
+  
   // 创建工具切换函数
-  const switchTool = createToolSwitcher(setActiveTool)
+  const switchTool = (direction) => {
+    // 保存当前工具的状态
+    if (activeTool === 'aichat' && currentConversation) {
+      setToolStates(prev => ({
+        ...prev,
+        aichat: {
+          ...prev.aichat,
+          currentConversationId: currentConversation.id
+        }
+      }));
+    }
+    
+    // 使用工具切换器
+    setActiveTool(currentTool => {
+      const currentIndex = tools.indexOf(currentTool);
+      if (direction === 'next') {
+        return tools[(currentIndex + 1) % tools.length];
+      } else if (direction === 'prev') {
+        return tools[(currentIndex - 1 + tools.length) % tools.length];
+      } else {
+        // 如果direction是一个具体的工具名，直接切换到该工具
+        return direction;
+      }
+    });
+  };
+  
+  // 当工具切换到AI Chat时，恢复之前的对话状态
+  useEffect(() => {
+    if (activeTool === 'aichat' && toolStates.aichat.currentConversationId) {
+      // 查找之前的对话
+      const previousConversation = conversations.find(
+        conv => conv.id === toolStates.aichat.currentConversationId
+      );
+      
+      // 如果找到之前的对话且当前没有选中的对话，则选中它
+      if (previousConversation && (!currentConversation || currentConversation.id !== previousConversation.id)) {
+        handleConversationSelect(previousConversation.id);
+      }
+    }
+  }, [
+    activeTool, 
+    toolStates.aichat.currentConversationId, 
+    conversations, 
+    currentConversation, 
+    handleConversationSelect
+  ]);
 
   // 使用新的浏览器事件处理函数
   useBrowserEvents({
@@ -965,10 +1019,8 @@ export default function App() {
 
   // 在 App 组件中添加新的方法
   const openInBrowserTab = (url) => {
-    // 切换到浏览器工具
-    setActiveTool('browser');
-    // 通知主进程创建新标签页
-    window.electron.browser.newTab(url);
+    // 使用通用的URL打开函数，它会自动处理切换到浏览器工具
+    openUrl(url, true); // 第二个参数true确保使用内部浏览器
   };
 
   useEffect(() => {
@@ -1235,12 +1287,12 @@ export default function App() {
 
   // 添加AIChat模型状态
   const [selectedModel, setSelectedModel] = useState(() => {
-    return localStorage.getItem('aichat_model') || 'gpt-4-0125-preview';
+    return localStorage.getItem('aichat_model') || 'deepseek-chat';
   });
   
   const [availableModels, setAvailableModels] = useState(() => {
     const savedModels = localStorage.getItem('aichat_available_models');
-    return savedModels ? JSON.parse(savedModels) : ['gpt-4-0125-preview', 'gpt-4-turbo', 'gpt-3.5-turbo'];
+    return savedModels ? JSON.parse(savedModels) : ['deepseek-chat', 'deepseek-reasoner'];
   });
   
   const [maxTokens, setMaxTokens] = useState(() => {
@@ -1252,8 +1304,21 @@ export default function App() {
   });
   
   const [selectedProvider, setSelectedProvider] = useState(() => {
-    return localStorage.getItem('aichat_provider') || 'openai';
+    return localStorage.getItem('aichat_provider') || 'deepseek';
   });
+
+  // 监听切换到浏览器工具的事件
+  useEffect(() => {
+    const handleSwitchToBrowser = () => {
+      setActiveTool('browser');
+    };
+    
+    window.addEventListener('switchToBrowser', handleSwitchToBrowser);
+    
+    return () => {
+      window.removeEventListener('switchToBrowser', handleSwitchToBrowser);
+    };
+  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-base-100">
@@ -1471,6 +1536,7 @@ export default function App() {
               setTemperature={setTemperature}
               selectedProvider={selectedProvider}
               setSelectedProvider={setSelectedProvider}
+              isCompact={isCompact}
             />
           </div>
 

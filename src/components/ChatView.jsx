@@ -19,6 +19,7 @@ import { ReactPhotoEditor } from '../components/CustomPhotoEditor';
 import eventBus from '../components/ThreeBackground/utils/eventBus';
 // 不再需要导入原始的样式
 // import 'react-photo-editor/dist/style.css';
+import { openUrl } from '../utils/browserUtils';
 
 // 添加辅助函数，使用 Electron API 加载图片
 const loadImageFromPath = async (filePath, fileName, fileType) => {
@@ -388,21 +389,9 @@ export function ChatView({
     }
   };
 
+  // 打开外部链接
   const openExternalLink = (url) => {
-    try {
-      // 首选使用 electron 的 shell.openExternal
-      if (window?.electron?.shell?.openExternal) {
-        window.electron.shell.openExternal(url);
-      }
-      // 回退到 window.open
-      else {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-    } catch (error) {
-      console.error('打开链接失败:', error);
-      // 最后的回退方案
-      window.open(url, '_blank');
-    }
+    openUrl(url);
   };
 
   // 添加音频消息渲染函数
@@ -1119,7 +1108,7 @@ export function ChatView({
                                       console.log('Code copied:', code);
                                     }}
                                     onLinkClick={(href) => {
-                                      window.electron.openExternal(href);
+                                      openUrl(href, true, true);
                                     }}
                                   />
                                 </div>
@@ -1144,7 +1133,7 @@ export function ChatView({
                                       console.log('Code copied:', code);
                                     }}
                                     onLinkClick={(href) => {
-                                      window.electron.openExternal(href);
+                                      openUrl(href, true, true);
                                     }}
                                   />
                                 </div>
@@ -1177,7 +1166,7 @@ export function ChatView({
                                       console.log('Code copied:', code);
                                     }}
                                     onLinkClick={(href) => {
-                                      window.electron.openExternal(href);
+                                      openUrl(href, true, true);
                                     }}
                                   />
                                 </div>
@@ -1204,7 +1193,7 @@ export function ChatView({
                                       console.log('Code copied:', code);
                                     }}
                                     onLinkClick={(href) => {
-                                      window.electron.openExternal(href);
+                                      openUrl(href, true, true);
                                     }}
                                   />
                                 </div>

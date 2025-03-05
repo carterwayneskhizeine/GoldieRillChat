@@ -60,3 +60,5 @@ nav .tab,
   color: var(--panel-title-color);
   text-shadow: var(--panel-title-shadow);
 } 
+
+/* 下拉菜单样式覆盖已移至embedding.css */ 

@@ -40,7 +40,8 @@ export const AIChat = ({
   temperature: appTemperature,
   setTemperature: appSetTemperature,
   selectedProvider: appSelectedProvider,
-  setSelectedProvider: appSetSelectedProvider
+  setSelectedProvider: appSetSelectedProvider,
+  isCompact = false
 }) => {
   // 使用状态管理 hooks，但优先使用从App传递的状态
   const messageState = useMessageState(currentConversation);
@@ -544,6 +545,7 @@ export const AIChat = ({
               selectedModel={modelState.selectedModel}
               apiKey={modelState.apiKey}
               apiHost={modelState.apiHost}
+              isCompact={isCompact}
             />
           </div>
 

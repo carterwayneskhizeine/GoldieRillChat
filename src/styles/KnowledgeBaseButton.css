@@ -37,6 +37,7 @@
 .knowledge-base-icon {
   width: 24px;
   height: 24px;
+  color: inherit;
 }
 
 .knowledge-base-count {

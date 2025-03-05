@@ -12,8 +12,7 @@ module.exports = {
   ],
   daisyui: {
     themes: [
-      "emerald", "dark", "synthwave", "halloween", "forest", "pastel", "black", "luxury", "dracula", 
-      "business", "coffee", "corporate", "retro", "aqua", "wireframe", 
+      "dark", "black", "forest", "luxury", "business", "coffee", "aqua", 
       "night", "dim", "sunset"
     ],
   },

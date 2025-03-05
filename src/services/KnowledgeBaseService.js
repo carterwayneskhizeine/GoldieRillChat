@@ -41,7 +41,7 @@ export const getKnowledgeBaseParams = (base) => {
     name: base.name,
     model: base.model.id,
     dimensions: base.dimensions,
-    threshold: base.threshold || 0.7,
+    threshold: base.threshold || 0.1,
     documentCount: base.documentCount || 0
   };
 };
@@ -240,7 +240,7 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
       const similarity = cosineSimilarity(queryEmbedding, item.embedding);
       
       // 如果相似度低于阈值，跳过
-      if (similarity < (base.threshold || 0.7)) {
+      if (similarity < (base.threshold || 0.1)) {
         continue;
       }
       
@@ -283,7 +283,7 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
             const childSimilarity = cosineSimilarity(queryEmbedding, child.embedding);
             
             // 只添加相似度高于阈值的子块
-            if (childSimilarity >= (base.threshold || 0.7)) {
+            if (childSimilarity >= (base.threshold || 0.1)) {
               results.push({
                 id: child.id,
                 title: `${reference.title} (块 ${child.chunkIndex || '?'})`,
@@ -341,7 +341,7 @@ export const getKnowledgeBaseReferences = async ({ message, knowledgeBaseIds, li
     
     for (const base of bases) {
       try {
-        const references = await getKnowledgeBaseReference(base, message, limit);
+      const references = await getKnowledgeBaseReference(base, message, limit);
         
         // 格式化引用对象，优化LLM处理
         const formattedReferences = references.map(ref => {
@@ -437,7 +437,7 @@ export const addKnowledgeBase = async (name, modelId) => {
         tokens: model.tokens
       },
       dimensions: model.dimensions,
-      threshold: 0.7, // 默认相似度阈值
+      threshold: 0.1, // 默认相似度阈值
       documentCount: 0,
       itemCount: 0,
       createdAt: new Date().toISOString(),
@@ -542,7 +542,7 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
       processFileAsync(item, file, base, options);
       
       return item;
-    } catch (error) {
+      } catch (error) {
       console.error('文件处理失败:', error);
       // 更新状态为失败
       await updateKnowledgeItemStatus(item.id, 'error', { error: error.message });
@@ -748,8 +748,8 @@ export const addUrlToKnowledgeBase = async (baseId, url) => {
       // 更新状态为失败
       await updateKnowledgeItemStatus(item.id, 'error', { error: error.message });
       throw error;
-    }
-  } catch (error) {
+            }
+          } catch (error) {
     console.error('添加URL失败:', error);
     toastManager.error(`添加URL失败: ${error.message}`);
     throw error;
@@ -759,12 +759,14 @@ export const addUrlToKnowledgeBase = async (baseId, url) => {
 // 异步处理URL的函数
 const processUrlAsync = async (item, url, base, options) => {
   try {
+    console.log(`开始处理URL: ${url}`);
     const result = await FileProcessingService.processUrl(url, options);
     
     if (result) {
       // 对于站点地图，处理可能会返回多个URL内容
       if (item.type === 'sitemap') {
         // 站点地图处理完成
+        console.log(`站点地图处理完成: ${url}, 包含 ${result.urls?.length || 0} 个URL`);
         await updateKnowledgeItemStatus(item.id, 'completed', result);
       } else {
         // 普通URL，创建向量嵌入
@@ -772,10 +774,21 @@ const processUrlAsync = async (item, url, base, options) => {
         if (content) {
           // 检查是否有文本块
           if (result.chunks && result.chunks.length > 1) {
-            console.log(`处理多块URL内容，共${result.chunks.length}块`);
+            console.log(`处理多块URL内容，共${result.chunks.length}块，开始生成嵌入向量`);
             
             // 为第一块生成向量嵌入（通常包含最重要的内容）
             const firstChunkEmbedding = await embedText(result.chunks[0], base.model || base.modelId || 'silicon-flow');
+            console.log(`第一块嵌入向量生成成功，维度: ${firstChunkEmbedding.length}`);
+            
+            // 立即更新主项目状态为已完成，不等待子块处理
+            console.log(`立即更新主项目状态为已完成，URL: ${url}`);
+            await updateKnowledgeItemStatus(item.id, 'completed', {
+              embedding: firstChunkEmbedding,
+              content,
+              chunked: true,
+              chunkCount: result.chunks.length,
+              ...result
+            });
             
             // 创建子项目来存储额外的文本块
             const childItems = [];
@@ -786,6 +799,7 @@ const processUrlAsync = async (item, url, base, options) => {
               // 仅当块内容不为空时处理
               if (chunk && chunk.trim()) {
                 try {
+                  console.log(`处理第${i+1}/${result.chunks.length}块`);
                   // 为当前块生成嵌入向量
                   const chunkEmbedding = await embedText(chunk, base.model || base.modelId || 'silicon-flow');
                   
@@ -808,38 +822,49 @@ const processUrlAsync = async (item, url, base, options) => {
                   // 保存子项目
                   await db.knowledgeItems.add(childItem);
                   childItems.push(childItem.id);
+                  console.log(`子项目 ${childItem.id} 保存成功`);
                 } catch (chunkError) {
                   console.error(`块 ${i+1} 嵌入失败:`, chunkError);
                 }
               }
             }
             
-            // 更新主项目
-            await updateKnowledgeItemStatus(item.id, 'completed', {
-              embedding: firstChunkEmbedding,
-              content,
-              childItems, // 存储子项目ID列表
-              chunked: true,
-              chunkCount: result.chunks.length,
-              ...result
-            });
-            } else {
+            // 更新主项目，添加子项目ID列表
+            if (childItems.length > 0) {
+              console.log(`更新主项目，添加 ${childItems.length} 个子项目ID`);
+              await updateKnowledgeItemStatus(item.id, 'completed', {
+                childItems, // 存储子项目ID列表
+              });
+            }
+            console.log(`URL处理完成: ${url}`);
+          } else {
             // 单块内容处理
+            console.log(`处理单块URL内容，长度: ${content.length}，开始生成嵌入向量`);
             const embeddings = await embedText(content, base.model || base.modelId || 'silicon-flow');
+            console.log(`单块内容嵌入向量生成成功，维度: ${embeddings.length}`);
             
             // 更新知识库项目
+            console.log(`更新项目 ${item.id} 状态为已完成`);
             await updateKnowledgeItemStatus(item.id, 'completed', {
               embedding: embeddings,
               content,
               ...result
             });
+            console.log(`URL处理完成: ${url}`);
           }
         } else {
+          console.warn(`URL内容为空: ${url}`);
           await updateKnowledgeItemStatus(item.id, 'error', {
             error: '无法提取URL内容'
           });
         }
       }
+    } else {
+      // 如果result为空，也将状态更新为错误
+      console.warn(`处理URL失败，未返回结果: ${url}`);
+      await updateKnowledgeItemStatus(item.id, 'error', {
+        error: '处理URL失败，未返回结果'
+      });
     }
   } catch (error) {
     console.error('处理URL失败:', error);
@@ -904,14 +929,17 @@ export const addNoteToKnowledgeBase = async (baseId, title, content) => {
         const embeddings = await embedText(content, base.model || base.modelId || 'silicon-flow');
         
         // 更新知识库项目
-        await updateKnowledgeItemStatus(item.id, 'completed', {
-          embedding: embeddings,
-          ...result
-        });
+        if (embeddings && embeddings.length > 0) {
+          // 更新项目，添加嵌入向量
+          console.log(`笔记嵌入成功，更新状态为已完成: ${item.id}, 标题: ${title}`);
+          await updateKnowledgeItemStatus(item.id, 'completed', {
+            embedding: embeddings
+          });
+        }
       }
       
       return item;
-    } catch (error) {
+      } catch (error) {
       console.error('笔记处理失败:', error);
       // 更新状态为失败
       await updateKnowledgeItemStatus(item.id, 'error', { error: error.message });
@@ -970,7 +998,7 @@ export const addDirectoryToKnowledgeBase = async (baseId, directoryPath) => {
       processDirectoryAsync(item, directoryPath, base, options);
     
     return item;
-    } catch (error) {
+  } catch (error) {
       console.error('目录处理失败:', error);
       // 更新状态为失败
       await updateKnowledgeItemStatus(item.id, 'error', { error: error.message });

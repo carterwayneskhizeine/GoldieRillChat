@@ -60,9 +60,9 @@ const KnowledgeBaseButton = ({ selectedBases = [], onSelect, disabled = false })
     onSelect(bases);
   };
   
-  // 知识库图标样式，当有选中知识库时显示主题色
+  // 知识库图标样式，始终保持白色，选中知识库时显示主题色
   const iconStyle = {
-    color: selectedBases && selectedBases.length > 0 ? 'var(--primary-color, #2a85ff)' : 'var(--text-secondary, #666)'
+    color: selectedBases && selectedBases.length > 0 ? 'var(--primary-color, #2a85ff)' : 'currentColor'
   };
   
   return (
@@ -70,7 +70,7 @@ const KnowledgeBaseButton = ({ selectedBases = [], onSelect, disabled = false })
       {/* 知识库按钮 */}
       <button
         ref={buttonRef}
-        className={`knowledge-base-button ${isOpen ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
+        className={`btn btn-ghost btn-sm btn-circle knowledge-base-button ${isOpen ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
         onClick={toggleSelector}
         disabled={disabled}
         title={disabled ? '当前不可用' : '选择知识库'}

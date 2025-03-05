@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { toggleTheme, themes } from '../components/themeHandlers'
+import { openUrl } from '../utils/browserUtils'
 // 移除 react-hot-toast 导入
 // import { toast } from 'react-hot-toast'
 
@@ -49,15 +50,8 @@ const TranslateButton = ({ currentUrl, activeTabId }) => {
   // 辅助函数：在新窗口打开Google翻译
   const openGoogleTranslateInNewWindow = (url, targetLang) => {
     const googleTranslateUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodeURIComponent(url)}`;
-    
-    // 使用Electron的shell.openExternal如果可用，否则使用window.open
-    if (window.electron && window.electron.shell && window.electron.shell.openExternal) {
-      window.electron.shell.openExternal(googleTranslateUrl);
-    } else {
-      window.open(googleTranslateUrl, '_blank');
-    }
-    
-    showNotification('已在新窗口中打开Google翻译服务', 'success');
+    openUrl(googleTranslateUrl, true, true);
+    showNotification('已在内部浏览器中打开Google翻译服务', 'success');
   };
 
   return (
@@ -314,6 +308,15 @@ export default function TitleBar({
       console.error('导航错误:', error);
       setIsNavigating(false); // 出错时立即重置状态
     }
+  };
+
+  // 跳转到谷歌翻译
+  const openGoogleTranslate = () => {
+    const text = editorRef.current?.getValue() || '';
+    if (!text.trim()) return;
+    
+    const googleTranslateUrl = `https://translate.google.com/?sl=auto&tl=zh-CN&text=${encodeURIComponent(text)}&op=translate`;
+    openUrl(googleTranslateUrl, true, true);
   };
 
   return (

@@ -5,6 +5,7 @@ import ReactAudioPlayer from 'react-audio-player';
 import { MarkdownRenderer } from '../../shared/MarkdownRenderer';
 import { shouldCollapseMessage, getMessageContentStyle } from '../utils/messageCollapse';
 import '../styles/messages.css';
+import { openUrl } from '../../../utils/browserUtils';
 
 const SearchSources = ({ sources, openInBrowserTab }) => {
   const [showSources, setShowSources] = useState(false);
@@ -38,7 +39,7 @@ const SearchSources = ({ sources, openInBrowserTab }) => {
 
   // 处理链接点击
   const handleLinkClick = (url) => {
-    openInBrowserTab(url);
+    openUrl(url, true, true);
     setShowSources(false); // 关闭弹窗
   };
 
@@ -207,7 +208,7 @@ export const MessageItem = ({
               }}
               onLinkClick={(href) => {
                 if (href.startsWith('http://') || href.startsWith('https://')) {
-                  window.electron.openExternal(href);
+                  openUrl(href, true, true);
                 }
               }}
             />
@@ -274,7 +275,7 @@ export const MessageItem = ({
               }}
               onLinkClick={(href) => {
                 if (href.startsWith('http://') || href.startsWith('https://')) {
-                  window.electron.openExternal(href);
+                  openUrl(href, true, true);
                 }
               }}
             />
@@ -434,7 +435,7 @@ export const MessageItem = ({
                                 }}
                                 onLinkClick={(href) => {
                                   if (href.startsWith('http://') || href.startsWith('https://')) {
-                                    window.electron.openExternal(href);
+                                    openUrl(href, true, true);
                                   }
                                 }}
                               />
@@ -461,7 +462,7 @@ export const MessageItem = ({
                                 }}
                                 onLinkClick={(href) => {
                                   if (href.startsWith('http://') || href.startsWith('https://')) {
-                                    window.electron.openExternal(href);
+                                    openUrl(href, true, true);
                                   }
                                 }}
                               />
@@ -488,7 +489,7 @@ export const MessageItem = ({
                                 }}
                                 onLinkClick={(href) => {
                                   if (href.startsWith('http://') || href.startsWith('https://')) {
-                                    window.electron.openExternal(href);
+                                    openUrl(href, true, true);
                                   }
                                 }}
                               />
@@ -523,7 +524,7 @@ export const MessageItem = ({
                               }}
                               onLinkClick={(href) => {
                                 if (href.startsWith('http://') || href.startsWith('https://')) {
-                                  window.electron.openExternal(href);
+                                  openUrl(href, true, true);
                                 }
                               }}
                             />

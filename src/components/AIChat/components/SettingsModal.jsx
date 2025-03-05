@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import '../styles/settings.css';
 import { getTranslationApiConfig, setTranslationApiConfig } from '../../../services/translationService';
 import { getImageGenApiConfig, setImageGenApiConfig } from '../../../services/imageGenerationService';
+import { openUrl } from '../../../utils/browserUtils';
 
 export const SettingsModal = ({
   selectedProvider,
@@ -282,20 +283,7 @@ export const SettingsModal = ({
   };
 
   const openExternalLink = (url) => {
-    try {
-      // 首选使用 electron 的 shell.openExternal
-      if (window.electron?.shell?.openExternal) {
-        window.electron.shell.openExternal(url);
-      }
-      // 回退到 window.open
-      else {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-    } catch (error) {
-      console.error('打开链接失败:', error);
-      // 最后的回退方案
-      window.open(url, '_blank');
-    }
+    openUrl(url);
   };
 
   // 处理模板选择

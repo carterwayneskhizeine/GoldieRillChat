@@ -267,39 +267,53 @@ const Embedding = ({ isActive = false }) => {
           {knowledgeBases.map(kb => (
             <div 
               key={kb.id} 
-                className={`knowledge-base-item p-3 rounded-lg transition-all cursor-pointer
-                  ${selectedKnowledgeBase?.id === kb.id 
-                    ? 'border-2 border-accent/40'
-                    : 'border border-base-content/10 hover:border-base-content/20'}
-                  shadow-sm hover:shadow-md`}
+              className={`knowledge-base-item p-3 rounded-lg transition-all cursor-pointer relative
+                ${selectedKnowledgeBase?.id === kb.id 
+                  ? 'border-2 border-accent/40 bg-accent/5'
+                  : 'border border-base-content/10 hover:border-base-content/20 hover:bg-base-200/30'}
+                shadow-sm`}
               onClick={() => setSelectedKnowledgeBase(kb)}
             >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-base">{kb.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="badge badge-sm badge-neutral font-normal">
-                        {kb.itemCount || kb.documentCount || 0} 项
-                      </span>
-                      <span className="text-xs text-base-content/60">
-                        {kb.model.name}
-                      </span>
+              {/* 删除按钮 - 绝对定位在右上角 */}
+              <div className="absolute top-2 right-2">
+                <button 
+                  className="btn btn-circle btn-ghost btn-xs text-base-content/40 hover:text-error hover:bg-error/10"
+                  onClick={(e) => {
+                    e.stopPropagation(); // 阻止事件冒泡，避免触发卡片的点击事件
+                    handleDeleteKnowledgeBase(kb, e);
+                  }}
+                  title="删除知识库"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              </div>
-                  <button 
-                    className="btn btn-square btn-ghost btn-xs text-error hover:bg-error/10"
-                    onClick={(e) => handleDeleteKnowledgeBase(kb, e)}
-                    title="删除知识库"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+
+              {/* 知识库标题和基本信息 */}
+              <div className="pr-6">
+                <h3 className="font-medium text-sm truncate">{kb.name}</h3>
+                <div className="flex items-center mt-1.5 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="badge badge-sm badge-neutral font-normal py-0.5 h-auto min-h-0">
+                      {kb.itemCount || kb.documentCount || 0} 项
+                    </span>
+                    <span className="text-base-content/60">
+                      {kb.model.name}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-xs text-base-content/40 mt-2">
-                  <span>{kb.model.provider}</span>
-                  <span>维度: {kb.model.dimensions}</span>
-                  <span>{new Date(kb.updatedAt).toLocaleDateString()}</span>
+                <div className="flex justify-end text-xs text-base-content/40 mt-1">
+                  <span>
+                    更新于 {new Date(kb.updatedAt).toLocaleString('zh-CN', {
+                      year: 'numeric',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
               </div>
             </div>
           ))}
@@ -676,7 +690,10 @@ const Embedding = ({ isActive = false }) => {
                   color: "white",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
                   boxShadow: "0 0 15px rgba(0, 0, 0, 0.8)",
-                  opacity: 1
+                  opacity: 1,
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                  overflowX: "hidden"
                 }}>
               </ul>
             </div>
@@ -751,26 +768,23 @@ const Embedding = ({ isActive = false }) => {
                   ) : (
                     items.map(item => (
                       <tr key={item.id}>
+                        <td>{item.name || item.url || '未命名项目'}</td>
                         <td>
-                          <div className="flex items-center space-x-3">
-                            {item.type === 'file' && <span>📄</span>}
-                            {item.type === 'url' && <span>🔗</span>}
-                            {item.type === 'note' && <span>📝</span>}
-                            <div>
-                              <div className="font-bold">{item.name || item.title}</div>
-                            </div>
-                          </div>
+                          {item.type === 'file' && <span>File</span>}
+                          {item.type === 'url' && <span>URL</span>}
+                          {item.type === 'note' && <span>Note</span>}
+                          {item.type === 'sitemap' && <span>SiteMap</span>}
+                          {item.type === 'directory' && <span>TOC</span>}
                         </td>
-                        <td>{item.type}</td>
-                        <td>{new Date(item.createdAt).toLocaleDateString()}</td>
+                        <td>{new Date(item.createdAt || item.created_at).toLocaleString()}</td>
                         <td>
-                          <div>
-                            {item.status === 'ready' && <span className="badge badge-success">已完成</span>}
-                            {item.status === 'completed' && <span className="badge badge-success">已完成</span>}
-                            {item.status === 'processing' && <span className="badge badge-warning">处理中</span>}
-                            {item.status === 'pending' && <span className="badge badge-info">等待中</span>}
-                            {item.status === 'error' && <span className="badge badge-error">失败</span>}
-                          </div>
+                          {console.log(`项目状态: ${item.id}, 状态: ${item.status}`, item)}
+                          {item.status === 'ready' && <span className="badge badge-sm badge-success">已完成</span>}
+                          {item.status === 'completed' && <span className="badge badge-sm badge-success">已完成</span>}
+                          {item.status === 'processing' && <span className="badge badge-sm badge-warning">处理中</span>}
+                          {item.status === 'pending' && <span className="badge badge-sm badge-info">等待中</span>}
+                          {item.status === 'error' && <span className="badge badge-sm badge-error">失败</span>}
+                          {!item.status && <span className="badge badge-sm badge-ghost">未知</span>}
                         </td>
                         <td>
                           <div className="dropdown dropdown-left">
@@ -782,7 +796,10 @@ const Embedding = ({ isActive = false }) => {
                                 border: "1px solid rgba(255, 255, 255, 0.2)",
                                 boxShadow: "0 0 15px rgba(0, 0, 0, 0.8)",
                                 opacity: 1,
-                                position: "absolute"
+                                position: "absolute",
+                                maxHeight: "300px",
+                                overflowY: "auto",
+                                overflowX: "hidden"
                               }}>
                               <li><a style={{color: "white"}}>查看详情</a></li>
                               <li>
@@ -908,8 +925,12 @@ const Embedding = ({ isActive = false }) => {
         onAdd={(newBase) => {
           // 选中新创建的知识库
           setSelectedKnowledgeBase(newBase);
-                setShowAddDialog(false);
-              }}
+          // 关闭对话框
+          setShowAddDialog(false);
+          // 刷新知识库列表
+          refreshBases();
+          console.log("刷新知识库列表", newBase);
+        }}
       />
     );
   };
