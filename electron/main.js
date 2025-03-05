@@ -2093,9 +2093,138 @@ async function initShaderPresets() {
     
     // 获取默认着色器代码（用于Shaders1）
     const appPath = app.getAppPath();
-    const shaderFilePath = path.join(appPath, 'src/components/ThreeBackground/utils/shaders.js');
+    // 根据是否打包使用不同的路径
+    let shaderFilePath;
+    if (app.isPackaged) {
+      // 打包环境下，使用resources目录下的预设文件
+      shaderFilePath = path.join(process.resourcesPath, 'shaders-default.js');
+      // 如果文件不存在，尝试其他可能的路径
+      if (!await fileExists(shaderFilePath)) {
+        shaderFilePath = path.join(appPath, 'dist', 'shaders-default.js');
+        if (!await fileExists(shaderFilePath)) {
+          console.log('在打包环境中找不到默认着色器文件，使用内置默认值');
+          // 使用硬编码的默认着色器
+          defaultVertexShader = `varying vec2 vUv;  
+void main() {  
+  vUv = uv;  
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);  
+}`;
+          defaultFragmentShader = `precision mediump float;  
+uniform float u_time;  
+uniform vec2 u_resolution;  
+uniform vec2 u_mouse;  
+uniform float u_intensity;  
+varying vec2 vUv;  
+  
+float rand(vec2 n) {   
+    return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);  
+}  
+  
+float noise(vec2 p) {  
+    vec2 ip = floor(p);  
+    vec2 u = fract(p);  
+    u = u * u * (3.0 - 2.0 * u);  
+      
+    float res = mix(  
+        mix(rand(ip), rand(ip + vec2(1.0, 0.0)), u.x),  
+        mix(rand(ip + vec2(0.0, 1.0)), rand(ip + vec2(1.0, 1.0)), u.x),   
+        u.y);  
+    return res * res;  
+}  
+  
+void main() {  
+    vec2 uv = vUv;  
+      
+    // 动态参数  
+    float moveSpeed = 0.2;  
+    float moveAmount = 1.5;  
+    float verticalOffset = u_time * moveSpeed;  
+      
+    // 波浪效果  
+    float waveFreq = 2.0;  
+    float waveAmp = 0.1;  
+    float horizontalWave = sin(uv.x * waveFreq * 3.14159 + u_time) * waveAmp;  
+      
+    // 坐标变换  
+    vec2 distortedUV = vec2(  
+        uv.x,  
+        mod(uv.y + verticalOffset + horizontalWave, 1.0)  
+    );  
+      
+    // 噪声计算  
+    float noiseScale = 2.0 + u_intensity * 1.5;  
+    float n = noise(distortedUV * noiseScale);  
+      
+    // 颜色混合  
+    vec3 color1 = vec3(0.4, 0.6, 0.9);  
+    vec3 color2 = vec3(0.2, 0.3, 0.7);  
+    vec3 activeColor = vec3(0.6, 0.8, 1.0);  
+      
+    float gradientFactor = smoothstep(0.0, 1.0, distortedUV.y);  
+    vec3 baseColor = mix(color2, color1, gradientFactor);  
+      
+    vec3 finalColor = mix(  
+        mix(baseColor, color2, n),  
+        activeColor,  
+        u_intensity * 0.3  
+    );  
+      
+    // 透明度计算  
+    float alpha = 0.7 +   
+                0.15 * sin(u_time + distortedUV.y * 3.0) +   
+                u_intensity * 0.15;  
+      
+    // 边缘渐晕  
+    float vignette = 1.0 - length(uv - 0.5) * 1.5;  
+    vignette = clamp(vignette, 0.0, 1.0);  
+      
+    gl_FragColor = vec4(finalColor * vignette, alpha);  
+}`;
+          
+          // 跳过文件读取部分
+          console.log('使用内置默认着色器');
+          // 初始化所有预设文件
+          // ... 继续执行后面的代码
+          const presetsInfo = [];
     
+          for (let i = 1; i <= PRESETS_COUNT; i++) {
+            const presetId = `Shaders${i}`;
+            const presetPath = path.join(shaderPresetsFolder, `${presetId}.json`);
+            const exists = await fileExists(presetPath);
+            
+            if (!exists) {
+              // 为首个预设使用默认代码，其他使用空代码
+              const vertexShader = i === 1 ? defaultVertexShader : '';
+              const fragmentShader = i === 1 ? defaultFragmentShader : '';
+              
+              await fs.writeFile(presetPath, JSON.stringify({
+                id: presetId,
+                isDefault: i === 1,
+                vertex: vertexShader,
+                fragment: fragmentShader
+              }, null, 2));
+            }
+            
+            // 读取预设信息（仅基本信息，不包括完整代码）
+            const presetContent = JSON.parse(await fs.readFile(presetPath, 'utf8'));
+            presetsInfo.push({
+              id: presetContent.id,
+              isDefault: presetContent.isDefault,
+              isEmpty: !presetContent.vertex && !presetContent.fragment
+            });
+          }
+          
+          return presetsInfo;
+        }
+      }
+    } else {
+      // 开发环境下，使用源代码路径
+      shaderFilePath = path.join(appPath, 'src/components/ThreeBackground/utils/shaders.js');
+    }
+    
+    // 读取着色器文件
     try {
+      console.log('尝试从路径读取着色器:', shaderFilePath);
       const fileContent = await fs.readFile(shaderFilePath, 'utf8');
       
       // 解析顶点着色器和片段着色器
@@ -2157,7 +2286,8 @@ async function fileExists(filePath) {
   try {
     await fs.access(filePath);
     return true;
-  } catch {
+  } catch (error) {
+    console.log(`文件不存在: ${filePath}`, error.message);
     return false;
   }
 }

@@ -14,8 +14,9 @@
             "build": "vite build",
             "preview": "vite preview",
             "electron:dev": "cross-env NODE_ENV=development vite --mode development",
-            "electron:build": "vite build && electron-builder",
-            "electron:preview": "vite preview"
+            "electron:build": "npm run prepare-resources && vite build && electron-builder",
+            "electron:preview": "vite preview",
+            "prepare-resources": "node scripts/prepare-resources.js"
       },
       "build": {
             "appId": "com.goldie.chat",
