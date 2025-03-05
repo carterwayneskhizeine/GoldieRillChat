@@ -297,16 +297,22 @@ const BookmarksPanel = ({ onClose }) => {
   return (
     <div className="bookmarks-panel fixed inset-0 bg-base-100 z-50">
       <div className="bookmarks-header">
-        <div className="header-left">
-          <h2>我的书签</h2>
+        <div className="search-container flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="搜索书签..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input input-bordered input-sm w-64"
+          />
           <button 
-            className={`all-bookmarks-btn ${showAllBookmarks ? 'active' : ''}`}
+            className={`all-bookmarks-btn btn btn-sm ${showAllBookmarks ? 'btn-primary' : 'btn-ghost'}`}
             onClick={() => setShowAllBookmarks(!showAllBookmarks)}
           >
-            {showAllBookmarks ? '按文件夹查看' : '查看所有书签'}
+            {showAllBookmarks ? 'Folders' : 'Bookmarks'}
           </button>
           <button 
-            className="refresh-btn"
+            className="refresh-btn btn btn-sm btn-ghost"
             onClick={refreshBookmarks}
             title="刷新书签"
           >
@@ -315,16 +321,13 @@ const BookmarksPanel = ({ onClose }) => {
             </svg>
           </button>
         </div>
-        <div className="search-container">
-          <input
-            type="text"
-            placeholder="搜索书签..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input input-bordered input-sm w-64"
-          />
+        <div className="header-right">
+          <button className="close-btn" onClick={onClose}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
         </div>
-        <button className="close-button" onClick={onClose}>×</button>
       </div>
 
       <div className="bookmarks-content">

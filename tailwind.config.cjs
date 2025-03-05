@@ -12,7 +12,7 @@ module.exports = {
   ],
   daisyui: {
     themes: [
-      "dark", "black", "forest", "luxury", "business", "coffee", "aqua", 
+      "dark", "black", "forest", "luxury", "business", "coffee", 
       "night", "dim", "sunset"
     ],
   },

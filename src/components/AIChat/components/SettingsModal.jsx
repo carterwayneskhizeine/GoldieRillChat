@@ -734,7 +734,7 @@ export const SettingsModal = ({
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-lg font-medium">模板管理</h3>
                   <button 
-                    className="btn btn-sm btn-primary"
+                    className="btn btn-sm btn-primary add-template-btn"
                     onClick={handleAddTemplate}
                     disabled={!systemPromptEnabled}
                   >

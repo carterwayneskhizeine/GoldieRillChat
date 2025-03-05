@@ -328,13 +328,11 @@ export default function TitleBar({
           zIndex: 100,
           display: 'flex',
           alignItems: 'center',
-          background: isImageBackground ? 'rgba(0, 0, 0, 0.6)' : 'transparent',
           padding: isImageBackground ? '3px 8px' : '2px',
           margin: isImageBackground ? '2px 0' : '0',
           borderRadius: '4px',
           backdropFilter: isImageBackground ? 'blur(4px)' : 'none',
           WebkitBackdropFilter: isImageBackground ? 'blur(4px)' : 'none',
-          boxShadow: isImageBackground ? '0 0 10px rgba(0, 0, 0, 0.5)' : 'none',
           border: isImageBackground ? '1px solid rgba(255, 255, 255, 0.15)' : 'none',
         }}>
           <img 

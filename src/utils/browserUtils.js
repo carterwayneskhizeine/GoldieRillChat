@@ -17,13 +17,27 @@ export const switchToBrowserEvent = new CustomEvent('switchToBrowser');
  */
 export const showLinkOpenDialog = (url) => {
   return new Promise((resolve) => {
+    // 创建淡出动画样式
+    const animationStyle = document.createElement('style');
+    animationStyle.textContent = `
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+      .animate-fadeout {
+        animation: fadeOut 0.15s ease-out forwards;
+      }
+    `;
+    document.head.appendChild(animationStyle);
+    
     // 创建对话框元素
     const dialog = document.createElement('div');
-    dialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-[9999] flex justify-center items-center';
+    // 提高z-index到最高，增加背景不透明度，添加特定于bg-theme的类名
+    dialog.className = 'fixed inset-0 bg-black bg-opacity-70 z-[10000] flex justify-center items-center link-dialog-overlay';
     
-    // 对话框内容 - 使用DaisyUI样式
+    // 对话框内容 - 使用DaisyUI样式并添加特定类用于bg-theme模式下的样式
     dialog.innerHTML = `
-      <div class="modal-box bg-base-100 shadow-lg max-w-md w-11/12">
+      <div class="modal-box bg-base-100 shadow-xl max-w-md w-11/12 link-dialog-content">
         <h3 class="font-bold text-lg text-base-content">打开链接</h3>
         <p class="py-4 text-base-content break-all">${url}</p>
         <div class="modal-action">
@@ -42,20 +56,50 @@ export const showLinkOpenDialog = (url) => {
     const externalBtn = dialog.querySelector('#external-btn');
     const internalBtn = dialog.querySelector('#internal-btn');
     
-    cancelBtn.addEventListener('click', () => {
-      document.body.removeChild(dialog);
-      resolve('cancel');
-    });
+    // 增强的点击事件处理 - 确保在背景模式下也能正确捕获点击
+    const setupButtonEvent = (button, action) => {
+      const handleClick = () => {
+        // 立即移除所有事件监听
+        cancelBtn.removeEventListener('click', handleCancelClick);
+        externalBtn.removeEventListener('click', handleExternalClick);
+        internalBtn.removeEventListener('click', handleInternalClick);
+        
+        // 添加移除特效
+        dialog.classList.add('animate-fadeout');
+        
+        // 延迟移除对话框
+        setTimeout(() => {
+          if (document.body.contains(dialog)) {
+            document.body.removeChild(dialog);
+          }
+          // 清理动画样式
+          if (document.head.contains(animationStyle)) {
+            document.head.removeChild(animationStyle);
+          }
+          resolve(action);
+        }, 150);
+      };
+      
+      return handleClick;
+    };
     
-    externalBtn.addEventListener('click', () => {
-      document.body.removeChild(dialog);
-      resolve('external');
-    });
+    // 设置各按钮的事件
+    const handleCancelClick = setupButtonEvent(cancelBtn, 'cancel');
+    const handleExternalClick = setupButtonEvent(externalBtn, 'external');
+    const handleInternalClick = setupButtonEvent(internalBtn, 'internal');
     
-    internalBtn.addEventListener('click', () => {
-      document.body.removeChild(dialog);
-      resolve('internal');
-    });
+    cancelBtn.addEventListener('click', handleCancelClick);
+    externalBtn.addEventListener('click', handleExternalClick);
+    internalBtn.addEventListener('click', handleInternalClick);
+    
+    // 添加ESC键关闭功能
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleCancelClick();
+        document.removeEventListener('keydown', handleKeyDown);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
   });
 };
 

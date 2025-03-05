@@ -6,4 +6,68 @@
   .control-bar {
     @apply flex-col gap-1; /* 垂直排列控制元素 */
   }
+}
+
+/* 浏览器容器样式 */
+.browser-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--b1, #1d232a);
+  padding: 0.5rem;
+}
+
+/* 标签栏样式 */
+.tab-bar {
+  border-radius: 0.5rem;
+  background-color: var(--b2, #191e24);
+  margin-bottom: 0.5rem;
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* 标签样式 */
+.tabs-boxed .tab {
+  margin: 0.2rem;
+  border-radius: 0.3rem;
+  transition: all 0.2s ease;
+}
+
+/* 活动标签样式 */
+.tabs-boxed .tab-active {
+  background-color: var(--p, #661AE6);
+  color: var(--pc, white);
+}
+
+/* 内容区域样式 */
+.browser-content {
+  flex: 1;
+  display: flex;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background-color: var(--b2, #191e24);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* 圆角浏览器视图 */
+webview {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* 输入框样式 */
+.input-group .input {
+  border-radius: 0.3rem 0 0 0.3rem;
+}
+
+.input-group .btn-square {
+  border-radius: 0 0.3rem 0.3rem 0;
+}
+
+/* 书签面板样式 */
+.bookmarks-sidebar {
+  border-radius: 0.5rem 0 0 0.5rem;
+  background-color: var(--b3, #1d232a);
+  overflow: hidden;
+  border-right: 1px solid var(--b3, #2a323c);
 } 

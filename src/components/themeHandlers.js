@@ -35,13 +35,13 @@ export const toggleTheme = async (currentTheme, themes, setCurrentTheme) => {
 
 // 主题配置
 export const themes = [
-  "dark", "black", "forest", "luxury", "business", "coffee", "aqua", 
+  "dark", "black", "forest", "luxury", "business", "coffee", 
   "night", "dim", "sunset", "bg-theme"
 ]
 
 // 主题初始化函数
 export const initializeTheme = () => {
-  return localStorage.getItem('theme') || 'dark'
+  return localStorage.getItem('theme') || 'bg-theme'
 }
 
 // 主题持久化Hook

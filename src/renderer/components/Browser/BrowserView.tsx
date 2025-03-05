@@ -3,6 +3,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useBrowserStore as useBrowserStoreOriginal, Tab } from '../../stores/browserStore';
 import { useBookmarkStore } from '../../stores/bookmarkStore';
 import BookmarkPanel from './BookmarkPanel';
+// 导入浏览器样式
+import '../../styles/browser.css';
 
 // 使用别名避免冲突
 const useBrowserStore = useBrowserStoreOriginal;
@@ -229,7 +231,7 @@ export default function BrowserView() {
       </div>
 
       {/* 内容区域 - 保留书签面板和Webview */}
-      <div className="flex-1 flex">
+      <div className="browser-content">
         {/* 书签面板（可折叠） */}
         {showBookmarksPanel && (
           <div className="bookmarks-sidebar w-64 h-full overflow-hidden border-r border-base-300">

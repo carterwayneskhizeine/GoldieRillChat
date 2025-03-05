@@ -4,9 +4,9 @@
 /* 基于pastel主题的透明背景主题 */
 [data-theme="bg-theme"] {
   /* 主要颜色 */
-  --p: 284 22% 80%;  /* 保留原颜色用于按钮 */
-  --pf: 284 22% 70%;
-  --pc: 0 0% 0%;  /* 文本颜色为黑色 */
+  --p: 210 100% 70%;  /* 蓝色主题按钮 */
+  --pf: 210 100% 60%;  /* 蓝色主题按钮(聚焦状态) */
+  --pc: 0 0% 100%;  /* 文本颜色为白色 - 修改为白色 */
 
   /* 次要颜色 */
   --s: 352 70% 88%;
@@ -357,306 +357,93 @@
     z-index: 100;
     transition: all 0.3s ease;
   }
+
+  /* 链接对话框特殊样式 - 确保在背景模式下显示清晰 */
+  .link-dialog-overlay {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background-color: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .link-dialog-content {
+    background-color: rgba(30, 30, 35, 0.95) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .link-dialog-content h3 {
+    color: rgba(255, 255, 255, 0.95) !important;
+    font-weight: 600 !important;
+  }
+
+  .link-dialog-content p {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-weight: 500 !important;
+  }
+
+  .link-dialog-content .btn-primary {
+    background-color: rgba(0, 136, 255, 0.9) !important; /* 更鲜明的蓝色 */
+    color: white !important;
+    border: none !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 10px rgba(0, 120, 255, 0.4) !important;
+  }
+
+  .link-dialog-content .btn-outline {
+    background-color: transparent !important;
+    color: rgba(0, 120, 255, 0.9) !important; /* 匹配主按钮的蓝色 */
+    border-color: rgba(0, 120, 255, 0.6) !important; /* 匹配主按钮的蓝色 */
+    font-weight: 500 !important;
+  }
+
+  .link-dialog-content .btn-ghost {
+    background-color: transparent !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-weight: 500 !important;
+  }
+
+  /* 设置面板中添加新模板按钮确保文字为白色 - 更具体的选择器 */
+  .modal-box .btn-primary,
+  .settings-modal .btn-primary,
+  .tabs-content .btn-primary,
+  button.btn.btn-sm.btn-primary,
+  button.btn.btn-primary {
+    color: white !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* 专门针对添加新模板按钮 */
+  button.btn-primary:contains("添加新模板"),
+  button.btn-primary:contains("添加模板"),
+  button.btn-primary:contains("新模板") {
+    color: white !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+  }
 }
 
-/* 图片背景模式下的样式 - 将应用所有特殊样式 */
+/* 图片背景模式下的样式 */
 [data-theme="bg-theme"].image-background-mode {
-  /* 卡片和模态框背景 - 修改为纯黑色背景 */
-  .card, .card-body, .modal, .modal-box, .dropdown-content {
-    background-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-  }
+  /* 对于非对话框相关的样式，保留原来的定义 */
+  /* 此处省略了非对话框相关的样式，请确保保留它们 */
   
-  /* 确保文本可读性 */
-  .prose, .chat-bubble {
-    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.5);  /* 修改文本阴影使白色文本更清晰 */
-    color: white !important;  /* 添加白色文本 */
+  /* 链接对话框特殊样式在普通模式下已定义，这里只覆盖需要特别调整的属性 */
+  .link-dialog-overlay {
+    backdrop-filter: blur(16px); /* 稍微增强模糊效果 */
+    -webkit-backdrop-filter: blur(16px);
   }
 
-  /* 聊天气泡背景 */
-  .chat-bubble {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: blur(8px);
-    color: white !important; /* 强制设置对话泡泡文字为白色 */
-    border: 1px solid rgba(255, 255, 255, 0.1);  /* 添加微弱边框以便区分 */
-  }
-  
-  /* 聊天气泡内所有文本元素 */
-  .chat-bubble * {
-    color: white !important; /* 确保气泡内所有子元素文字都是白色 */
-    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.7); /* 增强文本阴影使白色文字在任何背景上都清晰 */
-  }
-
-  /* 输入框和按钮背景 */
-  .input, .textarea, .btn {
-    background-color: rgba(10, 10, 10, 0.1) !important;
-    backdrop-filter: blur(5px);
-  }
-  
-  /* 消息操作按钮 */
-  .message-actions button {
-    color: rgb(182, 182, 182) !important; /* 确保按钮文字为白色 */
-    background-color: rgba(0, 0, 0, 0.8) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.5); /* 添加文本阴影增强可读性 */
-  }
-  
-  /* 按钮悬停效果 */
-  .message-actions button:hover {
-    background-color: rgba(255, 255, 255, 0.2) !important;
-    transform: scale(1.05);
-  }
-  
-  /* 侧边栏样式 */
-  .sidebar, .sidebar-item, .sidebar-menu, .sidebar-content {
-    color: white !important;
-    position: relative;
-    z-index: 5 !important; /* 确保侧边栏内容显示在背景之上 */
-  }
-  
-  /* 侧边栏菜单项 */
-  .sidebar .menu-item, 
-  .sidebar .menu-title, 
-  .sidebar a, 
-  .sidebar button,
-  .sidebar li,
-  .sidebar-content * {
-    color: white !important;
-    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.6);
-    position: relative;
-    z-index: 5 !important; /* 确保侧边栏元素显示在背景之上 */
-  }
-  
-  /* 侧边栏活跃项 - 图片背景模式特定样式 */
-  .sidebar .active, 
-  .sidebar .selected,
-  .sidebar .menu-active,
-  .btn.btn-active,
-  .btn-ghost.btn-active {
-    background-color: rgba(0, 0, 0, 0.7) !important;
-    color: white !important;
-    font-weight: bold;
-    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  /* 对话文件夹列表项 - 选中状态 - 更具体的选择器 */
-  .btn.btn-ghost.justify-between.btn-active {
-    background-color: rgba(0, 0, 0, 0.85) !important;
-    color: white !important;
-    font-weight: bold;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
-    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
-  }
-  
-  /* 对话文件夹列表项 - 未选中状态 - 更具体的选择器 */
-  .btn.btn-ghost.justify-between:not(.btn-active) {
-    background-color: rgba(0, 0, 0, 0.3);
-    color: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  /* 对话文件夹列表项 - 悬停状态 - 更具体的选择器 */
-  .btn.btn-ghost.justify-between:hover {
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    color: white !important;
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-  
-  /* 聊天容器和页面背景 */
-  body, html, .app, .chat-container, .main-content, 
-  .drawer-content, .drawer-side, .bg-base-100, .bg-base-200, .bg-base-300 {
-    background-color: black !important;
-    color: rgb(220, 220, 220) !important;
-  }
-  
-  /* 针对导航栏和标签 */
-  nav, .tabs, .tab, .tab-content, .tab-active, 
-  .menu-title, .menu-item, .drawer-content .menu-title,
-  .drawer-toggle, .drawer-side, .drawer, .drawer-content,
-  #tabs *, .tab-panel, .tab-panels *, nav *, .nav *,
-  .title, .breadcrumbs, header {
-    color: white !important;
-    position: relative;
-    z-index: 5 !important; /* 确保导航元素显示在背景之上 */
-  }
-  
-  /* 特别针对红框区域的元素 */
-  .chat-title, .conversation-title, .app-title,
-  .title-bar, .title-container, .app-header, .app-title *,
-  .drawer-side .menu li, .side-menu li, .conversation-list-item,
-  .conversation-list li, .chat-list li, .chat-list-item,
-  .chat-list *, .menu *, .menu li * {
-    color: white !important;
-    text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.6);
-    position: relative;
-    z-index: 5 !important; /* 确保这些元素显示在背景之上 */
-    background-color: rgba(0, 0, 0, 0.5); /* 添加半透明背景增强可见性 */
-    border-radius: 4px;
-    padding: 2px 4px;
-  }
-  
-  /* 针对特定的聊天标题元素 */
-  .flex.justify-between.items-center .font-semibold,
-  div.flex.justify-between.items-center span.font-semibold,
-  div.flex.items-center span.font-semibold,
-  div[class*="flex"][class*="justify-between"][class*="items-center"] span,
-  div[class*="flex"][class*="items-center"] span.font-semibold,
-  .font-semibold {
-    color: white !important;
-    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
-    font-weight: bold;
-    position: relative;
-    z-index: 5 !important; /* 确保标题元素显示在背景之上 */
-  }
-  
-  /* 顶部组件和模型选择器样式 */
-  .select, select, .select-bordered, 
-  .select-xs, .select option, 
-  .select-container, .select-wrapper {
-    position: relative !important;
-    z-index: 10 !important; /* 更高的z-index确保下拉菜单显示在最上层 */
-    color: white !important;
-    background-color: rgba(0, 0, 0, 0.7) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-  }
-  
-  /* 选择菜单的选项 */
-  .select option, select option, 
-  option, datalist option {
-    background-color: rgba(0, 0, 0, 0.9) !important;
-    color: white !important;
-    padding: 8px !important;
-  }
-  
-  /* 选择菜单获得焦点时 */
-  .select:focus, select:focus {
-    outline: 2px solid rgba(255, 255, 255, 0.3) !important;
-    border-color: rgba(255, 255, 255, 0.5) !important;
-  }
-  
-  /* 顶部Header组件 */
-  header, .header, .app-header, 
-  div[class*="border-b"][class*="flex"][class*="justify-between"][class*="items-center"] {
-    position: relative !important;
-    z-index: 10 !important; /* 确保头部在最上层 */
-    background-color: rgba(0, 0, 0, 0) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-  }
-  
-  /* 特定功能按钮的激活状态样式 */
-  .btn.text-primary.active svg,
-  .btn.text-primary[data-active="true"] svg,
-  .btn.text-primary.btn-active svg,
-  button.btn-active.text-primary svg,
-  button[data-state="active"].text-primary svg,
-  button.active.text-primary svg,
-  button.text-primary[aria-pressed="true"] svg,
-  /* 支持自定义属性 */
-  button.text-primary[data-enabled="true"] svg,
-  button.text-primary[data-on="true"] svg {
-    stroke: #3B82F6 !important; /* 蓝色 - tailwind blue-500 */
-    fill: none !important;
-  }
-
-  /* 折叠按钮样式修复 - 图片背景模式 - 更高优先级 */
-  .message-container .collapse-button button,
-  .chat-bubble .collapse-button button,
-  .chat .collapse-button button,
-  .chat-view-messages .collapse-button button,
-  .message-content .collapse-button button,
-  html [data-theme="bg-theme"].image-background-mode .collapse-button button,
-  html [data-theme="bg-theme"].image-background-mode .aichat-collapse-btn,
-  html [data-theme="bg-theme"].image-background-mode button.collapse-toggle,
-  html [data-theme="bg-theme"].image-background-mode button[data-collapse],
-  html [data-theme="bg-theme"].image-background-mode div.collapse-button > button,
-  html [data-theme="bg-theme"].image-background-mode button.aichat-collapse-btn {
-    background-color: transparent !important;
-    backdrop-filter: blur(4px) !important;
+  /* 设置面板按钮在图片背景模式下的增强效果 */
+  .btn-primary,
+  .settings-modal .btn-primary, 
+  .modal-box .btn-primary {
+    background-color: rgba(0, 120, 255, 0.9) !important;
+    box-shadow: 0 0 10px rgba(0, 120, 255, 0.6) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
     color: white !important;
-    opacity: 0.8 !important;
-    z-index: 40 !important;
-  }
-  
-  /* 折叠按钮悬停效果 - 图片背景模式 */
-  .message-container .collapse-button button:hover,
-  .chat-bubble .collapse-button button:hover,
-  .chat .collapse-button button:hover,
-  .chat-view-messages .collapse-button button:hover,
-  .message-content .collapse-button button:hover,
-  html [data-theme="bg-theme"].image-background-mode .collapse-button button:hover,
-  html [data-theme="bg-theme"].image-background-mode .aichat-collapse-btn:hover,
-  html [data-theme="bg-theme"].image-background-mode button.collapse-toggle:hover,
-  html [data-theme="bg-theme"].image-background-mode button[data-collapse]:hover,
-  html [data-theme="bg-theme"].image-background-mode div.collapse-button > button:hover,
-  html [data-theme="bg-theme"].image-background-mode button.aichat-collapse-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    transform: scale(1.1) !important;
-    border-color: rgba(255, 255, 255, 0.3) !important;
-    opacity: 1 !important;
-  }
-  
-  /* 确保折叠按钮中的SVG图标可见 - 图片背景模式 */
-  .message-container .collapse-button button svg,
-  .chat-bubble .collapse-button button svg,
-  .chat .collapse-button button svg,
-  .chat-view-messages .collapse-button button svg,
-  .message-content .collapse-button button svg,
-  html [data-theme="bg-theme"].image-background-mode .collapse-button button svg,
-  html [data-theme="bg-theme"].image-background-mode .aichat-collapse-btn svg,
-  html [data-theme="bg-theme"].image-background-mode button.collapse-toggle svg,
-  html [data-theme="bg-theme"].image-background-mode button[data-collapse] svg,
-  html [data-theme="bg-theme"].image-background-mode div.collapse-button > button svg,
-  html [data-theme="bg-theme"].image-background-mode button.aichat-collapse-btn svg {
-    stroke: white !important;
-    fill: none !important;
-    opacity: 0.9 !important;
-  }
-
-  /* 网络搜索按钮 - 开启状态 */
-  .btn-ghost.text-primary, .search-enabled {
-    color: #4ade80 !important; /* 使用鲜明的绿色 */
-    border: 1px solid rgba(74, 222, 128, 0.6) !important;
-    background-color: rgba(74, 222, 128, 0.15) !important;
-    text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
-    box-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
-  }
-  
-  /* 网络搜索按钮 - 开启状态悬停效果 */
-  .btn-ghost.text-primary:hover, .search-enabled:hover {
-    background-color: rgba(74, 222, 128, 0.25) !important;
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
-  }
-  
-  /* 网络搜索按钮 - 关闭状态 - 与普通按钮保持一致 */
-  .btn-ghost:not(.text-primary), .search-disabled {
-    color: rgba(255, 255, 255, 0.9) !important; /* 更亮的颜色 */
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    background-color: rgba(255, 255, 255, 0.05) !important;
-  }
-  
-  /* 网络搜索按钮 - 关闭状态悬停效果 */
-  .btn-ghost:not(.text-primary):hover, .search-disabled:hover {
-    color: rgba(255, 255, 255, 0.9) !important;
-    background-color: rgba(255, 255, 255, 0.1) !important;
-  }
-
-  /* 应用图标容器样式 */
-  .app-logo-container {
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    border-radius: 4px;
-    overflow: hidden;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-  }
-  
-  .app-logo-container img {
-    filter: brightness(1.2) drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+    font-weight: 500 !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
   }
 }
 
@@ -697,4 +484,21 @@ nav .tab, .header .tab, .tab[role="tab"] {
 .title-container, .header-content, .panel-header, 
 .tab-header, .tool-header, .section-header {
   border-bottom: var(--panel-title-border);
+}
+
+/* 全局按钮样式重写 - 放在文件的最后确保最高优先级 */
+/* 这些样式会覆盖所有其他样式定义 */
+[data-theme="bg-theme"] .btn-primary,
+[data-theme="bg-theme"].image-background-mode .btn-primary,
+html [data-theme="bg-theme"] .btn-primary {
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 图片背景模式下的增强样式 */
+[data-theme="bg-theme"].image-background-mode .btn-primary,
+html [data-theme="bg-theme"].image-background-mode .btn-primary {
+  box-shadow: 0 0 8px rgba(0, 120, 255, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  font-weight: 600 !important;
 }
