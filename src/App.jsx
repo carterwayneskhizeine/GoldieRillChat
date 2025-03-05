@@ -722,92 +722,113 @@ export default function App() {
     setFolderNameInput(conversation.name)
   }
 
-  // 添加工具状态存储
-  const [toolStates, setToolStates] = useState({
-    aichat: {
-      currentConversationId: null
-    }
-  });
-  
   // 创建工具切换函数
   const switchTool = (direction) => {
-    // 确定下一个工具
-    let nextTool;
-    if (direction === 'next') {
-      const currentIndex = tools.indexOf(activeTool);
-      nextTool = tools[(currentIndex + 1) % tools.length];
-    } else if (direction === 'prev') {
-      const currentIndex = tools.indexOf(activeTool);
-      nextTool = tools[(currentIndex - 1 + tools.length) % tools.length];
-    } else {
-      // 如果direction是一个具体的工具名，直接切换到该工具
-      nextTool = direction;
-    }
-    
-    // 如果切换到aichat且有当前选中的对话，保存当前对话ID
-    if (nextTool === 'aichat' && currentConversation) {
-      console.log('切换到AI Chat，保存当前对话状态:', currentConversation.name);
-      setToolStates(prev => ({
-        ...prev,
-        aichat: {
-          ...prev.aichat,
-          currentConversationId: currentConversation.id
-        }
-      }));
-    }
-    
-    // 设置活动工具
-    setActiveTool(nextTool);
+    // 使用工具切换器
+    setActiveTool(currentTool => {
+      const currentIndex = tools.indexOf(currentTool);
+      if (direction === 'next') {
+        return tools[(currentIndex + 1) % tools.length];
+      } else if (direction === 'prev') {
+        return tools[(currentIndex - 1 + tools.length) % tools.length];
+      } else {
+        // 如果direction是一个具体的工具名，直接切换到该工具
+        return direction;
+      }
+    });
   };
-  
-  // 当工具切换到AI Chat时，恢复之前的对话状态
-  useEffect(() => {
-    if (activeTool === 'aichat') {
-      console.log('切换到AIChat工具，当前对话状态:', 
-        currentConversation ? currentConversation.name : '无', 
-        '保存的对话ID:', toolStates.aichat.currentConversationId);
-      
-      // 如果没有当前选择的对话，但有保存的对话状态，则恢复之前的状态
-      if (!currentConversation && toolStates.aichat.currentConversationId) {
-        // 查找之前的对话
-        const previousConversation = conversations.find(
-          conv => conv.id === toolStates.aichat.currentConversationId
-        );
-        
-        if (previousConversation) {
-          console.log('恢复AI Chat先前的状态:', previousConversation.name);
-          handleConversationSelect(previousConversation.id);
-        }
-      } 
-      // 如果有当前对话，则使用当前对话
-      else if (currentConversation) {
-        console.log('使用当前选择的对话:', currentConversation.name);
-        // 强制选择当前对话，确保AI Chat界面显示正确的对话
-        handleConversationSelect(currentConversation.id);
-        
-        // 更新工具状态
-        setToolStates(prev => ({
-          ...prev,
-          aichat: {
-            ...prev.aichat,
-            currentConversationId: currentConversation.id
-          }
-        }));
+
+  // 添加处理创建对话的函数
+  const handleConversationCreate = async (conversation) => {
+    try {
+      if (!conversation) return;
+
+      // 确保对话有唯一ID
+      if (!conversation.id) {
+        conversation.id = nanoid();
       }
-      // 如果没有当前对话也没有保存的状态，但有对话列表，则选择第一个对话
-      else if (conversations.length > 0) {
-        console.log('没有选择对话，选择第一个可用对话:', conversations[0].name);
-        handleConversationSelect(conversations[0].id);
+
+      // 确保对话有名称
+      if (!conversation.name) {
+        // 如果没有名称，使用默认名称格式
+        conversation.name = `对话 ${new Date().toLocaleString('zh-CN', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric'
+        })}`;
       }
+
+      // 确保对话有路径
+      if (!conversation.path) {
+        // 如果没有路径，在当前配置的存储路径下创建一个文件夹
+        const basePath = storagePath || window.electron.getDefaultStoragePath();
+        conversation.path = path.join(basePath, 'conversations', `${conversation.id}`);
+        
+        // 创建对话文件夹
+        await window.electron.createFolder(conversation.path);
+      }
+
+      // 将新对话添加到列表中
+      setConversations(prev => {
+        // 检查是否已经存在同ID的对话
+        const exists = prev.some(c => c.id === conversation.id);
+        if (exists) return prev;
+        return [...prev, conversation];
+      });
+
+      return conversation;
+    } catch (error) {
+      console.error('创建对话失败:', error);
+      throw error;
     }
-  }, [
-    activeTool, 
-    currentConversation, 
-    toolStates.aichat.currentConversationId, 
-    conversations, 
-    handleConversationSelect,
-    setToolStates
-  ]);
+  };
+
+  // 现在添加工具切换事件监听
+  useEffect(() => {
+    const handleSwitchTool = (event) => {
+      const { tool, conversation } = event.detail;
+      
+      console.log('切换工具:', {
+        从: activeTool,
+        到: tool,
+        当前对话: currentConversation ? currentConversation.name : '无',
+        当前对话ID: currentConversation ? currentConversation.id : '无'
+      });
+      
+      // 切换工具
+      setActiveTool(tool);
+      
+      // 如果切换到AIChat
+      if (tool === 'aichat') {
+        // 确保有当前对话
+        if (currentConversation) {
+          console.log('切换到AIChat，保持当前对话:', currentConversation.name);
+          // 使用setTimeout确保工具切换完成后再选择对话
+          setTimeout(() => {
+            handleConversationSelect(currentConversation.id);
+          }, 100);
+        } else {
+          console.log('切换到AIChat，但没有当前对话');
+        }
+      }
+      // 如果提供了新的对话，创建并选择它
+      else if (conversation) {
+        console.log('收到新对话:', conversation.name || '未命名');
+        handleConversationCreate(conversation)
+          .then(() => {
+            handleConversationSelect(conversation.id);
+          })
+          .catch(error => {
+            console.error('切换对话失败:', error);
+            alert('切换对话失败: ' + error.message);
+          });
+      }
+    };
+
+    window.addEventListener('switchTool', handleSwitchTool);
+    return () => window.removeEventListener('switchTool', handleSwitchTool);
+  }, [activeTool, currentConversation, handleConversationSelect]);
 
   // 使用新的浏览器事件处理函数
   useBrowserEvents({
@@ -929,40 +950,6 @@ export default function App() {
   };
 
   // 会话管理相关函数
-  const handleConversationCreate = async (conversation) => {
-    if (!conversation || !conversation.id) {
-      console.error('无效的会话对象');
-      return;
-    }
-
-    try {
-      const conversationToSave = {
-        id: conversation.id,
-        name: conversation.name,
-        path: conversation.path,
-        timestamp: conversation.timestamp
-      };
-      
-      const updatedConversations = [...conversations, conversationToSave];
-      setConversations(updatedConversations);
-      setCurrentConversation(conversationToSave);
-      setMessages([]);
-      
-      localStorage.setItem('aichat_conversations', JSON.stringify(
-        updatedConversations.map(conv => ({
-          id: conv.id,
-          name: conv.name,
-          path: conv.path,
-          timestamp: conv.timestamp
-        }))
-      ));
-      localStorage.setItem('aichat_current_conversation', JSON.stringify(conversationToSave));
-    } catch (error) {
-      console.error('创建会话失败:', error);
-      throw error;
-    }
-  };
-
   const handleConversationDelete = async (conversation) => {
     try {
       await deleteConversation(
@@ -1054,40 +1041,6 @@ export default function App() {
     // 使用通用的URL打开函数，它会自动处理切换到浏览器工具
     openUrl(url, true); // 第二个参数true确保使用内部浏览器
   };
-
-  useEffect(() => {
-    // 监听工具切换事件
-    const handleSwitchTool = (event) => {
-      const { tool, conversation } = event.detail;
-      
-      // 记录上一个工具
-      const prevTool = activeTool;
-      // 切换工具
-      setActiveTool(tool);
-      
-      // 如果从Chat切换到AIChat，确保使用最新的对话
-      if (prevTool === 'chat' && tool === 'aichat' && currentConversation) {
-        console.log('从Chat切换到AIChat，强制使用当前对话:', currentConversation.name);
-        // 强制使用当前选中的对话，而不是事件中的对话
-        handleConversationSelect(currentConversation.id);
-      }
-      // 正常处理其他情况
-      else if (conversation) {
-        handleConversationCreate(conversation)
-          .then(() => {
-            // 加载对话消息
-            handleConversationSelect(conversation.id);
-          })
-          .catch(error => {
-            console.error('切换对话失败:', error);
-            alert('切换对话失败: ' + error.message);
-          });
-      }
-    };
-
-    window.addEventListener('switchTool', handleSwitchTool);
-    return () => window.removeEventListener('switchTool', handleSwitchTool);
-  }, [activeTool, currentConversation, handleConversationSelect, handleConversationCreate]);
 
   // 添加处理导入书签的函数
   const handleImportBookmarks = () => {
@@ -1359,6 +1312,18 @@ export default function App() {
       window.removeEventListener('switchToBrowser', handleSwitchToBrowser);
     };
   }, []);
+
+  // 添加监听activeTool变化的useEffect，确保在切换到AI Chat时保持当前对话的选择
+  useEffect(() => {
+    // 如果当前工具是AI Chat并且有当前对话
+    if (activeTool === 'aichat' && currentConversation) {
+      console.log('当前工具是AI Chat，确保使用当前对话:', currentConversation.name);
+      // 使用setTimeout确保状态更新后再选择对话
+      setTimeout(() => {
+        handleConversationSelect(currentConversation.id);
+      }, 200);
+    }
+  }, [activeTool]); // 只在activeTool变化时触发
 
   return (
     <div className="h-screen flex flex-col bg-base-100">
