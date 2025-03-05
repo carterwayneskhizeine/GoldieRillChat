@@ -6,6 +6,9 @@ export const useMessageState = (currentConversation) => {
   // 消息列表状态
   const [messages, setMessages] = useState([]);
   
+  // 添加当前对话ID跟踪
+  const [currentConversationId, setCurrentConversationId] = useState(null);
+  
   // 消息编辑状态
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editContent, setEditContent] = useState('');
@@ -20,15 +23,40 @@ export const useMessageState = (currentConversation) => {
 
   // 当对话改变时重置状态
   useEffect(() => {
+    // 直接检查当前对话是否发生变化
+    if (!currentConversation) {
+      // 如果没有当前对话，重置所有状态
+      setMessages([]);
+      setCurrentConversationId(null);
+      setEditingMessageId(null);
+      setEditContent(''); 
+      setRetryingMessageId(null);
+      setFailedMessages(new Set());
+      setMessageStates({});
+      setAnimationStates({});
+      return;
+    }
+    
+    // 如果当前对话ID没变，不重新加载消息，避免重复加载
+    if (currentConversationId === currentConversation.id) {
+      return;
+    }
+    
+    console.log('对话已变化，加载新消息:', currentConversation.name);
+    
+    // 重置所有状态
     setMessages([]);
     setEditingMessageId(null);
-    setEditContent('');  // 重置为空字符串
+    setEditContent('');
     setRetryingMessageId(null);
     setFailedMessages(new Set());
     setMessageStates({});
     setAnimationStates({});
+    
+    // 更新当前对话ID
+    setCurrentConversationId(currentConversation.id);
 
-    // 如果有当前对话，加载消息
+    // 加载新对话的消息
     if (currentConversation?.path) {
       window.electron.loadMessages(currentConversation.path)
         .then(loadedMessages => {
@@ -40,7 +68,7 @@ export const useMessageState = (currentConversation) => {
           console.error('加载消息失败:', error);
         });
     }
-  }, [currentConversation?.path]);
+  }, [currentConversation]);
 
   // 消息持久化
   useEffect(() => {
@@ -66,6 +94,7 @@ export const useMessageState = (currentConversation) => {
   return {
     messages,
     setMessages,
+    currentConversationId,
     editingMessageId,
     setEditingMessageId,
     editContent,

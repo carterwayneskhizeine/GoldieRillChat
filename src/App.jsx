@@ -731,8 +731,22 @@ export default function App() {
   
   // 创建工具切换函数
   const switchTool = (direction) => {
-    // 保存当前工具的状态
-    if (activeTool === 'aichat' && currentConversation) {
+    // 确定下一个工具
+    let nextTool;
+    if (direction === 'next') {
+      const currentIndex = tools.indexOf(activeTool);
+      nextTool = tools[(currentIndex + 1) % tools.length];
+    } else if (direction === 'prev') {
+      const currentIndex = tools.indexOf(activeTool);
+      nextTool = tools[(currentIndex - 1 + tools.length) % tools.length];
+    } else {
+      // 如果direction是一个具体的工具名，直接切换到该工具
+      nextTool = direction;
+    }
+    
+    // 如果切换到aichat且有当前选中的对话，保存当前对话ID
+    if (nextTool === 'aichat' && currentConversation) {
+      console.log('切换到AI Chat，保存当前对话状态:', currentConversation.name);
       setToolStates(prev => ({
         ...prev,
         aichat: {
@@ -742,39 +756,57 @@ export default function App() {
       }));
     }
     
-    // 使用工具切换器
-    setActiveTool(currentTool => {
-      const currentIndex = tools.indexOf(currentTool);
-      if (direction === 'next') {
-        return tools[(currentIndex + 1) % tools.length];
-      } else if (direction === 'prev') {
-        return tools[(currentIndex - 1 + tools.length) % tools.length];
-      } else {
-        // 如果direction是一个具体的工具名，直接切换到该工具
-        return direction;
-      }
-    });
+    // 设置活动工具
+    setActiveTool(nextTool);
   };
   
   // 当工具切换到AI Chat时，恢复之前的对话状态
   useEffect(() => {
-    if (activeTool === 'aichat' && toolStates.aichat.currentConversationId) {
-      // 查找之前的对话
-      const previousConversation = conversations.find(
-        conv => conv.id === toolStates.aichat.currentConversationId
-      );
+    if (activeTool === 'aichat') {
+      console.log('切换到AIChat工具，当前对话状态:', 
+        currentConversation ? currentConversation.name : '无', 
+        '保存的对话ID:', toolStates.aichat.currentConversationId);
       
-      // 如果找到之前的对话且当前没有选中的对话，则选中它
-      if (previousConversation && (!currentConversation || currentConversation.id !== previousConversation.id)) {
-        handleConversationSelect(previousConversation.id);
+      // 如果没有当前选择的对话，但有保存的对话状态，则恢复之前的状态
+      if (!currentConversation && toolStates.aichat.currentConversationId) {
+        // 查找之前的对话
+        const previousConversation = conversations.find(
+          conv => conv.id === toolStates.aichat.currentConversationId
+        );
+        
+        if (previousConversation) {
+          console.log('恢复AI Chat先前的状态:', previousConversation.name);
+          handleConversationSelect(previousConversation.id);
+        }
+      } 
+      // 如果有当前对话，则使用当前对话
+      else if (currentConversation) {
+        console.log('使用当前选择的对话:', currentConversation.name);
+        // 强制选择当前对话，确保AI Chat界面显示正确的对话
+        handleConversationSelect(currentConversation.id);
+        
+        // 更新工具状态
+        setToolStates(prev => ({
+          ...prev,
+          aichat: {
+            ...prev.aichat,
+            currentConversationId: currentConversation.id
+          }
+        }));
+      }
+      // 如果没有当前对话也没有保存的状态，但有对话列表，则选择第一个对话
+      else if (conversations.length > 0) {
+        console.log('没有选择对话，选择第一个可用对话:', conversations[0].name);
+        handleConversationSelect(conversations[0].id);
       }
     }
   }, [
     activeTool, 
+    currentConversation, 
     toolStates.aichat.currentConversationId, 
     conversations, 
-    currentConversation, 
-    handleConversationSelect
+    handleConversationSelect,
+    setToolStates
   ]);
 
   // 使用新的浏览器事件处理函数
