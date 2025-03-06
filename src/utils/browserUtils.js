@@ -157,48 +157,65 @@ export const openExternalUrl = (url) => {
  * 
  * @param {string} url - 要打开的URL
  * @param {boolean} useInternalBrowser - 是否使用内部浏览器打开URL，默认为true
- * @param {boolean} showDialog - 是否显示选择对话框，默认为false
+ * @param {boolean} showDialog - 是否显示选择对话框，默认为false，但此参数被忽略，总是显示对话框
  */
 export const openUrl = async (url, useInternalBrowser = true, showDialog = false) => {
-  // 确保URL有http/https前缀
-  if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'https://' + url;
-  }
-
-  // 如果需要显示对话框，让用户选择
-  if (showDialog && window.electron?.browser?.newTab) {
+  console.log('openUrl被调用:', url, useInternalBrowser, showDialog);
+  
+  try {
+    // 确保URL有http/https前缀
+    if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    
+    // 移除可能影响对话框显示的元素
+    const existingDialogs = document.querySelectorAll('.link-dialog-overlay');
+    existingDialogs.forEach(dialog => {
+      if (document.body.contains(dialog)) {
+        document.body.removeChild(dialog);
+      }
+    });
+    
+    // 确保总是显示对话框
+    console.log('显示链接对话框:', url);
     const choice = await showLinkOpenDialog(url);
+    console.log('用户选择:', choice);
     
     if (choice === 'cancel') {
+      console.log('用户取消打开链接');
       return;
     }
     
     if (choice === 'external') {
+      console.log('用户选择外部浏览器打开');
       openExternalUrl(url);
       return;
     }
     
-    // 如果选择内部浏览器，下面的代码会继续执行
-    useInternalBrowser = true;
-  }
-
-  // 使用内部浏览器打开URL
-  if (useInternalBrowser && window.electron?.browser?.newTab) {
-    try {
-      window.electron.browser.newTab(url);
-      // 确保浏览器组件可见
-      if (window.electron.browser.setVisibility) {
-        window.electron.browser.setVisibility(true);
+    console.log('用户选择内部浏览器打开');
+    if (window.electron?.browser?.newTab) {
+      try {
+        window.electron.browser.newTab(url);
+        if (window.electron.browser.setVisibility) {
+          window.electron.browser.setVisibility(true);
+        }
+        window.dispatchEvent(switchToBrowserEvent);
+      } catch (error) {
+        console.error('内部浏览器打开URL失败:', error);
+        openExternalUrl(url);
       }
-      // 触发切换到浏览器工具的事件
-      window.dispatchEvent(switchToBrowserEvent);
-      return;
-    } catch (error) {
-      console.error('使用内部浏览器打开URL失败:', error);
-      // 如果内部浏览器打开失败，回退到外部浏览器
+    } else {
+      console.log('内部浏览器API不可用，使用外部浏览器');
+      openExternalUrl(url);
+    }
+  } catch (error) {
+    console.error('链接处理过程中发生错误:', error);
+    // 出错时，尝试使用外部浏览器打开
+    try {
+      openExternalUrl(url);
+    } catch (e) {
+      console.error('使用外部浏览器打开链接也失败:', e);
+      alert(`无法打开链接: ${url}\n可能需要手动复制到浏览器中打开。`);
     }
   }
-
-  // 使用外部浏览器打开URL
-  openExternalUrl(url);
 }; 

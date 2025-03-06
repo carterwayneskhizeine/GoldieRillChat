@@ -39,7 +39,7 @@ const SearchSources = ({ sources, openInBrowserTab }) => {
 
   // 处理链接点击
   const handleLinkClick = (url) => {
-    openUrl(url, true, true);
+    openUrl(url, true, false);
     setShowSources(false); // 关闭弹窗
   };
 
@@ -208,7 +208,7 @@ export const MessageItem = ({
               }}
               onLinkClick={(href) => {
                 if (href.startsWith('http://') || href.startsWith('https://')) {
-                  openUrl(href, true, true);
+                  openUrl(href, true, false);
                 }
               }}
             />
@@ -275,7 +275,7 @@ export const MessageItem = ({
               }}
               onLinkClick={(href) => {
                 if (href.startsWith('http://') || href.startsWith('https://')) {
-                  openUrl(href, true, true);
+                  openUrl(href, true, false);
                 }
               }}
             />
@@ -435,7 +435,7 @@ export const MessageItem = ({
                                 }}
                                 onLinkClick={(href) => {
                                   if (href.startsWith('http://') || href.startsWith('https://')) {
-                                    openUrl(href, true, true);
+                                    openUrl(href, true, false);
                                   }
                                 }}
                               />
@@ -462,7 +462,7 @@ export const MessageItem = ({
                                 }}
                                 onLinkClick={(href) => {
                                   if (href.startsWith('http://') || href.startsWith('https://')) {
-                                    openUrl(href, true, true);
+                                    openUrl(href, true, false);
                                   }
                                 }}
                               />
@@ -489,7 +489,7 @@ export const MessageItem = ({
                                 }}
                                 onLinkClick={(href) => {
                                   if (href.startsWith('http://') || href.startsWith('https://')) {
-                                    openUrl(href, true, true);
+                                    openUrl(href, true, false);
                                   }
                                 }}
                               />
@@ -524,7 +524,7 @@ export const MessageItem = ({
                               }}
                               onLinkClick={(href) => {
                                 if (href.startsWith('http://') || href.startsWith('https://')) {
-                                  openUrl(href, true, true);
+                                  openUrl(href, true,false);
                                 }
                               }}
                             />
