@@ -330,13 +330,35 @@ const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLig
     </strong>
   ),
   // 修改列表项渲染
-  li: ({node, children, ordered, ...props}) => {
+  li: ({node, className, children, id, ...props}) => {
+    // 检查是否是脚注项
+    if (id?.startsWith('fn-')) {
+      return (
+        <li 
+          {...props}
+          id={id}
+          className={`footnote-item ${className || ''}`}
+          style={{
+            marginBottom: '0.5rem',
+            lineHeight: '1.6',
+            position: 'relative',
+            paddingLeft: '1.5rem'
+          }}
+          data-selectable="true"
+          onContextMenu={handleContextMenu}
+        >
+          {children}
+        </li>
+      );
+    }
+    
     // 检查是否包含树形结构特殊字符
     const containsTreeStructure = contentHasTreeStructure(children);
     
     if (containsTreeStructure) {
       return (
         <li {...props} 
+          className={className}
           data-selectable="true" 
           style={treeViewStyles.container}
           onContextMenu={handleContextMenu}
@@ -348,6 +370,7 @@ const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLig
     
     return (
       <li {...props} 
+        className={className}
         data-selectable="true" 
         style={{ userSelect: 'text' }} 
         onContextMenu={handleContextMenu}
@@ -1250,13 +1273,35 @@ export const MarkdownRenderer = React.memo(({
           },
 
           // 列表项渲染
-          li({node, children, ...props}) {
+          li({node, className, children, id, ...props}) {
+            // 检查是否是脚注项
+            if (id?.startsWith('fn-')) {
+              return (
+                <li 
+                  {...props}
+                  id={id}
+                  className={`footnote-item ${className || ''}`}
+                  style={{
+                    marginBottom: '0.5rem',
+                    lineHeight: '1.6',
+                    position: 'relative',
+                    paddingLeft: '1.5rem'
+                  }}
+                  data-selectable="true"
+                  onContextMenu={handleContextMenu}
+                >
+                  {children}
+                </li>
+              );
+            }
+            
             // 检查是否包含树形结构特殊字符
             const containsTreeStructure = contentHasTreeStructure(children);
             
             if (containsTreeStructure) {
               return (
                 <li {...props} 
+                  className={className}
                   data-selectable="true" 
                   style={treeViewStyles.container}
                   onContextMenu={handleContextMenu}
@@ -1268,6 +1313,7 @@ export const MarkdownRenderer = React.memo(({
             
             return (
               <li {...props} 
+                className={className}
                 data-selectable="true" 
                 style={{ userSelect: 'text' }} 
                 onContextMenu={handleContextMenu}
@@ -1446,23 +1492,10 @@ export const MarkdownRenderer = React.memo(({
           },
           // 添加脚注定义列表的自定义组件
           section: ({node, className, children, ...props}) => {
-            // 检查是否是脚注区域
+            // 检查是否是脚注部分
             if (className?.includes('footnotes')) {
               return (
-                <section 
-                  {...props} 
-                  className={`footnotes ${className || ''}`}
-                  style={{
-                    marginTop: '2rem',
-                    paddingTop: '1rem',
-                    borderTop: '1px solid var(--b3)',
-                    fontSize: '0.9em',
-                    color: 'var(--bc)',
-                    opacity: 0.85
-                  }}
-                  data-selectable="true"
-                  onContextMenu={handleContextMenu}
-                >
+                <section {...props} className={className} data-selectable="true" onContextMenu={handleContextMenu}>
                   {children}
                 </section>
               );
@@ -1474,64 +1507,6 @@ export const MarkdownRenderer = React.memo(({
               </section>
             );
           },
-          // 给脚注中的列表项添加样式
-          li: ({node, className, children, id, ...props}) => {
-            // 检查是否是脚注项
-            if (id?.startsWith('fn-')) {
-              return (
-                <li 
-                  {...props}
-                  id={id}
-                  className={`footnote-item ${className || ''}`}
-                  style={{
-                    marginBottom: '0.5rem',
-                    lineHeight: '1.6',
-                    position: 'relative',
-                    paddingLeft: '1.5rem'
-                  }}
-                  data-selectable="true"
-                  onContextMenu={handleContextMenu}
-                >
-                  <span 
-                    style={{
-                      position: 'absolute',
-                      left: '0',
-                      fontWeight: 'bold',
-                      color: 'var(--p)'
-                    }}
-                  >
-                    {id.replace('fn-', '')}:
-                  </span>
-                  {children}
-                </li>
-              );
-            }
-            
-            // 已有的列表项逻辑
-            const containsTreeStructure = contentHasTreeStructure(children);
-            
-            if (containsTreeStructure) {
-              return (
-                <li {...props} 
-                  data-selectable="true" 
-                  style={treeViewStyles.container}
-                  onContextMenu={handleContextMenu}
-                >
-                  {children}
-                </li>
-              );
-            }
-            
-            return (
-              <li {...props} 
-                data-selectable="true" 
-                style={{ userSelect: 'text' }} 
-                onContextMenu={handleContextMenu}
-              >
-                {children}
-              </li>
-            );
-          }
         }}
       >
         {processedContent}
