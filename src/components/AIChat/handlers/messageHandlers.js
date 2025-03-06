@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { callModelAPI } from '../../../services/modelProviders';
 import { MESSAGE_STATES } from '../constants';
-import { searchService } from '../../../services/searchService';
+import { tavilyService } from '../../../services/tavilyService';
 
 // 格式化时间函数
 const formatAIChatTime = (timestamp) => {
@@ -271,7 +271,7 @@ export const createMessageHandlers = ({
       if (isNetworkEnabled) {
         try {
           console.log('重试时进行网络搜索:', userMessage.content);
-          const searchResponse = await searchService.searchAndFetchContent(userMessage.content);
+          const searchResponse = await tavilyService.searchAndFetchContent(userMessage.content);
           console.log('搜索结果:', searchResponse);
           
           if (searchResponse.results && searchResponse.results.length > 0) {

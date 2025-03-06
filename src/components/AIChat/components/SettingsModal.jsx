@@ -3,6 +3,7 @@ import '../styles/settings.css';
 import { getTranslationApiConfig, setTranslationApiConfig } from '../../../services/translationService';
 import { getImageGenApiConfig, setImageGenApiConfig } from '../../../services/imageGenerationService';
 import { openUrl } from '../../../utils/browserUtils';
+import { tavilyService } from '../../../services/tavilyService';
 
 export const SettingsModal = ({
   selectedProvider,
@@ -63,7 +64,7 @@ export const SettingsModal = ({
   
   // 添加最大搜索数量状态
   const [maxSearchResults, setMaxSearchResults] = useState(() => {
-    return parseInt(localStorage.getItem('aichat_max_search_results')) || 5;
+    return parseInt(localStorage.getItem('aichat_tavily_max_results')) || 5;
   });
 
   // 添加消息历史记录数量状态
@@ -141,6 +142,15 @@ export const SettingsModal = ({
   const [imageGenApiKey, setImageGenApiKey] = useState('');
   const [imageGenApiHost, setImageGenApiHost] = useState('');
   const [showImageGenApiKey, setShowImageGenApiKey] = useState(false);
+
+  // 添加 Tavily 相关状态
+  const [tavilyApiKey, setTavilyApiKey] = useState('');
+  const [showTavilyApiKey, setShowTavilyApiKey] = useState(false);
+  const [searchTopic, setSearchTopic] = useState('general');
+  const [searchDepth, setSearchDepth] = useState('basic');
+  const [includeAnswer, setIncludeAnswer] = useState('none');
+  const [includeDomains, setIncludeDomains] = useState([]);
+  const [excludeDomains, setExcludeDomains] = useState([]);
 
   // 生图模型列表
   const IMAGE_MODELS = [
@@ -254,13 +264,6 @@ export const SettingsModal = ({
       e.preventDefault();
       handlePaste();
     }
-  };
-
-  // 处理最大搜索数量变更
-  const handleMaxSearchResultsChange = (value) => {
-    const numValue = parseInt(value);
-    setMaxSearchResults(numValue);
-    localStorage.setItem('aichat_max_search_results', numValue.toString());
   };
 
   // 处理消息历史记录数量变更
@@ -418,6 +421,113 @@ export const SettingsModal = ({
       }
     } catch (error) {
       console.error('粘贴失败:', error);
+    }
+  };
+
+  // 处理 Tavily API 密钥变更
+  const handleTavilyApiKeyChange = (value) => {
+    setTavilyApiKey(value);
+    localStorage.setItem('aichat_tavily_api_key', value);
+  };
+
+  // 处理 Tavily API 密钥粘贴
+  const handleTavilyApiKeyPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      handleTavilyApiKeyChange(text);
+    } catch (error) {
+      console.error('粘贴失败:', error);
+    }
+  };
+
+  // 处理搜索主题变更
+  const handleSearchTopicChange = (value) => {
+    setSearchTopic(value);
+    localStorage.setItem('aichat_tavily_topic', value);
+  };
+
+  // 处理搜索深度变更
+  const handleSearchDepthChange = (value) => {
+    setSearchDepth(value);
+    localStorage.setItem('aichat_tavily_search_depth', value);
+  };
+
+  // 处理包含答案变更
+  const handleIncludeAnswerChange = (value) => {
+    setIncludeAnswer(value);
+  };
+
+  // 处理包含域名变更
+  const handleIncludeDomainChange = (index, value) => {
+    const newIncludeDomains = [...includeDomains];
+    newIncludeDomains[index] = value;
+    setIncludeDomains(newIncludeDomains);
+  };
+
+  // 处理移除包含域名
+  const handleRemoveIncludeDomain = (index) => {
+    const newIncludeDomains = includeDomains.filter((_, i) => i !== index);
+    setIncludeDomains(newIncludeDomains);
+  };
+
+  // 处理添加包含域名
+  const handleAddIncludeDomain = () => {
+    setIncludeDomains([...includeDomains, '']);
+  };
+
+  // 处理排除域名变更
+  const handleExcludeDomainChange = (index, value) => {
+    const newExcludeDomains = [...excludeDomains];
+    newExcludeDomains[index] = value;
+    setExcludeDomains(newExcludeDomains);
+  };
+
+  // 处理移除排除域名
+  const handleRemoveExcludeDomain = (index) => {
+    const newExcludeDomains = excludeDomains.filter((_, i) => i !== index);
+    setExcludeDomains(newExcludeDomains);
+  };
+
+  // 处理添加排除域名
+  const handleAddExcludeDomain = () => {
+    setExcludeDomains([...excludeDomains, '']);
+  };
+
+  // 处理最大搜索数量变更
+  const handleMaxSearchResultsChange = (value) => {
+    const numValue = parseInt(value);
+    setMaxSearchResults(numValue);
+    localStorage.setItem('aichat_tavily_max_results', numValue.toString());
+  };
+
+  // 添加测试Tavily API的函数
+  const handleTestTavilyAPI = async () => {
+    try {
+      // 显示测试中状态
+      window.message.loading({
+        content: '正在测试Tavily API...',
+        key: 'tavily-test'
+      });
+      
+      // 执行测试
+      const result = await tavilyService.testSearch();
+      
+      if (result.success) {
+        window.message.success({
+          content: '测试成功！Tavily API工作正常',
+          key: 'tavily-test'
+        });
+      } else {
+        window.message.error({
+          content: result.message || '测试失败，请检查API密钥和网络连接',
+          key: 'tavily-test'
+        });
+      }
+    } catch (error) {
+      window.message.error({
+        content: `测试失败: ${error.message}`,
+        key: 'tavily-test'
+      });
     }
   };
 
@@ -1231,24 +1341,24 @@ export const SettingsModal = ({
           {/* Tab 4: 搜索设置 */}
           <div className={activeTab === 'search' ? '' : 'hidden'}>
             <div className="space-y-4">
-              {/* Google Search API Key */}
+              {/* Tavily API Key */}
               <div>
                 <div className="form-control w-full max-w-none">
                   <label className="label">
-                    <span className="label-text font-medium text-base">Google Custom Search JSON API</span>
+                    <span className="label-text font-medium text-base">Tavily API 密钥</span>
                   </label>
                   <div className="input-group w-full max-w-none flex">
                     <input
-                      type={showGoogleApiKey ? "text" : "password"}
+                      type={showTavilyApiKey ? "text" : "password"}
                       className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
-                      value={googleApiKey}
-                      onChange={(e) => handleGoogleApiKeyChange(e.target.value)}
-                      placeholder="Google Custom Search JSON API..."
+                      value={tavilyApiKey}
+                      onChange={(e) => handleTavilyApiKeyChange(e.target.value)}
+                      placeholder="tvly-..."
                     />
                     <button 
                       type="button"
                       className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
-                      onClick={handleGoogleApiKeyPaste}
+                      onClick={handleTavilyApiKeyPaste}
                       title="点击粘贴"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1258,32 +1368,74 @@ export const SettingsModal = ({
                     <button 
                       type="button"
                       className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
-                      onClick={() => setShowGoogleApiKey(!showGoogleApiKey)}
-                      title={showGoogleApiKey ? "隐藏密钥" : "显示密钥"}
+                      onClick={() => setShowTavilyApiKey(!showTavilyApiKey)}
+                      title={showTavilyApiKey ? "隐藏密钥" : "显示密钥"}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showGoogleApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showTavilyApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
                       </svg>
                     </button>
                   </div>
-                  <label className="label">
-                    <span className="label-text-alt text-opacity-70">用于网络搜索功能的 Google API 密钥</span>
-                  </label>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="label-text-alt text-opacity-70">
+                      <a href="https://app.tavily.com/home" target="_blank" rel="noopener noreferrer" className="link link-primary">
+                        获取Tavily API密钥
+                      </a>
+                    </span>
+                    <button 
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={handleTestTavilyAPI}
+                      disabled={!tavilyApiKey}
+                    >
+                      测试API
+                    </button>
+                  </div>
+                  <div className="mt-2 text-xs opacity-70 bg-base-200 p-2 rounded">
+                    <p>Tavily是专为AI优化的搜索引擎，每月提供1,000次免费API调用，无需信用卡。</p>
+                    <p>相比Google搜索，Tavily提供更丰富的功能和更高的免费额度。</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Search Engine ID */}
+              {/* 搜索主题 */}
               <div>
-                <h3 className="text-lg font-medium mb-2">搜索引擎 ID</h3>
+                <h3 className="text-lg font-medium mb-2">搜索主题 (Search Topic)</h3>
                 <div className="flex flex-col gap-2 w-full max-w-none">
                   <div className="flex w-full max-w-none gap-0">
-                    <input
-                      type="text"
-                      className="input input-bordered w-full min-w-0"
-                      value={searchEngineId}
-                      onChange={(e) => handleSearchEngineIdChange(e.target.value)}
-                      placeholder="请输入搜索引擎 ID..."
-                    />
+                    <select 
+                      className="select select-bordered w-full" 
+                      value={searchTopic} 
+                      onChange={(e) => handleSearchTopicChange(e.target.value)}
+                    >
+                      <option value="general">general</option>
+                      <option value="news">news</option>
+                    </select>
+                  </div>
+                  <div className="text-xs opacity-70">
+                    <p><strong>general</strong>: 适合一般性查询，包含各类网站结果</p>
+                    <p><strong>news</strong>: 专注于新闻和时事信息，适合查询最新事件</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 搜索深度 */}
+              <div>
+                <h3 className="text-lg font-medium mb-2">搜索深度 (Search Depth)</h3>
+                <div className="flex flex-col gap-2 w-full max-w-none">
+                  <div className="flex w-full max-w-none gap-0">
+                    <select 
+                      className="select select-bordered w-full" 
+                      value={searchDepth} 
+                      onChange={(e) => handleSearchDepthChange(e.target.value)}
+                    >
+                      <option value="basic">basic</option>
+                      <option value="advanced">advanced</option>
+                    </select>
+                  </div>
+                  <div className="text-xs opacity-70">
+                    <p><strong>basic</strong>: 基础搜索，消耗1个API积分，适合大多数查询</p>
+                    <p><strong>advanced</strong>: 高级搜索，消耗2个API积分，提供更全面的结果</p>
                   </div>
                 </div>
               </div>
@@ -1296,7 +1448,7 @@ export const SettingsModal = ({
                     <input
                       type="range"
                       min="1"
-                      max="10"
+                      max="20"
                       value={maxSearchResults}
                       onChange={(e) => handleMaxSearchResultsChange(e.target.value)}
                       className="range range-primary"
@@ -1305,20 +1457,18 @@ export const SettingsModal = ({
                     <span className="text-lg font-medium min-w-[3ch]">{maxSearchResults}</span>
                   </div>
                   <div className="text-xs opacity-70">
-                    设置每次搜索返回的最大结果数量（1-10），免费用户每次搜索最多返回10条结果
+                    <p>设置每次搜索返回的最大结果数量（1-20）</p>
+                    <p>数量越大，搜索结果越全面，但会增加AI处理负担。建议值：5-10</p>
                   </div>
                 </div>
               </div>
 
               {/* 帮助信息 */}
-              <div className="text-xs opacity-70 space-y-2">
-                <div className="settings-help-text">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>
-                    每天免费提供100次搜索查询，超出部分按每1000次查询收费$5
-                  </span>
+              <div className="alert alert-info text-xs mt-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                  <p>Tavily搜索已替代Google搜索，提供更好的AI搜索体验。</p>
+                  <p>每月1,000次免费API调用，无需信用卡。</p>
                 </div>
               </div>
             </div>

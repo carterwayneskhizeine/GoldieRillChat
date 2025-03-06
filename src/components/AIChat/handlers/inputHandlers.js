@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { callModelAPI } from '../../../services/modelProviders';
 import { formatAIChatTime } from '../../../utils/AIChatTimeFormat';
 import { MESSAGE_STATES } from '../constants';
-import { searchService } from '../../../services/searchService';
+import { tavilyService } from '../../../services/tavilyService';
 import { handleVideoCommand } from './videoCommandHandler';
 import { handleAudioCommand } from './audioCommandHandler';
 import toastManager from '../../../utils/toastManager';
@@ -12,6 +12,9 @@ import { getKnowledgeBaseReferences } from '../../../services/KnowledgeBaseServi
 import { getWebSearchPrompt, FOOTNOTE_PROMPT } from '../../../utils/prompts';
 import { formatISODate } from '../../../utils/dateUtils';
 import { formatReferencesForModel, sortAndFilterReferences } from '../../../utils/referenceUtils';
+import { generateVideo } from '../../../services/videoGenerationService';
+import { generateSpeech } from '../../../services/speechService';
+import { extractCodeBlocks } from '../../../utils/codeUtils';
 
 export const createInputHandlers = ({
   messageInput,
@@ -469,7 +472,7 @@ export const createInputHandlers = ({
       if ((useWebSearch || forceNetworkSearch) && !knowledgeReferences) {
         try {
           console.log('开始网络搜索:', content);
-          const searchResponse = await searchService.searchAndFetchContent(content);
+          const searchResponse = await tavilyService.searchAndFetchContent(content);
           console.log('搜索结果:', searchResponse);
           
           if (searchResponse.results && searchResponse.results.length > 0) {

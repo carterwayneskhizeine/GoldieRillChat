@@ -19,6 +19,9 @@ import { MODEL_PROVIDERS } from './constants';
 import './styles/messages.css';
 import './styles/settings.css';
 
+// 导入Tavily搜索服务
+import { tavilyService } from '../../services/tavilyService';
+
 export const AIChat = ({
   sendToSidebar,
   createNewConversation,
@@ -482,6 +485,22 @@ export const AIChat = ({
       return newFiles;
     });
   };
+
+  // 检查Tavily API配置
+  useEffect(() => {
+    // 延迟检查，避免应用启动时立即显示提示
+    const timer = setTimeout(() => {
+      if (!tavilyService.isConfigured()) {
+        window.message.info({
+          content: '您尚未配置Tavily API密钥，网络搜索功能将不可用。请在设置中配置API密钥。',
+          duration: 8,
+          key: 'tavily-api-key-missing'
+        });
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="flex flex-col h-full w-full">

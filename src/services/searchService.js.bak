@@ -1,9 +1,5 @@
 /**
  * Google Custom Search API 服务
- * 
- * 注意：此服务已被 tavilyService.js 替换
- * 此文件保留作为参考和备份
- * 新的搜索功能请使用 tavilyService
  */
 import * as cheerio from 'cheerio';
 
