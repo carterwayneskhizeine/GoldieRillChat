@@ -102,56 +102,33 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
   // 添加过滤后的现有对话
   for (const conv of filteredExisting) {
     if (conv.path) {
+      let modifiedTime;
       try {
-        // 尝试从 messages.json 获取 folderMtime
-        try {
-          const messageData = await window.electron.loadMessages(conv.path, conv.id);
-          if (messageData && messageData.folderMtime) {
-            conv.modifiedTime = messageData.folderMtime;
-            console.log(`成功从 messages.json 获取 folderMtime: ${conv.path}`);
-          } else {
-            throw new Error('消息数据中没有 folderMtime');
-          }
-        } catch (error) {
-          console.warn(`无法从 messages.json 获取 folderMtime: ${conv.path}`, error);
-          
-          // 回退到文件系统的修改时间
+        // 尝试从 timemessages.json 获取修改时间
+        if (typeof window.electron.getFolderModifiedTime === 'function') {
+          modifiedTime = await window.electron.getFolderModifiedTime(conv.path);
+        } else {
+          // 回退方案：尝试手动读取 timemessages.json 文件
           try {
-            const modifiedTime = await window.electron.getFileModifiedTime(conv.path);
-            conv.modifiedTime = modifiedTime;
-            console.log(`使用文件系统修改时间: ${conv.path}`);
-            
-            // 尝试更新 folderMtime
-            try {
-              await window.electron.updateFolderMtime(conv.path);
-              console.log(`更新了 folderMtime: ${conv.path}`);
-            } catch (updateError) {
-              console.warn(`无法更新 folderMtime: ${conv.path}`, updateError);
-              
-              // 尝试手动创建 messages.json
-              try {
-                const messagesFilePath = window.electron.path.join(conv.path, 'messages.json');
-                const initialData = {
-                  folderMtime: modifiedTime,
-                  messages: []
-                };
-                await window.electron.writeFile(messagesFilePath, JSON.stringify(initialData, null, 2), 'utf8');
-                console.log(`手动创建了 messages.json: ${conv.path}`);
-              } catch (writeError) {
-                console.warn(`无法手动创建 messages.json: ${conv.path}`, writeError);
-              }
+            const timeMessagesPath = window.electron.path.join(conv.path, 'timemessages.json');
+            const data = await window.electron.readFile(timeMessagesPath, 'utf8');
+            const timeData = JSON.parse(data);
+            if (timeData.length > 0 && timeData[0].folderMtime) {
+              modifiedTime = new Date(timeData[0].folderMtime).getTime();
+            } else {
+              throw new Error('无效的时间数据');
             }
-          } catch (timeError) {
-            console.warn(`无法获取文件修改时间: ${conv.path}`, timeError);
-            conv.modifiedTime = new Date(conv.timestamp).getTime();
-            console.log(`使用会话时间戳作为修改时间: ${conv.path}`);
+          } catch (readError) {
+            // 如果无法读取 timemessages.json，回退到系统文件修改时间
+            const stats = await window.electron.getFileModifiedTime(conv.path);
+            modifiedTime = stats;
           }
         }
       } catch (error) {
         console.warn(`获取文件夹修改时间失败: ${conv.path}`, error);
-        conv.modifiedTime = new Date(conv.timestamp).getTime();
-        console.log(`使用会话时间戳作为修改时间 (外部错误): ${conv.path}`);
+        modifiedTime = new Date(conv.timestamp).getTime();
       }
+      conv.modifiedTime = modifiedTime;
       mergedMap.set(conv.path, conv);
     }
   }
@@ -159,56 +136,33 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
   // 添加或更新扫描到的对话
   for (const conv of scanned) {
     if (conv.path) {
+      let modifiedTime;
       try {
-        // 尝试从 messages.json 获取 folderMtime
-        try {
-          const messageData = await window.electron.loadMessages(conv.path, conv.id || Date.now().toString());
-          if (messageData && messageData.folderMtime) {
-            conv.modifiedTime = messageData.folderMtime;
-            console.log(`成功从 messages.json 获取 folderMtime: ${conv.path}`);
-          } else {
-            throw new Error('消息数据中没有 folderMtime');
-          }
-        } catch (error) {
-          console.warn(`无法从 messages.json 获取 folderMtime: ${conv.path}`, error);
-          
-          // 回退到文件系统的修改时间
+        // 尝试从 timemessages.json 获取修改时间
+        if (typeof window.electron.getFolderModifiedTime === 'function') {
+          modifiedTime = await window.electron.getFolderModifiedTime(conv.path);
+        } else {
+          // 回退方案：尝试手动读取 timemessages.json 文件
           try {
-            const modifiedTime = await window.electron.getFileModifiedTime(conv.path);
-            conv.modifiedTime = modifiedTime;
-            console.log(`使用文件系统修改时间: ${conv.path}`);
-            
-            // 尝试更新 folderMtime
-            try {
-              await window.electron.updateFolderMtime(conv.path);
-              console.log(`更新了 folderMtime: ${conv.path}`);
-            } catch (updateError) {
-              console.warn(`无法更新 folderMtime: ${conv.path}`, updateError);
-              
-              // 尝试手动创建 messages.json
-              try {
-                const messagesFilePath = window.electron.path.join(conv.path, 'messages.json');
-                const initialData = {
-                  folderMtime: modifiedTime,
-                  messages: []
-                };
-                await window.electron.writeFile(messagesFilePath, JSON.stringify(initialData, null, 2), 'utf8');
-                console.log(`手动创建了 messages.json: ${conv.path}`);
-              } catch (writeError) {
-                console.warn(`无法手动创建 messages.json: ${conv.path}`, writeError);
-              }
+            const timeMessagesPath = window.electron.path.join(conv.path, 'timemessages.json');
+            const data = await window.electron.readFile(timeMessagesPath, 'utf8');
+            const timeData = JSON.parse(data);
+            if (timeData.length > 0 && timeData[0].folderMtime) {
+              modifiedTime = new Date(timeData[0].folderMtime).getTime();
+            } else {
+              throw new Error('无效的时间数据');
             }
-          } catch (timeError) {
-            console.warn(`无法获取文件修改时间: ${conv.path}`, timeError);
-            conv.modifiedTime = new Date(conv.timestamp).getTime();
-            console.log(`使用会话时间戳作为修改时间: ${conv.path}`);
+          } catch (readError) {
+            // 如果无法读取 timemessages.json，回退到系统文件修改时间
+            const stats = await window.electron.getFileModifiedTime(conv.path);
+            modifiedTime = stats;
           }
         }
       } catch (error) {
         console.warn(`获取文件夹修改时间失败: ${conv.path}`, error);
-        conv.modifiedTime = new Date(conv.timestamp).getTime();
-        console.log(`使用会话时间戳作为修改时间 (外部错误): ${conv.path}`);
+        modifiedTime = new Date(conv.timestamp).getTime();
       }
+      conv.modifiedTime = modifiedTime;
       
       // 如果已存在路径相同的对话，保留原始ID和名称，但更新路径和时间戳
       if (mergedMap.has(conv.path)) {
@@ -217,7 +171,7 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
           ...conv,
           id: existingConv.id,
           name: existingConv.name,
-          modifiedTime: conv.modifiedTime
+          modifiedTime: modifiedTime
         });
       } else {
         mergedMap.set(conv.path, conv);

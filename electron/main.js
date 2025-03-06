@@ -645,29 +645,10 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
       
       // 读取 messages.json 如果存在
       let messages = []
-      let folderMtime = null;
-      
       try {
         const messagesPath = path.join(folderPath, 'messages.json')
         const messagesContent = await fs.readFile(messagesPath, 'utf8')
-        const parsedData = JSON.parse(messagesContent)
-        
-        // 检查是否是新格式（带有 folderMtime 的对象）
-        if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
-          if (parsedData.messages) {
-            messages = parsedData.messages;
-          } else {
-            messages = [];
-          }
-          
-          // 获取 folderMtime
-          if (parsedData.folderMtime) {
-            folderMtime = parsedData.folderMtime;
-          }
-        } else {
-          // 旧格式（直接是消息数组）
-          messages = parsedData;
-        }
+        messages = JSON.parse(messagesContent)
 
         // 获取已存在文件的路径列表
         const existingFilePaths = new Set()
@@ -713,34 +694,18 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
           })
         })
 
-        // 如果有新文件，重新排序并保存，同时更新 folderMtime
+        // 如果有新文件，重新排序并保存
         if (newTxtFiles.length > 0 || newMediaFiles.length > 0) {
           messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-          
-          // 更新 folderMtime
-          folderMtime = Date.now();
-          
-          // 保存带有 folderMtime 的新格式
           await fs.writeFile(
             path.join(folderPath, 'messages.json'),
-            JSON.stringify({ folderMtime, messages }, null, 2),
-            'utf8'
-          )
-        } else if (!folderMtime) {
-          // 如果没有 folderMtime，设置一个
-          folderMtime = Date.now();
-          
-          // 保存带有新添加的 folderMtime 的格式
-          await fs.writeFile(
-            path.join(folderPath, 'messages.json'),
-            JSON.stringify({ folderMtime, messages }, null, 2),
+            JSON.stringify(messages, null, 2),
             'utf8'
           )
         }
       } catch (error) {
         // 如果 messages.json 不存在，创建新的消息数组
         messages = []
-        folderMtime = Date.now(); // 设置当前时间作为 folderMtime
         
         // 处理文本文件
         const txtFiles = files.filter(f => f.type === '.txt')
@@ -775,24 +740,19 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
         // 按时间戳排序消息
         messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         
-        // 保存新的 messages.json，带有 folderMtime
+        // 保存新的 messages.json
         await fs.writeFile(
           path.join(folderPath, 'messages.json'),
-          JSON.stringify({ folderMtime, messages }, null, 2),
+          JSON.stringify(messages, null, 2),
           'utf8'
         )
       }
-      
-      // 获取文件系统的修改时间作为备用
-      const folderStats = await fs.stat(folderPath);
-      const folderModifiedTime = folderStats.mtime.getTime();
       
       return {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         name: folder.name,
         path: folderPath,
-        timestamp: new Date().toISOString(),
-        modifiedTime: folderMtime || folderModifiedTime // 优先使用 folderMtime
+        timestamp: new Date().toISOString()
       }
     }))
     
@@ -1355,6 +1315,36 @@ ipcMain.handle('save-messages', async (event, conversationPath, conversationId, 
 
     const messagesPath = path.join(conversationPath, 'messages.json');
     await fs.writeFile(messagesPath, JSON.stringify(messages, null, 2), 'utf8');
+    
+    // 更新 timemessages.json 文件中的修改时间
+    try {
+      const timeMessagesPath = path.join(conversationPath, 'timemessages.json');
+      let timeData = [];
+      
+      // 尝试读取现有文件
+      try {
+        const data = await fs.readFile(timeMessagesPath, 'utf8');
+        timeData = JSON.parse(data);
+      } catch (error) {
+        // 文件不存在或无法解析，创建新数组
+        timeData = [{}];
+      }
+      
+      // 更新时间戳
+      const currentTime = new Date().toISOString();
+      if (timeData.length > 0) {
+        timeData[0].folderMtime = currentTime;
+      } else {
+        timeData.push({ folderMtime: currentTime });
+      }
+      
+      // 写回文件
+      await fs.writeFile(timeMessagesPath, JSON.stringify(timeData, null, 2), 'utf8');
+    } catch (updateTimeError) {
+      console.error('更新 timemessages.json 失败:', updateTimeError);
+      // 不阻止保存消息的操作继续
+    }
+    
     return true;
   } catch (error) {
     console.error('保存消息失败:', error);

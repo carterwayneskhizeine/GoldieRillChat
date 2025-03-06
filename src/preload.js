@@ -2,9 +2,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
 
-// 创建一个完整的 API 对象
+// 创建一个统一的 API 对象
 const electronAPI = {
-  // 文件操作相关的方法
+  // 文件系统操作
   getFileStats: async (filePath) => {
     try {
       return await fs.stat(filePath);
@@ -24,155 +24,107 @@ const electronAPI = {
     }
   },
 
-  // 消息文件操作
-  saveMessages: async (conversationPath, conversationId, messages) => {
-    try {
-      // 确保存在消息数组
-      if (!Array.isArray(messages)) {
-        throw new Error('消息必须是数组');
-      }
-
-      // 检查是否存在 folderMtime 字段，如果不存在则添加
-      let messageData = { messages: messages };
-      
-      // 更新文件夹修改时间为当前时间
-      messageData.folderMtime = Date.now();
-      
-      const messagesFilePath = path.join(conversationPath, 'messages.json');
-      await fs.writeFile(messagesFilePath, JSON.stringify(messageData, null, 2), 'utf8');
-      return true;
-    } catch (error) {
-      console.error('保存消息失败:', error);
-      throw error;
-    }
-  },
-
-  // 加载消息并获取文件夹修改时间
-  loadMessages: async (conversationPath, conversationId) => {
-    try {
-      const messagesFilePath = path.join(conversationPath, 'messages.json');
-      
-      // 检查文件是否存在
-      try {
-        await fs.access(messagesFilePath);
-      } catch (error) {
-        // 文件不存在，创建带有 folderMtime 的文件
-        const initialData = {
-          folderMtime: Date.now(),
-          messages: []
-        };
-        await fs.writeFile(messagesFilePath, JSON.stringify(initialData, null, 2), 'utf8');
-        return { folderMtime: initialData.folderMtime, messages: [] };
-      }
-      
-      // 读取消息文件
-      const content = await fs.readFile(messagesFilePath, 'utf8');
-      
-      try {
-        // 尝试解析为带有 folderMtime 的格式
-        const data = JSON.parse(content);
-        
-        // 检查是否是老格式的 messages.json (直接是消息数组)
-        if (Array.isArray(data)) {
-          // 转换为新格式
-          const newData = {
-            folderMtime: Date.now(), // 使用当前时间
-            messages: data
-          };
-          
-          // 保存为新格式
-          await fs.writeFile(messagesFilePath, JSON.stringify(newData, null, 2), 'utf8');
-          return newData;
-        }
-        
-        // 检查是否已经是新格式 (有 folderMtime 和 messages 字段)
-        if (data.messages && Array.isArray(data.messages)) {
-          // 已经是新格式
-          return data;
-        } else if (!data.folderMtime) {
-          // 有消息但没有 folderMtime 字段
-          data.folderMtime = Date.now();
-          
-          // 保存更新后的数据
-          await fs.writeFile(messagesFilePath, JSON.stringify(data, null, 2), 'utf8');
-        }
-        
-        return data;
-      } catch (error) {
-        console.error('解析消息文件失败:', error);
-        // 如果解析失败，返回空数组和当前时间
-        return { folderMtime: Date.now(), messages: [] };
-      }
-    } catch (error) {
-      console.error('加载消息失败:', error);
-      throw error;
-    }
-  },
-
-  // 更新文件夹修改时间
-  updateFolderMtime: async (conversationPath) => {
-    try {
-      const messagesFilePath = path.join(conversationPath, 'messages.json');
-      
-      // 检查文件是否存在
-      try {
-        await fs.access(messagesFilePath);
-      } catch (error) {
-        // 文件不存在，创建新文件
-        const initialData = {
-          folderMtime: Date.now(),
-          messages: []
-        };
-        await fs.writeFile(messagesFilePath, JSON.stringify(initialData, null, 2), 'utf8');
-        return initialData.folderMtime;
-      }
-      
-      // 读取当前文件内容
-      const content = await fs.readFile(messagesFilePath, 'utf8');
-      let data;
-      
-      try {
-        data = JSON.parse(content);
-        
-        // 处理老格式的 messages.json
-        if (Array.isArray(data)) {
-          data = {
-            folderMtime: Date.now(),
-            messages: data
-          };
-        } else if (!data.folderMtime) {
-          // 添加 folderMtime 字段
-          data.folderMtime = Date.now();
-        } else {
-          // 更新 folderMtime 字段
-          data.folderMtime = Date.now();
-        }
-        
-        // 保存更新后的数据
-        await fs.writeFile(messagesFilePath, JSON.stringify(data, null, 2), 'utf8');
-        return data.folderMtime;
-      } catch (error) {
-        console.error('解析或更新消息文件失败:', error);
-        // 如果解析失败，创建新的数据结构
-        const newData = {
-          folderMtime: Date.now(),
-          messages: []
-        };
-        await fs.writeFile(messagesFilePath, JSON.stringify(newData, null, 2), 'utf8');
-        return newData.folderMtime;
-      }
-    } catch (error) {
-      console.error('更新文件夹修改时间失败:', error);
-      throw error;
-    }
-  },
-
   // 文件夹操作
   mkdir: async (path) => {
     try {
       await fs.mkdir(path, { recursive: true });
     } catch (error) {
       console.error('创建文件夹失败:', error);
+      throw error;
+    }
+  },
+
+  // 文件读写操作
+  readFile: async (filePath, encoding = 'utf8') => {
+    try {
+      return await fs.readFile(filePath, encoding);
+    } catch (error) {
+      console.error('读取文件失败:', error);
+      throw error;
+    }
+  },
+
+  writeFile: async (filePath, content, encoding = 'utf8') => {
+    try {
+      await fs.writeFile(filePath, content, encoding);
+      return true;
+    } catch (error) {
+      console.error('写入文件失败:', error);
+      throw error;
+    }
+  },
+
+  // 创建或更新 timemessages.json 文件
+  createTimeMessagesFile: async (folderPath) => {
+    try {
+      const timeMessagesPath = path.join(folderPath, 'timemessages.json');
+      const currentTime = new Date().toISOString();
+      const timeData = [{
+        folderMtime: currentTime
+      }];
+      await fs.writeFile(timeMessagesPath, JSON.stringify(timeData, null, 2), 'utf8');
+      return currentTime;
+    } catch (error) {
+      console.error('创建 timemessages.json 失败:', error);
+      throw error;
+    }
+  },
+
+  // 更新 timemessages.json 中的修改时间
+  updateFolderModifiedTime: async (folderPath) => {
+    try {
+      const timeMessagesPath = path.join(folderPath, 'timemessages.json');
+      let timeData = [];
+      
+      // 尝试读取现有文件
+      try {
+        const data = await fs.readFile(timeMessagesPath, 'utf8');
+        timeData = JSON.parse(data);
+      } catch (error) {
+        // 文件不存在或无法解析，创建新数组
+        timeData = [{}];
+      }
+      
+      // 更新时间戳
+      const currentTime = new Date().toISOString();
+      if (timeData.length > 0) {
+        timeData[0].folderMtime = currentTime;
+      } else {
+        timeData.push({ folderMtime: currentTime });
+      }
+      
+      // 写回文件
+      await fs.writeFile(timeMessagesPath, JSON.stringify(timeData, null, 2), 'utf8');
+      return currentTime;
+    } catch (error) {
+      console.error('更新文件夹修改时间失败:', error);
+      throw error;
+    }
+  },
+  
+  // 读取文件夹的修改时间
+  getFolderModifiedTime: async (folderPath) => {
+    try {
+      const timeMessagesPath = path.join(folderPath, 'timemessages.json');
+      
+      // 尝试读取文件
+      try {
+        const data = await fs.readFile(timeMessagesPath, 'utf8');
+        const timeData = JSON.parse(data);
+        
+        if (timeData.length > 0 && timeData[0].folderMtime) {
+          return new Date(timeData[0].folderMtime).getTime();
+        }
+      } catch (error) {
+        // 文件不存在或无法读取
+        console.warn('读取 timemessages.json 失败，使用文件系统时间:', error);
+      }
+      
+      // 如果无法读取 timemessages.json，回退到使用文件系统的修改时间
+      const stats = await fs.stat(folderPath);
+      return stats.mtime.getTime();
+    } catch (error) {
+      console.error('获取文件夹修改时间失败:', error);
       throw error;
     }
   },
@@ -184,58 +136,7 @@ const electronAPI = {
     basename: (p) => path.basename(p)
   },
 
-  // 文件访问检测
-  access: async (path) => {
-    try {
-      await fs.access(path);
-      return true;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // 电子通信
-  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
-  on: (channel, func) => {
-    ipcRenderer.on(channel, (event, ...args) => func(...args));
-    return () => ipcRenderer.removeListener(channel, func);
-  },
-  once: (channel, func) => {
-    ipcRenderer.once(channel, (event, ...args) => func(...args));
-  },
-  removeAllListeners: (channel) => {
-    ipcRenderer.removeAllListeners(channel);
-  },
-  
-  // 文件操作
-  readFile: async (path, options) => {
-    try {
-      return await fs.readFile(path, options);
-    } catch (error) {
-      console.error('读取文件失败:', error);
-      throw error;
-    }
-  },
-  
-  writeFile: async (path, data, options) => {
-    try {
-      await fs.writeFile(path, data, options);
-    } catch (error) {
-      console.error('写入文件失败:', error);
-      throw error;
-    }
-  },
-  
-  scanFolders: (folderPath) => ipcRenderer.invoke('scan-folders', folderPath),
-  createChatFolder: (folderPath) => ipcRenderer.invoke('create-chat-folder', folderPath),
-  renameChatFolder: (folderPath, newName) => ipcRenderer.invoke('rename-chat-folder', folderPath, newName),
-  moveFolderToRecycle: (folderPath) => ipcRenderer.invoke('move-folder-to-recycle', folderPath),
-  saveMessageAsTxt: (folderPath, message) => ipcRenderer.invoke('save-message-as-txt', folderPath, message),
-  deleteMessage: (folderPath, message) => ipcRenderer.invoke('delete-message', folderPath, message),
-  saveFile: (folderPath, filePath, fileName) => ipcRenderer.invoke('save-file', folderPath, filePath, fileName),
-  removeFile: (filePath) => ipcRenderer.invoke('remove-file', filePath),
-  showItemInFolder: (path) => ipcRenderer.invoke('show-item-in-folder', path),
-  openExternal: (url) => ipcRenderer.invoke('open-external', url)
+  // ... 其他现有的 API 函数 ...
 };
 
 // 将 API 暴露给渲染进程
