@@ -737,12 +737,14 @@ const Embedding = ({ isActive = false }) => {
           >
             内容项
           </a>
+          {/* 注释掉搜索选项卡
           <a 
             className={`tab ${activeContentTab === 'search' ? 'tab-active' : ''}`}
             onClick={() => setActiveContentTab('search')}
           >
             搜索
           </a>
+          */}
           <a 
             className={`tab ${activeContentTab === 'stats' ? 'tab-active' : ''}`}
             onClick={() => setActiveContentTab('stats')}
@@ -851,6 +853,7 @@ const Embedding = ({ isActive = false }) => {
         
         {activeContentTab === 'add' && renderAddContent()}
         
+        {/* 注释掉搜索内容区域
         {activeContentTab === 'search' && (
           <div className="flex-1 flex flex-col">
             <div className="form-control mb-4">
@@ -869,6 +872,7 @@ const Embedding = ({ isActive = false }) => {
             </div>
           </div>
         )}
+        */}
         
         {activeContentTab === 'stats' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
