@@ -125,8 +125,9 @@ app.whenReady().then(async () => {
 
   // 添加快捷键打开开发者工具 (Ctrl+Shift+I)
   globalShortcut.register('CommandOrControl+Shift+I', () => {
-    if (mainWindow) {
-      mainWindow.webContents.openDevTools();
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    if (focusedWindow) {
+      focusedWindow.webContents.toggleDevTools();
     }
   });
 
