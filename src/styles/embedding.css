@@ -404,3 +404,33 @@
 .dropdown-content::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* 左侧边栏黑色按钮 - 纯黑色背景无边框 */
+.sidebar-black-btn {
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sidebar-black-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.sidebar-black-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.sidebar-black-btn.icon-only {
+  width: 2rem;
+  padding: 0.35rem;
+}

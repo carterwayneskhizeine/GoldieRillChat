@@ -421,7 +421,13 @@ const ThreeJSShaders = () => {
             className="shader-btn save-btn gold-save-btn" 
             onClick={savePreset}
             disabled={isLoading}
-            style={{backgroundColor: 'rgba(255, 215, 0, 0.3)', borderColor: 'rgba(255, 215, 0, 0.4)', color: 'white'}}
+            style={{
+              backgroundColor: 'rgba(255, 215, 0, 0.3)', 
+              borderColor: 'rgba(255, 215, 0, 0.4)',
+              color: '#FFFFFF',
+              fontWeight: '500',
+              textShadow: '0px 0px 2px rgba(0, 0, 0, 0.5)'
+            }}
           >
             SAVE
           </button>

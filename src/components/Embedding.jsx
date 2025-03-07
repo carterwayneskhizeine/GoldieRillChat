@@ -301,15 +301,15 @@ const Embedding = ({ isActive = false }) => {
               {/* 删除按钮 - 绝对定位在右上角 */}
               <div className="absolute top-2 right-2">
                 <button 
-                  className="btn btn-circle btn-ghost btn-xs text-base-content/40 hover:text-error hover:bg-error/10"
+                  className="sidebar-black-btn icon-only"
                   onClick={(e) => {
                     e.stopPropagation(); // 阻止事件冒泡，避免触发卡片的点击事件
                     handleDeleteKnowledgeBase(kb, e);
                   }}
                   title="删除知识库"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
               </div>
@@ -417,33 +417,33 @@ const Embedding = ({ isActive = false }) => {
     
     return (
       <div className="space-y-4">
-        <div className="tabs tabs-boxed bg-base-200 p-1">
+        <div className="flex flex-wrap gap-2 mb-4">
           <a 
-            className={`shader-btn ${addContentType === 'note' ? 'active' : ''}`}
+            className={`shader-btn flex-1 text-center min-w-[100px] ${addContentType === 'note' ? 'active' : ''}`}
             onClick={() => setAddContentType('note')}
           >
             笔记
           </a>
           <a 
-            className={`shader-btn ${addContentType === 'file' ? 'active' : ''}`}
+            className={`shader-btn flex-1 text-center min-w-[100px] ${addContentType === 'file' ? 'active' : ''}`}
             onClick={() => setAddContentType('file')}
           >
             文件
           </a>
           <a 
-            className={`shader-btn ${addContentType === 'url' ? 'active' : ''}`}
+            className={`shader-btn flex-1 text-center min-w-[100px] ${addContentType === 'url' ? 'active' : ''}`}
             onClick={() => setAddContentType('url')}
           >
             网址
           </a>
           <a 
-            className={`shader-btn ${addContentType === 'directory' ? 'active' : ''}`}
+            className={`shader-btn flex-1 text-center min-w-[100px] ${addContentType === 'directory' ? 'active' : ''}`}
             onClick={() => setAddContentType('directory')}
           >
             目录
           </a>
           <a 
-            className={`shader-btn ${addContentType === 'sitemap' ? 'active' : ''}`}
+            className={`shader-btn flex-1 text-center min-w-[100px] ${addContentType === 'sitemap' ? 'active' : ''}`}
             onClick={() => setAddContentType('sitemap')}
           >
             站点地图
@@ -724,15 +724,15 @@ const Embedding = ({ isActive = false }) => {
           </div>
         </div>
         
-        <div className="tabs tabs-boxed bg-base-200 p-1 w-fit mb-4">
+        <div className="flex justify-center mb-4 gap-2 w-full">
           <a 
-            className={`shader-btn ${activeContentTab === 'add' ? 'active' : ''}`}
+            className={`shader-btn flex-1 text-center ${activeContentTab === 'add' ? 'active' : ''}`}
             onClick={() => setActiveContentTab('add')}
           >
             添加内容
           </a>
           <a 
-            className={`shader-btn ${activeContentTab === 'items' ? 'active' : ''}`}
+            className={`shader-btn flex-1 text-center ${activeContentTab === 'items' ? 'active' : ''}`}
             onClick={() => setActiveContentTab('items')}
           >
             内容项
@@ -746,7 +746,7 @@ const Embedding = ({ isActive = false }) => {
           </a>
           */}
           <a 
-            className={`shader-btn ${activeContentTab === 'stats' ? 'active' : ''}`}
+            className={`shader-btn flex-1 text-center ${activeContentTab === 'stats' ? 'active' : ''}`}
             onClick={() => setActiveContentTab('stats')}
           >
             统计
@@ -1229,16 +1229,16 @@ const Embedding = ({ isActive = false }) => {
           <div className="p-3 border-b border-base-content/5">
             <div className="flex gap-2">
               <button 
-                className="shader-btn"
+                className="sidebar-black-btn"
                 onClick={() => setShowAddDialog(true)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 新建
               </button>
               <button 
-                className="shader-btn"
+                className="sidebar-black-btn icon-only"
                 onClick={() => {
                   // 触发刷新
                   refreshBases();
@@ -1247,7 +1247,7 @@ const Embedding = ({ isActive = false }) => {
                 {loading ? (
                   <span className="loading loading-spinner loading-xs"></span>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 )}
