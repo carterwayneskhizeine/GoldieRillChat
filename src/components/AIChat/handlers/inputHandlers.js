@@ -12,9 +12,6 @@ import { getKnowledgeBaseReferences } from '../../../services/KnowledgeBaseServi
 import { getWebSearchPrompt, FOOTNOTE_PROMPT } from '../../../utils/prompts';
 import { formatISODate } from '../../../utils/dateUtils';
 import { formatReferencesForModel, sortAndFilterReferences } from '../../../utils/referenceUtils';
-import { generateVideo } from '../../../services/videoGenerationService';
-import { generateSpeech } from '../../../services/speechService';
-import { extractCodeBlocks } from '../../../utils/codeUtils';
 
 export const createInputHandlers = ({
   messageInput,

@@ -144,13 +144,51 @@ export const SettingsModal = ({
   const [showImageGenApiKey, setShowImageGenApiKey] = useState(false);
 
   // 添加 Tavily 相关状态
-  const [tavilyApiKey, setTavilyApiKey] = useState('');
+  const [tavilyApiKey, setTavilyApiKey] = useState(() => {
+    return localStorage.getItem('aichat_tavily_api_key') || '';
+  });
   const [showTavilyApiKey, setShowTavilyApiKey] = useState(false);
-  const [searchTopic, setSearchTopic] = useState('general');
-  const [searchDepth, setSearchDepth] = useState('basic');
-  const [includeAnswer, setIncludeAnswer] = useState('none');
-  const [includeDomains, setIncludeDomains] = useState([]);
-  const [excludeDomains, setExcludeDomains] = useState([]);
+  const [searchTopic, setSearchTopic] = useState(() => {
+    return localStorage.getItem('aichat_tavily_topic') || 'general';
+  });
+  const [searchDepth, setSearchDepth] = useState(() => {
+    return localStorage.getItem('aichat_tavily_search_depth') || 'basic';
+  });
+  const [includeAnswer, setIncludeAnswer] = useState(() => {
+    const saved = localStorage.getItem('aichat_tavily_include_answer');
+    if (saved === 'true') return 'basic';
+    if (saved === 'advanced') return 'advanced';
+    return 'none';
+  });
+  const [timeRange, setTimeRange] = useState(() => {
+    return localStorage.getItem('aichat_tavily_time_range') || '';
+  });
+  const [includeImages, setIncludeImages] = useState(() => {
+    return localStorage.getItem('aichat_tavily_include_images') === 'true';
+  });
+  const [includeImageDescriptions, setIncludeImageDescriptions] = useState(() => {
+    return localStorage.getItem('aichat_tavily_include_image_descriptions') === 'true';
+  });
+  const [includeRawContent, setIncludeRawContent] = useState(() => {
+    return localStorage.getItem('aichat_tavily_include_raw_content') === 'true';
+  });
+  const [days, setDays] = useState(() => {
+    return parseInt(localStorage.getItem('aichat_tavily_days') || '3');
+  });
+  const [includeDomains, setIncludeDomains] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('aichat_tavily_include_domains') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [excludeDomains, setExcludeDomains] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('aichat_tavily_exclude_domains') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   // 生图模型列表
   const IMAGE_MODELS = [
@@ -216,28 +254,6 @@ export const SettingsModal = ({
     try {
       const text = await navigator.clipboard.readText();
       handleTranslationApiKeyChange(text);
-    } catch (error) {
-      console.error('粘贴失败:', error);
-    }
-  };
-
-  // 处理 Google API 密钥变更
-  const handleGoogleApiKeyChange = (value) => {
-    setGoogleApiKey(value);
-    localStorage.setItem('aichat_google_api_key', value);
-  };
-
-  // 处理搜索引擎 ID 变更
-  const handleSearchEngineIdChange = (value) => {
-    setSearchEngineId(value);
-    localStorage.setItem('aichat_search_engine_id', value);
-  };
-
-  // 处理 Google API 密钥粘贴
-  const handleGoogleApiKeyPaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      handleGoogleApiKeyChange(text);
     } catch (error) {
       console.error('粘贴失败:', error);
     }
@@ -529,6 +545,36 @@ export const SettingsModal = ({
         key: 'tavily-test'
       });
     }
+  };
+
+  // 处理时间范围变更
+  const handleTimeRangeChange = (value) => {
+    setTimeRange(value);
+    localStorage.setItem('aichat_tavily_time_range', value);
+  };
+
+  // 处理包含图片变更
+  const handleIncludeImagesChange = (value) => {
+    setIncludeImages(value);
+    localStorage.setItem('aichat_tavily_include_images', value.toString());
+  };
+
+  // 处理包含图片描述变更
+  const handleIncludeImageDescriptionsChange = (value) => {
+    setIncludeImageDescriptions(value);
+    localStorage.setItem('aichat_tavily_include_image_descriptions', value.toString());
+  };
+
+  // 处理包含原始内容变更
+  const handleIncludeRawContentChange = (value) => {
+    setIncludeRawContent(value);
+    localStorage.setItem('aichat_tavily_include_raw_content', value.toString());
+  };
+
+  // 处理天数变更
+  const handleDaysChange = (value) => {
+    setDays(value);
+    localStorage.setItem('aichat_tavily_days', value.toString());
   };
 
   return (
@@ -1340,135 +1386,300 @@ export const SettingsModal = ({
 
           {/* Tab 4: 搜索设置 */}
           <div className={activeTab === 'search' ? '' : 'hidden'}>
-            <div className="space-y-4">
-              {/* Tavily API Key */}
-              <div>
-                <div className="form-control w-full max-w-none">
-                  <label className="label">
-                    <span className="label-text font-medium text-base">Tavily API 密钥</span>
-                  </label>
-                  <div className="input-group w-full max-w-none flex">
-                    <input
-                      type={showTavilyApiKey ? "text" : "password"}
-                      className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
-                      value={tavilyApiKey}
-                      onChange={(e) => handleTavilyApiKeyChange(e.target.value)}
-                      placeholder="tvly-..."
-                    />
-                    <button 
-                      type="button"
-                      className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
-                      onClick={handleTavilyApiKeyPaste}
-                      title="点击粘贴"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                    </button>
-                    <button 
-                      type="button"
-                      className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
-                      onClick={() => setShowTavilyApiKey(!showTavilyApiKey)}
-                      title={showTavilyApiKey ? "隐藏密钥" : "显示密钥"}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showTavilyApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="label-text-alt text-opacity-70">
-                      <a href="https://app.tavily.com/home" target="_blank" rel="noopener noreferrer" className="link link-primary">
-                        获取Tavily API密钥
-                      </a>
-                    </span>
-                    <button 
-                      type="button"
-                      className="btn btn-sm btn-primary"
-                      onClick={handleTestTavilyAPI}
-                      disabled={!tavilyApiKey}
-                    >
-                      测试API
-                    </button>
-                  </div>
-                  <div className="mt-2 text-xs opacity-70 bg-base-200 p-2 rounded">
-                    <p>Tavily是专为AI优化的搜索引擎，每月提供1,000次免费API调用，无需信用卡。</p>
-                    <p>相比Google搜索，Tavily提供更丰富的功能和更高的免费额度。</p>
-                  </div>
+            <div className="space-y-4 p-4">
+              {/* API密钥设置 */}
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-medium">API Key</span>
+                </label>
+                <div className="input-group w-full flex">
+                  <input
+                    type={showTavilyApiKey ? "text" : "password"}
+                    className="input input-bordered flex-grow"
+                    value={tavilyApiKey}
+                    onChange={(e) => handleTavilyApiKeyChange(e.target.value)}
+                    placeholder="tvly-..."
+                  />
+                  <button 
+                    className="btn btn-square"
+                    onClick={handleTavilyApiKeyPaste}
+                    title="粘贴"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </button>
+                  <button 
+                    className="btn btn-square"
+                    onClick={() => setShowTavilyApiKey(!showTavilyApiKey)}
+                    title={showTavilyApiKey ? "隐藏" : "显示"}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showTavilyApiKey ? 
+                        "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : 
+                        "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
+                    </svg>
+                  </button>
                 </div>
+                <label className="label">
+                  <span className="label-text-alt">
+                    <a href="https://app.tavily.com/home" target="_blank" rel="noopener noreferrer" className="link link-primary">
+                      获取Tavily API密钥
+                    </a>
+                  </span>
+                </label>
               </div>
 
               {/* 搜索主题 */}
-              <div>
-                <h3 className="text-lg font-medium mb-2">搜索主题 (Search Topic)</h3>
-                <div className="flex flex-col gap-2 w-full max-w-none">
-                  <div className="flex w-full max-w-none gap-0">
-                    <select 
-                      className="select select-bordered w-full" 
-                      value={searchTopic} 
-                      onChange={(e) => handleSearchTopicChange(e.target.value)}
-                    >
-                      <option value="general">general</option>
-                      <option value="news">news</option>
-                    </select>
-                  </div>
-                  <div className="text-xs opacity-70">
-                    <p><strong>general</strong>: 适合一般性查询，包含各类网站结果</p>
-                    <p><strong>news</strong>: 专注于新闻和时事信息，适合查询最新事件</p>
-                  </div>
-                </div>
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-medium">Search Topic</span>
+                  <span className="label-text-alt opacity-60">选择搜索类别</span>
+                </label>
+                <select className="select select-bordered w-full" value={searchTopic} onChange={(e) => handleSearchTopicChange(e.target.value)}>
+                  <option value="general">general</option>
+                  <option value="news">news</option>
+                </select>
               </div>
 
               {/* 搜索深度 */}
-              <div>
-                <h3 className="text-lg font-medium mb-2">搜索深度 (Search Depth)</h3>
-                <div className="flex flex-col gap-2 w-full max-w-none">
-                  <div className="flex w-full max-w-none gap-0">
-                    <select 
-                      className="select select-bordered w-full" 
-                      value={searchDepth} 
-                      onChange={(e) => handleSearchDepthChange(e.target.value)}
-                    >
-                      <option value="basic">basic</option>
-                      <option value="advanced">advanced</option>
-                    </select>
-                  </div>
-                  <div className="text-xs opacity-70">
-                    <p><strong>basic</strong>: 基础搜索，消耗1个API积分，适合大多数查询</p>
-                    <p><strong>advanced</strong>: 高级搜索，消耗2个API积分，提供更全面的结果</p>
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-medium">Search Depth</span>
+                  <span className="label-text-alt opacity-60">搜索深度影响结果质量和API消耗</span>
+                </label>
+                <select className="select select-bordered w-full" value={searchDepth} onChange={(e) => handleSearchDepthChange(e.target.value)}>
+                  <option value="basic">basic</option>
+                  <option value="advanced">advanced</option>
+                </select>
+              </div>
+
+              {/* 最大结果数 */}
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-medium">Max Results</span>
+                  <span className="label-text-alt opacity-60">返回的搜索结果数量</span>
+                </label>
+                <div className="flex gap-2 items-center">
+                  <input 
+                    type="number" 
+                    className="input input-bordered w-24" 
+                    min="1" 
+                    max="20" 
+                    value={maxSearchResults} 
+                    onChange={(e) => handleMaxSearchResultsChange(parseInt(e.target.value))}
+                  />
+                  <div className="flex flex-col">
+                    <button className="btn btn-xs" onClick={() => handleMaxSearchResultsChange(Math.min(maxSearchResults + 1, 20))}>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </button>
+                    <button className="btn btn-xs" onClick={() => handleMaxSearchResultsChange(Math.max(maxSearchResults - 1, 1))}>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* 最大搜索数量滑块 */}
-              <div>
-                <h3 className="text-lg font-medium mb-2">最大搜索结果数量</h3>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="1"
-                      max="20"
-                      value={maxSearchResults}
-                      onChange={(e) => handleMaxSearchResultsChange(e.target.value)}
-                      className="range range-primary"
-                      step="1"
+              {/* 时间范围 */}
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-medium">Time Range</span>
+                  <span className="label-text-alt opacity-60">限制结果时间范围</span>
+                </label>
+                <select className="select select-bordered w-full" value={timeRange || ""} onChange={(e) => handleTimeRangeChange(e.target.value || null)}>
+                  <option value="">none</option>
+                  <option value="day">day</option>
+                  <option value="week">week</option>
+                  <option value="month">month</option>
+                  <option value="year">year</option>
+                </select>
+              </div>
+
+              {/* 包含答案 */}
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-medium">Include Answer</span>
+                  <span className="label-text-alt opacity-60">包含LLM生成的答案</span>
+                </label>
+                <select 
+                  className="select select-bordered w-full" 
+                  value={
+                    includeAnswer === false ? "none" : 
+                    includeAnswer === true ? "basic" :
+                    includeAnswer
+                  } 
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleIncludeAnswerChange(value);
+                  }}
+                >
+                  <option value="none">none</option>
+                  <option value="basic">basic</option>
+                  <option value="advanced">advanced</option>
+                </select>
+              </div>
+
+              {/* 包含图片 */}
+              <div className="form-control">
+                <label className="label cursor-pointer justify-start gap-2">
+                  <input 
+                    type="checkbox" 
+                    className="checkbox checkbox-primary" 
+                    checked={includeImages} 
+                    onChange={(e) => handleIncludeImagesChange(e.target.checked)}
+                  />
+                  <span className="label-text font-medium">Include Images</span>
+                  <span className="label-text-alt opacity-60 ml-2">包含相关图片搜索结果</span>
+                </label>
+              </div>
+
+              {/* 包含图片描述（条件渲染） */}
+              {includeImages && (
+                <div className="form-control ml-6">
+                  <label className="label cursor-pointer justify-start gap-2">
+                    <input 
+                      type="checkbox" 
+                      className="checkbox checkbox-primary" 
+                      checked={includeImageDescriptions} 
+                      onChange={(e) => handleIncludeImageDescriptionsChange(e.target.checked)}
+                      disabled={!includeImages}
                     />
-                    <span className="text-lg font-medium min-w-[3ch]">{maxSearchResults}</span>
-                  </div>
-                  <div className="text-xs opacity-70">
-                    <p>设置每次搜索返回的最大结果数量（1-20）</p>
-                    <p>数量越大，搜索结果越全面，但会增加AI处理负担。建议值：5-10</p>
-                  </div>
+                    <span className="label-text font-medium">Include Image Descriptions</span>
+                    <span className="label-text-alt opacity-60 ml-2">为图片添加描述文本</span>
+                  </label>
                 </div>
-              </div>
+              )}
 
-              {/* 帮助信息 */}
-              <div className="alert alert-info text-xs mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <div>
-                  <p>Tavily搜索已替代Google搜索，提供更好的AI搜索体验。</p>
-                  <p>每月1,000次免费API调用，无需信用卡。</p>
+              {/* 折叠部分：Additional Fields */}
+              <div className="collapse collapse-arrow border border-base-300 bg-base-100 rounded-box">
+                <input type="checkbox" /> 
+                <div className="collapse-title text-lg font-medium">
+                  Additional Fields
+                </div>
+                <div className="collapse-content space-y-4"> 
+                  {/* 包含原始内容 */}
+                  <div className="form-control">
+                    <label className="label cursor-pointer justify-start gap-2">
+                      <input 
+                        type="checkbox" 
+                        className="checkbox checkbox-primary" 
+                        checked={includeRawContent} 
+                        onChange={(e) => handleIncludeRawContentChange(e.target.checked)}
+                      />
+                      <span className="label-text font-medium">Include Raw Content</span>
+                      <span className="label-text-alt opacity-60 ml-2">包含完整HTML内容</span>
+                    </label>
+                  </div>
+
+                  {/* 天数（仅当Topic为news时显示） */}
+                  {searchTopic === 'news' && (
+                    <div className="form-control w-full">
+                      <label className="label">
+                        <span className="label-text font-medium">Days</span>
+                        <span className="label-text-alt opacity-60">新闻搜索的天数范围</span>
+                      </label>
+                      <div className="flex gap-2 items-center">
+                        <input 
+                          type="number" 
+                          className="input input-bordered w-24" 
+                          min="1" 
+                          max="30" 
+                          value={days} 
+                          onChange={(e) => handleDaysChange(parseInt(e.target.value))}
+                        />
+                        <div className="flex flex-col">
+                          <button className="btn btn-xs" onClick={() => handleDaysChange(days + 1)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          </button>
+                          <button className="btn btn-xs" onClick={() => handleDaysChange(Math.max(days - 1, 1))}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 包含域名 */}
+                  <div className="form-control w-full">
+                    <label className="label">
+                      <span className="label-text font-medium">Include Domains</span>
+                      <span className="label-text-alt opacity-60">指定包含的域名</span>
+                    </label>
+                    <div className="flex flex-col gap-2">
+                      {includeDomains.map((domain, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            className="input input-bordered flex-grow"
+                            value={domain}
+                            onChange={(e) => handleIncludeDomainChange(index, e.target.value)}
+                            placeholder="example.com"
+                          />
+                          <button 
+                            className="btn btn-square btn-sm" 
+                            onClick={() => handleRemoveIncludeDomain(index)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                      <button 
+                        className="btn btn-outline btn-sm" 
+                        onClick={handleAddIncludeDomain}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 排除域名 */}
+                  <div className="form-control w-full">
+                    <label className="label">
+                      <span className="label-text font-medium">Exclude Domains</span>
+                      <span className="label-text-alt opacity-60">指定排除的域名</span>
+                    </label>
+                    <div className="flex flex-col gap-2">
+                      {excludeDomains.map((domain, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            className="input input-bordered flex-grow"
+                            value={domain}
+                            onChange={(e) => handleExcludeDomainChange(index, e.target.value)}
+                            placeholder="example.com"
+                          />
+                          <button 
+                            className="btn btn-square btn-sm" 
+                            onClick={() => handleRemoveExcludeDomain(index)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                      <button 
+                        className="btn btn-outline btn-sm" 
+                        onClick={handleAddExcludeDomain}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
