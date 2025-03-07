@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { translateText } from '../../../services/translationService';
 import toastManager from '../../../utils/toastManager';
 import KnowledgeBaseButton from './KnowledgeBaseButton';
@@ -22,6 +22,14 @@ export const InputArea = ({
 }) => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState([]);
+  const textareaRef = useRef(null);
+
+  // 在组件挂载或重新渲染后设置正确的初始高度
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '72px';
+    }
+  }, []);
 
   // 处理翻译功能
   const handleTranslation = async () => {
@@ -176,6 +184,7 @@ export const InputArea = ({
               zIndex: 1 // 设置较低的z-index值
             }}
             rows="2"
+            ref={textareaRef}
           />
           
           {/* 左侧按钮容器 - 绝对定位在textarea底部 */}

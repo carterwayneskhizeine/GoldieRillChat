@@ -80,6 +80,8 @@ export function ChatView({
   setMessages
 }) {
   const messagesEndRef = useRef(null);
+  const dropZoneRef = useRef(null);
+  const textareaRef = useRef(null);
   const [editorLanguage, setEditorLanguage] = useState("plaintext");
   const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [fontSize, setFontSize] = useState(14);
@@ -97,6 +99,14 @@ export function ChatView({
   const [uploadProgress, setUploadProgress] = useState(0);
   // 添加拖放计数器引用
   const dragCounterRef = useRef(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // 在组件挂载或重新渲染后设置正确的初始高度
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '72px';
+    }
+  }, []);
 
   // 添加复制功能
   const handleCopySelectedText = (e) => {
@@ -1490,6 +1500,7 @@ export function ChatView({
                   backdropFilter: 'blur(8px)'
                 }}
                 rows="2"
+                ref={textareaRef}
               />
               {/* 左侧按钮容器 - 放置上传文件按钮 */}
               <div className="absolute bottom-3 left-[15px] flex items-center gap-2">
