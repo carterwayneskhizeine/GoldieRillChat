@@ -1,5 +1,5 @@
 // 工具列表配置
-export const tools = ['browser', 'threejs-shaders', 'aichat', 'chat', 'monaco', 'embedding']
+export const tools = ['threejs-shaders', 'browser', 'aichat', 'chat', 'monaco', 'embedding']
 
 // 工具显示名称映射
 export const toolDisplayNames = {
@@ -7,8 +7,8 @@ export const toolDisplayNames = {
   'threejs-shaders': 'ThreeJS Shaders',
   aichat: 'AI Chat',
   chat: 'Chat',
-  monaco: '',
-  editor: 'Image EMonaco Editorditor',
+  monaco: 'Monaco Editor',
+  editor: 'Image Editor',
   embedding: 'Embedding'
 }
 
@@ -18,8 +18,8 @@ export const MODEL_PROVIDERS = {
     name: 'OpenAI',
     apiHost: 'https://api.openai.com/v1',
     models: [
-      'gpt-4',
-      'gpt-3.5-turbo'
+      'gpt-4.5',
+      'gpt-4o'
     ],
     needsApiKey: true,
     apiKeyHelp: '在 OpenAI 官网获取 API 密钥: https://platform.openai.com/api-keys'

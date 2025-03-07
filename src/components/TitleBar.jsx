@@ -11,14 +11,90 @@ import { openUrl, openUrlDirectly } from '../utils/browserUtils'
 const TranslateButton = ({ currentUrl, activeTabId }) => {
   const [isTranslating, setIsTranslating] = useState(false);
   
-  // 创建一个简单的通知函数
+  // 完全重写的通知函数
   const showNotification = (message, type = 'info') => {
     console.log(`[${type}] ${message}`);
-    if (type === 'error') {
-      alert(`错误: ${message}`);
-    } else if (type === 'success') {
-      alert(`成功: ${message}`);
+    
+    // 先删除可能存在的旧容器
+    const existingContainer = document.getElementById('title-bar-notifications');
+    if (existingContainer) {
+      document.body.removeChild(existingContainer);
     }
+    
+    // 创建新的通知容器
+    const notificationContainer = document.createElement('div');
+    notificationContainer.id = 'title-bar-notifications';
+    Object.assign(notificationContainer.style, {
+      position: 'fixed',
+      top: '60px',
+      left: '20px', // 确保显示在左侧
+      zIndex: '9999',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+      maxWidth: '180px', // 设置最大宽度
+      transition: 'all 0.3s ease-in-out'
+    });
+    
+    // 创建Alert元素
+    const alertElement = document.createElement('div');
+    
+    // 使用DaisyUI的alert样式类
+    alertElement.className = `alert ${
+      type === 'error' ? 'alert-error' : 
+      type === 'success' ? 'alert-success' : 
+      'alert-info'
+    } shadow-lg`;
+    
+    // 设置Alert元素样式
+    Object.assign(alertElement.style, {
+      width: '180px', // 固定宽度
+      opacity: '0',
+      transition: 'opacity 0.3s ease-in-out',
+      padding: '0.75rem',
+      borderRadius: '0.5rem'
+    });
+    
+    // 根据不同类型设置不同的图标
+    let iconSvg = '';
+    if (type === 'error') {
+      iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+    } else if (type === 'success') {
+      iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+    } else {
+      iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+    }
+    
+    // 设置Alert内容
+    alertElement.innerHTML = `
+      <div class="flex items-center">
+        ${iconSvg}
+        <span class="ml-2">${message}</span>
+      </div>
+    `;
+    
+    // 添加到容器并附加到文档
+    notificationContainer.appendChild(alertElement);
+    document.body.appendChild(notificationContainer);
+    
+    // 强制重排以确保动画效果
+    void alertElement.offsetWidth;
+    
+    // 淡入效果
+    setTimeout(() => {
+      alertElement.style.opacity = '1';
+    }, 10);
+    
+    // 定时移除通知
+    setTimeout(() => {
+      alertElement.style.opacity = '0';
+      
+      setTimeout(() => {
+        if (document.body.contains(notificationContainer)) {
+          document.body.removeChild(notificationContainer);
+        }
+      }, 300);
+    }, 3000);
   };
   
   const handleTranslate = async () => {
@@ -51,7 +127,7 @@ const TranslateButton = ({ currentUrl, activeTabId }) => {
   const openGoogleTranslateInNewWindow = (url, targetLang) => {
     const googleTranslateUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodeURIComponent(url)}`;
     openUrlDirectly(googleTranslateUrl);
-    showNotification('已在内部浏览器中打开Google翻译服务', 'success');
+    showNotification('网页翻译中...', 'success');
   };
 
   return (
