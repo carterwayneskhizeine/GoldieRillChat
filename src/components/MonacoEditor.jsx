@@ -106,13 +106,13 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
           clearTimeout(autoSaveTimeoutRef.current);
         }
         
-        // 3秒后自动保存
+        // 10秒后自动保存
         autoSaveTimeoutRef.current = setTimeout(() => {
           const content = editorRef.current.getValue();
           saveNote(currentNote.id, content).then(() => {
             setLastSaved(new Date().toLocaleTimeString());
           });
-        }, 15000);
+        }, 10000);
       };
       
       const disposable = model.onDidChangeContent(handleContentChange);
@@ -374,9 +374,10 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
           
           {/* 保存按钮 */}
           <button 
-            className="shader-btn save-btn"
+            className="shader-btn save-btn gold-save-btn"
             onClick={handleManualSave}
             disabled={!isEditorReady}
+            style={{backgroundColor: 'rgba(255, 215, 0, 0.3)', borderColor: 'rgba(255, 215, 0, 0.4)', color: 'white'}}
           >
             保存
           </button>

@@ -418,9 +418,10 @@ const ThreeJSShaders = () => {
         </button>
         {currentPresetId !== 'Shaders1' && (
           <button 
-            className="shader-btn save-btn" 
+            className="shader-btn save-btn gold-save-btn" 
             onClick={savePreset}
             disabled={isLoading}
+            style={{backgroundColor: 'rgba(255, 215, 0, 0.3)', borderColor: 'rgba(255, 215, 0, 0.4)', color: 'white'}}
           >
             SAVE
           </button>

@@ -143,13 +143,32 @@
 }
 
 /* 保存按钮特殊样式 */
-.save-btn {
+.save-btn,
+button.save-btn,
+.shader-btn.save-btn {
   margin-left: auto; /* 将保存按钮推到右侧 */
-  background-color: rgba(100, 180, 100, 0.2);
+  background-color: rgba(255, 215, 0, 0.3) !important; /* 金色 #FFD700 */
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: #000 !important; /* 黑色文本以增加对比度 */
 }
 
-.save-btn:hover:not(:disabled) {
-  background-color: rgba(100, 180, 100, 0.3);
+.save-btn:hover:not(:disabled),
+button.save-btn:hover:not(:disabled),
+.shader-btn.save-btn:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.5) !important; /* 金色 #FFD700 */
+  border-color: rgba(255, 215, 0, 0.6) !important;
+}
+
+/* 金色保存按钮样式 - 全局可用 */
+.gold-save-btn {
+  background-color: rgba(255, 215, 0, 0.3) !important; /* 金色 #FFD700 */
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important; /* 白色文本 */
+}
+
+.gold-save-btn:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.5) !important; /* 金色 #FFD700 */
+  border-color: rgba(255, 215, 0, 0.6) !important;
 }
 
 /* 底部状态栏 */
