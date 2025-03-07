@@ -296,76 +296,74 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden monaco-editor-container">
       {/* 工具栏 */}
-      <div 
-        className={`grid grid-cols-12 gap-3 items-center p-3 rounded-lg monaco-editor-toolbar ${isImageBackground ? '' : 'bg-base-200'}`}
-        style={isImageBackground ? { 
-          position: 'relative', 
-          zIndex: 10,
-        } : {}}
-      >
-        {/* 左侧组：语言和主题选择 */}
-        <div className="col-span-4 flex gap-2">
+      <div className="monaco-editor-toolbar">
+        {/* 左侧组：下拉菜单 */}
+        <div className="monaco-toolbar-left-group">
           {/* 语言选择 */}
-          <select 
-            className="select select-bordered select-sm h-9 min-h-[2.25rem] w-full max-w-[140px]"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            disabled={!isEditorReady}
-          >
-            {languages.map(lang => (
-              <option 
-                key={lang} 
-                value={lang}
-              >
-                {lang}
-              </option>
-            ))}
-          </select>
+          <div className="select-wrapper">
+            <select 
+              className="select"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              disabled={!isEditorReady}
+            >
+              {languages.map(lang => (
+                <option 
+                  key={lang} 
+                  value={lang}
+                >
+                  {lang}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* 主题选择 */}
-          <select 
-            className="select select-bordered select-sm h-9 min-h-[2.25rem] w-full max-w-[120px]"
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            disabled={!isEditorReady}
-          >
-            {themes.map(t => (
-              <option 
-                key={t} 
-                value={t}
-              >
-                {t === 'vs-dark' ? '深色' : t === 'vs-light' ? '浅色' : t === 'hc-black' ? '高对比' : t}
-              </option>
-            ))}
-          </select>
+          <div className="select-wrapper">
+            <select 
+              className="select"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              disabled={!isEditorReady}
+            >
+              {themes.map(t => (
+                <option 
+                  key={t} 
+                  value={t}
+                >
+                  {t === 'vs-dark' ? '深色' : t === 'vs-light' ? '浅色' : t === 'hc-black' ? '高对比' : t}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* 中间组：字体大小调整 */}
-        <div className="col-span-3 flex justify-center gap-2 monaco-font-size-controls">
+        <div className="monaco-font-size-controls">
           <button 
-            className="btn btn-sm btn-square h-9 min-h-[2.25rem] w-9"
+            className="shader-btn"
             onClick={() => handleFontSizeChange(-1)}
             disabled={!isEditorReady}
           >
-            <span className="text-lg">-</span>
+            <span>-</span>
           </button>
-          <div className="flex items-center font-mono">
-            <span className="monaco-autosave-control">{fontSize}px</span>
+          <div className="monaco-font-size-display">
+            {fontSize}px
           </div>
           <button 
-            className="btn btn-sm btn-square h-9 min-h-[2.25rem] w-9"
+            className="shader-btn"
             onClick={() => handleFontSizeChange(1)}
             disabled={!isEditorReady}
           >
-            <span className="text-lg">+</span>
+            <span>+</span>
           </button>
         </div>
 
         {/* 右侧组：功能按钮 */}
-        <div className="col-span-5 flex items-center justify-end gap-4">
+        <div className="monaco-toolbar-right-group">
           {/* 自动保存开关 */}
-          <div className="form-control flex-row items-center monaco-autosave-control">
-            <span className="mr-2 text-sm font-medium">自动保存</span>
+          <div className="monaco-autosave-control">
+            <span className="mr-2">自动保存</span>
             <input 
               type="checkbox" 
               className="toggle toggle-primary toggle-sm" 
@@ -376,7 +374,7 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
           
           {/* 保存按钮 */}
           <button 
-            className="btn btn-sm btn-primary h-9 min-h-[2.25rem] min-w-[80px] px-3"
+            className="shader-btn save-btn"
             onClick={handleManualSave}
             disabled={!isEditorReady}
           >
@@ -386,10 +384,10 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
           {/* Markdown 预览按钮 */}
           {language === "markdown" && (
             <button 
-              className="btn btn-sm h-9 min-h-[2.25rem] min-w-[80px] px-3"
+              className="shader-btn"
               onClick={() => setShowPreview(!showPreview)}
               disabled={!isEditorReady}
-              style={showPreview ? {backgroundColor: 'rgba(60, 60, 200, 0.6)'} : {}}
+              style={showPreview ? {backgroundColor: 'rgba(60, 60, 200, 0.3)'} : {}}
             >
               {showPreview ? "编辑" : "预览"}
             </button>
@@ -398,10 +396,10 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
           {/* Python 运行按钮 */}
           {language === "python" && (
             <button 
-              className="btn btn-sm h-9 min-h-[2.25rem] min-w-[80px] px-3"
+              className="shader-btn"
               onClick={runPythonCode}
               disabled={!isEditorReady || isRunning}
-              style={{backgroundColor: 'rgba(40, 120, 40, 0.8)'}}
+              style={{backgroundColor: isRunning ? 'rgba(40, 120, 40, 0.4)' : 'rgba(40, 120, 40, 0.2)'}}
             >
               {isRunning ? "运行中..." : "运行"}
             </button>

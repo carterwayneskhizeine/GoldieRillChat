@@ -1,13 +1,13 @@
 /**
  * Monaco Editor 组件样式
- * 提供黑色半透明背景和边框效果
+ * 提供黑色半透明背景和边框效果，与ThreeJS Shaders风格统一
  */
 
 /* 主容器样式 */
 .monaco-editor-container {
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
   color: white;
@@ -15,73 +15,137 @@
 
 /* 工具栏样式 */
 .monaco-editor-toolbar {
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.7);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* 编辑器区域样式 */
+/* 编辑器包装容器 */
 .monaco-editor-wrapper {
-  background-color: rgba(0, 0, 0, 0.5);
+  height: calc(100vh - 120px);
+  background-color: rgba(0, 0, 0, 0.6) !important;
 }
 
-/* 预览区域样式（Markdown 和 Python）*/
+/* 预览容器样式 */
 .monaco-editor-preview {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* 按钮样式 */
-.monaco-editor-container .btn {
-  background-color: rgba(30, 30, 60, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
+/* 使用ThreeJS Shaders按钮样式 - 在全局样式中已定义 */
+/* .shader-btn 已在 threejsshaders.css 中定义 */
+
+/* 主要操作按钮样式 */
+.monaco-editor-container .btn-primary,
+.monaco-editor-container .save-btn {
+  background-color: rgba(100, 180, 100, 0.2);
+  border-color: rgba(100, 180, 100, 0.3);
+  width: 100px;  /* 固定宽度 */
 }
 
-.monaco-editor-container .btn:hover {
-  background-color: rgba(50, 50, 80, 0.8);
+.monaco-editor-container .btn-primary:hover:not(:disabled),
+.monaco-editor-container .save-btn:hover:not(:disabled) {
+  background-color: rgba(100, 180, 100, 0.3);
+  border-color: rgba(100, 180, 100, 0.4);
+}
+
+/* 下拉菜单容器 */
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-right: 12px; /* 增加间距 */
 }
 
 /* 下拉菜单样式 */
 .monaco-editor-container .select {
-  background-color: rgba(20, 20, 40, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
   color: white;
+  height: 32px;
+  font-size: 12px;
+  padding: 0 8px;
+  padding-right: 24px;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  width: 110px; /* 固定宽度 */
 }
 
 .monaco-editor-container .select option {
   background-color: rgba(0, 0, 0, 0.9);
   color: white;
+  padding: 8px;
 }
 
-/* 字体大小调整按钮容器 */
+/* 字体大小控制按钮 */
 .monaco-font-size-controls {
-  background-color: rgba(40, 40, 40, 0.8);
-  border: 1px solid rgba(200, 200, 200, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 15px; /* 增加左右外边距 */
 }
 
-/* 自动保存开关 */
+/* 字体大小控制按钮的特殊样式 */
+.monaco-font-size-controls .shader-btn {
+  min-width: 32px;
+  width: 32px;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 字体大小显示 */
+.monaco-font-size-display {
+  width: 40px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* 自动保存控制开关 */
 .monaco-autosave-control {
-  color: white;
+  color: var(--text-normal);
+  margin: 0 15px; /* 增加左右外边距 */
+  display: flex;
+  align-items: center;
 }
 
-/* 确保图片背景模式下的样式 */
+/* 工具栏左侧和右侧组 */
+.monaco-toolbar-left-group,
+.monaco-toolbar-right-group {
+  display: flex;
+  align-items: center;
+}
+
+.monaco-toolbar-right-group {
+  gap: 15px; /* 右侧按钮间间距 */
+}
+
+/* 图片背景模式样式 */
 .image-background-mode .monaco-editor-container {
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.8) !important;
 }
 
 .image-background-mode .monaco-editor-toolbar {
-  background-color: rgba(30, 30, 30, 0.7);
+  background-color: rgba(0, 0, 0, 0.7) !important;
 }
 
 .image-background-mode .monaco-editor-wrapper {
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.7) !important;
 }
 
 .image-background-mode .monaco-editor-preview {
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.7) !important;
 }
 
 .image-background-mode .monaco-font-size-controls {
-  background-color: rgba(40, 40, 40, 0.8);
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9);
 } 
