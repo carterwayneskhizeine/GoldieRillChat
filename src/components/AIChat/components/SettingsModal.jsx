@@ -411,6 +411,37 @@ export const SettingsModal = ({
     const mediaSettings = collectMediaSettings();
     onImageSettingsUpdate?.(mediaSettings);
     
+    // 保存域名设置到localStorage
+    // 过滤掉空字符串，确保存储有效域名
+    const filteredIncludeDomains = includeDomains.filter(domain => domain.trim() !== '');
+    const filteredExcludeDomains = excludeDomains.filter(domain => domain.trim() !== '');
+    
+    localStorage.setItem('aichat_tavily_include_domains', JSON.stringify(filteredIncludeDomains));
+    localStorage.setItem('aichat_tavily_exclude_domains', JSON.stringify(filteredExcludeDomains));
+    
+    // 确保其他Tavily设置也被保存
+    // 处理includeAnswer (已在onChange函数中处理，这里是备份)
+    let answerValue;
+    if (includeAnswer === 'none') {
+      answerValue = 'false';
+    } else if (includeAnswer === 'basic') {
+      answerValue = 'true';
+    } else if (includeAnswer === 'advanced') {
+      answerValue = 'advanced';
+    }
+    localStorage.setItem('aichat_tavily_include_answer', answerValue);
+    
+    // 保存其他设置
+    localStorage.setItem('aichat_tavily_search_depth', searchDepth);
+    localStorage.setItem('aichat_tavily_topic', searchTopic);
+    localStorage.setItem('aichat_tavily_time_range', timeRange);
+    localStorage.setItem('aichat_tavily_include_images', includeImages.toString());
+    localStorage.setItem('aichat_tavily_include_image_descriptions', includeImageDescriptions.toString());
+    localStorage.setItem('aichat_tavily_include_raw_content', includeRawContent.toString());
+    localStorage.setItem('aichat_tavily_days', days.toString());
+    
+    console.log('已保存所有Tavily搜索设置');
+    
     // 调用原有的关闭处理函数
     handleSettingsClose();
   };
@@ -471,6 +502,19 @@ export const SettingsModal = ({
   // 处理包含答案变更
   const handleIncludeAnswerChange = (value) => {
     setIncludeAnswer(value);
+    
+    // 将UI值映射到API需要的格式并保存
+    let storageValue;
+    if (value === 'none') {
+      storageValue = 'false';
+    } else if (value === 'basic') {
+      storageValue = 'true';
+    } else if (value === 'advanced') {
+      storageValue = 'advanced';
+    }
+    
+    localStorage.setItem('aichat_tavily_include_answer', storageValue);
+    console.log('已保存includeAnswer设置:', value, '->存储为:', storageValue);
   };
 
   // 处理包含域名变更
@@ -1491,7 +1535,6 @@ export const SettingsModal = ({
                   <span className="label-text-alt opacity-60">限制结果时间范围</span>
                 </label>
                 <select className="select select-bordered w-full" value={timeRange || ""} onChange={(e) => handleTimeRangeChange(e.target.value || null)}>
-                  <option value="">none</option>
                   <option value="day">day</option>
                   <option value="week">week</option>
                   <option value="month">month</option>

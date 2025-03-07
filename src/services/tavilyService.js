@@ -32,8 +32,14 @@ class TavilyService {
     try {
       includeDomains = JSON.parse(localStorage.getItem('aichat_tavily_include_domains') || '[]');
       excludeDomains = JSON.parse(localStorage.getItem('aichat_tavily_exclude_domains') || '[]');
+      
+      // 过滤掉空字符串和非法值
+      includeDomains = Array.isArray(includeDomains) ? includeDomains.filter(d => typeof d === 'string' && d.trim() !== '') : [];
+      excludeDomains = Array.isArray(excludeDomains) ? excludeDomains.filter(d => typeof d === 'string' && d.trim() !== '') : [];
     } catch (error) {
       console.error('解析域名列表失败:', error);
+      includeDomains = [];
+      excludeDomains = [];
     }
     
     if (!apiKey) {
@@ -49,8 +55,8 @@ class TavilyService {
       searchDepth,
       searchTopic,
       includeAnswer,
-      includeDomains: includeDomains.filter(d => d),
-      excludeDomains: excludeDomains.filter(d => d),
+      includeDomains,
+      excludeDomains,
       includeImages,
       includeImageDescriptions,
       timeRange,
@@ -124,13 +130,30 @@ class TavilyService {
         query,
         search_depth: config.searchDepth,
         max_results: config.maxResults,
-        topic: config.searchTopic,
-        include_answer: config.includeAnswer,
-        include_domains: config.includeDomains,
-        exclude_domains: config.excludeDomains,
-        include_images: config.includeImages,
-        include_image_descriptions: config.includeImageDescriptions
+        topic: config.searchTopic
       };
+      
+      // 添加includeAnswer参数并确保格式正确
+      if (config.includeAnswer === true || config.includeAnswer === 'basic') {
+        requestBody.include_answer = true;
+      } else if (config.includeAnswer === 'advanced') {
+        requestBody.include_answer = 'advanced';
+      } else {
+        requestBody.include_answer = false;
+      }
+      
+      // 添加图片相关参数
+      requestBody.include_images = !!config.includeImages;
+      requestBody.include_image_descriptions = !!config.includeImageDescriptions;
+      
+      // 只有当数组不为空时才添加域名参数
+      if (config.includeDomains && config.includeDomains.length > 0) {
+        requestBody.include_domains = config.includeDomains;
+      }
+      
+      if (config.excludeDomains && config.excludeDomains.length > 0) {
+        requestBody.exclude_domains = config.excludeDomains;
+      }
       
       // 添加可选参数
       if (config.timeRange) {
@@ -138,12 +161,15 @@ class TavilyService {
       }
       
       if (config.includeRawContent) {
-        requestBody.include_raw_content = config.includeRawContent;
+        requestBody.include_raw_content = !!config.includeRawContent;
       }
       
       if (config.searchTopic === 'news' && config.days) {
-        requestBody.days = config.days;
+        requestBody.days = Math.max(1, parseInt(config.days) || 3);
       }
+
+      // 打印请求参数便于调试
+      console.log('Tavily搜索参数:', JSON.stringify(requestBody, null, 2));
 
       // 发起请求
       const response = await Promise.race([
@@ -167,7 +193,10 @@ class TavilyService {
         } else if (response.status === 429) {
           throw new Error('已超出 Tavily API 使用限制，请稍后再试');
         } else {
-          throw new Error(errorData.message || `搜索请求失败: ${response.status}`);
+          // 尝试获取更详细的错误信息
+          const errorMsg = errorData.message || errorData.error || JSON.stringify(errorData);
+          console.error('Tavily API错误详情:', errorData);
+          throw new Error(`搜索请求失败: ${response.status}${errorMsg ? ' - ' + errorMsg : ''}`);
         }
       }
 
