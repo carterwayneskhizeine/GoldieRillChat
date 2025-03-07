@@ -127,8 +127,8 @@
 .embedding-container .btn:hover,
 .embedding-container button:hover,
 .embedding-container .shader-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 215, 0, 0.3);
+  border-color: rgba(255, 215, 0, 0.4);
   color: white;
 }
 
@@ -421,7 +421,7 @@
 }
 
 .sidebar-black-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 215, 0, 0.2);
   color: white;
 }
 
@@ -433,4 +433,60 @@
 .sidebar-black-btn.icon-only {
   width: 2rem;
   padding: 0.35rem;
+}
+
+/* 统一按钮悬停效果为金黄色 - 高优先级规则 */
+.embedding-container button:hover,
+.embedding-container .btn:hover,
+.embedding-container .shader-btn:hover,
+.embedding-container a.shader-btn:hover,
+.embedding-container a.tab:hover,
+.embedding-container .tabs-boxed a:hover,
+.embedding-container [class*="btn"]:hover {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+}
+
+/* 保持侧边栏按钮的悬停效果稍微淡一些 */
+.sidebar-black-btn:hover {
+  background-color: rgba(255, 215, 0, 0.2) !important;
+  color: white !important;
+}
+
+/* 活跃状态的按钮也使用金色 */
+.embedding-container .shader-btn.active,
+.embedding-container a.tab.active,
+.embedding-container .tab-active {
+  background-color: rgba(255, 215, 0, 0.4) !important;
+  border-color: rgba(255, 215, 0, 0.5) !important;
+  color: white !important;
+}
+
+/* 文件上传区域的按钮特殊样式 */
+.embedding-container .border-dashed button:hover,
+.embedding-container .border-dashed .shader-btn:hover,
+.embedding-container .border-dashed .btn:hover {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* 顶部主导航按钮样式 */
+.flex > .shader-btn.flex-1:hover,
+.flex > a.shader-btn.flex-1:hover {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+/* 确保"添加内容"、"内容项"和"统计"按钮正确显示 */
+.justify-center > .shader-btn:hover,
+.justify-center > a.shader-btn:hover {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
 }
