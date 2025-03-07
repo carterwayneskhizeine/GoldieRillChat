@@ -13,14 +13,17 @@
 .embedding-container .bg-base-100,
 .embedding-container .bg-base-200,
 .embedding-container .bg-base-300 {
-  background-color: #0a0a0f !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
   color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(3px);
 }
 
 /* 左侧面板 */
 .embedding-left-panel {
-  background-color: #0a0a0f;
+  background-color: rgba(0, 0, 0, 0.8);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(3px);
   position: relative;
   z-index: 2;
 }
@@ -33,70 +36,123 @@
 
 /* 内容面板 */
 .embedding-content-panel {
-  background-color: #0f0f14;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  z-index: 2;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(3px);
+  transition: all 0.3s ease;
 }
 
-/* 选项卡容器 */
+/* 标签页样式 */
 .embedding-container .tabs-boxed {
-  background-color: #14141e;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 0.5rem;
+  padding: 0.25rem;
 }
 
-/* 选项卡 */
 .embedding-container .tab {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* 选项卡悬停 */
-.embedding-container .tab:hover {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/* 活动选项卡 */
-.embedding-container .tab-active {
-  background-color: #28283c !important;
-  color: white !important;
-  border: none !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-/* 表格容器 */
-.embedding-container table {
   background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.embedding-container .tab:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.embedding-container .tab-active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 500;
+}
+
+/* 表格样式 */
+.embedding-container table,
+.embedding-container .table {
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-collapse: separate;
   border-spacing: 0;
+  border-radius: 4px;
+  width: 100%;
 }
 
-/* 表格头和单元格 */
 .embedding-container th,
-.embedding-container td {
-  background-color: #14141e;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.embedding-container td,
+.embedding-container .table th,
+.embedding-container .table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.embedding-container th,
+.embedding-container .table th {
+  background-color: rgba(0, 0, 0, 0.4);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.8rem;
+}
+
+.embedding-container tr:hover,
+.embedding-container .table tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 按钮样式统一 */
+.embedding-container .btn,
+.embedding-container button,
+.embedding-container .shader-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  min-height: 2.2rem;
+  line-height: 1;
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.embedding-container .btn:hover,
+.embedding-container button:hover,
+.embedding-container .shader-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
   color: white;
 }
 
-/* 按钮 */
-.embedding-container .btn {
-  background-color: #1e1e28;
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* 按钮悬停 */
-.embedding-container .btn:hover {
-  background-color: #32323c;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* 输入框 */
+/* 输入框样式 */
 .embedding-container .input,
-.embedding-container .select,
-.embedding-container .textarea {
-  background-color: #14141e;
+.embedding-container input[type="text"],
+.embedding-container input[type="url"],
+.embedding-container textarea {
+  background-color: rgba(0, 0, 0, 0.5);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.embedding-container .input:focus,
+.embedding-container input[type="text"]:focus,
+.embedding-container input[type="url"]:focus,
+.embedding-container textarea:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
 /* 模态框 */
@@ -108,31 +164,53 @@
   -webkit-backdrop-filter: none;
 }
 
-/* 顶部和底部栏 */
+/* 顶部栏样式 */
 .embedding-top-bar,
-.embedding-bottom-bar {
-  background-color: #08080c !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
-  color: rgba(255, 255, 255, 0.8) !important;
+.knowledge-title {
+  background-color: rgba(0, 0, 0, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(3px);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 标题样式统一 */
+.embedding-title, 
+.knowledge-title {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin: 0;
 }
 
 /* 知识库项目 */
 .knowledge-base-item {
-  background-color: #14141e !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
   transition: all 0.2s ease;
-  color: white;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-/* 知识库项目悬停 */
 .knowledge-base-item:hover {
-  background-color: #1e1e28 !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateX(2px);
+}
+
+.knowledge-base-item.selected {
+  background-color: rgba(100, 149, 237, 0.2); /* 使用淡蓝色 cornflowerblue */
+  border-color: rgba(100, 149, 237, 0.3);
+  box-shadow: 0 0 0 1px rgba(100, 149, 237, 0.2);
 }
 
 /* 知识库项目列表滚动条 */
@@ -155,21 +233,142 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* 选中的知识库项 */
-.knowledge-base-item.selected {
-  background-color: #28283c !important;
-  border: 1px solid rgba(100, 100, 255, 0.3) !important;
+/* 下拉菜单包装器 */
+.embedding-container .select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* 下拉菜单 */
+.embedding-container .select,
+.embedding-container select {
+  appearance: none;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.embedding-container .select-wrapper::after {
+  content: "▼";
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.embedding-container .select:hover,
+.embedding-container select:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.embedding-container .select:focus,
+.embedding-container select:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.embedding-container .select option,
+.embedding-container select option {
+  background-color: #0a0a0f;
+  color: white;
+  padding: 0.5rem;
+}
+
+/* 卡片样式 */
+.card,
+.embedding-container .card {
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+/* 滚动区域样式 */
+.overflow-auto, 
+.overflow-y-auto,
+.embedding-container .overflow-auto,
+.embedding-container .overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.3);
+}
+
+.overflow-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.embedding-container .overflow-auto::-webkit-scrollbar,
+.embedding-container .overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-auto::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track,
+.embedding-container .overflow-auto::-webkit-scrollbar-track,
+.embedding-container .overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb,
+.embedding-container .overflow-auto::-webkit-scrollbar-thumb,
+.embedding-container .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto::-webkit-scrollbar-thumb:hover,
+.embedding-container .overflow-auto::-webkit-scrollbar-thumb:hover,
+.embedding-container .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 小屏幕适配 */
+@media (max-height: 600px) {
+  .knowledge-base-item {
+    padding: 0.5rem !important;
+  }
+}
+
+/* 金色保存按钮 */
+.embedding-container .save-btn,
+.embedding-container button.save-btn,
+.embedding-container .btn.save-btn,
+.embedding-container .gold-save-btn {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+}
+
+.embedding-container .save-btn:hover,
+.embedding-container button.save-btn:hover,
+.embedding-container .btn.save-btn:hover,
+.embedding-container .gold-save-btn:hover {
+  background-color: rgba(255, 215, 0, 0.5) !important;
+  border-color: rgba(255, 215, 0, 0.6) !important;
 }
 
 /* 下拉菜单内容 */
 .dropdown-content {
-  background-color: #0f0f14;
+  background-color: rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   color: white;
   max-height: 300px;
   overflow-y: auto;
   overflow-x: hidden;
+  backdrop-filter: blur(3px);
+  border-radius: 4px;
 }
 
 /* 确保下拉菜单显示为单列垂直列表 */
@@ -204,55 +403,4 @@
 
 .dropdown-content::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
-}
-
-/* 表格 */
-.table {
-  background-color: #0f0f14;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* 表格头 */
-.table th {
-  background-color: #14141e;
-  color: white;
-}
-
-/* 表格行悬停 */
-.table tr:hover {
-  background-color: #28283c;
-}
-
-/* 输入框 */
-.input {
-  background-color: #14141e;
-  color: white;
-}
-
-/* 输入框聚焦 */
-.input:focus {
-  outline: none;
-  border-color: rgba(100, 100, 255, 0.5);
-  box-shadow: 0 0 0 1px rgba(100, 100, 255, 0.2);
-}
-
-/* 卡片 */
-.card {
-  background-color: #14141e;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  color: white;
-}
-
-/* 滚动条样式 */
-.overflow-auto, .overflow-y-auto {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.3);
-}
-
-/* 小屏幕适配 */
-@media (max-height: 600px) {
-  .knowledge-base-item {
-    padding: 0.5rem !important;
-  }
 }

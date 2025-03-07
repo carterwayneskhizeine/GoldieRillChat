@@ -1110,11 +1110,10 @@ const Embedding = ({ isActive = false }) => {
               取消
             </button>
             <button 
-              className="btn btn-primary"
-              onClick={saveSettings}
-              style={{backgroundColor: "#4554b4", color: "white"}}
+              className="shader-btn gold-save-btn"
+              onClick={() => saveSettings()}
             >
-              确定
+              保存
             </button>
           </div>
         </div>
