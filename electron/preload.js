@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('renameFile', folderPath, oldFileName, newFileName, subDir),
   renameChatFolder: (folderPath, newName) =>
     ipcRenderer.invoke('rename-chat-folder', folderPath, newName),
+  updateMessagesPath: (oldPath, newPath) =>
+    ipcRenderer.invoke('update-messages-path', oldPath, newPath),
   loadMessageTxt: (filePath) => ipcRenderer.invoke('load-message-txt', filePath),
   saveMessages: (conversationPath, conversationId, messages) => 
     ipcRenderer.invoke('save-messages', conversationPath, conversationId, messages),

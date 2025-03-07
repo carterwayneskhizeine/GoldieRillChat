@@ -110,6 +110,9 @@ export const handleRenameConversation = async (conversation, newName, {
   window
 }) => {
   try {
+    // 保存旧路径，用于更新消息路径
+    const oldPath = conversation.path;
+    
     const result = await window.electron.renameChatFolder(conversation.path, newName);
     
     // 更新会话列表
@@ -126,6 +129,15 @@ export const handleRenameConversation = async (conversation, newName, {
     
     // 更新存储
     localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+    
+    // 更新消息中的路径信息
+    try {
+      console.log('更新消息路径:', oldPath, '->', result.path);
+      await window.electron.updateMessagesPath(oldPath, result.path);
+    } catch (pathError) {
+      console.error('更新消息路径失败:', pathError);
+      // 不中断重命名流程，仅记录错误
+    }
   } catch (error) {
     console.error('重命名失败:', error);
     throw error;

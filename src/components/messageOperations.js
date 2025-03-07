@@ -123,13 +123,39 @@ export const deleteMessage = async (
 
   try {
     if (currentConversation) {
+      // 首先验证会话文件夹路径是否存在
+      try {
+        await electronApi.access(currentConversation.path)
+      } catch (pathError) {
+        console.error('文件夹路径不存在:', pathError)
+        throw new Error(`对话文件夹不存在: ${currentConversation.path}`)
+      }
+      
+      // 从localStorage获取最新的会话信息，确保使用正确的路径
+      let updatedPath = currentConversation.path
+      try {
+        const savedConversations = JSON.parse(localStorage.getItem('aichat_conversations') || '[]')
+        const updatedConversation = savedConversations.find(c => c.id === currentConversation.id)
+        if (updatedConversation && updatedConversation.path !== currentConversation.path) {
+          console.log('检测到会话路径已更新:', {
+            oldPath: currentConversation.path,
+            newPath: updatedConversation.path
+          })
+          updatedPath = updatedConversation.path
+          // 验证新路径是否存在
+          await electronApi.access(updatedPath)
+        }
+      } catch (storageError) {
+        console.warn('读取localStorage失败，使用当前路径:', storageError)
+      }
+      
       // Move message file to recycle bin
-      await electronApi.deleteMessage(currentConversation.path, message)
+      await electronApi.deleteMessage(updatedPath, message)
       
       // Update messages state and storage
       const updatedMessages = messages.filter(msg => msg.id !== messageId)
       await electronApi.saveMessages(
-        currentConversation.path,
+        updatedPath,
         currentConversation.id,
         updatedMessages
       )
@@ -137,8 +163,8 @@ export const deleteMessage = async (
       return updatedMessages
     }
   } catch (error) {
-    console.error('Failed to delete message:', error)
-    throw new Error('删除消息失败')
+    console.error('删除消息失败:', error)
+    throw new Error('删除消息失败: ' + error.message)
   }
 
   return messages
@@ -174,63 +200,66 @@ export const exitEditMode = () => {
  * @returns {Promise<Array>} 消息列表
  */
 export const loadMessages = async (currentConversation, electronApi) => {
+  if (!currentConversation) {
+    return [];
+  }
+
   try {
-    if (!currentConversation?.path) return [];
+    // 检查文件夹路径是否存在，并获取最新路径
+    let updatedPath = currentConversation.path;
     
-    const messages = await electronApi.loadMessages(currentConversation.path);
-    
-    // 增强型数据验证
-    const validMessages = messages.filter(msg => {
-      // 必须包含的字段检查
-      const requiredFields = ['id', 'type', 'content', 'timestamp'];
-      const hasAllFields = requiredFields.every(field => field in msg);
-      
-      // 类型有效性检查
-      const validTypes = ['user', 'assistant'];
-      const hasValidType = validTypes.includes(msg.type);
-      
-      if (!hasAllFields || !hasValidType) {
-        console.warn('发现无效消息结构:', msg.id);
-        return false;
-      }
-      return true;
-    });
-
-    // 增强型重复检测
-    const uniqueMessages = [];
-    const seenIds = new Set();
-    const contentMap = new Map();
-
-    for (const msg of validMessages) {
-      // 基于ID的主键检查
-      if (seenIds.has(msg.id)) {
-        console.warn('发现重复ID消息:', msg.id);
-        continue;
-      }
-      seenIds.add(msg.id);
-
-      // 基于内容和时间的二次检查
-      const contentKey = `${msg.type}-${msg.content.substring(0, 100)}`; // 截取前100字符
-      const existing = contentMap.get(contentKey);
-      
-      if (existing) {
-        // 时间差在5秒内的视为重复
-        const timeDiff = Math.abs(new Date(msg.timestamp) - new Date(existing.timestamp));
-        if (timeDiff < 5000) {
-          console.warn(`发现时间相近的重复内容消息: ${msg.id} vs ${existing.id}`);
-          continue;
+    // 首先验证会话文件夹路径是否存在
+    try {
+      await electronApi.access(currentConversation.path);
+    } catch (pathError) {
+      // 检查localStorage是否有更新的路径
+      try {
+        const savedConversations = JSON.parse(localStorage.getItem('aichat_conversations') || '[]');
+        const updatedConversation = savedConversations.find(c => c.id === currentConversation.id);
+        if (updatedConversation && updatedConversation.path !== currentConversation.path) {
+          console.log('加载消息时检测到会话路径已更新:', {
+            oldPath: currentConversation.path,
+            newPath: updatedConversation.path
+          });
+          updatedPath = updatedConversation.path;
+          // 验证新路径是否存在
+          await electronApi.access(updatedPath);
+        } else {
+          // 如果localStorage也没有更新的路径，则抛出原始错误
+          throw pathError;
         }
+      } catch (storageError) {
+        console.error('文件夹路径不存在且无法从localStorage恢复:', pathError);
+        throw new Error(`对话文件夹不存在: ${currentConversation.path}`);
       }
-      
-      contentMap.set(contentKey, msg);
-      uniqueMessages.push(msg);
     }
-
+    
+    // 使用正确的路径加载消息
+    let messages = await electronApi.loadMessages(updatedPath, currentConversation.id);
+    
+    // 处理空数组或无效数据
+    if (!messages || !Array.isArray(messages)) {
+      messages = [];
+    }
+    
+    // 去除重复消息（相同ID）
+    const uniqueMessageIds = new Set();
+    const uniqueMessages = [];
+    
+    for (const message of messages) {
+      if (!message.id) continue;
+      
+      if (!uniqueMessageIds.has(message.id)) {
+        uniqueMessageIds.add(message.id);
+        uniqueMessages.push(message);
+      }
+    }
+    
     // 自动修复并保存
     if (uniqueMessages.length !== messages.length) {
       console.log(`修复 ${messages.length - uniqueMessages.length} 条问题消息`);
       await electronApi.saveMessages(
-        currentConversation.path,
+        updatedPath,
         currentConversation.id,
         uniqueMessages
       );

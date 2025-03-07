@@ -1460,8 +1460,9 @@ export function ChatView({
                 value={messageInput}
                 onChange={(e) => {
                   setMessageInput(e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = `${e.target.scrollHeight}px`;
+                  e.target.style.height = '72px'; // 重置为初始高度（3行文字高度）
+                  const scrollHeight = Math.max(e.target.scrollHeight, 72);
+                  e.target.style.height = `${scrollHeight}px`;
                   if (e.target.scrollHeight > 480) {
                     e.target.style.overflowY = 'scroll';
                   } else {
@@ -1472,14 +1473,14 @@ export function ChatView({
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
-                    e.target.style.height = '64px';
+                    e.target.style.height = '72px'; // 保持3行高度一致性
                     e.target.style.overflowY = 'hidden';
                   }
                 }}
                 onPaste={(e) => handlePaste(e, currentConversation, setSelectedFiles, window.electron)}
                 onContextMenu={handleContextMenu}
                 placeholder="Send a message..."
-                className={`textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 scrollbar-hide bg-transparent ${
+                className={`textarea textarea-bordered w-full min-h-[72px] max-h-[480px] rounded-3xl resize-none pb-10 scrollbar-hide bg-transparent ${
                   isCompact ? 'text-sm shadow-lg' : ''
                 }`}
                 style={{
@@ -1490,7 +1491,8 @@ export function ChatView({
                 }}
                 rows="2"
               />
-              <div className="absolute bottom-3 right-3 flex items-center gap-2">
+              {/* 左侧按钮容器 - 放置上传文件按钮 */}
+              <div className="absolute bottom-3 left-[15px] flex items-center gap-2">
                 <button
                   className="btn btn-ghost btn-sm btn-circle"
                   onClick={() => {
@@ -1507,6 +1509,9 @@ export function ChatView({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
                 </button>
+              </div>
+              {/* 右侧按钮容器 - 保持发送按钮在右侧 */}
+              <div className="absolute bottom-3 right-3 flex items-center gap-2">
                 <button
                   className="btn btn-ghost btn-sm btn-circle"
                   onClick={sendMessage}

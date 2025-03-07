@@ -21,41 +21,12 @@ export const useMessageState = (currentConversation) => {
   const [messageStates, setMessageStates] = useState({});
   const [animationStates, setAnimationStates] = useState({});
 
-  // 当对话改变时重置状态
-  useEffect(() => {
-    console.log('useMessageState检测到对话变化:', {
-      对话: currentConversation ? currentConversation.name : '无',
-      对话ID: currentConversation ? currentConversation.id : '无',
-      当前记录的对话ID: currentConversationId
-    });
+  // 函数用于重置所有状态
+  const resetState = () => {
+    // 更新当前对话ID
+    setCurrentConversationId(currentConversation?.id || null);
     
-    // 直接检查当前对话是否发生变化
-    if (!currentConversation) {
-      // 如果没有当前对话，重置所有状态
-      console.log('没有当前对话，重置所有状态');
-      setMessages([]);
-      setCurrentConversationId(null);
-      setEditingMessageId(null);
-      setEditContent(''); 
-      setRetryingMessageId(null);
-      setFailedMessages(new Set());
-      setMessageStates({});
-      setAnimationStates({});
-      return;
-    }
-    
-    // 如果当前对话ID没变，不重新加载消息
-    if (currentConversationId === currentConversation.id) {
-      console.log('对话ID没变，不重新加载消息:', currentConversation.id);
-      return;
-    }
-    
-    console.log('对话已变化，加载新消息:', currentConversation.name, currentConversation.id);
-    
-    // 立即更新当前对话ID
-    setCurrentConversationId(currentConversation.id);
-    
-    // 重置所有状态
+    // 重置所有编辑状态
     setEditingMessageId(null);
     setEditContent('');
     setRetryingMessageId(null);
@@ -65,11 +36,55 @@ export const useMessageState = (currentConversation) => {
     
     // 清空消息，避免显示旧对话的消息
     setMessages([]);
+  };
 
+  // 当对话改变时重置状态
+  useEffect(() => {
+    console.log('useMessageState检测到对话变化:', {
+      conversationId: currentConversation?.id,
+      path: currentConversation?.path,
+    });
+
+    // 清除状态
+    resetState();
+    
     // 加载新对话的消息
     if (currentConversation?.path) {
-      window.electron.loadMessages(currentConversation.path)
-        .then(loadedMessages => {
+      // 检查文件夹路径是否存在，并获取最新路径
+      const checkPathAndLoadMessages = async () => {
+        let updatedPath = currentConversation.path;
+        
+        // 首先验证会话文件夹路径是否存在
+        try {
+          await window.electron.access(currentConversation.path);
+        } catch (pathError) {
+          // 检查localStorage是否有更新的路径
+          try {
+            const savedConversations = JSON.parse(localStorage.getItem('aichat_conversations') || '[]');
+            const updatedConversation = savedConversations.find(c => c.id === currentConversation.id);
+            if (updatedConversation && updatedConversation.path !== currentConversation.path) {
+              console.log('加载消息时检测到会话路径已更新:', {
+                oldPath: currentConversation.path,
+                newPath: updatedConversation.path
+              });
+              updatedPath = updatedConversation.path;
+              // 验证新路径是否存在
+              await window.electron.access(updatedPath);
+            } else {
+              console.error('文件夹路径不存在且无法从localStorage恢复:', pathError);
+              setMessages([]);
+              return;
+            }
+          } catch (storageError) {
+            console.error('读取localStorage失败:', storageError);
+            setMessages([]);
+            return;
+          }
+        }
+        
+        // 使用正确的路径加载消息
+        try {
+          const loadedMessages = await window.electron.loadMessages(updatedPath);
           if (Array.isArray(loadedMessages)) {
             console.log('成功加载消息，对话ID:', currentConversation.id, '消息数量:', loadedMessages.length);
             setMessages(loadedMessages);
@@ -77,12 +92,13 @@ export const useMessageState = (currentConversation) => {
             console.warn('加载的消息不是数组:', loadedMessages);
             setMessages([]);
           }
-        })
-        .catch(error => {
+        } catch (error) {
           console.error('加载消息失败:', error);
-          // 加载失败时也要清空消息
           setMessages([]);
-        });
+        }
+      };
+      
+      checkPathAndLoadMessages();
     } else {
       // 如果没有路径，清空消息
       console.warn('对话没有路径:', currentConversation);
@@ -96,8 +112,36 @@ export const useMessageState = (currentConversation) => {
 
     const saveMessages = async () => {
       try {
+        // 检查文件夹路径是否存在，并获取最新路径
+        let updatedPath = currentConversation.path;
+        
+        try {
+          await window.electron.access(currentConversation.path);
+        } catch (pathError) {
+          // 检查localStorage是否有更新的路径
+          try {
+            const savedConversations = JSON.parse(localStorage.getItem('aichat_conversations') || '[]');
+            const updatedConversation = savedConversations.find(c => c.id === currentConversation.id);
+            if (updatedConversation && updatedConversation.path !== currentConversation.path) {
+              console.log('保存消息时检测到会话路径已更新:', {
+                oldPath: currentConversation.path,
+                newPath: updatedConversation.path
+              });
+              updatedPath = updatedConversation.path;
+              // 验证新路径是否存在
+              await window.electron.access(updatedPath);
+            } else {
+              console.error('保存消息失败: 文件夹路径不存在且无法从localStorage恢复');
+              return;
+            }
+          } catch (storageError) {
+            console.error('读取localStorage失败:', storageError);
+            return;
+          }
+        }
+        
         await window.electron.saveMessages(
-          currentConversation.path,
+          updatedPath,
           currentConversation.id,
           messages
         );

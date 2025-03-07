@@ -24,6 +24,7 @@
   - OpenRouter API
   - DeepSeek API
   - StepFun API
+  - Tavily API (新增)
 
 ## ✨ 主要功能
 
@@ -55,12 +56,21 @@
   - 媒体文件引用关联
   - 音频参数保存
 
-### 🔍 搜索增强
-- Google Custom Search 集成
-  - 支持每天100次免费搜索配额
-  - 自定义搜索引擎配置
-  - 可配置搜索结果数量（1-10条）
-  - API 密钥安全管理
+### 🔍 搜索增强 (升级)
+- Tavily 搜索API集成 (新增)
+  - 专为AI优化的搜索引擎
+  - 每月1,000次免费搜索配额，无需信用卡
+  - 丰富的搜索参数设置
+    - 搜索主题选择 (general/news)
+    - 搜索深度控制 (basic/advanced)
+    - 最大结果数量设置 (1-20条)
+    - 时间范围过滤
+    - LLM生成答案集成
+    - 图片搜索支持
+    - 域名包含/排除设置
+  - 简洁直观的设置界面
+  - API密钥安全管理
+  - 一键测试API连接
 - 搜索结果智能整合
   - 自动提取相关内容
   - 智能总结搜索结果
@@ -396,27 +406,19 @@ npm run electron:build
 ```
 
 ## 🎨 主题预览
-
+"dark", "black", "forest", "luxury", "business", "coffee", 
+      "night", "dim", "sunset"
 支持多种精美主题：
 - Dark
-- Pure Black (新增)
-- Synthwave
-- Halloween
 - Forest
-- Pastel
 - Black
 - Luxury
-- Dracula
 - Business
 - Coffee
-- Emerald
-- Corporate
-- Retro
-- Aqua
-- Wireframe
 - Night
 - Dim
 - Sunset
+- bg-theme（自定义背景，支持图片、视频和ThreeJS Shaders）
 
 ## 🔧 配置说明
 
@@ -471,6 +473,7 @@ npm run electron:build
   - React Virtual - 虚拟列表
   - Pyodide - Python 运行时
   - Cheerio - HTML 解析
+  - Tavily API - AI优化的搜索引擎 (新增)
 
 ### 开发工具
 - Vite - 现代前端构建工具

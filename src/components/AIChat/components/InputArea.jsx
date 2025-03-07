@@ -140,83 +140,92 @@ export const InputArea = ({
           </div>
         )}
         
-        <textarea
-          className={`textarea textarea-bordered w-full min-h-[64px] max-h-[480px] rounded-3xl resize-none pr-24 bg-transparent scrollbar-hide aichat-input ${
-            isCompact ? 'text-sm shadow-lg' : ''
-          }`}
-          placeholder="Send a message..."
-          value={messageInput}
-          onChange={(e) => {
-            setMessageInput(e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = `${e.target.scrollHeight}px`;
-            if (e.target.scrollHeight > 480) {
-              e.target.style.overflowY = 'scroll';
-            } else {
-              e.target.style.overflowY = 'hidden';
-            }
-          }}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              sendMessage();
-            }
-          }}
-          onKeyDown={handleKeyDown}
-          onContextMenu={handleContextMenu}
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            backgroundColor: 'transparent',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)', // 为 Safari 添加支持
-            position: 'relative',
-            zIndex: 1 // 设置较低的z-index值
-          }}
-          rows="2"
-        />
-        <div className="absolute right-4 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
-          <button
-            className={`btn btn-ghost btn-sm btn-circle ${isTranslating ? 'loading' : ''}`}
-            onClick={handleTranslation}
-            title="翻译（使用 Qwen2-1.5B-Instruct 模型，支持中英互译）"
-            disabled={isTranslating}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-            </svg>
-          </button>
-          <button
-            className={`btn btn-ghost btn-sm btn-circle ${isNetworkEnabled ? 'text-primary search-enabled' : 'search-disabled'}`}
-            onClick={() => setIsNetworkEnabled(!isNetworkEnabled)}
-            title={isNetworkEnabled ? '关闭网络搜索' : '开启网络搜索'}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
-          <KnowledgeBaseButton 
-            selectedBases={selectedKnowledgeBases}
-            onSelect={handleKnowledgeBaseSelect}
+        <div className="relative">
+          <textarea
+            className={`textarea textarea-bordered w-full min-h-[72px] max-h-[480px] rounded-3xl resize-none pb-10 bg-transparent scrollbar-hide aichat-input ${
+              isCompact ? 'text-sm shadow-lg' : ''
+            }`}
+            placeholder="Send a message..."
+            value={messageInput}
+            onChange={(e) => {
+              setMessageInput(e.target.value);
+              e.target.style.height = '72px'; // 重置为初始高度（3行文字高度）
+              const scrollHeight = Math.max(e.target.scrollHeight, 72);
+              e.target.style.height = `${scrollHeight}px`;
+              if (e.target.scrollHeight > 480) {
+                e.target.style.overflowY = 'scroll';
+              } else {
+                e.target.style.overflowY = 'hidden';
+              }
+            }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            onKeyDown={handleKeyDown}
+            onContextMenu={handleContextMenu}
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              backgroundColor: 'transparent',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)', // 为 Safari 添加支持
+              position: 'relative',
+              zIndex: 1 // 设置较低的z-index值
+            }}
+            rows="2"
           />
-          <button
-            className="btn btn-ghost btn-sm btn-circle"
-            onClick={() => fileInputRef.current?.click()}
-            title="上传文件"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
-          </button>
-          <button 
-            className="btn btn-ghost btn-sm btn-circle"
-            onClick={sendMessage}
-            title="发送消息"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
-          </button>
+          
+          {/* 左侧按钮容器 - 绝对定位在textarea底部 */}
+          <div className="absolute left-4 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
+            <button
+              className={`btn btn-ghost btn-sm btn-circle ${isTranslating ? 'loading' : ''}`}
+              onClick={handleTranslation}
+              title="翻译（使用 Qwen2-1.5B-Instruct 模型，支持中英互译）"
+              disabled={isTranslating}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+            </button>
+            <button
+              className={`btn btn-ghost btn-sm btn-circle ${isNetworkEnabled ? 'text-primary search-enabled' : 'search-disabled'}`}
+              onClick={() => setIsNetworkEnabled(!isNetworkEnabled)}
+              title={isNetworkEnabled ? '关闭网络搜索' : '开启网络搜索'}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+            <KnowledgeBaseButton 
+              selectedBases={selectedKnowledgeBases}
+              onSelect={handleKnowledgeBaseSelect}
+            />
+            <button
+              className="btn btn-ghost btn-sm btn-circle"
+              onClick={() => fileInputRef.current?.click()}
+              title="上传文件"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* 右侧按钮容器 - 绝对定位在textarea底部 */}
+          <div className="absolute right-4 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
+            <button 
+              className="btn btn-ghost btn-sm btn-circle"
+              onClick={sendMessage}
+              title="发送消息"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

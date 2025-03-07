@@ -70,6 +70,37 @@ export const createMessageHandlers = ({
       const message = messages.find(msg => msg.id === id);
       if (!message) return;
 
+      // 从会话路径开始就进行验证
+      if (!currentConversation?.path) {
+        throw new Error('当前没有选择会话或会话路径无效');
+      }
+
+      // 验证会话文件夹路径是否存在
+      try {
+        await window.electron.access(currentConversation.path);
+      } catch (pathError) {
+        console.error('文件夹路径不存在:', pathError);
+        throw new Error(`对话文件夹不存在: ${currentConversation.path}`);
+      }
+      
+      // 从localStorage获取最新的会话信息，确保使用正确的路径
+      let updatedPath = currentConversation.path;
+      try {
+        const savedConversations = JSON.parse(localStorage.getItem('aichat_conversations') || '[]');
+        const updatedConversation = savedConversations.find(c => c.id === currentConversation.id);
+        if (updatedConversation && updatedConversation.path !== currentConversation.path) {
+          console.log('检测到会话路径已更新:', {
+            oldPath: currentConversation.path,
+            newPath: updatedConversation.path
+          });
+          updatedPath = updatedConversation.path;
+          // 验证新路径是否存在
+          await window.electron.access(updatedPath);
+        }
+      } catch (storageError) {
+        console.warn('读取localStorage失败，使用当前路径:', storageError);
+      }
+
       // 如果消息有关联的文件，删除它们
       if (message.txtFile) {
         await window.electron.removeFile(message.txtFile.path);
@@ -84,23 +115,21 @@ export const createMessageHandlers = ({
       const newMessages = messages.filter(m => m.id !== id);
       
       // 保存更新后的消息列表到 messages.json
-      if (currentConversation?.path) {
-        try {
-          console.log('正在保存消息列表:', {
-            path: currentConversation.path,
-            id: currentConversation.id,
-            messages: newMessages
-          });
-          await window.electron.saveMessages(
-            currentConversation.path,
-            currentConversation.id,
-            newMessages
-          );
-          console.log('消息列表保存成功');
-        } catch (error) {
-          console.error('保存消息列表失败:', error);
-          throw error;
-        }
+      try {
+        console.log('正在保存消息列表:', {
+          path: updatedPath,
+          id: currentConversation.id,
+          messages: newMessages
+        });
+        await window.electron.saveMessages(
+          updatedPath,
+          currentConversation.id,
+          newMessages
+        );
+        console.log('消息列表保存成功');
+      } catch (error) {
+        console.error('保存消息列表失败:', error);
+        throw error;
       }
 
       // 更新状态

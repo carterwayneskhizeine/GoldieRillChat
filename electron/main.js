@@ -649,59 +649,66 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
         const messagesPath = path.join(folderPath, 'messages.json')
         const messagesContent = await fs.readFile(messagesPath, 'utf8')
         messages = JSON.parse(messagesContent)
-
-        // 获取已存在文件的路径列表
-        const existingFilePaths = new Set()
-        messages.forEach(msg => {
-          if (msg.txtFile) {
-            existingFilePaths.add(msg.txtFile.path)
+        
+        // 更新消息中的路径信息，而不是创建新消息
+        const updatedMessages = messages.map(msg => {
+          // 创建消息的副本
+          const updatedMsg = { ...msg };
+          
+          // 更新txtFile路径
+          if (updatedMsg.txtFile && updatedMsg.txtFile.path) {
+            const fileName = path.basename(updatedMsg.txtFile.path);
+            updatedMsg.txtFile = {
+              ...updatedMsg.txtFile,
+              path: path.join(folderPath, fileName)
+            };
           }
-          if (msg.files) {
-            msg.files.forEach(file => existingFilePaths.add(file.path))
+          
+          // 更新files路径
+          if (updatedMsg.files && Array.isArray(updatedMsg.files)) {
+            updatedMsg.files = updatedMsg.files.map(file => {
+              if (file.path) {
+                const fileName = path.basename(file.path);
+                return {
+                  ...file,
+                  path: path.join(folderPath, fileName)
+                };
+              }
+              return file;
+            });
           }
-        })
-
-        // 处理新的文本文件
-        const newTxtFiles = files.filter(f => 
-          f.type === '.txt' && !existingFilePaths.has(f.path)
-        )
-        for (const txtFile of newTxtFiles) {
-          const content = await fs.readFile(txtFile.path, 'utf8')
-          messages.push({
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            content: content,
-            timestamp: txtFile.timestamp,
-            txtFile: {
-              name: txtFile.name,
-              displayName: txtFile.name.replace('.txt', ''),
-              path: txtFile.path
-            }
-          })
-        }
-
-        // 处理新的媒体文件
-        const newMediaFiles = files.filter(f => 
-          f.type !== '.txt' && 
-          f.type !== '.json' && 
-          !existingFilePaths.has(f.path)
-        )
-        newMediaFiles.forEach(file => {
-          messages.push({
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            content: '',
-            timestamp: file.timestamp,
-            files: [file]
-          })
-        })
-
-        // 如果有新文件，重新排序并保存
-        if (newTxtFiles.length > 0 || newMediaFiles.length > 0) {
-          messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          
+          return updatedMsg;
+        });
+        
+        // 如果有路径更新，保存回文件
+        const hasPathUpdates = updatedMessages.some((newMsg, index) => {
+          const oldMsg = messages[index];
+          if (!oldMsg) return false;
+          
+          // 检查txtFile路径
+          if (oldMsg.txtFile?.path !== newMsg.txtFile?.path) {
+            return true;
+          }
+          
+          // 检查files路径
+          if (oldMsg.files && newMsg.files) {
+            return oldMsg.files.some((oldFile, fileIndex) => {
+              return oldFile.path !== newMsg.files[fileIndex].path;
+            });
+          }
+          
+          return false;
+        });
+        
+        if (hasPathUpdates) {
+          console.log(`更新 ${folderPath} 的消息路径信息`);
           await fs.writeFile(
-            path.join(folderPath, 'messages.json'),
-            JSON.stringify(messages, null, 2),
+            messagesPath,
+            JSON.stringify(updatedMessages, null, 2),
             'utf8'
-          )
+          );
+          messages = updatedMessages;
         }
       } catch (error) {
         // 如果 messages.json 不存在，创建新的消息数组
@@ -2489,6 +2496,87 @@ ipcMain.handle('select-directory', async () => {
     return result;
   } catch (error) {
     console.error('选择目录失败:', error);
+    throw error;
+  }
+});
+
+// 添加一个新的函数来更新messages.json中的路径
+ipcMain.handle('update-messages-path', async (event, oldPath, newPath) => {
+  try {
+    console.log(`更新消息路径: ${oldPath} -> ${newPath}`);
+    
+    // 读取messages.json文件
+    const messagesPath = path.join(newPath, 'messages.json');
+    
+    try {
+      // 检查文件是否存在
+      await fs.access(messagesPath);
+      
+      // 读取消息内容
+      const content = await fs.readFile(messagesPath, 'utf8');
+      const messages = JSON.parse(content);
+      
+      if (!Array.isArray(messages)) {
+        console.warn('消息文件格式无效:', messagesPath);
+        return false;
+      }
+      
+      // 是否有任何路径更新
+      let hasUpdates = false;
+      
+      // 更新每条消息中的路径信息
+      const updatedMessages = messages.map(msg => {
+        // 创建消息的副本
+        const updatedMsg = { ...msg };
+        
+        // 更新txtFile路径
+        if (updatedMsg.txtFile && updatedMsg.txtFile.path) {
+          const originalPath = updatedMsg.txtFile.path;
+          
+          // 只替换路径前缀，保留文件名
+          if (originalPath.startsWith(oldPath)) {
+            const fileName = path.basename(originalPath);
+            updatedMsg.txtFile = {
+              ...updatedMsg.txtFile,
+              path: path.join(newPath, fileName)
+            };
+            hasUpdates = true;
+          }
+        }
+        
+        // 更新files数组中的路径
+        if (updatedMsg.files && Array.isArray(updatedMsg.files)) {
+          updatedMsg.files = updatedMsg.files.map(file => {
+            if (file && file.path && file.path.startsWith(oldPath)) {
+              const fileName = path.basename(file.path);
+              hasUpdates = true;
+              return {
+                ...file,
+                path: path.join(newPath, fileName)
+              };
+            }
+            return file;
+          });
+        }
+        
+        return updatedMsg;
+      });
+      
+      // 只有在有实际更新时才写入文件
+      if (hasUpdates) {
+        console.log(`正在更新 ${messagesPath} 的路径信息，共 ${messages.length} 条消息`);
+        await fs.writeFile(messagesPath, JSON.stringify(updatedMessages, null, 2), 'utf8');
+        return true;
+      } else {
+        console.log('没有需要更新的路径');
+        return false;
+      }
+    } catch (error) {
+      console.error('更新消息路径失败:', error);
+      return false;
+    }
+  } catch (error) {
+    console.error('更新消息路径失败:', error);
     throw error;
   }
 });

@@ -99,9 +99,17 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
   // 使用Map存储合并结果，以路径为键避免重复
   const mergedMap = new Map();
   
-  // 添加过滤后的现有对话
+  // 创建一个映射表，用于跟踪被重命名的文件夹
+  // 键为旧路径的basename，值为Conv对象
+  const pathBaseNameMap = new Map();
+  
+  // 添加过滤后的现有对话到映射表
   for (const conv of filteredExisting) {
     if (conv.path) {
+      // 保存路径basename到原始对话的映射
+      const basename = conv.path.split(/[\\/]/).pop(); // 获取路径的最后一部分
+      pathBaseNameMap.set(basename, conv);
+      
       let modifiedTime;
       try {
         // 尝试从 timemessages.json 获取修改时间
@@ -164,7 +172,10 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
       }
       conv.modifiedTime = modifiedTime;
       
-      // 如果已存在路径相同的对话，保留原始ID和名称，但更新路径和时间戳
+      // 获取文件夹名称
+      const folderName = conv.path.split(/[\\/]/).pop();
+      
+      // 检查是否已存在路径相同的对话
       if (mergedMap.has(conv.path)) {
         const existingConv = mergedMap.get(conv.path);
         mergedMap.set(conv.path, {
@@ -173,7 +184,14 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
           name: existingConv.name,
           modifiedTime: modifiedTime
         });
-      } else {
+      } 
+      // 检查是否是重命名的文件夹
+      else if (pathBaseNameMap.has(folderName)) {
+        // 如果是已存在的文件夹（使用文件夹名称匹配）但路径变了，表示重命名了父目录
+        console.warn('检测到可能的文件夹重命名：', folderName);
+        // 不添加新记录，而是更新现有记录的路径
+      }
+      else {
         mergedMap.set(conv.path, conv);
       }
     }

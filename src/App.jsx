@@ -1016,6 +1016,9 @@ export default function App() {
   // 添加实际执行重命名的函数
   const handleRenameConfirm = async (conversation, newName) => {
     try {
+      // 保存旧路径，用于更新消息路径
+      const oldPath = conversation.path;
+      
       // 重命名文件夹
       const result = await window.electron.renameChatFolder(conversation.path, newName);
       
@@ -1033,6 +1036,15 @@ export default function App() {
       
       // 更新本地存储
       localStorage.setItem('aichat_conversations', JSON.stringify(updatedConversations));
+
+      // 更新消息中的路径信息
+      try {
+        console.log('更新消息路径:', oldPath, '->', result.path);
+        await window.electron.updateMessagesPath(oldPath, result.path);
+      } catch (pathError) {
+        console.error('更新消息路径失败:', pathError);
+        // 不中断重命名流程，仅记录错误
+      }
 
       // 清除编辑状态
       setEditingFolderName(null);
