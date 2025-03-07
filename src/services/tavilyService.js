@@ -19,6 +19,12 @@ class TavilyService {
     const searchTopic = localStorage.getItem('aichat_tavily_topic') || 'general';
     const includeAnswer = localStorage.getItem('aichat_tavily_include_answer') === 'true' ? true : 
                          localStorage.getItem('aichat_tavily_include_answer') === 'advanced' ? 'advanced' : false;
+    // 读取图片相关参数
+    const includeImages = localStorage.getItem('aichat_tavily_include_images') === 'true';
+    const includeImageDescriptions = localStorage.getItem('aichat_tavily_include_image_descriptions') === 'true';
+    const timeRange = localStorage.getItem('aichat_tavily_time_range') || '';
+    const includeRawContent = localStorage.getItem('aichat_tavily_include_raw_content') === 'true';
+    const days = parseInt(localStorage.getItem('aichat_tavily_days') || '3');
     
     // 解析包含和排除的域名
     let includeDomains = [];
@@ -44,7 +50,12 @@ class TavilyService {
       searchTopic,
       includeAnswer,
       includeDomains: includeDomains.filter(d => d),
-      excludeDomains: excludeDomains.filter(d => d)
+      excludeDomains: excludeDomains.filter(d => d),
+      includeImages,
+      includeImageDescriptions,
+      timeRange,
+      includeRawContent,
+      days
     };
   }
 
@@ -116,8 +127,23 @@ class TavilyService {
         topic: config.searchTopic,
         include_answer: config.includeAnswer,
         include_domains: config.includeDomains,
-        exclude_domains: config.excludeDomains
+        exclude_domains: config.excludeDomains,
+        include_images: config.includeImages,
+        include_image_descriptions: config.includeImageDescriptions
       };
+      
+      // 添加可选参数
+      if (config.timeRange) {
+        requestBody.time_range = config.timeRange;
+      }
+      
+      if (config.includeRawContent) {
+        requestBody.include_raw_content = config.includeRawContent;
+      }
+      
+      if (config.searchTopic === 'news' && config.days) {
+        requestBody.days = config.days;
+      }
 
       // 发起请求
       const response = await Promise.race([
@@ -146,6 +172,7 @@ class TavilyService {
       }
 
       const data = await response.json();
+      console.log('Tavily原始搜索结果:', data);
       
       // 转换为统一格式
       const searchResults = {
@@ -159,7 +186,8 @@ class TavilyService {
           displayUrl: new URL(result.url).hostname,
           score: result.score
         })),
-        answer: data.answer
+        answer: data.answer,
+        images: data.images // 保存图片结果
       };
       
       // 缓存结果
@@ -227,11 +255,49 @@ class TavilyService {
   }
 
   /**
+   * 下载搜索返回的图片到本地
+   * @param {Array} images - 图片URL数组
+   * @param {string} folderPath - 保存图片的文件夹路径
+   * @returns {Promise<Array>} - 更新后的图片数组
+   */
+  async downloadSearchImages(images, folderPath) {
+    try {
+      console.log(`开始下载 ${images.length} 张图片到 ${folderPath}`);
+      
+      // 调用Electron的图片下载API
+      const result = await window.electron.downloadSearchImages(images.map(img => img.url), folderPath);
+      
+      if (!result.success) {
+        console.error('图片下载失败:', result.error);
+        return images; // 下载失败时返回原始图片数组
+      }
+      
+      // 更新图片URL为本地路径
+      return images.map((img, index) => {
+        const downloadResult = result.images[index];
+        if (downloadResult && downloadResult.success) {
+          // 找到对应的下载结果，并更新URL为本地路径
+          return {
+            ...img,
+            originalUrl: img.url, // 保存原始URL
+            url: `file://${downloadResult.localPath}` // 更新为本地文件路径
+          };
+        }
+        return img; // 如果下载失败，保持原样
+      });
+    } catch (error) {
+      console.error('下载图片过程中出错:', error);
+      return images; // 出错时返回原始图片数组
+    }
+  }
+
+  /**
    * 搜索并获取内容 - 与searchService保持兼容的接口
    * @param {string} query - 搜索查询
+   * @param {string} folderPath - 保存图片的文件夹路径 
    * @returns {Promise<Object>} 处理后的搜索结果和网页内容
    */
-  async searchAndFetchContent(query) {
+  async searchAndFetchContent(query, folderPath) {
     // 检查是否配置了API密钥
     if (!this.isConfigured()) {
       throw new Error('请先在设置中配置 Tavily API 密钥');
@@ -246,7 +312,21 @@ class TavilyService {
     try {
       const searchResults = await this.search(query);
       
-      // 如果搜索结果中已经包含了内容，直接返回
+      // 检查是否有图片结果，有则下载到本地
+      if (searchResults.images && searchResults.images.length > 0 && folderPath) {
+        console.log(`搜索返回了 ${searchResults.images.length} 张图片，开始下载到本地...`);
+        
+        // 下载图片并更新URL为本地路径
+        const updatedImages = await this.downloadSearchImages(searchResults.images, folderPath);
+        
+        // 更新搜索结果中的图片数组
+        searchResults.images = updatedImages;
+        
+        // 更新缓存
+        this.setCache(query, searchResults);
+      }
+      
+      // 如果搜索结果中已经包含了内容，直接返回完整的结果（包括images数组）
       if (searchResults.results && searchResults.results.length > 0) {
         return searchResults;
       }

@@ -43,7 +43,7 @@ export const MessageList = ({
 
   // 收集所有媒体文件（图片和视频）
   const collectMedia = useCallback(() => {
-    return messages
+    const mediaFromFiles = messages
       .filter(msg => msg.files?.some(f => f.name && f.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)))
       .flatMap(msg => msg.files
         .filter(f => f.name && f.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i))
@@ -54,6 +54,19 @@ export const MessageList = ({
           type: f.name.match(/\.mp4$/i) ? 'video' : 'image'
         }))
       );
+      
+    // 收集搜索返回的图片
+    const mediaFromSearch = messages
+      .filter(msg => msg.searchImages && msg.searchImages.length > 0)
+      .flatMap(msg => msg.searchImages.map((img, index) => ({
+        src: img.url,
+        title: `搜索图片 ${index + 1}`,
+        description: img.description || '搜索相关图片',
+        type: 'image'
+      })));
+    
+    // 合并两种来源的媒体文件
+    return [...mediaFromFiles, ...mediaFromSearch];
   }, [messages]);
 
   const scrollToBottom = () => {

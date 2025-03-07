@@ -4,6 +4,8 @@ const path = require('path')
 const fs = require('fs').promises
 const fsSync = require('fs')  // 添加同步版本的 fs 模块
 const BrowserLikeWindow = require('electron-as-browser')
+const axios = require('axios') // 添加axios用于图片下载
+const crypto = require('crypto') // 添加crypto用于生成文件名
 
 let mainWindow = null
 let browserWindow = null
@@ -2578,5 +2580,87 @@ ipcMain.handle('update-messages-path', async (event, oldPath, newPath) => {
   } catch (error) {
     console.error('更新消息路径失败:', error);
     throw error;
+  }
+});
+
+// 下载图片函数
+async function downloadImage(url, folderPath) {
+  try {
+    // 创建文件夹（如果不存在）
+    await fs.mkdir(folderPath, { recursive: true });
+    
+    // 生成唯一文件名
+    const hash = crypto.createHash('md5').update(url).digest('hex');
+    const ext = path.extname(url).split('?')[0] || '.jpg'; // 获取扩展名，去除查询参数
+    const fileName = `img_${hash}${ext}`;
+    const filePath = path.join(folderPath, fileName);
+    
+    // 检查文件是否已存在
+    try {
+      await fs.access(filePath);
+      console.log(`图片已存在: ${filePath}`);
+      return { success: true, filePath, fileName, url };
+    } catch (err) {
+      // 文件不存在，继续下载
+    }
+    
+    // 下载图片
+    const response = await axios({
+      method: 'GET',
+      url: url,
+      responseType: 'arraybuffer',
+      timeout: 10000, // 10秒超时
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    // 保存图片
+    await fs.writeFile(filePath, response.data);
+    console.log(`图片已下载: ${filePath}`);
+    
+    return { success: true, filePath, fileName, url };
+  } catch (error) {
+    console.error(`下载图片失败 ${url}:`, error.message);
+    return { success: false, error: error.message, url };
+  }
+}
+
+// 下载多个图片
+async function downloadImages(imageUrls, folderPath) {
+  try {
+    // 确保文件夹存在
+    await fs.mkdir(folderPath, { recursive: true });
+    
+    // 并行下载所有图片
+    const results = await Promise.all(
+      imageUrls.map(url => downloadImage(url, folderPath))
+    );
+    
+    // 返回下载结果
+    return {
+      success: true,
+      images: results.map(result => ({
+        originalUrl: result.url,
+        localPath: result.success ? result.filePath : null,
+        fileName: result.success ? result.fileName : null,
+        success: result.success,
+        error: result.error || null
+      }))
+    };
+  } catch (error) {
+    console.error('下载多个图片失败:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// 添加IPC处理器
+ipcMain.handle('download-search-images', async (event, imageUrls, folderPath) => {
+  try {
+    const result = await downloadImages(imageUrls, folderPath);
+    return result;
+  } catch (error) {
+    console.error('下载图片IPC处理器错误:', error);
+    return { success: false, error: error.message };
   }
 });

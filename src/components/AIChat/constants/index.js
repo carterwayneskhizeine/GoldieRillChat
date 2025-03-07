@@ -12,6 +12,10 @@ export const STORAGE_KEYS = {
   SELECTED_TEMPLATE_ID: 'aichat_selected_template_id'
 };
 
+// 代码编辑器主题常量
+export const CODE_THEME_LIGHT = 'light';
+export const CODE_THEME_DARK = 'vs-dark';
+
 // 显示阶段常量
 export const DISPLAY_STAGES = {
   REASONING: 'reasoning',      // 正在接收推理过程
@@ -24,6 +28,7 @@ export const DISPLAY_STAGES = {
 export const MESSAGE_STATES = {
   IDLE: 'idle',
   THINKING: 'thinking',
+  SEARCHING: 'searching',
   COMPLETED: 'completed',
   ERROR: 'error'
 };

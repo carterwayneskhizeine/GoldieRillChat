@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { callModelAPI } from '../../../services/modelProviders';
 import { MESSAGE_STATES } from '../constants';
 import { tavilyService } from '../../../services/tavilyService';
+import { getWebSearchPrompt } from '../../../utils/prompts';
 
 // 格式化时间函数
 const formatAIChatTime = (timestamp) => {
@@ -300,22 +301,96 @@ export const createMessageHandlers = ({
       if (isNetworkEnabled) {
         try {
           console.log('重试时进行网络搜索:', userMessage.content);
-          const searchResponse = await tavilyService.searchAndFetchContent(userMessage.content);
+          
+          // 更新AI消息状态为"搜索中"
+          setMessageStates(prev => ({
+            ...prev,
+            [aiMessage.id]: MESSAGE_STATES.SEARCHING
+          }));
+
+          // 更新AI消息内容为搜索中提示
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
+            if (aiMessageIndex === -1) return prev;
+
+            newMessages[aiMessageIndex] = {
+              ...newMessages[aiMessageIndex],
+              content: '正在搜索网络信息...',
+              generating: true
+            };
+            return newMessages;
+          });
+          
+          // 传递当前会话路径，用于保存图片
+          const searchResponse = await tavilyService.searchAndFetchContent(userMessage.content, currentConversation.path);
           console.log('搜索结果:', searchResponse);
           
-          if (searchResponse.results && searchResponse.results.length > 0) {
-            systemMessage = `以下是与问题相关的网络搜索结果：\n\n${
-              searchResponse.results.map((result, index) => (
-                `[${index + 1}] ${result.title}\n${result.snippet}\n${result.content}\n---\n`
-              )).join('\n')
-            }\n\n请基于以上搜索结果回答用户的问题："${userMessage.content}"。如果搜索结果不足以完整回答问题，也可以使用你自己的知识来补充。请在回答末尾列出使用的参考来源编号。`;
+          // 搜索完成后，更新消息状态为"思考中"
+          setMessageStates(prev => ({
+            ...prev,
+            [aiMessage.id]: MESSAGE_STATES.THINKING
+          }));
+
+          // 更新AI消息内容为思考中提示
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
+            if (aiMessageIndex === -1) return prev;
+
+            newMessages[aiMessageIndex] = {
+              ...newMessages[aiMessageIndex],
+              content: '思考中...',
+              generating: true
+            };
+            return newMessages;
+          });
+          
+          if (searchResponse?.results?.length > 0) {
+            // 使用新的getWebSearchPrompt函数生成提示词
+            systemMessage = getWebSearchPrompt(
+              userMessage,
+              searchResponse.query,
+              searchResponse.results,
+              searchResponse.images
+            );
             
             searchResults = searchResponse.results;
             console.log('搜索结果处理完成');
           }
+          
+          // 处理搜索返回的图片
+          if (searchResponse.images && searchResponse.images.length > 0) {
+            console.log('搜索返回图片结果:', searchResponse.images);
+            // 确保searchResults对象存在
+            searchResults = searchResults || {};
+            // 添加图片到searchResults
+            searchResults.images = searchResponse.images;
+          }
         } catch (error) {
           console.error('搜索失败:', error);
-          // 搜索失败时继续对话，但不使用搜索结果
+          
+          // 更新消息状态为错误
+          setMessageStates(prev => ({
+            ...prev,
+            [aiMessage.id]: MESSAGE_STATES.ERROR
+          }));
+          
+          // 更新消息内容为错误信息
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
+            if (aiMessageIndex === -1) return prev;
+
+            newMessages[aiMessageIndex] = {
+              ...newMessages[aiMessageIndex],
+              content: `搜索失败: ${error.message}`,
+              generating: false
+            };
+            return newMessages;
+          });
+          
+          return; // 搜索失败时退出
         }
       }
 
@@ -418,6 +493,11 @@ export const createMessageHandlers = ({
           reasoning_content: response.reasoning_content || currentMessage.reasoning_content, // 保留推理内容
           searchResults: searchResults // 添加搜索结果
         };
+        
+        // 如果搜索结果包含图片，添加到消息
+        if (searchResults && searchResults.images) {
+          newMessages[index].searchImages = searchResults.images;
+        }
 
         return newMessages;
       });

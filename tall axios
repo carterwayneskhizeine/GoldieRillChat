@@ -1,0 +1,1208 @@
+warning: in the working copy of 'electron/main.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'electron/preload.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/AIChat/components/InputArea.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/AIChat/components/MessageItem.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/AIChat/components/MessageList.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/AIChat/handlers/inputHandlers.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/AIChat/index.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/shared/MarkdownRenderer.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/utils/prompts.js', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/electron/main.js b/electron/main.js[m
+[1mindex b6afee6..3f8f54e 100644[m
+[1m--- a/electron/main.js[m
+[1m+++ b/electron/main.js[m
+[36m@@ -4,6 +4,8 @@[m [mconst path = require('path')[m
+ const fs = require('fs').promises[m
+ const fsSync = require('fs')  // 添加同步版本的 fs 模块[m
+ const BrowserLikeWindow = require('electron-as-browser')[m
+[32m+[m[32mconst axios = require('axios') // 添加axios用于图片下载[m
+[32m+[m[32mconst crypto = require('crypto') // 添加crypto用于生成文件名[m
+ [m
+ let mainWindow = null[m
+ let browserWindow = null[m
+[36m@@ -2579,4 +2581,86 @@[m [mipcMain.handle('update-messages-path', async (event, oldPath, newPath) => {[m
+     console.error('更新消息路径失败:', error);[m
+     throw error;[m
+   }[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32m// 下载图片函数[m
+[32m+[m[32masync function downloadImage(url, folderPath) {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    // 创建文件夹（如果不存在）[m
+[32m+[m[32m    await fs.mkdir(folderPath, { recursive: true });[m
+[32m+[m[41m    [m
+[32m+[m[32m    // 生成唯一文件名[m
+[32m+[m[32m    const hash = crypto.createHash('md5').update(url).digest('hex');[m
+[32m+[m[32m    const ext = path.extname(url).split('?')[0] || '.jpg'; // 获取扩展名，去除查询参数[m
+[32m+[m[32m    const fileName = `img_${hash}${ext}`;[m
+[32m+[m[32m    const filePath = path.join(folderPath, fileName);[m
+[32m+[m[41m    [m
+[32m+[m[32m    // 检查文件是否已存在[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      await fs.access(filePath);[m
+[32m+[m[32m      console.log(`图片已存在: ${filePath}`);[m
+[32m+[m[32m      return { success: true, filePath, fileName, url };[m
+[32m+[m[32m    } catch (err) {[m
+[32m+[m[32m      // 文件不存在，继续下载[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    // 下载图片[m
+[32m+[m[32m    const response = await axios({[m
+[32m+[m[32m      method: 'GET',[m
+[32m+[m[32m      url: url,[m
+[32m+[m[32m      responseType: 'arraybuffer',[m
+[32m+[m[32m      timeout: 10000, // 10秒超时[m
+[32m+[m[32m      headers: {[m
+[32m+[m[32m        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'[m
+[32m+[m[32m      }[m
+[32m+[m[32m    });[m
+[32m+[m[41m    [m
+[32m+[m[32m    // 保存图片[m
+[32m+[m[32m    await fs.writeFile(filePath, response.data);[m
+[32m+[m[32m    console.log(`图片已下载: ${filePath}`);[m
+[32m+[m[41m    [m
+[32m+[m[32m    return { success: true, filePath, fileName, url };[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    console.error(`下载图片失败 ${url}:`, error.message);[m
+[32m+[m[32m    return { success: false, error: error.message, url };[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m// 下载多个图片[m
+[32m+[m[32masync function downloadImages(imageUrls, folderPath) {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    // 确保文件夹存在[m
+[32m+[m[32m    await fs.mkdir(folderPath, { recursive: true });[m
+[32m+[m[41m    [m
+[32m+[m[32m    // 并行下载所有图片[m
+[32m+[m[32m    const results = await Promise.all([m
+[32m+[m[32m      imageUrls.map(url => downloadImage(url, folderPath))[m
+[32m+[m[32m    );[m
+[32m+[m[41m    [m
+[32m+[m[32m    // 返回下载结果[m
+[32m+[m[32m    return {[m
+[32m+[m[32m      success: true,[m
+[32m+[m[32m      images: results.map(result => ({[m
+[32m+[m[32m        originalUrl: result.url,[m
+[32m+[m[32m        localPath: result.success ? result.filePath : null,[m
+[32m+[m[32m        fileName: result.success ? result.fileName : null,[m
+[32m+[m[32m        success: result.success,[m
+[32m+[m[32m        error: result.error || null[m
+[32m+[m[32m      }))[m
+[32m+[m[32m    };[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    console.error('下载多个图片失败:', error);[m
+[32m+[m[32m    return { success: false, error: error.message };[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m// 添加IPC处理器[m
+[32m+[m[32mipcMain.handle('download-search-images', async (event, imageUrls, folderPath) => {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const result = await downloadImages(imageUrls, folderPath);[m
+[32m+[m[32m    return result;[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    console.error('下载图片IPC处理器错误:', error);[m
+[32m+[m[32m    return { success: false, error: error.message };[m
+[32m+[m[32m  }[m
+ });[m
+\ No newline at end of file[m
+[1mdiff --git a/electron/preload.js b/electron/preload.js[m
+[1mindex 6e6c844..bd4b0cd 100644[m
+[1m--- a/electron/preload.js[m
+[1m+++ b/electron/preload.js[m
+[36m@@ -32,6 +32,10 @@[m [mcontextBridge.exposeInMainWorld('electron', {[m
+   mkdir: (dirPath) => ipcRenderer.invoke('mkdir', dirPath),[m
+   access: (filePath) => ipcRenderer.invoke('access', filePath),[m
+   [m
+[32m+[m[32m  // 添加图片下载相关方法[m
+[32m+[m[32m  downloadSearchImages: (imageUrls, folderPath) =>[m[41m [m
+[32m+[m[32m    ipcRenderer.invoke('download-search-images', imageUrls, folderPath),[m
+[32m+[m[41m  [m
+   // 添加书签文件相关处理函数[m
+   selectBookmarkFile: () => ipcRenderer.invoke('select-bookmark-file'),[m
+   readFile: async (filePath) => {[m
+[1mdiff --git a/src/components/AIChat/components/InputArea.jsx b/src/components/AIChat/components/InputArea.jsx[m
+[1mindex 87f8e52..7db2119 100644[m
+[1m--- a/src/components/AIChat/components/InputArea.jsx[m
+[1m+++ b/src/components/AIChat/components/InputArea.jsx[m
+[36m@@ -192,7 +192,11 @@[m [mexport const InputArea = ({[m
+             </button>[m
+             <button[m
+               className={`btn btn-ghost btn-sm btn-circle ${isNetworkEnabled ? 'text-primary search-enabled' : 'search-disabled'}`}[m
+[31m-              onClick={() => setIsNetworkEnabled(!isNetworkEnabled)}[m
+[32m+[m[32m              onClick={() => {[m
+[32m+[m[32m                const newValue = !isNetworkEnabled;[m
+[32m+[m[32m                setIsNetworkEnabled(newValue);[m
+[32m+[m[32m                localStorage.setItem('aichat_use_web_search', newValue.toString());[m
+[32m+[m[32m              }}[m
+               title={isNetworkEnabled ? '关闭网络搜索' : '开启网络搜索'}[m
+             >[m
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">[m
+[1mdiff --git a/src/components/AIChat/components/MessageItem.jsx b/src/components/AIChat/components/MessageItem.jsx[m
+[1mindex 95e02f0..c1ac245 100644[m
+[1m--- a/src/components/AIChat/components/MessageItem.jsx[m
+[1m+++ b/src/components/AIChat/components/MessageItem.jsx[m
+[36m@@ -6,6 +6,11 @@[m [mimport { MarkdownRenderer } from '../../shared/MarkdownRenderer';[m
+ import { shouldCollapseMessage, getMessageContentStyle } from '../utils/messageCollapse';[m
+ import '../styles/messages.css';[m
+ import { openUrl } from '../../../utils/browserUtils';[m
+[32m+[m[32mimport { ExclamationIcon } from '../../shared/ExclamationIcon';[m
+[32m+[m[32mimport { CODE_THEME_LIGHT, CODE_THEME_DARK, MESSAGE_STATES } from '../constants';[m
+[32m+[m[32mimport TextareaAutosize from 'react-textarea-autosize';[m
+[32m+[m[32mimport MessageActions from './MessageActions';[m
+[32m+[m[32mimport { ThumbUpIcon, ThumbDownIcon } from '../../shared/icons';[m
+ [m
+ const SearchSources = ({ sources, openInBrowserTab }) => {[m
+   const [showSources, setShowSources] = useState(false);[m
+[36m@@ -203,12 +208,18 @@[m [mexport const MessageItem = ({[m
+             <MarkdownRenderer[m
+               content={message.content || ''}[m
+               isCompact={false}[m
+[32m+[m[32m              searchImages={message.searchImages}[m
+               onCopyCode={(code) => {[m
+                 console.log('Code copied:', code);[m
+[32m+[m[32m                if (window.electron) {[m
+[32m+[m[32m                  window.electron.copyToClipboard(code);[m
+[32m+[m[32m                } else {[m
+[32m+[m[32m                  navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));[m
+[32m+[m[32m                }[m
+               }}[m
+               onLinkClick={(href) => {[m
+                 if (href.startsWith('http://') || href.startsWith('https://')) {[m
+[31m-                  openUrl(href, true, false);[m
+[32m+[m[32m                  openInBrowserTab(href);[m
+                 }[m
+               }}[m
+             />[m
+[36m@@ -270,12 +281,18 @@[m [mexport const MessageItem = ({[m
+             <MarkdownRenderer[m
+               content={message.content || ''}[m
+               isCompact={false}[m
+[32m+[m[32m              searchImages={message.searchImages}[m
+               onCopyCode={(code) => {[m
+                 console.log('Code copied:', code);[m
+[32m+[m[32m                if (window.electron) {[m
+[32m+[m[32m                  window.electron.copyToClipboard(code);[m
+[32m+[m[32m                } else {[m
+[32m+[m[32m                  navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));[m
+[32m+[m[32m                }[m
+               }}[m
+               onLinkClick={(href) => {[m
+                 if (href.startsWith('http://') || href.startsWith('https://')) {[m
+[31m-                  openUrl(href, true, false);[m
+[32m+[m[32m                  openInBrowserTab(href);[m
+                 }[m
+               }}[m
+             />[m
+[36m@@ -303,6 +320,81 @@[m [mexport const MessageItem = ({[m
+     );[m
+   };[m
+ [m
+[32m+[m[32m  // 添加处理搜索图片的函数[m
+[32m+[m[32m  const renderSearchImages = (searchImages, onImageClick) => {[m
+[32m+[m[32m    console.log('renderSearchImages调用，图片数量:', searchImages?.length, searchImages);[m
+[32m+[m[32m    if (!searchImages || searchImages.length === 0) return null;[m
+[32m+[m[41m    [m
+[32m+[m[32m    return ([m
+[32m+[m[32m      <div className="search-images-container mt-3 border-t pt-3 border-base-300">[m
+[32m+[m[32m        <h3 className="text-base font-medium mb-2">搜索相关图片：</h3>[m
+[32m+[m[32m        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">[m
+[32m+[m[32m          {searchImages.map((img, index) => ([m
+[32m+[m[32m            <div key={`search-img-${index}`} className="flex flex-col">[m
+[32m+[m[32m              <img[m
+[32m+[m[32m                src={img.url}[m
+[32m+[m[32m                alt={img.description || '搜索图片'}[m
+[32m+[m[32m                className="w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover"[m
+[32m+[m[32m                style={{ maxHeight: '200px' }}[m
+[32m+[m[32m                onClick={(e) => {[m
+[32m+[m[32m                  // 打开Lightbox或处理图片点击[m
+[32m+[m[32m                  if (typeof onImageClick === 'function') {[m
+[32m+[m[32m                    onImageClick(e, {[m
+[32m+[m[32m                      path: img.url,[m
+[32m+[m[32m                      name: 'search-image-' + index + '.jpg',[m
+[32m+[m[32m                      type: 'image/jpeg'[m
+[32m+[m[32m                    });[m
+[32m+[m[32m                  } else {[m
+[32m+[m[32m                    window.open(img.url, '_blank');[m
+[32m+[m[32m                  }[m
+[32m+[m[32m                }}[m
+[32m+[m[32m                loading="lazy"[m
+[32m+[m[32m                onError={(e) => {[m
+[32m+[m[32m                  e.target.onerror = null;[m
+[32m+[m[32m                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgMTNoLTJWN2gydjZabTAgNGgtMnYtMmgydjJabTktNVYxOEE1IDUgMCAwIDEgMTcgMjJINy4zM0ExMC42MSAxMC42MSAwIDAgMSAyIDEzLjQzQzIgOC4wNSA2LjA0IDQgMTAuNCA0YzIuMjUgMCA0LjI1Ljg2IDUuNiAyLjJMMTUuNTMgNUgyMXYzaC0zLjUzYTguNDYgOC40NiAwIDAgMSAtMi4zLTJBNi41MyA2LjUzIDAgMCAwIDEwLjRBNi41IDYuNSAwIDAgMCA0IDEzLjU5QzcuMDMgMTMuNjggOS43NiAxNiAxMCAxOWE4LjM4IDguMzggMCAwIDAgNC40LTMuMjNBNyA3IDAgMCAxIDIxIDEyWiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+'[m
+[32m+[m[32m                  e.target.style.padding = '10px';[m
+[32m+[m[32m                  e.target.style.backgroundColor = 'rgba(0,0,0,0.1)';[m
+[32m+[m[32m                }}[m
+[32m+[m[32m              />[m
+[32m+[m[32m              {img.description && ([m
+[32m+[m[32m                <p className="text-xs mt-1 text-base-content/80 line-clamp-2">{img.description}</p>[m
+[32m+[m[32m              )}[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          ))}[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m    );[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  // 添加MessageStatus组件显示消息状态[m
+[32m+[m[32m  const MessageStatus = ({ message, messageState }) => {[m
+[32m+[m[32m    // 确定消息状态[m
+[32m+[m[32m    if (message.generating && messageState === MESSAGE_STATES.THINKING) {[m
+[32m+[m[32m      return ([m
+[32m+[m[32m        <div className="flex items-center mt-2">[m
+[32m+[m[32m          <div className="loading loading-spinner loading-xs mr-2"></div>[m
+[32m+[m[32m          <span className="text-sm text-opacity-70">思考中...</span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      );[m
+[32m+[m[32m    } else if (message.generating && messageState === MESSAGE_STATES.SEARCHING) {[m
+[32m+[m[32m      return ([m
+[32m+[m[32m        <div className="flex items-center mt-2">[m
+[32m+[m[32m          <div className="loading loading-spinner loading-xs mr-2"></div>[m
+[32m+[m[32m          <span className="text-sm text-opacity-70">搜索网络中...</span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      );[m
+[32m+[m[32m    } else if (messageState === MESSAGE_STATES.ERROR) {[m
+[32m+[m[32m      return ([m
+[32m+[m[32m        <div className="flex items-center mt-2">[m
+[32m+[m[32m          <ExclamationIcon className="w-4 h-4 mr-2 text-error" />[m
+[32m+[m[32m          <span className="text-sm text-error">出错了</span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      );[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    return null;[m
+[32m+[m[32m  };[m
+[32m+[m
+   return ([m
+     <>[m
+       <div[m
+[36m@@ -430,12 +522,18 @@[m [mexport const MessageItem = ({[m
+                               <MarkdownRenderer[m
+                                 content={message.content || ''}[m
+                                 isCompact={false}[m
+[32m+[m[32m                                searchImages={message.searchImages}[m
+                                 onCopyCode={(code) => {[m
+                                   console.log('Code copied:', code);[m
+[32m+[m[32m                                  if (window.electron) {[m
+[32m+[m[32m                                    window.electron.copyToClipboard(code);[m
+[32m+[m[32m                                  } else {[m
+[32m+[m[32m                                    navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));[m
+[32m+[m[32m                                  }[m
+                                 }}[m
+                                 onLinkClick={(href) => {[m
+                                   if (href.startsWith('http://') || href.startsWith('https://')) {[m
+[31m-                                    openUrl(href, true, false);[m
+[32m+[m[32m                                    openInBrowserTab(href);[m
+                                   }[m
+                                 }}[m
+                               />[m
+[36m@@ -457,12 +555,18 @@[m [mexport const MessageItem = ({[m
+                               <MarkdownRenderer[m
+                                 content={message.content || ''}[m
+                                 isCompact={false}[m
+[32m+[m[32m                                searchImages={message.searchImages}[m
+                                 onCopyCode={(code) => {[m
+                                   console.log('Code copied:', code);[m
+[32m+[m[32m                                  if (window.electron) {[m
+[32m+[m[32m                                    window.electron.copyToClipboard(code);[m
+[32m+[m[32m                                  } else {[m
+[32m+[m[32m                                    navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));[m
+[32m+[m[32m                                  }[m
+                                 }}[m
+                                 onLinkClick={(href) => {[m
+                                   if (href.startsWith('http://') || href.startsWith('https://')) {[m
+[31m-                                    openUrl(href, true, false);[m
+[32m+[m[32m                                    openInBrowserTab(href);[m
+                                   }[m
+                                 }}[m
+                               />[m
+[36m@@ -484,12 +588,18 @@[m [mexport const MessageItem = ({[m
+                               <MarkdownRenderer[m
+                                 content={message.content || ''}[m
+                                 isCompact={false}[m
+[32m+[m[32m                                searchImages={message.searchImages}[m
+                                 onCopyCode={(code) => {[m
+                                   console.log('Code copied:', code);[m
+[32m+[m[32m                                  if (window.electron) {[m
+[32m+[m[32m                                    window.electron.copyToClipboard(code);[m
+[32m+[m[32m                                  } else {[m
+[32m+[m[32m                                    navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));[m
+[32m+[m[32m                                  }[m
+                                 }}[m
+                                 onLinkClick={(href) => {[m
+                                   if (href.startsWith('http://') || href.startsWith('https://')) {[m
+[31m-                                    openUrl(href, true, false);[m
+[32m+[m[32m                                    openInBrowserTab(href);[m
+                                   }[m
+                                 }}[m
+                               />[m
+[36m@@ -519,12 +629,18 @@[m [mexport const MessageItem = ({[m
+                             <MarkdownRenderer[m
+                               content={message.content || ''}[m
+                               isCompact={false}[m
+[32m+[m[32m                              searchImages={message.searchImages}[m
+                               onCopyCode={(code) => {[m
+                                 console.log('Code copied:', code);[m
+[32m+[m[32m                                if (window.electron) {[m
+[32m+[m[32m                                  window.electron.copyToClipboard(code);[m
+[32m+[m[32m                                } else {[m
+[32m+[m[32m                                  navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));[m
+[32m+[m[32m                                }[m
+                               }}[m
+                               onLinkClick={(href) => {[m
+                                 if (href.startsWith('http://') || href.startsWith('https://')) {[m
+[31m-                                  openUrl(href, true,false);[m
+[32m+[m[32m                                  openInBrowserTab(href);[m
+                                 }[m
+                               }}[m
+                             />[m
+[1mdiff --git a/src/components/AIChat/components/MessageList.jsx b/src/components/AIChat/components/MessageList.jsx[m
+[1mindex 156a99a..4f9bd35 100644[m
+[1m--- a/src/components/AIChat/components/MessageList.jsx[m
+[1m+++ b/src/components/AIChat/components/MessageList.jsx[m
+[36m@@ -43,7 +43,7 @@[m [mexport const MessageList = ({[m
+ [m
+   // 收集所有媒体文件（图片和视频）[m
+   const collectMedia = useCallback(() => {[m
+[31m-    return messages[m
+[32m+[m[32m    const mediaFromFiles = messages[m
+       .filter(msg => msg.files?.some(f => f.name && f.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i)))[m
+       .flatMap(msg => msg.files[m
+         .filter(f => f.name && f.name.match(/\.(jpg|jpeg|png|gif|webp|mp4)$/i))[m
+[36m@@ -54,6 +54,19 @@[m [mexport const MessageList = ({[m
+           type: f.name.match(/\.mp4$/i) ? 'video' : 'image'[m
+         }))[m
+       );[m
+[32m+[m[41m      [m
+[32m+[m[32m    // 收集搜索返回的图片[m
+[32m+[m[32m    const mediaFromSearch = messages[m
+[32m+[m[32m      .filter(msg => msg.searchImages && msg.searchImages.length > 0)[m
+[32m+[m[32m      .flatMap(msg => msg.searchImages.map((img, index) => ({[m
+[32m+[m[32m        src: img.url,[m
+[32m+[m[32m        title: `搜索图片 ${index + 1}`,[m
+[32m+[m[32m        description: img.description || '搜索相关图片',[m
+[32m+[m[32m        type: 'image'[m
+[32m+[m[32m      })));[m
+[32m+[m[41m    [m
+[32m+[m[32m    // 合并两种来源的媒体文件[m
+[32m+[m[32m    return [...mediaFromFiles, ...mediaFromSearch];[m
+   }, [messages]);[m
+ [m
+   const scrollToBottom = () => {[m
+[1mdiff --git a/src/components/AIChat/constants/index.js b/src/components/AIChat/constants/index.js[m
+[1mindex 7989dc8..e834f03 100644[m
+[1m--- a/src/components/AIChat/constants/index.js[m
+[1m+++ b/src/components/AIChat/constants/index.js[m
+[36m@@ -24,6 +24,7 @@[m [mexport const DISPLAY_STAGES = {[m
+ export const MESSAGE_STATES = {[m
+   IDLE: 'idle',[m
+   THINKING: 'thinking',[m
+[32m+[m[32m  SEARCHING: 'searching',[m
+   COMPLETED: 'completed',[m
+   ERROR: 'error'[m
+ };[m
+[1mdiff --git a/src/components/AIChat/handlers/inputHandlers.js b/src/components/AIChat/handlers/inputHandlers.js[m
+[1mindex 4036d41..e37e614 100644[m
+[1m--- a/src/components/AIChat/handlers/inputHandlers.js[m
+[1m+++ b/src/components/AIChat/handlers/inputHandlers.js[m
+[36m@@ -59,7 +59,7 @@[m [mexport const createInputHandlers = ({[m
+     [m
+     // 获取知识库IDs和网络搜索设置[m
+     const knowledgeBaseIds = messageParams?.knowledgeBaseIds || [];[m
+[31m-    const useWebSearch = messageParams?.useWebSearch !== undefined ? messageParams.useWebSearch : isNetworkEnabled;[m
+[32m+[m[32m    let useWebSearch = messageParams?.useWebSearch !== undefined ? messageParams.useWebSearch : isNetworkEnabled;[m
+ [m
+     // 检查是否是语音生成命令[m
+     if (content.startsWith('/tts ')) {[m
+[36m@@ -304,7 +304,8 @@[m [mexport const createInputHandlers = ({[m
+           seed: result.seed,[m
+           model: model,  // 添加模型信息[m
+           originalPrompt: prompt,  // 保存原始提示词，方便重新生成[m
+[31m-          knowledgeBaseIds: knowledgeBaseIds // 保存知识库IDs[m
+[32m+[m[32m          knowledgeBaseIds: knowledgeBaseIds, // 保存知识库IDs[m
+[32m+[m[32m          searchImages: result.searchImages[m
+         };[m
+ [m
+         // 更新消息列表[m
+[36m@@ -419,73 +420,131 @@[m [mexport const createInputHandlers = ({[m
+       const messagesWithAI = [...messagesWithUser, aiMessage];[m
+       setMessages(messagesWithAI);[m
+ [m
+[31m-      // 构建系统消息[m
+[31m-      let systemMessage = '';[m
+[32m+[m[32m      // 尝试获取搜索结果或者知识库引用[m
+       let searchResults = null;[m
+       let knowledgeReferences = null;[m
+[31m-[m
+[31m-      // 处理知识库引用[m
+[31m-      if (knowledgeBaseIds && knowledgeBaseIds.length > 0) {[m
+[32m+[m[32m      let systemMessage = '';[m
+[32m+[m[41m      [m
+[32m+[m[32m      // 检查是否有知识库引用[m
+[32m+[m[32m      if (localStorage.getItem('aichat_use_knowledge_base') === 'true' && knowledgeBaseIds && knowledgeBaseIds.length > 0) {[m
+         try {[m
+[31m-          console.log('获取知识库引用:', knowledgeBaseIds);[m
+[31m-          // 获取知识库引用[m
+[31m-          const references = await getKnowledgeBaseReferences({[m
+[31m-            message: content,[m
+[31m-            knowledgeBaseIds[m
+[31m-          });[m
+[31m-          [m
+[31m-          if (references && references.length > 0) {[m
+[31m-            console.log('找到知识库引用:', references.length);[m
+[32m+[m[32m          knowledgeReferences = await getKnowledgeBaseReferences(content);[m
+[32m+[m[32m          if (knowledgeReferences && knowledgeReferences.length > 0) {[m
+[32m+[m[32m            console.log('获取到知识库引用:', knowledgeReferences);[m
+             [m
+             // 对引用进行排序和过滤[m
+[31m-            const optimizedReferences = sortAndFilterReferences(references, {[m
+[31m-              similarityThreshold: 0.6,[m
+[31m-              maxResults: 8,[m
+[31m-              removeDuplicates: true[m
+[31m-            });[m
+[32m+[m[32m            const processedReferences = sortAndFilterReferences(knowledgeReferences);[m
+             [m
+[31m-            // 格式化引用，适合模型处理[m
+[31m-            const formattedReferences = formatReferencesForModel(optimizedReferences, {[m
+[31m-              maxContentLength: 800,[m
+[31m-              includeMetadata: true[m
+[31m-            });[m
+[32m+[m[32m            // 格式化系统提示词[m
+[32m+[m[32m            systemMessage = formatReferencesForModel(content, processedReferences);[m
+             [m
+[31m-            // 使用更新后的FOOTNOTE_PROMPT[m
+[31m-            systemMessage = `${FOOTNOTE_PROMPT.replace('{question}', content).replace('{references}', formattedReferences)}`;[m
+[31m-            [m
+[31m-            // 保存原始引用对象以供后续处理[m
+[31m-            knowledgeReferences = optimizedReferences;[m
+[31m-          } else {[m
+[31m-            console.log('未找到相关知识库引用');[m
+[31m-            toastManager.info('未找到相关知识库引用，将使用模型自身知识回答');[m
+[32m+[m[32m            // 添加脚注提示[m
+[32m+[m[32m            systemMessage += `\n\n${FOOTNOTE_PROMPT}`;[m
+           }[m
+         } catch (error) {[m
+           console.error('获取知识库引用失败:', error);[m
+[31m-          toastManager.error('获取知识库引用失败: ' + error.message);[m
+         }[m
+       }[m
+ [m
+[31m-      // 如果启用了网络搜索或强制搜索，进行搜索[m
+[31m-      if ((useWebSearch || forceNetworkSearch) && !knowledgeReferences) {[m
+[32m+[m[32m      // 处理网络搜索[m
+[32m+[m[32m      if (useWebSearch || forceNetworkSearch) {[m
+         try {[m
+[31m-          console.log('开始网络搜索:', content);[m
+[31m-          const searchResponse = await tavilyService.searchAndFetchContent(content);[m
+[32m+[m[32m          console.log('正在执行网络搜索...');[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 更新AI消息状态为"搜索中"[m
+[32m+[m[32m          setMessageStates(prev => ({[m
+[32m+[m[32m            ...prev,[m
+[32m+[m[32m            [aiMessage.id]: MESSAGE_STATES.SEARCHING[m
+[32m+[m[32m          }));[m
+[32m+[m
+[32m+[m[32m          // 更新AI消息内容为搜索中提示[m
+[32m+[m[32m          setMessages(prev => {[m
+[32m+[m[32m            const newMessages = [...prev];[m
+[32m+[m[32m            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);[m
+[32m+[m[32m            if (aiMessageIndex === -1) return prev;[m
+[32m+[m
+[32m+[m[32m            newMessages[aiMessageIndex] = {[m
+[32m+[m[32m              ...newMessages[aiMessageIndex],[m
+[32m+[m[32m              content: '正在搜索网络信息...',[m
+[32m+[m[32m              generating: true[m
+[32m+[m[32m            };[m
+[32m+[m[32m            return newMessages;[m
+[32m+[m[32m          });[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 传递当前会话路径，用于保存图片[m
+[32m+[m[32m          const searchResponse = await tavilyService.searchAndFetchContent(content, currentConversation.path);[m
+           console.log('搜索结果:', searchResponse);[m
+           [m
+[31m-          if (searchResponse.results && searchResponse.results.length > 0) {[m
+[31m-            // 格式化搜索结果为文本[m
+[31m-            const formattedSearchResults = searchResponse.results.map((result, index) => ([m
+[31m-              `[${index + 1}] ${result.title}\n${result.snippet}\n${result.content}\n---\n`[m
+[31m-            )).join('\n');[m
+[32m+[m[32m          // 搜索完成后，更新消息状态为"思考中"[m
+[32m+[m[32m          setMessageStates(prev => ({[m
+[32m+[m[32m            ...prev,[m
+[32m+[m[32m            [aiMessage.id]: MESSAGE_STATES.THINKING[m
+[32m+[m[32m          }));[m
+[32m+[m
+[32m+[m[32m          // 更新AI消息内容为思考中提示[m
+[32m+[m[32m          setMessages(prev => {[m
+[32m+[m[32m            const newMessages = [...prev];[m
+[32m+[m[32m            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);[m
+[32m+[m[32m            if (aiMessageIndex === -1) return prev;[m
+[32m+[m
+[32m+[m[32m            newMessages[aiMessageIndex] = {[m
+[32m+[m[32m              ...newMessages[aiMessageIndex],[m
+[32m+[m[32m              content: '思考中...',[m
+[32m+[m[32m              generating: true[m
+[32m+[m[32m            };[m
+[32m+[m[32m            return newMessages;[m
+[32m+[m[32m          });[m
+[32m+[m[41m          [m
+[32m+[m[32m          if (searchResponse?.results?.length > 0) {[m
+[32m+[m[32m            // 添加搜索结果到提示词[m
+[32m+[m[32m            const searchPrompt = getWebSearchPrompt(userMessage, searchResponse.query, searchResponse.results, searchResponse.images);[m
+             [m
+[31m-            // 使用新的getWebSearchPrompt函数[m
+[31m-            systemMessage = getWebSearchPrompt(content, formattedSearchResults);[m
+[32m+[m[32m            console.log('搜索提示词:', searchPrompt);[m
+             [m
+[32m+[m[32m            // 如果已经有知识库提示词，合并提示词[m
+[32m+[m[32m            if (systemMessage) {[m
+[32m+[m[32m              systemMessage += '\n\n' + searchPrompt;[m
+[32m+[m[32m            } else {[m
+[32m+[m[32m              systemMessage = searchPrompt;[m
+[32m+[m[32m            }[m
+[32m+[m[41m            [m
+[32m+[m[32m            // 保存搜索结果[m
+             searchResults = searchResponse.results;[m
+             console.log('搜索结果处理完成');[m
+           }[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 处理搜索返回的图片[m
+[32m+[m[32m          if (searchResponse.images && searchResponse.images.length > 0) {[m
+[32m+[m[32m            console.log('搜索返回图片结果:', searchResponse.images);[m
+[32m+[m[32m            // 确保searchResults对象存在[m
+[32m+[m[32m            searchResults = searchResults || {};[m
+[32m+[m[32m            // 添加图片到searchResults[m
+[32m+[m[32m            searchResults.images = searchResponse.images;[m
+[32m+[m[32m          }[m
+         } catch (error) {[m
+           console.error('搜索失败:', error);[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 更新消息状态为错误[m
+[32m+[m[32m          setMessageStates(prev => ({[m
+[32m+[m[32m            ...prev,[m
+[32m+[m[32m            [aiMessage.id]: MESSAGE_STATES.ERROR[m
+[32m+[m[32m          }));[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 更新消息内容为错误信息[m
+[32m+[m[32m          setMessages(prev => {[m
+[32m+[m[32m            const newMessages = [...prev];[m
+[32m+[m[32m            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);[m
+[32m+[m[32m            if (aiMessageIndex === -1) return prev;[m
+[32m+[m
+[32m+[m[32m            newMessages[aiMessageIndex] = {[m
+[32m+[m[32m              ...newMessages[aiMessageIndex],[m
+[32m+[m[32m              content: `搜索失败: ${error.message}`,[m
+[32m+[m[32m              generating: false[m
+[32m+[m[32m            };[m
+[32m+[m[32m            return newMessages;[m
+[32m+[m[32m          });[m
+[32m+[m[41m          [m
+[32m+[m[32m          return; // 搜索失败时退出[m
+         }[m
+       }[m
+ [m
+[36m@@ -584,6 +643,11 @@[m [mexport const createInputHandlers = ({[m
+         searchResults: searchResults,[m
+         knowledgeReferences: knowledgeReferences[m
+       };[m
+[32m+[m[41m      [m
+[32m+[m[32m      // 如果搜索结果包含图片，添加到finalAiMessage[m
+[32m+[m[32m      if (searchResults && searchResults.images) {[m
+[32m+[m[32m        finalAiMessage.searchImages = searchResults.images;[m
+[32m+[m[32m      }[m
+ [m
+       // 更新消息列表[m
+       const finalMessages = messagesWithAI.map(msg => [m
+[1mdiff --git a/src/components/AIChat/handlers/messageHandlers.js b/src/components/AIChat/handlers/messageHandlers.js[m
+[1mindex b6dd186..9e348ab 100644[m
+[1m--- a/src/components/AIChat/handlers/messageHandlers.js[m
+[1m+++ b/src/components/AIChat/handlers/messageHandlers.js[m
+[36m@@ -2,6 +2,7 @@[m [mimport { v4 as uuidv4 } from 'uuid';[m
+ import { callModelAPI } from '../../../services/modelProviders';[m
+ import { MESSAGE_STATES } from '../constants';[m
+ import { tavilyService } from '../../../services/tavilyService';[m
+[32m+[m[32mimport { getWebSearchPrompt } from '../../../utils/prompts';[m
+ [m
+ // 格式化时间函数[m
+ const formatAIChatTime = (timestamp) => {[m
+[36m@@ -300,22 +301,96 @@[m [mexport const createMessageHandlers = ({[m
+       if (isNetworkEnabled) {[m
+         try {[m
+           console.log('重试时进行网络搜索:', userMessage.content);[m
+[31m-          const searchResponse = await tavilyService.searchAndFetchContent(userMessage.content);[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 更新AI消息状态为"搜索中"[m
+[32m+[m[32m          setMessageStates(prev => ({[m
+[32m+[m[32m            ...prev,[m
+[32m+[m[32m            [aiMessage.id]: MESSAGE_STATES.SEARCHING[m
+[32m+[m[32m          }));[m
+[32m+[m
+[32m+[m[32m          // 更新AI消息内容为搜索中提示[m
+[32m+[m[32m          setMessages(prev => {[m
+[32m+[m[32m            const newMessages = [...prev];[m
+[32m+[m[32m            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);[m
+[32m+[m[32m            if (aiMessageIndex === -1) return prev;[m
+[32m+[m
+[32m+[m[32m            newMessages[aiMessageIndex] = {[m
+[32m+[m[32m              ...newMessages[aiMessageIndex],[m
+[32m+[m[32m              content: '正在搜索网络信息...',[m
+[32m+[m[32m              generating: true[m
+[32m+[m[32m            };[m
+[32m+[m[32m            return newMessages;[m
+[32m+[m[32m          });[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 传递当前会话路径，用于保存图片[m
+[32m+[m[32m          const searchResponse = await tavilyService.searchAndFetchContent(userMessage.content, currentConversation.path);[m
+           console.log('搜索结果:', searchResponse);[m
+           [m
+[31m-          if (searchResponse.results && searchResponse.results.length > 0) {[m
+[31m-            systemMessage = `以下是与问题相关的网络搜索结果：\n\n${[m
+[31m-              searchResponse.results.map((result, index) => ([m
+[31m-                `[${index + 1}] ${result.title}\n${result.snippet}\n${result.content}\n---\n`[m
+[31m-              )).join('\n')[m
+[31m-            }\n\n请基于以上搜索结果回答用户的问题："${userMessage.content}"。如果搜索结果不足以完整回答问题，也可以使用你自己的知识来补充。请在回答末尾列出使用的参考来源编号。`;[m
+[32m+[m[32m          // 搜索完成后，更新消息状态为"思考中"[m
+[32m+[m[32m          setMessageStates(prev => ({[m
+[32m+[m[32m            ...prev,[m
+[32m+[m[32m            [aiMessage.id]: MESSAGE_STATES.THINKING[m
+[32m+[m[32m          }));[m
+[32m+[m
+[32m+[m[32m          // 更新AI消息内容为思考中提示[m
+[32m+[m[32m          setMessages(prev => {[m
+[32m+[m[32m            const newMessages = [...prev];[m
+[32m+[m[32m            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);[m
+[32m+[m[32m            if (aiMessageIndex === -1) return prev;[m
+[32m+[m
+[32m+[m[32m            newMessages[aiMessageIndex] = {[m
+[32m+[m[32m              ...newMessages[aiMessageIndex],[m
+[32m+[m[32m              content: '思考中...',[m
+[32m+[m[32m              generating: true[m
+[32m+[m[32m            };[m
+[32m+[m[32m            return newMessages;[m
+[32m+[m[32m          });[m
+[32m+[m[41m          [m
+[32m+[m[32m          if (searchResponse?.results?.length > 0) {[m
+[32m+[m[32m            // 使用新的getWebSearchPrompt函数生成提示词[m
+[32m+[m[32m            systemMessage = getWebSearchPrompt([m
+[32m+[m[32m              userMessage,[m
+[32m+[m[32m              searchResponse.query,[m
+[32m+[m[32m              searchResponse.results,[m
+[32m+[m[32m              searchResponse.images[m
+[32m+[m[32m            );[m
+             [m
+             searchResults = searchResponse.results;[m
+             console.log('搜索结果处理完成');[m
+           }[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 处理搜索返回的图片[m
+[32m+[m[32m          if (searchResponse.images && searchResponse.images.length > 0) {[m
+[32m+[m[32m            console.log('搜索返回图片结果:', searchResponse.images);[m
+[32m+[m[32m            // 确保searchResults对象存在[m
+[32m+[m[32m            searchResults = searchResults || {};[m
+[32m+[m[32m            // 添加图片到searchResults[m
+[32m+[m[32m            searchResults.images = searchResponse.images;[m
+[32m+[m[32m          }[m
+         } catch (error) {[m
+           console.error('搜索失败:', error);[m
+[31m-          // 搜索失败时继续对话，但不使用搜索结果[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 更新消息状态为错误[m
+[32m+[m[32m          setMessageStates(prev => ({[m
+[32m+[m[32m            ...prev,[m
+[32m+[m[32m            [aiMessage.id]: MESSAGE_STATES.ERROR[m
+[32m+[m[32m          }));[m
+[32m+[m[41m          [m
+[32m+[m[32m          // 更新消息内容为错误信息[m
+[32m+[m[32m          setMessages(prev => {[m
+[32m+[m[32m            const newMessages = [...prev];[m
+[32m+[m[32m            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);[m
+[32m+[m[32m            if (aiMessageIndex === -1) return prev;[m
+[32m+[m
+[32m+[m[32m            newMessages[aiMessageIndex] = {[m
+[32m+[m[32m              ...newMessages[aiMessageIndex],[m
+[32m+[m[32m              content: `搜索失败: ${error.message}`,[m
+[32m+[m[32m              generating: false[m
+[32m+[m[32m            };[m
+[32m+[m[32m            return newMessages;[m
+[32m+[m[32m          });[m
+[32m+[m[41m          [m
+[32m+[m[32m          return; // 搜索失败时退出[m
+         }[m
+       }[m
+ [m
+[36m@@ -418,6 +493,11 @@[m [mexport const createMessageHandlers = ({[m
+           reasoning_content: response.reasoning_content || currentMessage.reasoning_content, // 保留推理内容[m
+           searchResults: searchResults // 添加搜索结果[m
+         };[m
+[32m+[m[41m        [m
+[32m+[m[32m        // 如果搜索结果包含图片，添加到消息[m
+[32m+[m[32m        if (searchResults && searchResults.images) {[m
+[32m+[m[32m          newMessages[index].searchImages = searchResults.images;[m
+[32m+[m[32m        }[m
+ [m
+         return newMessages;[m
+       });[m
+[1mdiff --git a/src/components/AIChat/index.jsx b/src/components/AIChat/index.jsx[m
+[1mindex 5e14666..8a50039 100644[m
+[1m--- a/src/components/AIChat/index.jsx[m
+[1m+++ b/src/components/AIChat/index.jsx[m
+[36m@@ -177,7 +177,9 @@[m [mexport const AIChat = ({[m
+   }, [modelState.selectedProvider, appSelectedProvider, appSetSelectedProvider]);[m
+ [m
+   // 添加网络搜索状态[m
+[31m-  const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);[m
+[32m+[m[32m  const [isNetworkEnabled, setIsNetworkEnabled] = useState(() => {[m
+[32m+[m[32m    return localStorage.getItem('aichat_use_web_search') === 'true';[m
+[32m+[m[32m  });[m
+ [m
+   // 添加 AbortController 状态[m
+   const [abortController, setAbortController] = useState(null);[m
+[36m@@ -502,6 +504,33 @@[m [mexport const AIChat = ({[m
+     return () => clearTimeout(timer);[m
+   }, []);[m
+ [m
+[32m+[m[32m  // 确保localStorage中有网络搜索设置[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    if (localStorage.getItem('aichat_use_web_search') === null) {[m
+[32m+[m[32m      localStorage.setItem('aichat_use_web_search', 'false');[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }, []);[m
+[32m+[m
+[32m+[m[32m  // 监听localStorage变化[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    const handleStorageChange = (e) => {[m
+[32m+[m[32m      if (e.key === 'aichat_use_web_search') {[m
+[32m+[m[32m        setIsNetworkEnabled(e.newValue === 'true');[m
+[32m+[m[32m      }[m
+[32m+[m[32m    };[m
+[32m+[m[41m    [m
+[32m+[m[32m    window.addEventListener('storage', handleStorageChange);[m
+[32m+[m[32m    return () => {[m
+[32m+[m[32m      window.removeEventListener('storage', handleStorageChange);[m
+[32m+[m[32m    };[m
+[32m+[m[32m  }, []);[m
+[32m+[m
+[32m+[m[32m  // 调试网络搜索状态[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    console.log('网络搜索状态变化:', isNetworkEnabled);[m
+[32m+[m[32m    console.log('localStorage中的值:', localStorage.getItem('aichat_use_web_search'));[m
+[32m+[m[32m  }, [isNetworkEnabled]);[m
+[32m+[m
+   return ([m
+     <div className="flex flex-col h-full w-full">[m
+       {/* 只在 handlers 都准备好后渲染内容 */}[m
+[1mdiff --git a/src/components/shared/MarkdownRenderer.jsx b/src/components/shared/MarkdownRenderer.jsx[m
+[1mindex 9d003b1..c14c3b0 100644[m
+[1m--- a/src/components/shared/MarkdownRenderer.jsx[m
+[1m+++ b/src/components/shared/MarkdownRenderer.jsx[m
+[36m@@ -214,13 +214,20 @@[m [mconst useProcessedContent = (content) => {[m
+     processed = processed.replace(/\n/g, '  \n');[m
+     processed = processed.replace(/^(#{1,6}\s.*)/gm, '\n$1\n');[m
+     processed = processed.replace(/^([*-]|\d+\.)\s/gm, '\n$&');[m
+[32m+[m[41m    [m
+[32m+[m[32m    // 添加对图片引用的处理，格式如[图片1]、[图片2]等[m
+[32m+[m[32m    // 将简单的图片引用转换为Markdown图片语法[m
+[32m+[m[32m    processed = processed.replace(/\[图片(\d+)\]/g, (match, num) => {[m
+[32m+[m[32m      // 图片引用会在组件级别通过传入的images数组处理[m
+[32m+[m[32m      return `![图片${num}][图片引用${num}]`;[m
+[32m+[m[32m    });[m
+ [m
+     return processed;[m
+   }, [content]);[m
+ };[m
+ [m
+ // 将 markdownComponents 移到组件外部[m
+[31m-const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox) => ({[m
+[32m+[m[32mconst createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox, imageReferences) => ({[m
+   // 链接渲染[m
+   a: ({node, children, href, className, ...props}) => {[m
+     // 处理脚注引用链接[m
+[36m@@ -389,11 +396,16 @@[m [mexport const MarkdownRenderer = React.memo(({[m
+   className = '',[m
+   onCopyCode = () => {},[m
+   onLinkClick = () => {},[m
+[32m+[m[32m  searchImages = [][m
+ }) => {[m
+   const processedContent = useProcessedContent(content);[m
+   const [openLightbox, setOpenLightbox] = useState(false);[m
+   const [lightboxIndex, setLightboxIndex] = useState(0);[m
+[31m-  const [images, setImages] = useState([]);[m
+[32m+[m[32m  const [imagesToShow, setImagesToShow] = useState([]);[m
+[32m+[m[32m  const [hasScrollIndicator, setHasScrollIndicator] = useState(false);[m
+[32m+[m[32m  const codeBlockRef = useRef(null);[m
+[32m+[m[32m  const [isTableOverflowing, setIsTableOverflowing] = useState(false);[m
+[32m+[m[32m  const [codeCopyTooltip, setCodeCopyTooltip] = useState({});[m
+ [m
+   // 使用 useCallback 优化事件处理函数[m
+   const handleCopySelectedText = useCallback((e) => {[m
+[36m@@ -420,7 +432,7 @@[m [mexport const MarkdownRenderer = React.memo(({[m
+   // 使用 useEffect 优化图片收集[m
+   useEffect(() => {[m
+     const collectedImages = collectImages(content);[m
+[31m-    setImages(collectedImages);[m
+[32m+[m[32m    setImagesToShow(collectedImages);[m
+   }, [content, collectImages]);[m
+ [m
+   // 使用 useCallback 优化上下文菜单处理[m
+[36m@@ -444,6 +456,16 @@[m [mexport const MarkdownRenderer = React.memo(({[m
+     window.dispatchEvent(contextMenuEvent);[m
+   }, []);[m
+ [m
+[32m+[m[32m  // 支持图片引用的图片集合[m
+[32m+[m[32m  const imageReferences = useMemo(() => {[m
+[32m+[m[32m    const references = {};[m
+[32m+[m[32m    // 为每个searchImage创建图片引用[m
+[32m+[m[32m    searchImages.forEach((img, index) => {[m
+[32m+[m[32m      references[`图片引用${index + 1}`] = img.url;[m
+[32m+[m[32m    });[m
+[32m+[m[32m    return references;[m
+[32m+[m[32m  }, [searchImages]);[m
+[32m+[m
+   // 使用 useMemo 缓存 rehypePlugins 配置[m
+   const rehypePlugins = useMemo(() => [[m
+     rehypeRaw,[m
+[36m@@ -477,11 +499,17 @@[m [mexport const MarkdownRenderer = React.memo(({[m
+     remarkBreaks[m
+   ], []);[m
+ [m
+[31m-  // 使用 useMemo 缓存组件配置[m
+[32m+[m[32m  // 创建markdown组件集合[m
+   const markdownComponents = useMemo(() => [m
+[31m-    createMarkdownComponents(handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox),[m
+[31m-    [handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox][m
+[31m-  );[m
+[32m+[m[32m    createMarkdownComponents([m
+[32m+[m[32m      handleContextMenu,[m[41m [m
+[32m+[m[32m      onLinkClick,[m[41m [m
+[32m+[m[32m      imagesToShow,[m[41m [m
+[32m+[m[32m      setLightboxIndex,[m[41m [m
+[32m+[m[32m      setOpenLightbox,[m
+[32m+[m[32m      imageReferences[m
+[32m+[m[32m    ),[m[41m [m
+[32m+[m[32m  [handleContextMenu, onLinkClick, imagesToShow, imageReferences]);[m
+ [m
+   // 表格相关组件[m
+   const TableWrapper = ({ children, ...props }) => {[m
+[36m@@ -1407,47 +1435,61 @@[m [mexport const MarkdownRenderer = React.memo(({[m
+           td: ({node, children, ...props}) => ([m
+             <td {...props}>{children}</td>[m
+           ),[m
+[31m-          img: ({node, src, alt, ...props}) => {[m
+[31m-            const [isLoading, setIsLoading] = useState(true);[m
+[31m-            const [error, setError] = useState(false);[m
+[31m-[m
+[31m-            return ([m
+[31m-              <div className="image-wrapper">[m
+[31m-                {isLoading && !error && ([m
+[31m-                  <div className="image-loading">[m
+[31m-                    <svg className="icon" viewBox="0 0 24 24" fill="none">[m
+[31m-                      <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />[m
+[31m-                      <path d="M9 9l.01 0" />[m
+[31m-                      <path d="M15 9l.01 0" />[m
+[31m-                      <path d="M8 13h8a4 4 0 01-8 0z" />[m
+[31m-                    </svg>[m
+[31m-                    <span className="text">加载图片中...</span>[m
+[31m-                  </div>[m
+[31m-                )}[m
+[32m+[m[32m          img: ({node, src, alt, width, height, title, ...props}) => {[m
+[32m+[m[32m            // 检查是否是图片引用[m
+[32m+[m[32m            if (src && src.startsWith('![图片') && imageReferences) {[m
+[32m+[m[32m              // 从alt中提取引用编号[m
+[32m+[m[32m              const refMatch = alt && alt.match(/图片(\d+)/);[m
+[32m+[m[32m              if (refMatch) {[m
+[32m+[m[32m                const refKey = `图片引用${refMatch[1]}`;[m
+[32m+[m[32m                const refSrc = imageReferences[refKey];[m
+[32m+[m[41m                [m
+[32m+[m[32m                if (refSrc) {[m
+[32m+[m[32m                  // 将引用替换为实际URL[m
+[32m+[m[32m                  src = refSrc;[m
+[32m+[m[32m                }[m
+[32m+[m[32m              }[m
+[32m+[m[32m            }[m
+[32m+[m[41m            [m
+[32m+[m[32m            // 如果是本地文件路径，添加前缀[m
+[32m+[m[32m            if (src && src.startsWith('local-file://')) {[m
+[32m+[m[32m              return ([m
+                 <img[m
+                   src={src}[m
+[31m-                  alt={alt}[m
+[31m-                  onLoad={() => setIsLoading(false)}[m
+[31m-                  onError={() => {[m
+[31m-                    setIsLoading(false);[m
+[31m-                    setError(true);[m
+[31m-                  }}[m
+[31m-                  style={{[m
+[31m-                    display: isLoading ? 'none' : 'block',[m
+[31m-                    maxWidth: '100%',[m
+[31m-                    height: 'auto'[m
+[32m+[m[32m                  alt={alt || ''}[m
+[32m+[m[32m                  title={title || alt || ''}[m
+[32m+[m[32m                  className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"[m
+[32m+[m[32m                  onClick={(e) => {[m
+[32m+[m[32m                    const index = imagesToShow.findIndex((img) => img.src === src);[m
+[32m+[m[32m                    if (index !== -1) {[m
+[32m+[m[32m                      setLightboxIndex(index);[m
+[32m+[m[32m                      setOpenLightbox(true);[m
+[32m+[m[32m                    }[m
+                   }}[m
+[32m+[m[32m                  style={{ maxHeight: '300px', objectFit: 'contain' }}[m
+[32m+[m[32m                  loading="lazy"[m
+                   {...props}[m
+                 />[m
+[31m-                {error && ([m
+[31m-                  <div className="image-error">[m
+[31m-                    <svg className="icon" viewBox="0 0 24 24" fill="none">[m
+[31m-                      <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />[m
+[31m-                    </svg>[m
+[31m-                    <span className="text">图片加载失败</span>[m
+[31m-                  </div>[m
+[31m-                )}[m
+[31m-              </div>[m
+[32m+[m[32m              );[m
+[32m+[m[32m            }[m
+[32m+[m[41m            [m
+[32m+[m[32m            // 外部图片URL[m
+[32m+[m[32m            return ([m
+[32m+[m[32m              <img[m
+[32m+[m[32m                src={src}[m
+[32m+[m[32m                alt={alt || ''}[m
+[32m+[m[32m                title={title || alt || ''}[m
+[32m+[m[32m                className="max-w-full rounded-lg"[m
+[32m+[m[32m                style={{ maxHeight: '300px', objectFit: 'contain' }}[m
+[32m+[m[32m                loading="lazy"[m
+[32m+[m[32m                onError={(e) => {[m
+[32m+[m[32m                  e.target.onerror = null;[m
+[32m+[m[32m                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgMTNoLTJWN2gydjZabTAgNGgtMnYtMmgydjJabTktNVYxOEE1IDUgMCAwIDEgMTcgMjJINy4zM0ExMC42MSAxMC42MSAwIDAgMSAyIDEzLjQzQzIgOC4wNSA2LjA0IDQgMTAuNCA0YzIuMjUgMCA0LjI1Ljg2IDUuNiAyLjJMMTUuNTMgNUgyMXYzaC0zLjUzYTguNDYgOC40NiAwIDAgMSAtMi4zLTJBNi41MyA2LjUzIDAgMCAwIDEwLjRBNi41IDYuNSAwIDAgMCA0IDEzLjU5QzcuMDMgMTMuNjggOS43NiAxNiAxMCAxOWE4LjM4IDguMzggMCAwIDAgNC40LTMuMjNBNyA3IDAgMCAxIDIxIDEyWiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+';[m
+[32m+[m[32m                  e.target.style.padding = '30px';[m
+[32m+[m[32m                  e.target.style.backgroundColor = 'rgba(0,0,0,0.1)';[m
+[32m+[m[32m                }}[m
+[32m+[m[32m                {...props}[m
+[32m+[m[32m              />[m
+             );[m
+           },[m
+           // 添加脚注参考的自定义组件[m
+[36m@@ -1517,10 +1559,10 @@[m [mexport const MarkdownRenderer = React.memo(({[m
+         open={openLightbox}[m
+         close={() => setOpenLightbox(false)}[m
+         index={lightboxIndex}[m
+[31m-        slides={images}[m
+[32m+[m[32m        slides={imagesToShow}[m
+         plugins={[Zoom, Thumbnails, Captions]}[m
+         animation={{ fade: 300 }}[m
+[31m-        carousel={{ finite: images.length <= 1 }}[m
+[32m+[m[32m        carousel={{ finite: imagesToShow.length <= 1 }}[m
+         render={{[m
+           iconPrev: () => <ChevronLeftIcon size={24} />,[m
+           iconNext: () => <ChevronRightIcon size={24} />,[m
+[1mdiff --git a/src/services/tavilyService.js b/src/services/tavilyService.js[m
+[1mindex df285b0..74e831c 100644[m
+[1m--- a/src/services/tavilyService.js[m
+[1m+++ b/src/services/tavilyService.js[m
+[36m@@ -19,6 +19,12 @@[m [mclass TavilyService {[m
+     const searchTopic = localStorage.getItem('aichat_tavily_topic') || 'general';[m
+     const includeAnswer = localStorage.getItem('aichat_tavily_include_answer') === 'true' ? true : [m
+                          localStorage.getItem('aichat_tavily_include_answer') === 'advanced' ? 'advanced' : false;[m
+[32m+[m[32m    // 读取图片相关参数[m
+[32m+[m[32m    const includeImages = localStorage.getItem('aichat_tavily_include_images') === 'true';[m
+[32m+[m[32m    const includeImageDescriptions = localStorage.getItem('aichat_tavily_include_image_descriptions') === 'true';[m
+[32m+[m[32m    const timeRange = localStorage.getItem('aichat_tavily_time_range') || '';[m
+[32m+[m[32m    const includeRawContent = localStorage.getItem('aichat_tavily_include_raw_content') === 'true';[m
+[32m+[m[32m    const days = parseInt(localStorage.getItem('aichat_tavily_days') || '3');[m
+     [m
+     // 解析包含和排除的域名[m
+     let includeDomains = [];[m
+[36m@@ -44,7 +50,12 @@[m [mclass TavilyService {[m
+       searchTopic,[m
+       includeAnswer,[m
+       includeDomains: includeDomains.filter(d => d),[m
+[31m-      excludeDomains: excludeDomains.filter(d => d)[m
+[32m+[m[32m      excludeDomains: excludeDomains.filter(d => d),[m
+[32m+[m[32m      includeImages,[m
+[32m+[m[32m      includeImageDescriptions,[m
+[32m+[m[32m      timeRange,[m
+[32m+[m[32m      includeRawContent,[m
+[32m+[m[32m      days[m
+     };[m
+   }[m
+ [m
+[36m@@ -116,8 +127,23 @@[m [mclass TavilyService {[m
+         topic: config.searchTopic,[m
+         include_answer: config.includeAnswer,[m
+         include_domains: config.includeDomains,[m
+[31m-        exclude_domains: config.excludeDomains[m
+[32m+[m[32m        exclude_domains: config.excludeDomains,[m
+[32m+[m[32m        include_images: config.includeImages,[m
+[32m+[m[32m        include_image_descriptions: config.includeImageDescriptions[m
+       };[m
+[32m+[m[41m      [m
+[32m+[m[32m      // 添加可选参数[m
+[32m+[m[32m      if (config.timeRange) {[m
+[32m+[m[32m        requestBody.time_range = config.timeRange;[m
+[32m+[m[32m      }[m
+[32m+[m[41m      [m
+[32m+[m[32m      if (config.includeRawContent) {[m
+[32m+[m[32m        requestBody.include_raw_content = config.includeRawContent;[m
+[32m+[m[32m      }[m
+[32m+[m[41m      [m
+[32m+[m[32m      if (config.searchTopic === 'news' && config.days) {[m
+[32m+[m[32m        requestBody.days = config.days;[m
+[32m+[m[32m      }[m
+ [m
+       // 发起请求[m
+       const response = await Promise.race([[m
+[36m@@ -146,6 +172,7 @@[m [mclass TavilyService {[m
+       }[m
+ [m
+       const data = await response.json();[m
+[32m+[m[32m      console.log('Tavily原始搜索结果:', data);[m
+       [m
+       // 转换为统一格式[m
+       const searchResults = {[m
+[36m@@ -159,7 +186,8 @@[m [mclass TavilyService {[m
+           displayUrl: new URL(result.url).hostname,[m
+           score: result.score[m
+         })),[m
+[31m-        answer: data.answer[m
+[32m+[m[32m        answer: data.answer,[m
+[32m+[m[32m        images: data.images // 保存图片结果[m
+       };[m
+       [m
+       // 缓存结果[m
+[36m@@ -226,12 +254,50 @@[m [mclass TavilyService {[m
+     }[m
+   }[m
+ [m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * 下载搜索返回的图片到本地[m
+[32m+[m[32m   * @param {Array} images - 图片URL数组[m
+[32m+[m[32m   * @param {string} folderPath - 保存图片的文件夹路径[m
+[32m+[m[32m   * @returns {Promise<Array>} - 更新后的图片数组[m
+[32m+[m[32m   */[m
+[32m+[m[32m  async downloadSearchImages(images, folderPath) {[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      console.log(`开始下载 ${images.length} 张图片到 ${folderPath}`);[m
+[32m+[m[41m      [m
+[32m+[m[32m      // 调用Electron的图片下载API[m
+[32m+[m[32m      const result = await window.electron.downloadSearchImages(images.map(img => img.url), folderPath);[m
+[32m+[m[41m      [m
+[32m+[m[32m      if (!result.success) {[m
+[32m+[m[32m        console.error('图片下载失败:', result.error);[m
+[32m+[m[32m        return images; // 下载失败时返回原始图片数组[m
+[32m+[m[32m      }[m
+[32m+[m[41m      [m
+[32m+[m[32m      // 更新图片URL为本地路径[m
+[32m+[m[32m      return images.map((img, index) => {[m
+[32m+[m[32m        const downloadResult = result.images[index];[m
+[32m+[m[32m        if (downloadResult && downloadResult.success) {[m
+[32m+[m[32m          // 找到对应的下载结果，并更新URL为本地路径[m
+[32m+[m[32m          return {[m
+[32m+[m[32m            ...img,[m
+[32m+[m[32m            originalUrl: img.url, // 保存原始URL[m
+[32m+[m[32m            url: `file://${downloadResult.localPath}` // 更新为本地文件路径[m
+[32m+[m[32m          };[m
+[32m+[m[32m        }[m
+[32m+[m[32m        return img; // 如果下载失败，保持原样[m
+[32m+[m[32m      });[m
+[32m+[m[32m    } catch (error) {[m
+[32m+[m[32m      console.error('下载图片过程中出错:', error);[m
+[32m+[m[32m      return images; // 出错时返回原始图片数组[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }[m
+[32m+[m
+   /**[m
+    * 搜索并获取内容 - 与searchService保持兼容的接口[m
+    * @param {string} query - 搜索查询[m
+[32m+[m[32m   * @param {string} folderPath - 保存图片的文件夹路径[m[41m [m
+    * @returns {Promise<Object>} 处理后的搜索结果和网页内容[m
+    */[m
+[31m-  async searchAndFetchContent(query) {[m
+[32m+[m[32m  async searchAndFetchContent(query, folderPath) {[m
+     // 检查是否配置了API密钥[m
+     if (!this.isConfigured()) {[m
+       throw new Error('请先在设置中配置 Tavily API 密钥');[m
+[36m@@ -246,7 +312,21 @@[m [mclass TavilyService {[m
+     try {[m
+       const searchResults = await this.search(query);[m
+       [m
+[31m-      // 如果搜索结果中已经包含了内容，直接返回[m
+[32m+[m[32m      // 检查是否有图片结果，有则下载到本地[m
+[32m+[m[32m      if (searchResults.images && searchResults.images.length > 0 && folderPath) {[m
+[32m+[m[32m        console.log(`搜索返回了 ${searchResults.images.length} 张图片，开始下载到本地...`);[m
+[32m+[m[41m        [m
+[32m+[m[32m        // 下载图片并更新URL为本地路径[m
+[32m+[m[32m        const updatedImages = await this.downloadSearchImages(searchResults.images, folderPath);[m
+[32m+[m[41m        [m
+[32m+[m[32m        // 更新搜索结果中的图片数组[m
+[32m+[m[32m        searchResults.images = updatedImages;[m
+[32m+[m[41m        [m
+[32m+[m[32m        // 更新缓存[m
+[32m+[m[32m        this.setCache(query, searchResults);[m
+[32m+[m[32m      }[m
+[32m+[m[41m      [m
+[32m+[m[32m      // 如果搜索结果中已经包含了内容，直接返回完整的结果（包括images数组）[m
+       if (searchResults.results && searchResults.results.length > 0) {[m
+         return searchResults;[m
+       }[m
+[1mdiff --git a/src/utils/prompts.js b/src/utils/prompts.js[m
+[1mindex bda1834..d8c07ee 100644[m
+[1m--- a/src/utils/prompts.js[m
+[1m+++ b/src/utils/prompts.js[m
+[36m@@ -65,19 +65,41 @@[m [m${text}[m
+ /**[m
+  * 网络搜索提示词[m
+  * 用于指导模型使用网络搜索结果回答问题[m
+[31m- * @param {string} query 用户查询[m
+[31m- * @param {string} searchResults 搜索结果文本[m
+[32m+[m[32m * @param {Object} userMessage 用户消息对象[m
+[32m+[m[32m * @param {string} searchQuery 搜索查询[m
+[32m+[m[32m * @param {Array} searchResults 搜索结果数组[m
+[32m+[m[32m * @param {Array} images 相关图片数组[m
+  * @returns {string} 网络搜索提示词[m
+  */[m
+[31m-export const getWebSearchPrompt = (query, searchResults) => `[m
+[31m-请基于下面提供的网络搜索结果回答用户的问题。[m
+[31m-如果搜索结果中不包含回答问题所需的信息，请明确说明并根据你自己的知识尽可能地回答。[m
+[31m-[m
+[31m-## 用户问题：[m
+[31m-${query}[m
+[31m-[m
+[31m-## 网络搜索结果：[m
+[31m-${searchResults}[m
+[31m-[m
+[31m-请确保回答准确、全面，并标明信息来源。如果使用了搜索结果中的信息，请以脚注形式引用，例如[^1]，并在回答末尾列出来源。[m
+[31m-`; [m
+\ No newline at end of file[m
+[32m+[m[32mexport const getWebSearchPrompt = (userMessage, searchQuery, searchResults, images) => {[m
+[32m+[m[32m  // 格式化搜索结果[m
+[32m+[m[32m  const formattedResults = searchResults.map((result, index) => ([m
+[32m+[m[32m    `[${index + 1}] ${result.title}\n${result.url}\n${result.snippet}\n${result.content || ''}\n---\n`[m
+[32m+[m[32m  )).join('\n');[m
+[32m+[m[41m  [m
+[32m+[m[32m  // 准备图片描述部分[m
+[32m+[m[32m  let imageSection = '';[m
+[32m+[m[32m  if (images && images.length > 0) {[m
+[32m+[m[32m    const imageItems = images.map((img, index) => {[m
+[32m+[m[32m      const description = img.description || '相关图片';[m
+[32m+[m[32m      const url = img.url || '';[m
+[32m+[m[32m      // 使用Markdown图片语法引用图片[m
+[32m+[m[32m      return `![图片${index + 1}](${url} "${description}")`;[m
+[32m+[m[32m    }).join('\n');[m
+[32m+[m[41m    [m
+[32m+[m[32m    imageSection = `\n\n我还找到了一些相关图片，这些图片已经下载到本地。请在回答中使用Markdown语法引用这些图片，参考格式如下：\n${imageItems}\n`;[m
+[32m+[m[32m  }[m
+[32m+[m[41m  [m
+[32m+[m[32m  // 获取用户查询内容[m
+[32m+[m[32m  const query = userMessage.content || searchQuery;[m
+[32m+[m[41m  [m
+[32m+[m[32m  return `以下是与问题相关的网络搜索结果：[m
+[32m+[m
+[32m+[m[32m${formattedResults}[m
+[32m+[m[32m${imageSection}[m
+[32m+[m
+[32m+[m[32m请基于以上搜索结果回答用户的问题："${query}"。如果搜索结果不足以完整回答问题，也可以使用你自己的知识来补充。请在回答末尾列出使用的参考来源编号。[m
+[32m+[m
+[32m+[m[32m${images && images.length > 0 ? '重要提示：在你的回答中，请使用Markdown图片语法引用相关图片，确保图片能被正确显示。例如 "![图片描述](图片URL)"。' : ''}[m
+[32m+[m[32m`;[m[41m [m
+[32m+[m[32m};[m[41m [m
+\ No newline at end of file[m

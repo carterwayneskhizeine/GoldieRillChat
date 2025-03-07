@@ -177,7 +177,9 @@ export const AIChat = ({
   }, [modelState.selectedProvider, appSelectedProvider, appSetSelectedProvider]);
 
   // 添加网络搜索状态
-  const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);
+  const [isNetworkEnabled, setIsNetworkEnabled] = useState(() => {
+    return localStorage.getItem('aichat_use_web_search') === 'true';
+  });
 
   // 添加 AbortController 状态
   const [abortController, setAbortController] = useState(null);
@@ -501,6 +503,33 @@ export const AIChat = ({
     
     return () => clearTimeout(timer);
   }, []);
+
+  // 确保localStorage中有网络搜索设置
+  useEffect(() => {
+    if (localStorage.getItem('aichat_use_web_search') === null) {
+      localStorage.setItem('aichat_use_web_search', 'false');
+    }
+  }, []);
+
+  // 监听localStorage变化
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'aichat_use_web_search') {
+        setIsNetworkEnabled(e.newValue === 'true');
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // 调试网络搜索状态
+  useEffect(() => {
+    console.log('网络搜索状态变化:', isNetworkEnabled);
+    console.log('localStorage中的值:', localStorage.getItem('aichat_use_web_search'));
+  }, [isNetworkEnabled]);
 
   return (
     <div className="flex flex-col h-full w-full">

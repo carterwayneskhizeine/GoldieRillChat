@@ -32,6 +32,10 @@ contextBridge.exposeInMainWorld('electron', {
   mkdir: (dirPath) => ipcRenderer.invoke('mkdir', dirPath),
   access: (filePath) => ipcRenderer.invoke('access', filePath),
   
+  // 添加图片下载相关方法
+  downloadSearchImages: (imageUrls, folderPath) => 
+    ipcRenderer.invoke('download-search-images', imageUrls, folderPath),
+  
   // 添加书签文件相关处理函数
   selectBookmarkFile: () => ipcRenderer.invoke('select-bookmark-file'),
   readFile: async (filePath) => {

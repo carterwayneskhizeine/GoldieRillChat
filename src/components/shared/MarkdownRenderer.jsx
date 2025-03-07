@@ -214,13 +214,20 @@ const useProcessedContent = (content) => {
     processed = processed.replace(/\n/g, '  \n');
     processed = processed.replace(/^(#{1,6}\s.*)/gm, '\n$1\n');
     processed = processed.replace(/^([*-]|\d+\.)\s/gm, '\n$&');
+    
+    // 添加对图片引用的处理，格式如[图片1]、[图片2]等
+    // 将简单的图片引用转换为Markdown图片语法
+    processed = processed.replace(/\[图片(\d+)\]/g, (match, num) => {
+      // 图片引用会在组件级别通过传入的images数组处理
+      return `![图片${num}][图片引用${num}]`;
+    });
 
     return processed;
   }, [content]);
 };
 
 // 将 markdownComponents 移到组件外部
-const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox) => ({
+const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox, imageReferences) => ({
   // 链接渲染
   a: ({node, children, href, className, ...props}) => {
     // 处理脚注引用链接
@@ -389,11 +396,16 @@ export const MarkdownRenderer = React.memo(({
   className = '',
   onCopyCode = () => {},
   onLinkClick = () => {},
+  searchImages = []
 }) => {
   const processedContent = useProcessedContent(content);
   const [openLightbox, setOpenLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [images, setImages] = useState([]);
+  const [imagesToShow, setImagesToShow] = useState([]);
+  const [hasScrollIndicator, setHasScrollIndicator] = useState(false);
+  const codeBlockRef = useRef(null);
+  const [isTableOverflowing, setIsTableOverflowing] = useState(false);
+  const [codeCopyTooltip, setCodeCopyTooltip] = useState({});
 
   // 使用 useCallback 优化事件处理函数
   const handleCopySelectedText = useCallback((e) => {
@@ -420,7 +432,7 @@ export const MarkdownRenderer = React.memo(({
   // 使用 useEffect 优化图片收集
   useEffect(() => {
     const collectedImages = collectImages(content);
-    setImages(collectedImages);
+    setImagesToShow(collectedImages);
   }, [content, collectImages]);
 
   // 使用 useCallback 优化上下文菜单处理
@@ -443,6 +455,16 @@ export const MarkdownRenderer = React.memo(({
     });
     window.dispatchEvent(contextMenuEvent);
   }, []);
+
+  // 支持图片引用的图片集合
+  const imageReferences = useMemo(() => {
+    const references = {};
+    // 为每个searchImage创建图片引用
+    searchImages.forEach((img, index) => {
+      references[`图片引用${index + 1}`] = img.url;
+    });
+    return references;
+  }, [searchImages]);
 
   // 使用 useMemo 缓存 rehypePlugins 配置
   const rehypePlugins = useMemo(() => [
@@ -477,11 +499,17 @@ export const MarkdownRenderer = React.memo(({
     remarkBreaks
   ], []);
 
-  // 使用 useMemo 缓存组件配置
+  // 创建markdown组件集合
   const markdownComponents = useMemo(() => 
-    createMarkdownComponents(handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox),
-    [handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox]
-  );
+    createMarkdownComponents(
+      handleContextMenu, 
+      onLinkClick, 
+      imagesToShow, 
+      setLightboxIndex, 
+      setOpenLightbox,
+      imageReferences
+    ), 
+  [handleContextMenu, onLinkClick, imagesToShow, imageReferences]);
 
   // 表格相关组件
   const TableWrapper = ({ children, ...props }) => {
@@ -1407,47 +1435,61 @@ export const MarkdownRenderer = React.memo(({
           td: ({node, children, ...props}) => (
             <td {...props}>{children}</td>
           ),
-          img: ({node, src, alt, ...props}) => {
-            const [isLoading, setIsLoading] = useState(true);
-            const [error, setError] = useState(false);
-
-            return (
-              <div className="image-wrapper">
-                {isLoading && !error && (
-                  <div className="image-loading">
-                    <svg className="icon" viewBox="0 0 24 24" fill="none">
-                      <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      <path d="M9 9l.01 0" />
-                      <path d="M15 9l.01 0" />
-                      <path d="M8 13h8a4 4 0 01-8 0z" />
-                    </svg>
-                    <span className="text">加载图片中...</span>
-                  </div>
-                )}
+          img: ({node, src, alt, width, height, title, ...props}) => {
+            // 检查是否是图片引用
+            if (src && src.startsWith('![图片') && imageReferences) {
+              // 从alt中提取引用编号
+              const refMatch = alt && alt.match(/图片(\d+)/);
+              if (refMatch) {
+                const refKey = `图片引用${refMatch[1]}`;
+                const refSrc = imageReferences[refKey];
+                
+                if (refSrc) {
+                  // 将引用替换为实际URL
+                  src = refSrc;
+                }
+              }
+            }
+            
+            // 如果是本地文件路径，添加前缀
+            if (src && src.startsWith('local-file://')) {
+              return (
                 <img
                   src={src}
-                  alt={alt}
-                  onLoad={() => setIsLoading(false)}
-                  onError={() => {
-                    setIsLoading(false);
-                    setError(true);
+                  alt={alt || ''}
+                  title={title || alt || ''}
+                  className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={(e) => {
+                    const index = imagesToShow.findIndex((img) => img.src === src);
+                    if (index !== -1) {
+                      setLightboxIndex(index);
+                      setOpenLightbox(true);
+                    }
                   }}
-                  style={{
-                    display: isLoading ? 'none' : 'block',
-                    maxWidth: '100%',
-                    height: 'auto'
-                  }}
+                  style={{ maxHeight: '300px', objectFit: 'contain' }}
+                  loading="lazy"
                   {...props}
                 />
-                {error && (
-                  <div className="image-error">
-                    <svg className="icon" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text">图片加载失败</span>
-                  </div>
-                )}
-              </div>
+              );
+            }
+            
+            // 外部图片URL
+            return (
+              <img
+                src={src}
+                alt={alt || ''}
+                title={title || alt || ''}
+                className="max-w-full rounded-lg"
+                style={{ maxHeight: '300px', objectFit: 'contain' }}
+                loading="lazy"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgMTNoLTJWN2gydjZabTAgNGgtMnYtMmgydjJabTktNVYxOEE1IDUgMCAwIDEgMTcgMjJINy4zM0ExMC42MSAxMC42MSAwIDAgMSAyIDEzLjQzQzIgOC4wNSA2LjA0IDQgMTAuNCA0YzIuMjUgMCA0LjI1Ljg2IDUuNiAyLjJMMTUuNTMgNUgyMXYzaC0zLjUzYTguNDYgOC40NiAwIDAgMSAtMi4zLTJBNi41MyA2LjUzIDAgMCAwIDEwLjRBNi41IDYuNSAwIDAgMCA0IDEzLjU5QzcuMDMgMTMuNjggOS43NiAxNiAxMCAxOWE4LjM4IDguMzggMCAwIDAgNC40LTMuMjNBNyA3IDAgMCAxIDIxIDEyWiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+';
+                  e.target.style.padding = '30px';
+                  e.target.style.backgroundColor = 'rgba(0,0,0,0.1)';
+                }}
+                {...props}
+              />
             );
           },
           // 添加脚注参考的自定义组件
@@ -1517,10 +1559,10 @@ export const MarkdownRenderer = React.memo(({
         open={openLightbox}
         close={() => setOpenLightbox(false)}
         index={lightboxIndex}
-        slides={images}
+        slides={imagesToShow}
         plugins={[Zoom, Thumbnails, Captions]}
         animation={{ fade: 300 }}
-        carousel={{ finite: images.length <= 1 }}
+        carousel={{ finite: imagesToShow.length <= 1 }}
         render={{
           iconPrev: () => <ChevronLeftIcon size={24} />,
           iconNext: () => <ChevronRightIcon size={24} />,

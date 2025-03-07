@@ -6,6 +6,10 @@ import { MarkdownRenderer } from '../../shared/MarkdownRenderer';
 import { shouldCollapseMessage, getMessageContentStyle } from '../utils/messageCollapse';
 import '../styles/messages.css';
 import { openUrl } from '../../../utils/browserUtils';
+import { ExclamationIcon } from '../../shared/ExclamationIcon';
+import { CODE_THEME_LIGHT, CODE_THEME_DARK, MESSAGE_STATES } from '../constants';
+import TextareaAutosize from 'react-textarea-autosize';
+import { ThumbUpIcon, ThumbDownIcon } from '../../shared/icons';
 
 const SearchSources = ({ sources, openInBrowserTab }) => {
   const [showSources, setShowSources] = useState(false);
@@ -203,12 +207,18 @@ export const MessageItem = ({
             <MarkdownRenderer
               content={message.content || ''}
               isCompact={false}
+              searchImages={message.searchImages}
               onCopyCode={(code) => {
                 console.log('Code copied:', code);
+                if (window.electron) {
+                  window.electron.copyToClipboard(code);
+                } else {
+                  navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
+                }
               }}
               onLinkClick={(href) => {
                 if (href.startsWith('http://') || href.startsWith('https://')) {
-                  openUrl(href, true, false);
+                  openInBrowserTab(href);
                 }
               }}
             />
@@ -270,12 +280,18 @@ export const MessageItem = ({
             <MarkdownRenderer
               content={message.content || ''}
               isCompact={false}
+              searchImages={message.searchImages}
               onCopyCode={(code) => {
                 console.log('Code copied:', code);
+                if (window.electron) {
+                  window.electron.copyToClipboard(code);
+                } else {
+                  navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
+                }
               }}
               onLinkClick={(href) => {
                 if (href.startsWith('http://') || href.startsWith('https://')) {
-                  openUrl(href, true, false);
+                  openInBrowserTab(href);
                 }
               }}
             />
@@ -301,6 +317,81 @@ export const MessageItem = ({
         </div>
       </div>
     );
+  };
+
+  // 添加处理搜索图片的函数
+  const renderSearchImages = (searchImages, onImageClick) => {
+    console.log('renderSearchImages调用，图片数量:', searchImages?.length, searchImages);
+    if (!searchImages || searchImages.length === 0) return null;
+    
+    return (
+      <div className="search-images-container mt-3 border-t pt-3 border-base-300">
+        <h3 className="text-base font-medium mb-2">搜索相关图片：</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {searchImages.map((img, index) => (
+            <div key={`search-img-${index}`} className="flex flex-col">
+              <img
+                src={img.url}
+                alt={img.description || '搜索图片'}
+                className="w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover"
+                style={{ maxHeight: '200px' }}
+                onClick={(e) => {
+                  // 打开Lightbox或处理图片点击
+                  if (typeof onImageClick === 'function') {
+                    onImageClick(e, {
+                      path: img.url,
+                      name: 'search-image-' + index + '.jpg',
+                      type: 'image/jpeg'
+                    });
+                  } else {
+                    window.open(img.url, '_blank');
+                  }
+                }}
+                loading="lazy"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgMTNoLTJWN2gydjZabTAgNGgtMnYtMmgydjJabTktNVYxOEE1IDUgMCAwIDEgMTcgMjJINy4zM0ExMC42MSAxMC42MSAwIDAgMSAyIDEzLjQzQzIgOC4wNSA2LjA0IDQgMTAuNCA0YzIuMjUgMCA0LjI1Ljg2IDUuNiAyLjJMMTUuNTMgNUgyMXYzaC0zLjUzYTguNDYgOC40NiAwIDAgMSAtMi4zLTJBNi41MyA2LjUzIDAgMCAwIDEwLjRBNi41IDYuNSAwIDAgMCA0IDEzLjU5QzcuMDMgMTMuNjggOS43NiAxNiAxMCAxOWE4LjM4IDguMzggMCAwIDAgNC40LTMuMjNBNyA3IDAgMCAxIDIxIDEyWiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+'
+                  e.target.style.padding = '10px';
+                  e.target.style.backgroundColor = 'rgba(0,0,0,0.1)';
+                }}
+              />
+              {img.description && (
+                <p className="text-xs mt-1 text-base-content/80 line-clamp-2">{img.description}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // 添加MessageStatus组件显示消息状态
+  const MessageStatus = ({ message, messageState }) => {
+    // 确定消息状态
+    if (message.generating && messageState === MESSAGE_STATES.THINKING) {
+      return (
+        <div className="flex items-center mt-2">
+          <div className="loading loading-spinner loading-xs mr-2"></div>
+          <span className="text-sm text-opacity-70">思考中...</span>
+        </div>
+      );
+    } else if (message.generating && messageState === MESSAGE_STATES.SEARCHING) {
+      return (
+        <div className="flex items-center mt-2">
+          <div className="loading loading-spinner loading-xs mr-2"></div>
+          <span className="text-sm text-opacity-70">搜索网络中...</span>
+        </div>
+      );
+    } else if (messageState === MESSAGE_STATES.ERROR) {
+      return (
+        <div className="flex items-center mt-2">
+          <ExclamationIcon className="w-4 h-4 mr-2 text-error" />
+          <span className="text-sm text-error">出错了</span>
+        </div>
+      );
+    }
+    
+    return null;
   };
 
   return (
@@ -430,12 +521,18 @@ export const MessageItem = ({
                               <MarkdownRenderer
                                 content={message.content || ''}
                                 isCompact={false}
+                                searchImages={message.searchImages}
                                 onCopyCode={(code) => {
                                   console.log('Code copied:', code);
+                                  if (window.electron) {
+                                    window.electron.copyToClipboard(code);
+                                  } else {
+                                    navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
+                                  }
                                 }}
                                 onLinkClick={(href) => {
                                   if (href.startsWith('http://') || href.startsWith('https://')) {
-                                    openUrl(href, true, false);
+                                    openInBrowserTab(href);
                                   }
                                 }}
                               />
@@ -457,12 +554,18 @@ export const MessageItem = ({
                               <MarkdownRenderer
                                 content={message.content || ''}
                                 isCompact={false}
+                                searchImages={message.searchImages}
                                 onCopyCode={(code) => {
                                   console.log('Code copied:', code);
+                                  if (window.electron) {
+                                    window.electron.copyToClipboard(code);
+                                  } else {
+                                    navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
+                                  }
                                 }}
                                 onLinkClick={(href) => {
                                   if (href.startsWith('http://') || href.startsWith('https://')) {
-                                    openUrl(href, true, false);
+                                    openInBrowserTab(href);
                                   }
                                 }}
                               />
@@ -484,12 +587,18 @@ export const MessageItem = ({
                               <MarkdownRenderer
                                 content={message.content || ''}
                                 isCompact={false}
+                                searchImages={message.searchImages}
                                 onCopyCode={(code) => {
                                   console.log('Code copied:', code);
+                                  if (window.electron) {
+                                    window.electron.copyToClipboard(code);
+                                  } else {
+                                    navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
+                                  }
                                 }}
                                 onLinkClick={(href) => {
                                   if (href.startsWith('http://') || href.startsWith('https://')) {
-                                    openUrl(href, true, false);
+                                    openInBrowserTab(href);
                                   }
                                 }}
                               />
@@ -519,12 +628,18 @@ export const MessageItem = ({
                             <MarkdownRenderer
                               content={message.content || ''}
                               isCompact={false}
+                              searchImages={message.searchImages}
                               onCopyCode={(code) => {
                                 console.log('Code copied:', code);
+                                if (window.electron) {
+                                  window.electron.copyToClipboard(code);
+                                } else {
+                                  navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
+                                }
                               }}
                               onLinkClick={(href) => {
                                 if (href.startsWith('http://') || href.startsWith('https://')) {
-                                  openUrl(href, true,false);
+                                  openInBrowserTab(href);
                                 }
                               }}
                             />

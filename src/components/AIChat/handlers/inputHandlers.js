@@ -59,7 +59,7 @@ export const createInputHandlers = ({
     
     // 获取知识库IDs和网络搜索设置
     const knowledgeBaseIds = messageParams?.knowledgeBaseIds || [];
-    const useWebSearch = messageParams?.useWebSearch !== undefined ? messageParams.useWebSearch : isNetworkEnabled;
+    let useWebSearch = messageParams?.useWebSearch !== undefined ? messageParams.useWebSearch : isNetworkEnabled;
 
     // 检查是否是语音生成命令
     if (content.startsWith('/tts ')) {
@@ -304,7 +304,8 @@ export const createInputHandlers = ({
           seed: result.seed,
           model: model,  // 添加模型信息
           originalPrompt: prompt,  // 保存原始提示词，方便重新生成
-          knowledgeBaseIds: knowledgeBaseIds // 保存知识库IDs
+          knowledgeBaseIds: knowledgeBaseIds, // 保存知识库IDs
+          searchImages: result.searchImages
         };
 
         // 更新消息列表
@@ -419,73 +420,131 @@ export const createInputHandlers = ({
       const messagesWithAI = [...messagesWithUser, aiMessage];
       setMessages(messagesWithAI);
 
-      // 构建系统消息
-      let systemMessage = '';
+      // 尝试获取搜索结果或者知识库引用
       let searchResults = null;
       let knowledgeReferences = null;
-
-      // 处理知识库引用
-      if (knowledgeBaseIds && knowledgeBaseIds.length > 0) {
+      let systemMessage = '';
+      
+      // 检查是否有知识库引用
+      if (localStorage.getItem('aichat_use_knowledge_base') === 'true' && knowledgeBaseIds && knowledgeBaseIds.length > 0) {
         try {
-          console.log('获取知识库引用:', knowledgeBaseIds);
-          // 获取知识库引用
-          const references = await getKnowledgeBaseReferences({
-            message: content,
-            knowledgeBaseIds
-          });
-          
-          if (references && references.length > 0) {
-            console.log('找到知识库引用:', references.length);
+          knowledgeReferences = await getKnowledgeBaseReferences(content);
+          if (knowledgeReferences && knowledgeReferences.length > 0) {
+            console.log('获取到知识库引用:', knowledgeReferences);
             
             // 对引用进行排序和过滤
-            const optimizedReferences = sortAndFilterReferences(references, {
-              similarityThreshold: 0.6,
-              maxResults: 8,
-              removeDuplicates: true
-            });
+            const processedReferences = sortAndFilterReferences(knowledgeReferences);
             
-            // 格式化引用，适合模型处理
-            const formattedReferences = formatReferencesForModel(optimizedReferences, {
-              maxContentLength: 800,
-              includeMetadata: true
-            });
+            // 格式化系统提示词
+            systemMessage = formatReferencesForModel(content, processedReferences);
             
-            // 使用更新后的FOOTNOTE_PROMPT
-            systemMessage = `${FOOTNOTE_PROMPT.replace('{question}', content).replace('{references}', formattedReferences)}`;
-            
-            // 保存原始引用对象以供后续处理
-            knowledgeReferences = optimizedReferences;
-          } else {
-            console.log('未找到相关知识库引用');
-            toastManager.info('未找到相关知识库引用，将使用模型自身知识回答');
+            // 添加脚注提示
+            systemMessage += `\n\n${FOOTNOTE_PROMPT}`;
           }
         } catch (error) {
           console.error('获取知识库引用失败:', error);
-          toastManager.error('获取知识库引用失败: ' + error.message);
         }
       }
 
-      // 如果启用了网络搜索或强制搜索，进行搜索
-      if ((useWebSearch || forceNetworkSearch) && !knowledgeReferences) {
+      // 处理网络搜索
+      if (useWebSearch || forceNetworkSearch) {
         try {
-          console.log('开始网络搜索:', content);
-          const searchResponse = await tavilyService.searchAndFetchContent(content);
+          console.log('正在执行网络搜索...');
+          
+          // 更新AI消息状态为"搜索中"
+          setMessageStates(prev => ({
+            ...prev,
+            [aiMessage.id]: MESSAGE_STATES.SEARCHING
+          }));
+
+          // 更新AI消息内容为搜索中提示
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
+            if (aiMessageIndex === -1) return prev;
+
+            newMessages[aiMessageIndex] = {
+              ...newMessages[aiMessageIndex],
+              content: '正在搜索网络信息...',
+              generating: true
+            };
+            return newMessages;
+          });
+          
+          // 传递当前会话路径，用于保存图片
+          const searchResponse = await tavilyService.searchAndFetchContent(content, currentConversation.path);
           console.log('搜索结果:', searchResponse);
           
-          if (searchResponse.results && searchResponse.results.length > 0) {
-            // 格式化搜索结果为文本
-            const formattedSearchResults = searchResponse.results.map((result, index) => (
-              `[${index + 1}] ${result.title}\n${result.snippet}\n${result.content}\n---\n`
-            )).join('\n');
+          // 搜索完成后，更新消息状态为"思考中"
+          setMessageStates(prev => ({
+            ...prev,
+            [aiMessage.id]: MESSAGE_STATES.THINKING
+          }));
+
+          // 更新AI消息内容为思考中提示
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
+            if (aiMessageIndex === -1) return prev;
+
+            newMessages[aiMessageIndex] = {
+              ...newMessages[aiMessageIndex],
+              content: '思考中...',
+              generating: true
+            };
+            return newMessages;
+          });
+          
+          if (searchResponse?.results?.length > 0) {
+            // 添加搜索结果到提示词
+            const searchPrompt = getWebSearchPrompt(userMessage, searchResponse.query, searchResponse.results, searchResponse.images);
             
-            // 使用新的getWebSearchPrompt函数
-            systemMessage = getWebSearchPrompt(content, formattedSearchResults);
+            console.log('搜索提示词:', searchPrompt);
             
+            // 如果已经有知识库提示词，合并提示词
+            if (systemMessage) {
+              systemMessage += '\n\n' + searchPrompt;
+            } else {
+              systemMessage = searchPrompt;
+            }
+            
+            // 保存搜索结果
             searchResults = searchResponse.results;
             console.log('搜索结果处理完成');
           }
+          
+          // 处理搜索返回的图片
+          if (searchResponse.images && searchResponse.images.length > 0) {
+            console.log('搜索返回图片结果:', searchResponse.images);
+            // 确保searchResults对象存在
+            searchResults = searchResults || {};
+            // 添加图片到searchResults
+            searchResults.images = searchResponse.images;
+          }
         } catch (error) {
           console.error('搜索失败:', error);
+          
+          // 更新消息状态为错误
+          setMessageStates(prev => ({
+            ...prev,
+            [aiMessage.id]: MESSAGE_STATES.ERROR
+          }));
+          
+          // 更新消息内容为错误信息
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const aiMessageIndex = newMessages.findIndex(msg => msg.id === aiMessage.id);
+            if (aiMessageIndex === -1) return prev;
+
+            newMessages[aiMessageIndex] = {
+              ...newMessages[aiMessageIndex],
+              content: `搜索失败: ${error.message}`,
+              generating: false
+            };
+            return newMessages;
+          });
+          
+          return; // 搜索失败时退出
         }
       }
 
@@ -584,6 +643,11 @@ export const createInputHandlers = ({
         searchResults: searchResults,
         knowledgeReferences: knowledgeReferences
       };
+      
+      // 如果搜索结果包含图片，添加到finalAiMessage
+      if (searchResults && searchResults.images) {
+        finalAiMessage.searchImages = searchResults.images;
+      }
 
       // 更新消息列表
       const finalMessages = messagesWithAI.map(msg => 
