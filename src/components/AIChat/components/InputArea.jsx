@@ -27,7 +27,7 @@ export const InputArea = ({
   // 在组件挂载或重新渲染后设置正确的初始高度
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = '72px';
+      textareaRef.current.style.height = '80px';
     }
   }, []);
 
@@ -150,15 +150,15 @@ export const InputArea = ({
         
         <div className="relative">
           <textarea
-            className={`textarea textarea-bordered w-full min-h-[72px] max-h-[480px] rounded-3xl resize-none pb-10 bg-transparent scrollbar-hide aichat-input ${
+            className={`textarea textarea-bordered w-full min-h-[80px] max-h-[480px] rounded-3xl resize-none pb-10 bg-transparent scrollbar-hide aichat-input ${
               isCompact ? 'text-sm shadow-lg' : ''
             }`}
             placeholder="Send a message..."
             value={messageInput}
             onChange={(e) => {
               setMessageInput(e.target.value);
-              e.target.style.height = '72px'; // 重置为初始高度（3行文字高度）
-              const scrollHeight = Math.max(e.target.scrollHeight, 72);
+              e.target.style.height = '80px'; // 重置为初始高度（3行文字高度）
+              const scrollHeight = Math.max(e.target.scrollHeight, 80);
               e.target.style.height = `${scrollHeight}px`;
               if (e.target.scrollHeight > 480) {
                 e.target.style.overflowY = 'scroll';
@@ -222,7 +222,7 @@ export const InputArea = ({
               title="上传文件"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m-8-8h16" />
               </svg>
             </button>
           </div>
