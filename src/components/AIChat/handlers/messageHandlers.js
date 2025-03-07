@@ -362,10 +362,23 @@ export const createMessageHandlers = ({
           // 处理搜索返回的图片
           if (searchResponse.images && searchResponse.images.length > 0) {
             console.log('搜索返回图片结果:', searchResponse.images);
-            // 确保searchResults对象存在
-            searchResults = searchResults || {};
-            // 添加图片到searchResults
-            searchResults.images = searchResponse.images;
+            
+            // 检查用户是否启用了包含图片选项
+            const includeImages = localStorage.getItem('aichat_tavily_include_images') === 'true';
+            
+            if (includeImages) {
+              // 确保searchResults对象存在
+              searchResults = searchResults || {};
+              // 添加图片到searchResults
+              searchResults.images = searchResponse.images;
+              console.log('根据用户设置，包含搜索图片结果');
+            } else {
+              console.log('根据用户设置，不包含搜索图片结果');
+              // 如果用户禁用了图片，确保不添加图片数据
+              if (searchResults && searchResults.images) {
+                delete searchResults.images;
+              }
+            }
           }
         } catch (error) {
           console.error('搜索失败:', error);

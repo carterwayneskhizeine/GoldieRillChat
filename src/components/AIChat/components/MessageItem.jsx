@@ -501,6 +501,8 @@ export const MessageItem = ({
   // 处理图片点击
   const handleImageClick = (e, img) => {
     console.log('图片被点击:', img);
+    e.preventDefault();
+    e.stopPropagation();
     
     // 如果是本地图片，需要处理路径
     if (img.isLocal && img.src && img.src.startsWith('local-file://')) {
@@ -522,87 +524,24 @@ export const MessageItem = ({
       
       console.log('处理后的图片路径:', localPath);
       
-      // 阻止默认行为
-      e.preventDefault();
-      
-      // 尝试不同的方法打开文件
-      let success = false;
-      
-      // 使用传入的 openFileLocation 函数
-      if (typeof openFileLocation === 'function') {
-        try {
-          // 创建一个模拟文件对象，包含path属性
-          openFileLocation({path: localPath});
-          success = true;
-        } catch (error) {
-          console.error('使用openFileLocation打开文件失败:', error);
-        }
-      } 
-      // 直接使用Electron API
-      if (!success && window.electron && window.electron.openFileLocation) {
-        try {
-          window.electron.openFileLocation(localPath);
-          success = true;
-        } catch (error) {
-          console.error('使用electron.openFileLocation打开文件失败:', error);
-        }
+      // 使用onImageClick回调函数，将图片传递给MessageList的handleImageClick
+      if (typeof onImageClick === 'function') {
+        // 创建一个规范的文件对象，以便MessageList的handleImageClick可以处理
+        onImageClick(e, {
+          path: localPath,
+          name: img.title || '搜索图片',
+          type: 'image'
+        });
       }
-      
-      // 尝试使用shell.openPath (Electron 9+)
-      if (!success && window.electron && window.electron.shell && window.electron.shell.openPath) {
-        try {
-          window.electron.shell.openPath(localPath);
-          success = true;
-        } catch (error) {
-          console.error('使用shell.openPath打开文件失败:', error);
-        }
+    } else if (img.url) {
+      // 对于非本地图片（网络图片），也使用onImageClick回调
+      if (typeof onImageClick === 'function') {
+        onImageClick(e, {
+          path: img.url.replace('file://', ''),
+          name: img.title || '搜索图片',
+          type: 'image'
+        });
       }
-      
-      // 使用其他可能的API
-      if (!success && window.electron && window.electron.openExternal) {
-        try {
-          window.electron.openExternal(`file://${localPath}`);
-          success = true;
-        } catch (error) {
-          console.error('使用electron.openExternal打开文件失败:', error);
-        }
-      }
-      
-      if (!success && window.electron && window.electron.shell && window.electron.shell.openExternal) {
-        try {
-          window.electron.shell.openExternal(`file://${localPath}`);
-          success = true;
-        } catch (error) {
-          console.error('使用shell.openExternal打开文件失败:', error);
-        }
-      }
-      
-      // 如果所有方法都失败，但有onImageClick，尝试使用它
-      if (!success && onImageClick) {
-        try {
-          // 使用原始协议，不使用file://
-          processedImg.src = `local-file://${localPath}`;
-          onImageClick(processedImg);
-          success = true;
-        } catch (error) {
-          console.error('使用onImageClick处理图片失败:', error);
-        }
-      }
-      
-      // 如果所有尝试都失败，显示错误消息
-      if (!success) {
-        console.error('无法打开本地文件，所有方法都失败');
-        if (window.alert) {
-          window.alert('无法打开本地图片文件。此功能可能需要桌面应用程序支持。');
-        }
-      }
-    } else {
-      // 非本地图片，直接处理
-      if (onImageClick) {
-        e.preventDefault();
-        onImageClick(img);
-      }
-      // 如果没有 onImageClick，让浏览器默认行为处理
     }
   };
 

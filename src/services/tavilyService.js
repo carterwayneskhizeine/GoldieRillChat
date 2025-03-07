@@ -311,9 +311,11 @@ class TavilyService {
 
     try {
       const searchResults = await this.search(query);
+      const config = this.getConfig();
       
-      // 检查是否有图片结果，有则下载到本地
-      if (searchResults.images && searchResults.images.length > 0 && folderPath) {
+      // 检查图片设置和结果
+      // 只有当includeImages为true，且有图片结果，且有文件夹路径时才处理图片
+      if (config.includeImages && searchResults.images && searchResults.images.length > 0 && folderPath) {
         console.log(`搜索返回了 ${searchResults.images.length} 张图片，开始下载到本地...`);
         
         // 下载图片并更新URL为本地路径
@@ -324,9 +326,17 @@ class TavilyService {
         
         // 更新缓存
         this.setCache(query, searchResults);
+      } else if (!config.includeImages) {
+        // 如果设置为不包含图片，移除图片数组
+        if (searchResults.images) {
+          console.log('根据设置，不处理搜索图片结果');
+          delete searchResults.images;
+          // 更新缓存
+          this.setCache(query, searchResults);
+        }
       }
       
-      // 如果搜索结果中已经包含了内容，直接返回完整的结果（包括images数组）
+      // 如果搜索结果中已经包含了内容，直接返回完整的结果
       if (searchResults.results && searchResults.results.length > 0) {
         return searchResults;
       }

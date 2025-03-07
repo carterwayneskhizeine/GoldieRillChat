@@ -58,12 +58,22 @@ export const MessageList = ({
     // 收集搜索返回的图片
     const mediaFromSearch = messages
       .filter(msg => msg.searchImages && msg.searchImages.length > 0)
-      .flatMap(msg => msg.searchImages.map((img, index) => ({
-        src: img.url,
-        title: `搜索图片 ${index + 1}`,
-        description: img.description || '搜索相关图片',
-        type: 'image'
-      })));
+      .flatMap(msg => msg.searchImages.map((img, index) => {
+        // 处理URL格式以确保一致性
+        let imgSrc = img.url || img.src;
+        
+        // 如果是file://格式，转换为local-file://
+        if (imgSrc && (imgSrc.startsWith('file://'))) {
+          imgSrc = imgSrc.replace('file://', 'local-file://');
+        }
+        
+        return {
+          src: imgSrc,
+          title: img.title || `搜索图片 ${index + 1}`,
+          description: img.description || '搜索相关图片',
+          type: 'image'
+        };
+      }));
     
     // 合并两种来源的媒体文件
     return [...mediaFromFiles, ...mediaFromSearch];
@@ -107,7 +117,40 @@ export const MessageList = ({
     e.stopPropagation();
     
     const allMedia = collectMedia();
-    const currentIndex = allMedia.findIndex(media => media.src === `local-file://${file.path}`);
+    
+    // 创建标准化路径函数
+    const normalizeFilePath = (path) => {
+      if (!path) return '';
+      // 移除协议前缀
+      path = path.replace(/^(local-file:\/\/|file:\/\/)/, '');
+      // 将反斜杠转换为正斜杠
+      path = path.replace(/\\/g, '/');
+      // 解码 URL 编码
+      try {
+        path = decodeURIComponent(path);
+      } catch (e) {
+        console.error('解码路径失败:', e);
+      }
+      return path;
+    };
+    
+    // 标准化当前文件路径
+    const currentFilePath = normalizeFilePath(file.path);
+    console.log('当前点击的文件路径:', currentFilePath);
+    
+    // 查找匹配的媒体
+    let currentIndex = allMedia.findIndex(media => {
+      const mediaSrcPath = normalizeFilePath(media.src);
+      return mediaSrcPath.includes(currentFilePath) || currentFilePath.includes(mediaSrcPath);
+    });
+    
+    // 如果没找到匹配，使用第一个作为默认
+    if (currentIndex === -1) {
+      console.warn('未找到匹配的媒体文件，使用第一个文件');
+      currentIndex = 0;
+    }
+    
+    console.log(`找到媒体文件索引: ${currentIndex}, 总媒体数: ${allMedia.length}`);
     
     setLightboxImages(allMedia);
     setLightboxIndex(currentIndex);
