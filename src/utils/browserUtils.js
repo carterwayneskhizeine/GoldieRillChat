@@ -218,4 +218,42 @@ export const openUrl = async (url, useInternalBrowser = true, showDialog = false
       alert(`无法打开链接: ${url}\n可能需要手动复制到浏览器中打开。`);
     }
   }
+};
+
+/**
+ * 直接在内部浏览器中打开URL（无对话框）
+ * 该函数专门用于Browser标题栏的"翻译当前页面为中文"按钮
+ * 
+ * @param {string} url - 要打开的URL
+ */
+export const openUrlDirectly = (url) => {
+  try {
+    // 确保URL有http/https前缀
+    if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    
+    console.log('直接在内部浏览器中打开URL:', url);
+    
+    // 直接使用内部浏览器打开URL
+    if (window.electron?.browser?.newTab) {
+      window.electron.browser.newTab(url);
+      if (window.electron.browser.setVisibility) {
+        window.electron.browser.setVisibility(true);
+      }
+      window.dispatchEvent(switchToBrowserEvent);
+    } else {
+      console.log('内部浏览器API不可用，使用外部浏览器');
+      openExternalUrl(url);
+    }
+  } catch (error) {
+    console.error('直接打开链接失败:', error);
+    // 出错时，尝试使用外部浏览器打开
+    try {
+      openExternalUrl(url);
+    } catch (e) {
+      console.error('使用外部浏览器打开链接也失败:', e);
+      alert(`无法打开链接: ${url}\n可能需要手动复制到浏览器中打开。`);
+    }
+  }
 }; 

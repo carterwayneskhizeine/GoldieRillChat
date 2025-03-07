@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { toggleTheme, themes } from '../components/themeHandlers'
-import { openUrl } from '../utils/browserUtils'
+import { openUrl, openUrlDirectly } from '../utils/browserUtils'
 // 移除 react-hot-toast 导入
 // import { toast } from 'react-hot-toast'
 
@@ -50,7 +50,7 @@ const TranslateButton = ({ currentUrl, activeTabId }) => {
   // 辅助函数：在新窗口打开Google翻译
   const openGoogleTranslateInNewWindow = (url, targetLang) => {
     const googleTranslateUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodeURIComponent(url)}`;
-    openUrl(googleTranslateUrl, true, true);
+    openUrlDirectly(googleTranslateUrl);
     showNotification('已在内部浏览器中打开Google翻译服务', 'success');
   };
 
