@@ -80,26 +80,34 @@ export const getWebSearchPrompt = (userMessage, searchQuery, searchResults, imag
   // 准备图片描述部分
   let imageSection = '';
   if (images && images.length > 0) {
-    const imageItems = images.map((img, index) => {
-      const description = img.description || '相关图片';
-      const url = img.url || '';
-      // 使用Markdown图片语法引用图片
-      return `![图片${index + 1}](${url} "${description}")`;
-    }).join('\n');
-    
-    imageSection = `\n\n我还找到了一些相关图片，这些图片已经下载到本地。请在回答中使用Markdown语法引用这些图片，参考格式如下：\n${imageItems}\n`;
+    imageSection = `\n\n我还找到了一些相关图片，这些图片已经下载到本地，路径信息将以JSON格式存储在返回的message对象的searchImages数组中。
+你不需要在回复中手动插入![图片](file://...)格式的图片引用，系统会自动渲染这些图片。
+图片信息已经包含在返回的JSON数据结构中:
+{
+  "searchImages": [
+    {
+      "url": "图片本地路径",
+      "description": "图片描述",
+      "originalUrl": "图片原始URL"
+    },
+    ...
+  ]
+}
+你只需在适当位置文字说明"可参考上面展示的图片X"或"如图片X所示"等即可，不需要使用Markdown链接语法。`;
   }
-  
-  // 获取用户查询内容
-  const query = userMessage.content || searchQuery;
-  
-  return `以下是与问题相关的网络搜索结果：
 
+  // 使用模板字符串构建提示词
+  return `我将帮助用户回答他们的问题，基于以下网络搜索结果：
+
+用户问题：${userMessage}
+
+搜索查询：${searchQuery}
+
+搜索结果：
 ${formattedResults}
 ${imageSection}
 
-请基于以上搜索结果回答用户的问题："${query}"。如果搜索结果不足以完整回答问题，也可以使用你自己的知识来补充。请在回答末尾列出使用的参考来源编号。
+请使用以上信息提供清晰、准确且有帮助的回答。适当引用来源（使用格式[编号]），但主要关注回答用户的问题。保持友好、信息丰富的对话语气。如果搜索结果不足以完全回答问题，请说明并提供基于现有信息的最佳回答。
 
-${images && images.length > 0 ? '重要提示：在你的回答中，请使用Markdown图片语法引用相关图片，确保图片能被正确显示。例如 "![图片描述](图片URL)"。' : ''}
-`; 
+如果在展示查找到的多张图片时，请直接在文本中引用，如"第1张图片显示..."，而不是插入Markdown图片语法。`;
 }; 

@@ -128,9 +128,95 @@ export const MessageItem = ({
   const [editorLanguage, setEditorLanguage] = useState("plaintext");
   const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [fontSize, setFontSize] = useState(14);
+  const [isCopied, setIsCopied] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
   const editorRef = useRef(null);
+  
+  // 添加处理搜索图片的状态
+  const [processedSearchImages, setProcessedSearchImages] = useState([]);
+  
+  // 获取消息内容的样式
+  const contentStyle = getMessageContentStyle(isCollapsed);
+  
+  // 检测并处理消息中的file://链接
+  useEffect(() => {
+    //console.log("MessageItem useEffect - 检查消息内容是否包含file://链接");
+    
+    if (message.searchImages && message.searchImages.length > 0) {
+      console.log("消息已包含searchImages:", message.searchImages.length, "张图片");
+      // 预处理searchImages中的图片URL，确保它们有正确的格式
+      const processedImages = message.searchImages.map(img => {
+        // 创建新对象，避免修改原始对象
+        const processedImg = { ...img };
+        
+        // 判断是否已有本地文件
+        const hasLocalFile = img.url && typeof img.url === 'string' && img.url.startsWith('file://');
+        
+        if (hasLocalFile) {
+          // 如果url是本地文件，使用local-file://格式
+          processedImg.src = img.url.replace('file://', 'local-file://');
+          processedImg.isLocal = true;
+          //console.log(`处理本地图片URL->src: ${processedImg.src}`);
+        } else if (img.src && img.src.startsWith('file://')) {
+          // 如果src是本地文件，也使用local-file://格式
+          processedImg.src = img.src.replace('file://', 'local-file://');
+          processedImg.isLocal = true;
+          //console.log(`处理本地图片src: ${processedImg.src}`);
+        } else {
+          // 如果不是本地文件
+          processedImg.src = img.src || img.url;
+          processedImg.isLocal = false;
+          //console.log(`处理网络图片: ${processedImg.src}`);
+        }
+        
+        return processedImg;
+      });
+      
+      //console.log("处理后的searchImages:", processedImages);
+      setProcessedSearchImages(processedImages);
+    }
+    
+    if (message.content && message.content.includes('file://')) {
+      // 使用正则表达式找出所有Markdown格式的图片链接
+      const imgRegex = /!\[(.*?)\]\((file:\/\/[^)]+)\)/g;
+      let match;
+      let searchImages = [];
+      
+      // 收集所有file://开头的图片URL
+      while ((match = imgRegex.exec(message.content)) !== null) {
+        const [fullMatch, altText, imgUrl] = match;
+        
+        // 将file://转换为local-file://以便在Electron中显示
+        const localFileUrl = imgUrl.replace('file://', 'local-file://');
+        
+        searchImages.push({
+          src: localFileUrl,
+          title: altText || '搜索图片',
+          isLocal: true
+        });
+      }
+      
+      if (searchImages.length > 0) {
+        console.log("从消息内容中提取到的searchImages:", searchImages);
+        setProcessedSearchImages(searchImages);
+        
+        // 如果消息中没有searchImages属性，添加一个
+        if (!message.searchImages) {
+          // 深拷贝消息对象
+          const updatedMessage = {...message, searchImages};
+          
+          // 更新消息列表中的这条消息
+          if (setMessages && messages) {
+            const updatedMessages = messages.map(msg => 
+              msg.id === message.id ? updatedMessage : msg
+            );
+            setMessages(updatedMessages);
+          }
+        }
+      }
+    }
+  }, [message.content, message.searchImages]);
 
-  // 添加复制功能
   const handleCopySelectedText = (e) => {
     if (e.ctrlKey && e.key === 'c') {
       const selectedText = window.getSelection().toString();
@@ -151,9 +237,6 @@ export const MessageItem = ({
   const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
   };
-
-  // 获取消息内容样式
-  const contentStyle = getMessageContentStyle(isCollapsed);
 
   // 渲染媒体文件
   const renderMediaContent = (file, onImageClick) => {
@@ -207,7 +290,7 @@ export const MessageItem = ({
             <MarkdownRenderer
               content={message.content || ''}
               isCompact={false}
-              searchImages={message.searchImages}
+              searchImages={message.searchImages || processedSearchImages || []}
               onCopyCode={(code) => {
                 console.log('Code copied:', code);
                 if (window.electron) {
@@ -280,7 +363,7 @@ export const MessageItem = ({
             <MarkdownRenderer
               content={message.content || ''}
               isCompact={false}
-              searchImages={message.searchImages}
+              searchImages={message.searchImages || processedSearchImages || []}
               onCopyCode={(code) => {
                 console.log('Code copied:', code);
                 if (window.electron) {
@@ -297,6 +380,12 @@ export const MessageItem = ({
             />
           </div>
         )}
+        
+        {/* 显示搜索图片 */}
+        {message.searchImages && message.searchImages.length > 0 && 
+          renderSearchImages(message.searchImages, onImageClick)
+        }
+        
         <div className="audio-info mb-4">
           <div className="font-medium mb-2">文本：{message.audioParams?.text}</div>
           <div className="text-sm opacity-70">
@@ -321,48 +410,200 @@ export const MessageItem = ({
 
   // 添加处理搜索图片的函数
   const renderSearchImages = (searchImages, onImageClick) => {
-    console.log('renderSearchImages调用，图片数量:', searchImages?.length, searchImages);
-    if (!searchImages || searchImages.length === 0) return null;
+    //console.log('renderSearchImages调用，图片数量:', searchImages?.length);
+    //console.log('searchImages详细信息:', JSON.stringify(searchImages, null, 2));
+    
+    if (!searchImages || searchImages.length === 0) {
+      console.log('没有搜索图片可显示');
+      return null;
+    }
+    
+    // 处理图片数组，确保优先使用本地图片
+    const processedImages = searchImages.map(img => {
+      // 创建一个新对象，避免修改原始对象
+      const processedImg = { ...img };
+      
+      // 判断是否已有本地文件
+      const hasLocalFile = img.url && typeof img.url === 'string' && img.url.startsWith('file://');
+      
+      if (hasLocalFile) {
+        // 如果有本地文件，转换为local-file://格式
+        processedImg.src = img.url.replace('file://', 'local-file://');
+        processedImg.isLocal = true;
+        //console.log(`使用本地图片: ${processedImg.src}, 原始URL: ${img.originalUrl || '无'}`);
+      } else if (img.src && img.src.startsWith('file://')) {
+        // 如果src是本地文件，也转换为local-file://格式
+        processedImg.src = img.src.replace('file://', 'local-file://');
+        processedImg.isLocal = true;
+        console.log(`使用本地图片: ${processedImg.src}, 原始URL: ${img.originalUrl || '无'}`);
+      } else {
+        // 如果没有本地文件，使用原始URL
+        processedImg.src = img.src || img.url;
+        processedImg.isLocal = false;
+        console.log(`使用网络图片: ${processedImg.src}`);
+      }
+      
+      return processedImg;
+    });
+    
+    // 检查图片URL的格式
+    processedImages.forEach((img, index) => {
+      //console.log(`图片 ${index} 的URL:`, img.src);
+      //console.log(`图片 ${index} 是否本地:`, img.isLocal ? '是' : '否');
+      //console.log(`图片 ${index} 的描述:`, img.description || img.title);
+    });
     
     return (
       <div className="search-images-container mt-3 border-t pt-3 border-base-300">
         <h3 className="text-base font-medium mb-2">搜索相关图片：</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {searchImages.map((img, index) => (
+          {processedImages.map((img, index) => (
             <div key={`search-img-${index}`} className="flex flex-col">
               <img
-                src={img.url}
-                alt={img.description || '搜索图片'}
-                className="w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover"
+                src={img.src}
+                alt={img.title || img.description || '搜索图片'}
+                className={`w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover ${img.isLocal ? 'border-2 border-primary' : ''}`}
                 style={{ maxHeight: '200px' }}
                 onClick={(e) => {
-                  // 打开Lightbox或处理图片点击
-                  if (typeof onImageClick === 'function') {
-                    onImageClick(e, {
-                      path: img.url,
-                      name: 'search-image-' + index + '.jpg',
-                      type: 'image/jpeg'
-                    });
-                  } else {
-                    window.open(img.url, '_blank');
-                  }
+                  handleImageClick(e, img);
                 }}
                 loading="lazy"
                 onError={(e) => {
+                  console.error('图片加载错误:', img.src);
+                  
+                  // 如果本地图片加载失败，尝试使用原始网络链接
+                  if (img.isLocal && img.originalUrl) {
+                    console.log('本地图片加载失败，尝试加载原始URL:', img.originalUrl);
+                    e.target.src = img.originalUrl;
+                    return;
+                  }
+                  
+                  // 如果还是失败，显示错误占位图
                   e.target.onerror = null;
                   e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgMTNoLTJWN2gydjZabTAgNGgtMnYtMmgydjJabTktNVYxOEE1IDUgMCAwIDEgMTcgMjJINy4zM0ExMC42MSAxMC42MSAwIDAgMSAyIDEzLjQzQzIgOC4wNSA2LjA0IDQgMTAuNCA0YzIuMjUgMCA0LjI1Ljg2IDUuNiAyLjJMMTUuNTMgNUgyMXYzaC0zLjUzYTguNDYgOC40NiAwIDAgMSAtMi4zLTJBNi41MyA2LjUzIDAgMCAwIDEwLjRBNi41IDYuNSAwIDAgMCA0IDEzLjU5QzcuMDMgMTMuNjggOS43NiAxNiAxMCAxOWE4LjM4IDguMzggMCAwIDAgNC40LTMuMjNBNyA3IDAgMCAxIDIxIDEyWiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+'
                   e.target.style.padding = '10px';
                   e.target.style.backgroundColor = 'rgba(0,0,0,0.1)';
                 }}
               />
-              {img.description && (
-                <p className="text-xs mt-1 text-base-content/80 line-clamp-2">{img.description}</p>
+              {(img.title || img.description) && (
+                <p className="text-xs mt-1 text-base-content/80 line-clamp-2">
+                  {img.title || img.description}
+                  {img.isLocal && <span className="text-primary ml-1">[本地]</span>}
+                </p>
               )}
             </div>
           ))}
         </div>
       </div>
     );
+  };
+
+  // 处理图片点击
+  const handleImageClick = (e, img) => {
+    console.log('图片被点击:', img);
+    
+    // 如果是本地图片，需要处理路径
+    if (img.isLocal && img.src && img.src.startsWith('local-file://')) {
+      // 创建一个新对象，避免修改原始对象
+      const processedImg = { ...img };
+      
+      // 处理路径，确保中文路径不会有问题
+      let localPath = img.src.replace('local-file://', '');
+      
+      // 解码 URL 编码的路径
+      try {
+        localPath = decodeURIComponent(localPath);
+      } catch (e) {
+        console.error('解码路径失败:', e);
+      }
+      
+      // 将路径格式标准化（处理斜杠方向）
+      localPath = localPath.replace(/\\/g, '/');
+      
+      console.log('处理后的图片路径:', localPath);
+      
+      // 阻止默认行为
+      e.preventDefault();
+      
+      // 尝试不同的方法打开文件
+      let success = false;
+      
+      // 使用传入的 openFileLocation 函数
+      if (typeof openFileLocation === 'function') {
+        try {
+          // 创建一个模拟文件对象，包含path属性
+          openFileLocation({path: localPath});
+          success = true;
+        } catch (error) {
+          console.error('使用openFileLocation打开文件失败:', error);
+        }
+      } 
+      // 直接使用Electron API
+      if (!success && window.electron && window.electron.openFileLocation) {
+        try {
+          window.electron.openFileLocation(localPath);
+          success = true;
+        } catch (error) {
+          console.error('使用electron.openFileLocation打开文件失败:', error);
+        }
+      }
+      
+      // 尝试使用shell.openPath (Electron 9+)
+      if (!success && window.electron && window.electron.shell && window.electron.shell.openPath) {
+        try {
+          window.electron.shell.openPath(localPath);
+          success = true;
+        } catch (error) {
+          console.error('使用shell.openPath打开文件失败:', error);
+        }
+      }
+      
+      // 使用其他可能的API
+      if (!success && window.electron && window.electron.openExternal) {
+        try {
+          window.electron.openExternal(`file://${localPath}`);
+          success = true;
+        } catch (error) {
+          console.error('使用electron.openExternal打开文件失败:', error);
+        }
+      }
+      
+      if (!success && window.electron && window.electron.shell && window.electron.shell.openExternal) {
+        try {
+          window.electron.shell.openExternal(`file://${localPath}`);
+          success = true;
+        } catch (error) {
+          console.error('使用shell.openExternal打开文件失败:', error);
+        }
+      }
+      
+      // 如果所有方法都失败，但有onImageClick，尝试使用它
+      if (!success && onImageClick) {
+        try {
+          // 使用原始协议，不使用file://
+          processedImg.src = `local-file://${localPath}`;
+          onImageClick(processedImg);
+          success = true;
+        } catch (error) {
+          console.error('使用onImageClick处理图片失败:', error);
+        }
+      }
+      
+      // 如果所有尝试都失败，显示错误消息
+      if (!success) {
+        console.error('无法打开本地文件，所有方法都失败');
+        if (window.alert) {
+          window.alert('无法打开本地图片文件。此功能可能需要桌面应用程序支持。');
+        }
+      }
+    } else {
+      // 非本地图片，直接处理
+      if (onImageClick) {
+        e.preventDefault();
+        onImageClick(img);
+      }
+      // 如果没有 onImageClick，让浏览器默认行为处理
+    }
   };
 
   // 添加MessageStatus组件显示消息状态
@@ -521,7 +762,17 @@ export const MessageItem = ({
                               <MarkdownRenderer
                                 content={message.content || ''}
                                 isCompact={false}
-                                searchImages={message.searchImages}
+                                searchImages={processedSearchImages || (message.searchImages ? message.searchImages.map(img => {
+                                  // 处理本地图片路径
+                                  if ((img.url && img.url.startsWith('file://')) || (img.src && img.src.startsWith('file://'))) {
+                                    return {
+                                      ...img,
+                                      src: (img.src || img.url).replace('file://', 'local-file://'),
+                                      isLocal: true
+                                    };
+                                  }
+                                  return img;
+                                }) : [])}
                                 onCopyCode={(code) => {
                                   console.log('Code copied:', code);
                                   if (window.electron) {
@@ -536,6 +787,11 @@ export const MessageItem = ({
                                   }
                                 }}
                               />
+                              
+                              {/* 显示搜索图片 */}
+                              {message.searchImages && message.searchImages.length > 0 && 
+                                renderSearchImages(message.searchImages, onImageClick)
+                              }
                             </div>
                           )}
                           {/* 然后显示图片 */}
@@ -554,7 +810,17 @@ export const MessageItem = ({
                               <MarkdownRenderer
                                 content={message.content || ''}
                                 isCompact={false}
-                                searchImages={message.searchImages}
+                                searchImages={processedSearchImages || (message.searchImages ? message.searchImages.map(img => {
+                                  // 处理本地图片路径
+                                  if ((img.url && img.url.startsWith('file://')) || (img.src && img.src.startsWith('file://'))) {
+                                    return {
+                                      ...img,
+                                      src: (img.src || img.url).replace('file://', 'local-file://'),
+                                      isLocal: true
+                                    };
+                                  }
+                                  return img;
+                                }) : [])}
                                 onCopyCode={(code) => {
                                   console.log('Code copied:', code);
                                   if (window.electron) {
@@ -569,6 +835,11 @@ export const MessageItem = ({
                                   }
                                 }}
                               />
+                              
+                              {/* 显示搜索图片 */}
+                              {message.searchImages && message.searchImages.length > 0 && 
+                                renderSearchImages(message.searchImages, onImageClick)
+                              }
                             </div>
                           )}
                           {/* 然后显示视频 */}
@@ -587,7 +858,17 @@ export const MessageItem = ({
                               <MarkdownRenderer
                                 content={message.content || ''}
                                 isCompact={false}
-                                searchImages={message.searchImages}
+                                searchImages={processedSearchImages || (message.searchImages ? message.searchImages.map(img => {
+                                  // 处理本地图片路径
+                                  if ((img.url && img.url.startsWith('file://')) || (img.src && img.src.startsWith('file://'))) {
+                                    return {
+                                      ...img,
+                                      src: (img.src || img.url).replace('file://', 'local-file://'),
+                                      isLocal: true
+                                    };
+                                  }
+                                  return img;
+                                }) : [])}
                                 onCopyCode={(code) => {
                                   console.log('Code copied:', code);
                                   if (window.electron) {
@@ -625,24 +906,41 @@ export const MessageItem = ({
                               {message.content}
                             </div>
                           ) : (
-                            <MarkdownRenderer
-                              content={message.content || ''}
-                              isCompact={false}
-                              searchImages={message.searchImages}
-                              onCopyCode={(code) => {
-                                console.log('Code copied:', code);
-                                if (window.electron) {
-                                  window.electron.copyToClipboard(code);
-                                } else {
-                                  navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
-                                }
-                              }}
-                              onLinkClick={(href) => {
-                                if (href.startsWith('http://') || href.startsWith('https://')) {
-                                  openInBrowserTab(href);
-                                }
-                              }}
-                            />
+                            <>
+                              <MarkdownRenderer
+                                content={message.content || ''}
+                                isCompact={false}
+                                searchImages={processedSearchImages || (message.searchImages ? message.searchImages.map(img => {
+                                  // 处理本地图片路径
+                                  if ((img.url && img.url.startsWith('file://')) || (img.src && img.src.startsWith('file://'))) {
+                                    return {
+                                      ...img,
+                                      src: (img.src || img.url).replace('file://', 'local-file://'),
+                                      isLocal: true
+                                    };
+                                  }
+                                  return img;
+                                }) : [])}
+                                onCopyCode={(code) => {
+                                  console.log('Code copied:', code);
+                                  if (window.electron) {
+                                    window.electron.copyToClipboard(code);
+                                  } else {
+                                    navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
+                                  }
+                                }}
+                                onLinkClick={(href) => {
+                                  if (href.startsWith('http://') || href.startsWith('https://')) {
+                                    openInBrowserTab(href);
+                                  }
+                                }}
+                              />
+                              
+                              {/* 显示搜索图片 */}
+                              {message.searchImages && message.searchImages.length > 0 && 
+                                renderSearchImages(message.searchImages, onImageClick)
+                              }
+                            </>
                           )}
                         </div>
                       )}

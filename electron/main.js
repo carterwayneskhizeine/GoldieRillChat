@@ -133,7 +133,38 @@ app.whenReady().then(async () => {
 
   // 注册本地文件协议
   protocol.registerFileProtocol('local-file', (request, callback) => {
-    const filePath = request.url.replace('local-file://', '')
+    let filePath = request.url.replace('local-file://', '')
+    
+    // 确保Windows文件路径能正确处理
+    if (process.platform === 'win32') {
+      // 如果是Windows系统
+      if (filePath.startsWith('/') && filePath[2] === ':') {
+        // 去掉开头多余的斜杠，例如 /C:/path 变成 C:/path
+        filePath = filePath.substring(1);
+      }
+      // 将正斜杠转为反斜杠
+      filePath = filePath.replace(/\//g, '\\');
+    }
+    
+    callback(decodeURI(filePath))
+  })
+
+  // 注册file协议
+  protocol.registerFileProtocol('file', (request, callback) => {
+    // 从 file:// 中获取文件路径
+    let filePath = request.url.replace('file://', '')
+    
+    // 确保Windows文件路径能正确处理
+    if (process.platform === 'win32') {
+      // 如果是Windows系统
+      if (filePath.startsWith('/') && filePath[2] === ':') {
+        // 去掉开头多余的斜杠，例如 /C:/path 变成 C:/path
+        filePath = filePath.substring(1);
+      }
+      // 将正斜杠转为反斜杠
+      filePath = filePath.replace(/\//g, '\\');
+    }
+    
     callback(decodeURI(filePath))
   })
 
