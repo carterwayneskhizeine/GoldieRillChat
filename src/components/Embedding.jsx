@@ -406,7 +406,7 @@ const Embedding = ({ isActive = false }) => {
             请先选择或创建一个知识库
           </p>
           <button 
-            className="btn btn-primary btn-sm"
+            className="shader-btn"
             onClick={() => setShowAddDialog(true)}
           >
             创建知识库
@@ -419,31 +419,31 @@ const Embedding = ({ isActive = false }) => {
       <div className="space-y-4">
         <div className="tabs tabs-boxed bg-base-200 p-1">
           <a 
-            className={`tab ${addContentType === 'note' ? 'tab-active' : ''}`}
+            className={`shader-btn ${addContentType === 'note' ? 'active' : ''}`}
             onClick={() => setAddContentType('note')}
           >
             笔记
           </a>
           <a 
-            className={`tab ${addContentType === 'file' ? 'tab-active' : ''}`}
+            className={`shader-btn ${addContentType === 'file' ? 'active' : ''}`}
             onClick={() => setAddContentType('file')}
           >
             文件
           </a>
           <a 
-            className={`tab ${addContentType === 'url' ? 'tab-active' : ''}`}
+            className={`shader-btn ${addContentType === 'url' ? 'active' : ''}`}
             onClick={() => setAddContentType('url')}
           >
             网址
           </a>
           <a 
-            className={`tab ${addContentType === 'directory' ? 'tab-active' : ''}`}
+            className={`shader-btn ${addContentType === 'directory' ? 'active' : ''}`}
             onClick={() => setAddContentType('directory')}
           >
             目录
           </a>
           <a 
-            className={`tab ${addContentType === 'sitemap' ? 'tab-active' : ''}`}
+            className={`shader-btn ${addContentType === 'sitemap' ? 'active' : ''}`}
             onClick={() => setAddContentType('sitemap')}
           >
             站点地图
@@ -456,7 +456,7 @@ const Embedding = ({ isActive = false }) => {
               <div className="text-5xl mb-4">📄</div>
               <p className="mb-4 text-center">拖放文件到此处或点击上传</p>
               <button 
-                className="btn btn-outline"
+                className="shader-btn"
                 onClick={() => {
                   // 这里应该触发文件选择对话框
                   const input = document.createElement('input');
@@ -512,7 +512,7 @@ const Embedding = ({ isActive = false }) => {
               </label>
             </div>
             <button 
-              className="btn btn-primary"
+              className="shader-btn gold-save-btn"
               onClick={async () => {
                 const urlInput = document.getElementById('url-input');
                 if (urlInput && urlInput.value) {
@@ -554,7 +554,7 @@ const Embedding = ({ isActive = false }) => {
               </label>
             </div>
             <button 
-              className="btn btn-primary"
+              className="shader-btn gold-save-btn"
               onClick={async () => {
                 const urlInput = document.getElementById('sitemap-url-input');
                 if (urlInput && urlInput.value) {
@@ -593,7 +593,7 @@ const Embedding = ({ isActive = false }) => {
                   readOnly
                 />
                 <button 
-                  className="btn ml-2"
+                  className="shader-btn ml-2"
                   onClick={() => {
                     // 调用Electron的选择文件夹对话框
                     window.electronAPI?.selectDirectory?.().then(result => {
@@ -608,7 +608,7 @@ const Embedding = ({ isActive = false }) => {
               </div>
             </div>
             <button 
-              className="btn btn-primary"
+              className="shader-btn gold-save-btn"
               onClick={async () => {
                 const pathInput = document.getElementById('directory-path-input');
                 if (pathInput && pathInput.value) {
@@ -654,7 +654,7 @@ const Embedding = ({ isActive = false }) => {
               ></textarea>
             </div>
             <button 
-              className="btn btn-primary"
+              className="shader-btn gold-save-btn"
               onClick={async () => {
                 const titleInput = document.getElementById('note-title-input');
                 const contentInput = document.getElementById('note-content-input');
@@ -702,7 +702,7 @@ const Embedding = ({ isActive = false }) => {
           <h2 className="text-xl font-semibold">{selectedKnowledgeBase.name}</h2>
           <div className="flex gap-2">
             <button 
-              className="btn btn-sm"
+              className="shader-btn"
               onClick={() => setShowSettingsDialog(true)}
             >
               设置
@@ -726,13 +726,13 @@ const Embedding = ({ isActive = false }) => {
         
         <div className="tabs tabs-boxed bg-base-200 p-1 w-fit mb-4">
           <a 
-            className={`tab ${activeContentTab === 'add' ? 'tab-active' : ''}`}
+            className={`shader-btn ${activeContentTab === 'add' ? 'active' : ''}`}
             onClick={() => setActiveContentTab('add')}
           >
             添加内容
           </a>
           <a 
-            className={`tab ${activeContentTab === 'items' ? 'tab-active' : ''}`}
+            className={`shader-btn ${activeContentTab === 'items' ? 'active' : ''}`}
             onClick={() => setActiveContentTab('items')}
           >
             内容项
@@ -746,7 +746,7 @@ const Embedding = ({ isActive = false }) => {
           </a>
           */}
           <a 
-            className={`tab ${activeContentTab === 'stats' ? 'tab-active' : ''}`}
+            className={`shader-btn ${activeContentTab === 'stats' ? 'active' : ''}`}
             onClick={() => setActiveContentTab('stats')}
           >
             统计
@@ -1103,9 +1103,8 @@ const Embedding = ({ isActive = false }) => {
           
           <div className="modal-action">
             <button 
-              className="btn"
+              className="shader-btn"
               onClick={() => setShowSettingsDialog(false)}
-              style={{backgroundColor: "#353551", color: "white", border: "1px solid rgba(255, 255, 255, 0.15)"}}
             >
               取消
             </button>
@@ -1230,16 +1229,16 @@ const Embedding = ({ isActive = false }) => {
           <div className="p-3 border-b border-base-content/5">
             <div className="flex gap-2">
               <button 
-                className="btn btn-sm btn-outline gap-2 border-none hover:bg-[#14141e]"
+                className="shader-btn"
                 onClick={() => setShowAddDialog(true)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 新建
               </button>
               <button 
-                className="btn btn-sm btn-square btn-ghost text-base-content/70 hover:bg-[#14141e]"
+                className="shader-btn"
                 onClick={() => {
                   // 触发刷新
                   refreshBases();
@@ -1284,13 +1283,14 @@ const Embedding = ({ isActive = false }) => {
             </p>
             <div className="flex justify-end gap-2">
               <button 
-                className="btn btn-sm btn-ghost"
+                className="shader-btn"
                 onClick={cancelDeleteKnowledgeBase}
               >
                 取消
               </button>
               <button 
-                className="btn btn-sm btn-error"
+                className="shader-btn"
+                style={{backgroundColor: "rgba(220, 38, 38, 0.3)", borderColor: "rgba(220, 38, 38, 0.4)"}}
                 onClick={confirmDeleteKnowledgeBase}
               >
                 确认删除

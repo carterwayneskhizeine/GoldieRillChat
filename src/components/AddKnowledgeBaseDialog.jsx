@@ -105,9 +105,8 @@ const AddKnowledgeBaseDialog = ({ isOpen, onClose, onAdd }) => {
       }}>
         <h3 className="font-bold text-lg text-white">添加知识库</h3>
         <button 
-          className="btn btn-sm btn-circle absolute right-2 top-2"
+          className="shader-btn btn-sm btn-circle absolute right-2 top-2"
           onClick={onClose}
-          style={{backgroundColor: "#1e1e28", color: "white", border: "1px solid rgba(255, 255, 255, 0.1)"}}
         >✕</button>
         
         <form onSubmit={handleSubmit} className="py-2">
@@ -171,18 +170,15 @@ const AddKnowledgeBaseDialog = ({ isOpen, onClose, onAdd }) => {
           <div className="modal-action">
             <button 
               type="button"
-              className="btn"
+              className="shader-btn"
               onClick={onClose}
-              disabled={loading}
-              style={{backgroundColor: "#14141e", color: "white", border: "1px solid rgba(255, 255, 255, 0.1)"}}
             >
               取消
             </button>
             <button 
               type="submit"
-              className="btn btn-primary"
+              className="shader-btn gold-save-btn"
               disabled={loading}
-              style={{backgroundColor: "#1e234c", color: "white", border: "none"}}
             >
               {loading ? 
                 <span className="flex items-center gap-2">
