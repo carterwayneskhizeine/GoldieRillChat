@@ -158,18 +158,18 @@
   }
   
   /* 聊天容器和页面背景 */
-  body, html, .app, .chat-container, .main-content, 
+  :is(body), :is(html), .app, .chat-container, .main-content, 
   .drawer-content, .drawer-side, .bg-base-100, .bg-base-200, .bg-base-300 {
     background-color: black !important;
     color: rgb(220, 220, 220) !important;
   }
   
   /* 针对导航栏和标签 */
-  nav, .tabs, .tab, .tab-content, .tab-active, 
+  :is(nav), .tabs, .tab, .tab-content, .tab-active, 
   .menu-title, .menu-item, .drawer-content .menu-title,
   .drawer-toggle, .drawer-side, .drawer, .drawer-content,
-  #tabs *, .tab-panel, .tab-panels *, nav *, .nav *,
-  .title, .breadcrumbs, header {
+  #tabs *, .tab-panel, .tab-panels *, :is(nav) *, .nav *,
+  .title, .breadcrumbs, :is(header) {
     color: white !important;
     position: relative;
     z-index: 5 !important; /* 确保导航元素显示在背景之上 */
@@ -208,10 +208,10 @@
   
   /* 针对特定的聊天标题元素 */
   .flex.justify-between.items-center .font-semibold,
-  div.flex.justify-between.items-center span.font-semibold,
-  div.flex.items-center span.font-semibold,
-  div[class*="flex"][class*="justify-between"][class*="items-center"] span,
-  div[class*="flex"][class*="items-center"] span.font-semibold,
+  :is(div).flex.justify-between.items-center :is(span).font-semibold,
+  :is(div).flex.items-center :is(span).font-semibold,
+  :is(div)[class*="flex"][class*="justify-between"][class*="items-center"] :is(span),
+  :is(div)[class*="flex"][class*="items-center"] :is(span).font-semibold,
   .font-semibold {
     color: white !important;
     text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
@@ -233,7 +233,7 @@
   
   /* 选择菜单的选项 */
   .select option, select option, 
-  option, datalist option {
+  :is(option), datalist option {
     background-color: rgba(0, 0, 0, 0.9) !important;
     color: white !important;
     padding: 8px !important;
@@ -246,8 +246,8 @@
   }
   
   /* 顶部Header组件 */
-  header, .header, .app-header, 
-  div[class*="border-b"][class*="flex"][class*="justify-between"][class*="items-center"] {
+  :is(header), .header, .app-header, 
+  :is(div)[class*="border-b"][class*="flex"][class*="justify-between"][class*="items-center"] {
     position: relative !important;
     z-index: 10 !important; /* 确保头部在最上层 */
     background-color: rgba(0, 0, 0, 0) !important;
@@ -258,13 +258,13 @@
   .btn.text-primary.active svg,
   .btn.text-primary[data-active="true"] svg,
   .btn.text-primary.btn-active svg,
-  button.btn-active.text-primary svg,
-  button[data-state="active"].text-primary svg,
-  button.active.text-primary svg,
-  button.text-primary[aria-pressed="true"] svg,
+  :is(button).btn-active.text-primary svg,
+  :is(button)[data-state="active"].text-primary svg,
+  :is(button).active.text-primary svg,
+  :is(button).text-primary[aria-pressed="true"] svg,
   /* 支持自定义属性 */
-  button.text-primary[data-enabled="true"] svg,
-  button.text-primary[data-on="true"] svg {
+  :is(button).text-primary[data-enabled="true"] svg,
+  :is(button).text-primary[data-on="true"] svg {
     stroke: #3B82F6 !important; /* 蓝色 - tailwind blue-500 */
     fill: none !important;
   }
@@ -509,17 +509,17 @@
   .modal-box .btn-primary,
   .settings-modal .btn-primary,
   .tabs-content .btn-primary,
-  button.btn.btn-sm.btn-primary,
-  button.btn.btn-primary {
+  :is(button).btn.btn-sm.btn-primary,
+  :is(button).btn.btn-primary {
     color: white !important;
     font-weight: 500 !important;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
   }
 
   /* 专门针对添加新模板按钮 */
-  button.btn-primary:contains("添加新模板"),
-  button.btn-primary:contains("添加模板"),
-  button.btn-primary:contains("新模板") {
+  :is(button).btn-primary:contains("添加新模板"),
+  :is(button).btn-primary:contains("添加模板"),
+  :is(button).btn-primary:contains("新模板") {
     color: white !important;
     font-weight: 600 !important;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;

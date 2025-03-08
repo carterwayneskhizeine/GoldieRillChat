@@ -359,7 +359,7 @@ canvas.three-background {
 }
 
 /* 确保文本在ThreeJS背景上可读 */
-body, html, .app, .chat-container, .main-content,
+:is(body), :is(html), .app, .chat-container, .main-content,
 .drawer-content, .drawer-side, .sidebar,
 .header, .app-header, .modal, .dropdown,
 .card, .btn, .input, .textarea, .select,
