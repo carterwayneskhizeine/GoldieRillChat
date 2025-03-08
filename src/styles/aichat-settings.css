@@ -1,0 +1,735 @@
+/**
+ * AIChat设置面板样式
+ * 统一与ThreeJS Shaders和Monaco Editor的风格
+ */
+
+/* 设置面板主容器 */
+.settings-panel,
+.settings-panel-container {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(3px) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 6px !important;
+}
+
+/* 背景蒙层 */
+.settings-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(3px) !important;
+}
+
+/* 标题样式 */
+.settings-panel .text-2xl,
+.settings-panel h1 {
+  color: white !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* 段落标题 */
+.settings-panel .text-xl,
+.settings-panel .text-lg,
+.settings-panel h2,
+.settings-panel h3 {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+}
+
+/* 分割线 */
+.settings-panel .divider {
+  opacity: 0.2 !important;
+  margin: 1.5rem 0 !important;
+}
+
+/* 文本样式 */
+.settings-panel .text-sm,
+.settings-panel .label-text,
+.settings-panel .label-text-alt {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* 通用按钮样式 */
+.settings-panel .btn,
+.settings-panel button {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 0.85rem !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  min-height: 2.2rem !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+  box-shadow: none !important;
+}
+
+/* 按钮悬停效果 */
+.settings-panel .btn:hover:not(:disabled),
+.settings-panel button:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+}
+
+/* 保存按钮特殊样式 */
+.settings-panel .btn-primary,
+.settings-panel .btn-save {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: #FFFFFF !important;
+  font-weight: 500 !important;
+}
+
+/* 保存按钮悬停效果 */
+.settings-panel .btn-primary:hover:not(:disabled),
+.settings-panel .btn-save:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.5) !important;
+  border-color: rgba(255, 215, 0, 0.6) !important;
+}
+
+/* 按钮禁用状态 */
+.settings-panel .btn:disabled,
+.settings-panel button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* 关闭按钮 */
+.settings-panel .close-btn,
+.settings-panel .btn-circle {
+  position: relative;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 18px !important;
+  font-weight: 300 !important;
+  transition: all 0.3s ease !important;
+  padding: 0 !important;
+  min-height: 32px !important;
+}
+
+/* 关闭按钮悬停效果 */
+.settings-panel .close-btn:hover,
+.settings-panel .btn-circle:hover {
+  background-color: rgba(255, 215, 0, 0.2) !important;
+  border-color: rgba(255, 215, 0, 0.3) !important;
+  color: white !important;
+  transform: rotate(90deg) !important;
+}
+
+/* 输入框样式 */
+.settings-panel .input,
+.settings-panel input[type="text"],
+.settings-panel input[type="number"],
+.settings-panel input[type="password"],
+.settings-panel input[type="email"],
+.settings-panel textarea {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease !important;
+}
+
+/* 输入框焦点状态 */
+.settings-panel .input:focus,
+.settings-panel input:focus,
+.settings-panel textarea:focus {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 复选框和单选框 */
+.settings-panel .checkbox,
+.settings-panel .toggle {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 复选框和开关选中状态 */
+.settings-panel .checkbox:checked,
+.settings-panel .toggle:checked {
+  border-color: rgba(255, 215, 0, 0.5) !important;
+  background-color: rgba(255, 215, 0, 0.3) !important;
+}
+
+/* 标签文本 */
+.settings-panel .label {
+  padding: 0.5rem 0 !important;
+}
+
+/* 表单控件容器 */
+.settings-panel .form-control {
+  margin-bottom: 1rem !important;
+}
+
+/* 下拉菜单样式 */
+.settings-panel .select,
+.settings-panel select {
+  appearance: none !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem !important;
+  font-size: 0.9rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 16px !important;
+}
+
+/* 下拉菜单悬停和焦点状态 */
+.settings-panel .select:hover,
+.settings-panel select:hover {
+  border-color: rgba(255, 215, 0, 0.4) !important;
+}
+
+.settings-panel .select:focus,
+.settings-panel select:focus {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 下拉菜单选项 */
+.settings-panel .select option,
+.settings-panel select option {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  color: white !important;
+  padding: 8px !important;
+}
+
+/* 下拉菜单容器 */
+.settings-panel .select-wrapper {
+  position: relative !important;
+  display: inline-block !important;
+  width: 100% !important;
+}
+
+/* 标签页样式 */
+.settings-panel .tabs-bordered,
+.settings-panel .tabs {
+  display: flex !important;
+  gap: 0.5rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding-bottom: 0.5rem !important;
+}
+
+.settings-panel .tab {
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.settings-panel .tab:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.settings-panel .tab-active {
+  background-color: rgba(255, 215, 0, 0.2) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.3) !important;
+}
+
+/* 范围滑块样式 */
+.settings-panel .range {
+  height: 0.5rem !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border-radius: 0.25rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.settings-panel .range::-webkit-slider-thumb {
+  appearance: none !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  border-radius: 0.5rem !important;
+  background-color: rgba(255, 215, 0, 0.7) !important;
+  cursor: pointer !important;
+  border: 1px solid rgba(255, 215, 0, 0.8) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.2s ease !important;
+}
+
+.settings-panel .range::-moz-range-thumb {
+  width: 1rem !important;
+  height: 1rem !important;
+  border-radius: 0.5rem !important;
+  background-color: rgba(255, 215, 0, 0.7) !important;
+  cursor: pointer !important;
+  border: 1px solid rgba(255, 215, 0, 0.8) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.2s ease !important;
+}
+
+.settings-panel .range::-webkit-slider-thumb:hover {
+  background-color: rgba(255, 215, 0, 0.9) !important;
+  transform: scale(1.1) !important;
+}
+
+.settings-panel .range::-moz-range-thumb:hover {
+  background-color: rgba(255, 215, 0, 0.9) !important;
+  transform: scale(1.1) !important;
+}
+
+/* 范围显示值样式 */
+.settings-panel .range-value {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border-radius: 4px !important;
+  padding: 0.25rem 0.5rem !important;
+  min-width: 2.5rem !important;
+  text-align: center !important;
+}
+
+/* 折叠面板样式 */
+.settings-panel .collapse {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 6px !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  margin-bottom: 1rem !important;
+}
+
+.settings-panel .collapse-title {
+  color: rgba(255, 255, 255, 0.9) !important;
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  padding: 1rem !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.settings-panel .collapse-content {
+  background-color: transparent !important;
+  padding: 1rem !important;
+}
+
+/* 卡片样式 */
+.settings-panel .card,
+.settings-panel .bg-base-100,
+.settings-panel .bg-base-200,
+.settings-panel .bg-base-300 {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+}
+
+.settings-panel .card-body {
+  padding: 1rem !important;
+}
+
+/* 警告框样式 */
+.settings-panel .alert {
+  border-radius: 4px !important;
+  padding: 0.75rem 1rem !important;
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 1rem !important;
+  border: 1px solid transparent !important;
+}
+
+.settings-panel .alert-error {
+  background-color: rgba(220, 38, 38, 0.1) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(220, 38, 38, 0.3) !important;
+}
+
+.settings-panel .alert-info {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* 图片背景模式兼容 */
+.bg-theme .settings-panel,
+.bg-theme .settings-panel-container {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* 图片背景模式下加强文本可见性 */
+.bg-theme .settings-panel .text-2xl,
+.bg-theme .settings-panel h1,
+.bg-theme .settings-panel .text-xl,
+.bg-theme .settings-panel .text-lg,
+.bg-theme .settings-panel h2,
+.bg-theme .settings-panel h3 {
+  text-shadow: 0px 0px 5px rgba(0, 0, 0, 0.9) !important;
+}
+
+.bg-theme .settings-panel .text-sm,
+.bg-theme .settings-panel .label-text,
+.bg-theme .settings-panel .label-text-alt,
+.bg-theme .settings-panel p {
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* 图片背景模式下按钮样式调整 */
+.bg-theme .settings-panel .btn,
+.bg-theme .settings-panel button {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.bg-theme .settings-panel .btn:hover:not(:disabled),
+.bg-theme .settings-panel button:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  box-shadow: 0 2px 12px rgba(255, 215, 0, 0.2) !important;
+}
+
+/* 图片背景模式下输入框样式调整 */
+.bg-theme .settings-panel .input,
+.bg-theme .settings-panel input,
+.bg-theme .settings-panel select,
+.bg-theme .settings-panel textarea {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 图片背景模式下卡片和折叠面板样式调整 */
+.bg-theme .settings-panel .collapse,
+.bg-theme .settings-panel .card,
+.bg-theme .settings-panel .bg-base-100,
+.bg-theme .settings-panel .bg-base-200,
+.bg-theme .settings-panel .bg-base-300 {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 动画和过渡效果 */
+.settings-panel {
+  animation: panel-appear 0.3s ease-out !important;
+  transform-origin: center !important;
+}
+
+@keyframes panel-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 按钮交互增强 */
+.settings-panel .btn,
+.settings-panel button {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.settings-panel .btn::after,
+.settings-panel button::after {
+  content: '' !important;
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
+  top: 0 !important;
+  left: 0 !important;
+  pointer-events: none !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.3) 10%, transparent 10.01%) !important;
+  background-repeat: no-repeat !important;
+  background-position: 50% !important;
+  transform: scale(10, 10) !important;
+  opacity: 0 !important;
+  transition: transform 0.4s, opacity 0.8s !important;
+}
+
+.settings-panel .btn:active::after,
+.settings-panel button:active::after {
+  transform: scale(0, 0) !important;
+  opacity: 0.3 !important;
+  transition: 0s !important;
+}
+
+/* 滚动条样式 */
+.settings-panel::-webkit-scrollbar,
+.settings-panel *::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.settings-panel::-webkit-scrollbar-track,
+.settings-panel *::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 4px !important;
+}
+
+.settings-panel::-webkit-scrollbar-thumb,
+.settings-panel *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.settings-panel::-webkit-scrollbar-thumb:hover,
+.settings-panel *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 帮助文本样式 */
+.settings-panel .settings-help-text {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 0.85rem !important;
+  padding: 0.5rem !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 4px !important;
+  border-left: 2px solid rgba(255, 215, 0, 0.5) !important;
+}
+
+/* 模板项样式 */
+.settings-panel .template-item {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+  padding: 0.5rem 1rem !important;
+  margin-bottom: 0.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.settings-panel .template-item:hover {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* API密钥输入组样式 */
+.settings-panel .input-group {
+  display: flex !important;
+  align-items: stretch !important;
+}
+
+.settings-panel .input-group .input,
+.settings-panel .input-group input {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  flex: 1 !important;
+}
+
+.settings-panel .input-group .btn,
+.settings-panel .input-group button {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  min-height: 2.5rem !important;
+}
+
+/* 链接样式 */
+.settings-panel .link,
+.settings-panel a {
+  color: rgba(255, 215, 0, 0.8) !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.settings-panel .link:hover,
+.settings-panel a:hover {
+  color: rgba(255, 215, 0, 1) !important;
+  text-decoration: underline !important;
+}
+
+/* 面板内部间距和布局 */
+.settings-panel {
+  padding: 1.5rem !important;
+}
+
+.settings-panel .space-y-4 > * {
+  margin-top: 1rem !important;
+  margin-bottom: 0 !important;
+}
+
+.settings-panel .space-y-4 > *:first-child {
+  margin-top: 0 !important;
+}
+
+.settings-panel .space-y-6 > * {
+  margin-top: 1.5rem !important;
+  margin-bottom: 0 !important;
+}
+
+.settings-panel .space-y-6 > *:first-child {
+  margin-top: 0 !important;
+}
+
+.settings-panel .flex.gap-2 > * {
+  margin-right: 0.5rem !important;
+}
+
+.settings-panel .flex.gap-2 > *:last-child {
+  margin-right: 0 !important;
+}
+
+.settings-panel .flex.gap-4 > * {
+  margin-right: 1rem !important;
+}
+
+.settings-panel .flex.gap-4 > *:last-child {
+  margin-right: 0 !important;
+}
+
+/* 标题和按钮容器 */
+.settings-panel .flex.justify-between.items-center {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* 设置子面板之间的间距 */
+.settings-panel .hidden {
+  display: none !important;
+}
+
+/* 响应式样式 */
+@media (max-width: 768px) {
+  .settings-panel {
+    padding: 1rem !important;
+  }
+  
+  .settings-panel .flex.justify-between.items-center {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+  
+  .settings-panel .flex.justify-between.items-center h1,
+  .settings-panel .flex.justify-between.items-center .text-2xl {
+    margin-bottom: 0 !important;
+  }
+  
+  .settings-panel .tabs,
+  .settings-panel .tabs-bordered {
+    flex-wrap: wrap !important;
+  }
+  
+  .settings-panel .tab {
+    flex: 1 !important;
+    min-width: 80px !important;
+    text-align: center !important;
+    padding: 0.5rem !important;
+    font-size: 0.8rem !important;
+  }
+  
+  .settings-panel .input-group {
+    flex-direction: column !important;
+  }
+  
+  .settings-panel .input-group .input,
+  .settings-panel .input-group input {
+    border-radius: 4px !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .settings-panel .input-group .btn,
+  .settings-panel .input-group button {
+    border-radius: 4px !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-panel {
+    max-width: 100% !important;
+    margin: 0.5rem !important;
+    padding: 0.75rem !important;
+  }
+  
+  .settings-panel .flex:not(.flex-col) {
+    flex-wrap: wrap !important;
+  }
+  
+  .settings-panel .btn,
+  .settings-panel button {
+    padding: 0.4rem 0.75rem !important;
+    font-size: 0.8rem !important;
+  }
+  
+  .settings-panel .space-y-4 > * {
+    margin-top: 0.75rem !important;
+  }
+  
+  .settings-panel .space-y-6 > * {
+    margin-top: 1rem !important;
+  }
+}
+
+/* 模板编辑对话框样式 */
+.template-edit-dialog {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 50 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(3px) !important;
+}
+
+.template-edit-dialog .template-edit-content {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  padding: 1.5rem !important;
+  width: 650px !important;
+  max-width: 90vw !important;
+  max-height: 80vh !important;
+  overflow-y: auto !important;
+  animation: panel-appear 0.3s ease-out !important;
+}
+
+.template-edit-dialog h2 {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 1rem !important;
+  color: white !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9) !important;
+}
+
+.template-edit-dialog .space-y-4 > * {
+  margin-top: 1rem !important;
+  margin-bottom: 0 !important;
+}
+
+.template-edit-dialog .space-y-4 > *:first-child {
+  margin-top: 0 !important;
+}
+
+.template-edit-dialog textarea {
+  min-height: 200px !important;
+  resize: vertical !important;
+} 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import '../styles/settings.css';
+import '../../../styles/aichat-settings.css';
 import { getTranslationApiConfig, setTranslationApiConfig } from '../../../services/translationService';
 import { getImageGenApiConfig, setImageGenApiConfig } from '../../../services/imageGenerationService';
 import { openUrl } from '../../../utils/browserUtils';
@@ -622,14 +622,14 @@ export const SettingsModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-base-100 rounded-lg p-4 w-[650px] max-h-[80vh] overflow-y-auto settings-panel">
+    <div className="fixed inset-0 settings-modal-backdrop flex items-center justify-center z-50">
+      <div className="settings-panel rounded-lg w-[650px] max-h-[80vh] overflow-y-auto">
         {/* 标题和关闭按钮 */}
         <div className="flex justify-between items-center mb-6 px-2">
           <h1 className="text-2xl font-bold">Settings</h1>
           <button 
             type="button"
-            className="btn btn-ghost btn-circle"
+            className="close-btn"
             onClick={handleClose}
           >
             ✕
@@ -639,7 +639,7 @@ export const SettingsModal = ({
         {/* Tabs */}
         <div className="space-y-4 px-2">
           {/* 标签页 */}
-          <div className="tabs tabs-bordered w-full">
+          <div className="tabs">
             <a 
               className={`tab ${activeTab === 'provider' ? 'tab-active' : ''}`}
               onClick={() => setActiveTab('provider')}
@@ -934,7 +934,7 @@ export const SettingsModal = ({
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-lg font-medium">模板管理</h3>
                   <button 
-                    className="btn btn-sm btn-primary add-template-btn"
+                    className="btn btn-sm gold-save-btn add-template-btn"
                     onClick={handleAddTemplate}
                     disabled={!systemPromptEnabled}
                   >
@@ -1732,8 +1732,8 @@ export const SettingsModal = ({
 
       {/* 模板编辑对话框 */}
       {(isAddingTemplate || editingTemplateId) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-base-100 rounded-lg p-4 w-[650px] max-h-[80vh] overflow-y-auto">
+        <div className="template-edit-dialog">
+          <div className="template-edit-content">
             <h2 className="text-xl font-bold mb-4 px-2">
               {isAddingTemplate ? '添加新模板' : '编辑模板'}
             </h2>
@@ -1766,13 +1766,13 @@ export const SettingsModal = ({
               
               <div className="flex justify-end gap-2">
                 <button 
-                  className="btn btn-ghost"
+                  className="btn"
                   onClick={handleCancelEditTemplate}
                 >
                   取消
                 </button>
                 <button 
-                  className="btn btn-primary"
+                  className="gold-save-btn"
                   onClick={handleSaveTemplate}
                 >
                   保存
