@@ -13,6 +13,7 @@ import '../styles/markdown-preview.css';
 import { createPortal } from 'react-dom';
 import Editor from "@monaco-editor/react";
 import '../styles/chat.css';
+import '../styles/message-editor.css';
 // 导入自定义图像编辑器
 import { ReactPhotoEditor } from '../components/CustomPhotoEditor';
 // 导入 eventBus
@@ -1648,9 +1649,9 @@ export function ChatView({
       {editingMessage &&
         createPortal(
           <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="absolute inset-0 bg-base-300/50 backdrop-blur-sm" onClick={exitEditMode}></div>
-            <div className="relative bg-base-100 rounded-lg shadow-xl w-[90vw] max-w-[1200px] h-[80vh] flex flex-col">
-              <div className="flex-none flex items-center justify-between px-4 py-2 border-b border-base-300">
+            <div className="absolute inset-0 message-editor-backdrop" onClick={exitEditMode}></div>
+            <div className="relative message-editor-container w-[90vw] max-w-[1200px] h-[80vh] flex flex-col">
+              <div className="flex-none message-editor-toolbar flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <select 
                     className="select select-bordered select-sm"
@@ -1683,16 +1684,16 @@ export function ChatView({
                     <option value="hc-black">hc-black</option>
                   </select>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 font-size-selector">
                     <button 
-                      className="btn btn-sm btn-square"
+                      className="font-size-btn"
                       onClick={() => setFontSize(prev => Math.max(8, prev - 2))}
                     >
                       -
                     </button>
-                    <span className="text-sm min-w-[3ch] text-center">{fontSize}</span>
+                    <span className="font-size-display">{fontSize}</span>
                     <button 
-                      className="btn btn-sm btn-square"
+                      className="font-size-btn"
                       onClick={() => setFontSize(prev => Math.min(32, prev + 2))}
                     >
                       +
@@ -1701,7 +1702,7 @@ export function ChatView({
                 </div>
 
                 <button 
-                  className="btn btn-ghost btn-sm btn-circle"
+                  className="close-btn"
                   onClick={exitEditMode}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1729,15 +1730,15 @@ export function ChatView({
                 />
               </div>
 
-              <div className="flex-none flex justify-end gap-2 px-4 py-3 border-t border-base-300">
+              <div className="flex-none message-editor-actions flex justify-end gap-2">
                 <button 
-                  className="btn btn-ghost btn-sm"
+                  className="shader-btn"
                   onClick={exitEditMode}
                 >
                   取消
                 </button>
                 <button 
-                  className="btn btn-primary btn-sm"
+                  className="shader-btn gold-save-btn"
                   onClick={() => updateMessage(editingMessage.id, messageInput)}
                 >
                   保存

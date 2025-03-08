@@ -239,7 +239,7 @@
   color: rgba(255, 255, 255, 0.7) !important;
   border: 1px solid transparent !important;
   border-radius: 4px !important;
-  padding: 0.5rem 1rem !important;
+  padding: calc(0.5rem - 5px) 1rem calc(0.5rem + 5px) 1rem !important;
   font-size: 0.9rem !important;
   transition: all 0.2s ease !important;
   text-transform: uppercase !important;

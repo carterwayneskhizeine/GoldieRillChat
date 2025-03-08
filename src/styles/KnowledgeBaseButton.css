@@ -61,11 +61,11 @@
 .knowledge-base-popover {
   position: absolute;
   bottom: 50px;
-  right: 0;
-  left: auto;
+  right: auto;
+  left: 0; /* 从左侧弹出，之前是从右侧 */
   z-index: 2100;
   animation: popover-fade-in 0.2s ease-out;
-  transform-origin: bottom right;
+  transform-origin: bottom left; /* 动画起点改为左下角 */
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
 }
 
@@ -83,7 +83,7 @@
 /* Responsive styles */
 @media (max-width: 576px) {
   .knowledge-base-popover {
-    right: -100px;
-    left: auto;
+    left: -50px;
+    right: auto;
   }
 } 

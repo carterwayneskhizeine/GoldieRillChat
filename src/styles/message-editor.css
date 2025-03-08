@@ -1,0 +1,181 @@
+/**
+ * 消息编辑器样式
+ * 统一与ThreeJS Shaders和Monaco Editor的风格
+ */
+
+/* 编辑器模态框背景 */
+.message-editor-backdrop {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(3px) !important;
+}
+
+/* 编辑器主容器 */
+.message-editor-container {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(3px) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 6px !important;
+}
+
+/* 编辑器顶部工具栏 */
+.message-editor-toolbar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 0.75rem 1rem !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 编辑器底部操作栏 */
+.message-editor-actions {
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 0.75rem 1rem !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 通用按钮样式 */
+.message-editor-container .shader-btn {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 0.85rem !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  height: 2.2rem !important;
+  min-height: 2.2rem !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* 按钮悬停效果 */
+.message-editor-container .shader-btn:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 按钮激活效果 */
+.message-editor-container .shader-btn:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+/* 保存按钮特殊样式 */
+.message-editor-container .gold-save-btn {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+}
+
+/* 保存按钮悬停效果 */
+.message-editor-container .gold-save-btn:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.5) !important;
+  border-color: rgba(255, 215, 0, 0.6) !important;
+}
+
+/* 按钮禁用状态 */
+.message-editor-container .shader-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* 关闭按钮 */
+.message-editor-container .close-btn {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 16px !important;
+  transition: all 0.3s ease !important;
+  padding: 0 !important;
+}
+
+/* 关闭按钮悬停效果 */
+.message-editor-container .close-btn:hover {
+  background-color: rgba(255, 215, 0, 0.2) !important;
+  border-color: rgba(255, 215, 0, 0.3) !important;
+  color: white !important;
+  transform: rotate(90deg) !important;
+}
+
+/* 下拉菜单样式 */
+.message-editor-container select {
+  appearance: none !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+  padding: 0.3rem 2rem 0.3rem 0.75rem !important;
+  font-size: 0.9rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  height: 2rem !important;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.5rem center !important;
+  background-size: 16px !important;
+}
+
+/* 下拉菜单悬停和焦点状态 */
+.message-editor-container select:hover {
+  border-color: rgba(255, 215, 0, 0.4) !important;
+}
+
+.message-editor-container select:focus {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 下拉菜单选项 */
+.message-editor-container select option {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  color: white !important;
+  padding: 8px !important;
+}
+
+/* 字体大小选择器 */
+.message-editor-container .font-size-selector {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 4px !important;
+  padding: 2px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.message-editor-container .font-size-btn {
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 3px !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  font-weight: bold !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.message-editor-container .font-size-btn:hover {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+}
+
+.message-editor-container .font-size-display {
+  min-width: 24px !important;
+  text-align: center !important;
+  font-size: 0.85rem !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+} 
