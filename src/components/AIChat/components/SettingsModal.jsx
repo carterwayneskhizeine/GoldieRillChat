@@ -1431,6 +1431,8 @@ export const SettingsModal = ({
           {/* Tab 4: 搜索设置 */}
           <div className={activeTab === 'search' ? '' : 'hidden'}>
             <div className="space-y-4 p-4">
+              {/* 知识库功能开关已移除 */}
+
               {/* API密钥设置 */}
               <div className="form-control w-full">
                 <label className="label">

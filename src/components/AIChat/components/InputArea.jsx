@@ -21,7 +21,11 @@ export const InputArea = ({
   isCompact = false
 }) => {
   const [isTranslating, setIsTranslating] = useState(false);
-  const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState([]);
+  const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState(() => {
+    // 从localStorage中恢复已选择的知识库
+    const savedBases = localStorage.getItem('aichat_selected_knowledge_bases');
+    return savedBases ? JSON.parse(savedBases) : [];
+  });
   const textareaRef = useRef(null);
 
   // 在组件挂载或重新渲染后设置正确的初始高度
@@ -30,6 +34,11 @@ export const InputArea = ({
       textareaRef.current.style.height = '80px';
     }
   }, []);
+  
+  // 当选中的知识库变化时，保存到localStorage
+  useEffect(() => {
+    localStorage.setItem('aichat_selected_knowledge_bases', JSON.stringify(selectedKnowledgeBases));
+  }, [selectedKnowledgeBases]);
 
   // 处理翻译功能
   const handleTranslation = async () => {
@@ -61,6 +70,18 @@ export const InputArea = ({
       toastManager.error('翻译失败: ' + error.message, { duration: 3000 });
     } finally {
       setIsTranslating(false);
+    }
+  };
+
+  // 处理键盘事件
+  const handleInputKeyDown = (e) => {
+    // 如果按下Enter键且没有按住Shift键
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    } else {
+      // 将其他键盘事件传递给原始的handleKeyDown
+      handleKeyDown(e);
     }
   };
 
@@ -153,7 +174,7 @@ export const InputArea = ({
             className={`textarea textarea-bordered w-full min-h-[80px] max-h-[480px] rounded-3xl resize-none pb-10 bg-transparent scrollbar-hide aichat-input ${
               isCompact ? 'text-sm shadow-lg' : ''
             }`}
-            placeholder="Send a message..."
+            placeholder="请输入消息，按Shift+Enter换行，Enter发送..."
             value={messageInput}
             onChange={(e) => {
               setMessageInput(e.target.value);
@@ -166,13 +187,7 @@ export const InputArea = ({
                 e.target.style.overflowY = 'hidden';
               }
             }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleInputKeyDown}
             onContextMenu={handleContextMenu}
             style={{
               scrollbarWidth: 'none',

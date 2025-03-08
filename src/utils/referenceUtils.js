@@ -55,7 +55,8 @@ export const formatReferencesForDisplay = (references, options = {}) => {
  * @returns {String} 格式化后的引用文本，适用于模型输入
  */
 export const formatReferencesForModel = (references, options = {}) => {
-  if (!references || references.length === 0) {
+  // 检查参数是否为数组
+  if (!references || !Array.isArray(references) || references.length === 0) {
     return '';
   }
   
@@ -64,30 +65,38 @@ export const formatReferencesForModel = (references, options = {}) => {
     includeMetadata = true
   } = options;
   
-  return references.map((ref, index) => {
-    const content = ref.content?.trim() || '';
-    const truncatedContent = content.length > maxContentLength
-      ? `${content.substring(0, maxContentLength)}...(内容已截断，总长度${content.length}字符)`
-      : content;
-    
-    let result = `[引用${index + 1}] ${ref.title || '未命名文档'}\n${truncatedContent}`;
-    
-    if (includeMetadata) {
-      if (ref.similarity !== undefined) {
-        result += `\n相似度: ${typeof ref.similarity === 'number' ? ref.similarity.toFixed(2) : '未知'}`;
+  try {
+    return references.map((ref, index) => {
+      // 检查引用对象和内容是否存在
+      if (!ref) return `[引用${index + 1}] 引用内容缺失`;
+      
+      const content = ref.content?.trim() || '';
+      const truncatedContent = content.length > maxContentLength
+        ? `${content.substring(0, maxContentLength)}...(内容已截断，总长度${content.length}字符)`
+        : content;
+      
+      let result = `[引用${index + 1}] ${ref.title || '未命名文档'}\n${truncatedContent || '内容缺失'}`;
+      
+      if (includeMetadata) {
+        if (ref.similarity !== undefined) {
+          result += `\n相似度: ${typeof ref.similarity === 'number' ? ref.similarity.toFixed(2) : '未知'}`;
+        }
+        
+        if (ref.source) {
+          result += `\n来源: ${ref.source}`;
+        }
+        
+        if (ref.isChunk || ref.chunked) {
+          result += `\n注: 此内容为文档的一部分`;
+        }
       }
       
-      if (ref.source) {
-        result += `\n来源: ${ref.source}`;
-      }
-      
-      if (ref.isChunk || ref.chunked) {
-        result += `\n注: 此内容为文档的一部分`;
-      }
-    }
-    
-    return result;
-  }).join('\n\n---\n\n');
+      return result;
+    }).join('\n\n---\n\n');
+  } catch (error) {
+    console.error('格式化引用失败:', error);
+    return '知识库引用格式化失败';
+  }
 };
 
 /**

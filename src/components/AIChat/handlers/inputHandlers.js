@@ -426,23 +426,57 @@ export const createInputHandlers = ({
       let systemMessage = '';
       
       // 检查是否有知识库引用
-      if (localStorage.getItem('aichat_use_knowledge_base') === 'true' && knowledgeBaseIds && knowledgeBaseIds.length > 0) {
+      if (knowledgeBaseIds && knowledgeBaseIds.length > 0) {
         try {
-          knowledgeReferences = await getKnowledgeBaseReferences(content);
-          if (knowledgeReferences && knowledgeReferences.length > 0) {
-            console.log('获取到知识库引用:', knowledgeReferences);
+          console.log('开始获取知识库引用，知识库IDs:', knowledgeBaseIds);
+          knowledgeReferences = await getKnowledgeBaseReferences({
+            message: content,
+            knowledgeBaseIds: knowledgeBaseIds,
+            limit: 5
+          });
+          
+          console.log('获取到知识库引用原始数据:', JSON.stringify(knowledgeReferences));
+          
+          if (knowledgeReferences && Array.isArray(knowledgeReferences) && knowledgeReferences.length > 0) {
+            console.log('获取到知识库引用数量:', knowledgeReferences.length);
             
             // 对引用进行排序和过滤
             const processedReferences = sortAndFilterReferences(knowledgeReferences);
+            console.log('处理后的引用数量:', processedReferences.length);
             
             // 格式化系统提示词
-            systemMessage = formatReferencesForModel(content, processedReferences);
-            
-            // 添加脚注提示
-            systemMessage += `\n\n${FOOTNOTE_PROMPT}`;
+            if (Array.isArray(processedReferences) && processedReferences.length > 0) {
+              try {
+                // 直接生成一个简单的提示词，避免formatReferencesForModel可能的错误
+                systemMessage = "以下是与用户问题相关的知识库内容，请根据这些内容回答问题，并注明引用来源：\n\n";
+                
+                // 手动格式化引用
+                processedReferences.forEach((ref, index) => {
+                  if (ref && ref.content) {
+                    systemMessage += `[引用${index + 1}] ${ref.title || '未命名文档'}\n`;
+                    systemMessage += `${ref.content.substring(0, 800)}\n`;
+                    systemMessage += `来源: ${ref.source || '知识库'}\n\n`;
+                  }
+                });
+                
+                // 添加脚注提示
+                systemMessage += `\n\n${FOOTNOTE_PROMPT}`;
+              } catch (formatError) {
+                console.error('格式化知识库引用失败:', formatError);
+                // 创建简单的系统提示词
+                systemMessage = '根据知识库内容回答以下问题，并引用来源。';
+              }
+            } else {
+              console.log('处理后的引用为空或非数组');
+              systemMessage = '根据知识库内容回答以下问题，并引用来源。';
+            }
+          } else {
+            console.log('未获取到有效的知识库引用');
           }
         } catch (error) {
           console.error('获取知识库引用失败:', error);
+          // 创建简单的系统提示词
+          systemMessage = '根据知识库内容回答以下问题，并引用来源。';
         }
       }
 
@@ -723,7 +757,27 @@ export const createInputHandlers = ({
     // 处理发送消息快捷键
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      // 从localStorage中获取已选择的知识库
+      const savedBasesStr = localStorage.getItem('aichat_selected_knowledge_bases');
+      let knowledgeBaseIds = [];
+      
+      if (savedBasesStr) {
+        try {
+          const savedBases = JSON.parse(savedBasesStr);
+          knowledgeBaseIds = savedBases.map(base => base.id);
+        } catch (error) {
+          console.error('解析已保存的知识库失败:', error);
+        }
+      }
+      
+      // 创建包含知识库信息的参数
+      const messageParams = {
+        knowledgeBaseIds: knowledgeBaseIds,
+        useWebSearch: localStorage.getItem('aichat_use_web_search') === 'true'
+      };
+      
+      // 调用发送消息函数并传递参数
+      handleSendMessage(messageParams);
     }
   };
 
