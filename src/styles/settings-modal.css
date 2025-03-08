@@ -1,0 +1,299 @@
+/**
+ * Settings弹窗样式
+ * 统一与ThreeJS Shaders和Monaco Editor的风格
+ */
+
+/* 模态框背景 */
+.settings-modal {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 模态框容器 */
+.settings-modal .modal-box {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(3px) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 6px !important;
+}
+
+/* 设置标题 */
+.settings-modal .text-2xl {
+  color: white !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* 设置小标题 */
+.settings-modal .text-xl,
+.settings-modal .text-lg {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+}
+
+/* 分割线 */
+.settings-modal .divider {
+  opacity: 0.2 !important;
+  margin: 1.5rem 0 !important;
+}
+
+/* 文本样式 */
+.settings-modal .text-sm {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* 通用按钮样式 */
+.settings-modal .shader-btn {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 0.85rem !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  min-height: 2.2rem !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+  box-shadow: none !important;
+}
+
+/* 按钮悬停效果 */
+.settings-modal .shader-btn:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+}
+
+/* 关闭按钮 */
+.settings-modal .shader-btn-circle {
+  width: 2rem !important;
+  height: 2rem !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1rem !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 保存按钮特殊样式 */
+.settings-modal .shader-btn.save-btn {
+  background-color: rgba(255, 215, 0, 0.3) !important; /* 金色 #FFD700 */
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: #FFFFFF !important; /* 纯白色文本 */
+  font-weight: 500 !important; /* 稍微加粗 */
+}
+
+/* 保存按钮悬停效果 */
+.settings-modal .shader-btn.save-btn:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.5) !important;
+  border-color: rgba(255, 215, 0, 0.6) !important;
+}
+
+/* 按钮禁用状态 */
+.settings-modal .shader-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* 背景图片模式兼容 */
+.bg-theme .settings-modal .modal-box {
+  background-color: rgba(0, 0, 0, 0.85) !important; /* 在图片背景上稍微不透明 */
+  backdrop-filter: blur(8px) !important; /* 更强的模糊效果 */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7) !important; /* 更强的阴影 */
+}
+
+/* 图片背景模式下加强文本可见性 */
+.bg-theme .settings-modal .text-2xl,
+.bg-theme .settings-modal .text-xl,
+.bg-theme .settings-modal .text-lg {
+  text-shadow: 0px 0px 5px rgba(0, 0, 0, 0.9) !important;
+}
+
+.bg-theme .settings-modal .text-sm,
+.bg-theme .settings-modal p {
+  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* 图片背景模式下按钮样式调整 */
+.bg-theme .settings-modal .shader-btn {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.bg-theme .settings-modal .shader-btn:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  box-shadow: 0 2px 12px rgba(255, 215, 0, 0.2) !important;
+}
+
+/* 输入框样式 */
+.settings-modal input[type="text"],
+.settings-modal input[type="number"],
+.settings-modal input[type="password"],
+.settings-modal input[type="email"],
+.settings-modal select,
+.settings-modal textarea {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease !important;
+}
+
+/* 输入框焦点状态 */
+.settings-modal input:focus,
+.settings-modal select:focus,
+.settings-modal textarea:focus {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 选择器样式 */
+.settings-modal select {
+  appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.5rem center !important;
+  padding-right: 2.5rem !important;
+}
+
+/* 表单布局优化 */
+.settings-modal .form-control {
+  margin-bottom: 1rem !important;
+}
+
+.settings-modal label {
+  color: rgba(255, 255, 255, 0.8) !important;
+  margin-bottom: 0.25rem !important;
+  display: block !important;
+  font-size: 0.9rem !important;
+}
+
+/* 响应式布局调整 */
+@media (max-width: 640px) {
+  .settings-modal .modal-box {
+    padding: 1rem !important;
+    margin: 1rem !important;
+    width: calc(100% - 2rem) !important;
+  }
+  
+  .settings-modal .flex.items-center.justify-between {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+  
+  .settings-modal .flex.items-center.gap-2 {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+}
+
+/* 过渡动画效果 */
+.settings-modal .modal-box {
+  animation: modal-appear 0.3s ease-out !important;
+  transform-origin: center !important;
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 按钮交互增强 */
+.settings-modal .shader-btn {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.settings-modal .shader-btn::after {
+  content: '' !important;
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
+  top: 0 !important;
+  left: 0 !important;
+  pointer-events: none !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.3) 10%, transparent 10.01%) !important;
+  background-repeat: no-repeat !important;
+  background-position: 50% !important;
+  transform: scale(10, 10) !important;
+  opacity: 0 !important;
+  transition: transform 0.4s, opacity 0.8s !important;
+}
+
+.settings-modal .shader-btn:active::after {
+  transform: scale(0, 0) !important;
+  opacity: 0.3 !important;
+  transition: 0s !important;
+}
+
+/* 关闭按钮专用样式 */
+.close-btn,
+.settings-modal .close-btn,
+.modal-box .close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  font-weight: 300;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  z-index: 10;
+  padding: 0;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.close-btn:hover,
+.settings-modal .close-btn:hover,
+.modal-box .close-btn:hover {
+  background-color: rgba(255, 215, 0, 0.2);
+  border-color: rgba(255, 215, 0, 0.3);
+  color: white;
+  transform: rotate(90deg);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
+}
+
+.close-btn:active,
+.settings-modal .close-btn:active,
+.modal-box .close-btn:active {
+  background-color: rgba(255, 215, 0, 0.3);
+  transform: rotate(90deg) scale(0.95);
+}
+
+/* 图片背景模式下的关闭按钮 */
+.bg-theme .close-btn,
+.bg-theme .settings-modal .close-btn,
+.bg-theme .modal-box .close-btn {
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+} 

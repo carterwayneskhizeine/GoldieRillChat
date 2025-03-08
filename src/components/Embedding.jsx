@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { nanoid } from 'nanoid';
 import '../styles/Embedding.css';
+import '../styles/settings-modal.css';
 import { useKnowledgeBases, useKnowledge } from '../hooks/useKnowledgeBase';
 import AddKnowledgeBaseDialog from './AddKnowledgeBaseDialog';
 import { detectFileType, TEXT_FILE_TYPES, DOCUMENT_FILE_TYPES } from '../utils/fileTypes';
@@ -992,9 +993,8 @@ const Embedding = ({ isActive = false }) => {
         }}>
           <h3 className="font-bold text-lg text-white">知识库设置</h3>
           <button 
-            className="btn btn-sm btn-circle absolute right-2 top-2"
+            className="close-btn"
             onClick={() => setShowSettingsDialog(false)}
-            style={{backgroundColor: "#1e1e28", color: "white", border: "1px solid rgba(255, 255, 255, 0.1)"}}
           >✕</button>
           
           <div className="py-2">

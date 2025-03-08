@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useKnowledgeBases } from '../hooks/useKnowledgeBase';
 import '../styles/AddKnowledgeBaseDialog.css';
+import '../styles/settings-modal.css';
 
 // 嵌入模型选项
 const modelOptions = [
@@ -105,7 +106,7 @@ const AddKnowledgeBaseDialog = ({ isOpen, onClose, onAdd }) => {
       }}>
         <h3 className="font-bold text-lg text-white">添加知识库</h3>
         <button 
-          className="shader-btn btn-sm btn-circle absolute right-2 top-2"
+          className="close-btn"
           onClick={onClose}
         >✕</button>
         

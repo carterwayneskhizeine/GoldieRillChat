@@ -71,6 +71,7 @@ import toastManager from './utils/toastManager'
 import BookmarksPanel from './components/BookmarksPanel'
 import ThreeJSShaders from './components/ThreeJSShaders'
 import { openUrl, switchToBrowserEvent } from './utils/browserUtils'
+import './styles/settings-modal.css'
 
 // 模拟引入书签Store
 const useBookmarkStore = {
@@ -1619,11 +1620,11 @@ export default function App() {
 
       {/* Modals and overlays */}
       {showSettings && (
-        <div className="modal modal-open">
+        <div className="modal modal-open settings-modal">
           <div className="modal-box">
             <button 
               onClick={() => setShowSettings(false)}
-              className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+              className="close-btn"
             >
               ✕
             </button>
@@ -1639,7 +1640,7 @@ export default function App() {
                     <h3 className="text-lg">Folder</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-sm opacity-70">{storagePath || 'No folder selected'}</span>
-                      <button className="btn btn-primary" onClick={() => handleSelectFolder(setStoragePath, currentConversation, messages, window, setConversations, setCurrentConversation)}>
+                      <button className="shader-btn save-btn" onClick={() => handleSelectFolder(setStoragePath, currentConversation, messages, window, setConversations, setCurrentConversation)}>
                         Modify Folder
                       </button>
                   </div>
@@ -1647,7 +1648,7 @@ export default function App() {
               
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg">Update</h3>
-                  <button className="btn btn-primary" onClick={() => handleUpdateFolders(storagePath, setConversations, window)}>
+                  <button className="shader-btn" onClick={() => handleUpdateFolders(storagePath, setConversations, window)}>
                     Update Folders
                   </button>
               </div>
@@ -1658,7 +1659,7 @@ export default function App() {
                   <h3 className="text-lg">Theme</h3>
                   <div className="flex items-center gap-2">
                     <span className="text-sm opacity-70">{currentTheme}</span>
-                    <button onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)} className="btn btn-primary">
+                    <button onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)} className="shader-btn">
                       Change Theme
                     </button>
               </div>
@@ -1667,7 +1668,14 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={() => setShowSettings(false)}></div>
+          <div 
+            className="modal-backdrop" 
+            onClick={() => setShowSettings(false)}
+            style={{
+              backdropFilter: 'blur(3px)',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)'
+            }}
+          ></div>
         </div>
       )}
 
