@@ -113,7 +113,7 @@
   color: white !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 4px !important;
-  padding: 0.3rem 2rem 0.3rem 0.75rem !important;
+  padding: calc(0.3rem - 5px) 2rem calc(0.3rem + 5px) 0.75rem !important;
   font-size: 0.9rem !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
@@ -139,7 +139,7 @@
 .message-editor-container select option {
   background-color: rgba(0, 0, 0, 0.9) !important;
   color: white !important;
-  padding: 8px !important;
+  padding: calc(8px - 5px) 8px calc(8px + 5px) 8px !important;
 }
 
 /* 字体大小选择器 */

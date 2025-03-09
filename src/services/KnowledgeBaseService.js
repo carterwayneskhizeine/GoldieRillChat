@@ -10,6 +10,7 @@ import { STORAGE_KEYS } from '../components/AIChat/constants';
 import * as cheerio from 'cheerio';
 import FileProcessingService from './FileProcessingService';
 import { detectFileType, isSitemapUrl } from '../utils/fileTypes';
+import { nanoid } from 'nanoid';
 
 // 向量相似度计算函数
 const cosineSimilarity = (vecA, vecB) => {
@@ -214,16 +215,23 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
   if (!base || !message) return [];
   
   try {
+    console.log(`尝试从知识库获取参考信息: ${base.id} - ${base.name}, 消息: ${message.slice(0, 50)}...`);
+    
     // 获取知识库中的所有项目
     const items = await db.knowledgeItems.where('baseId').equals(base.id).toArray();
     
     if (!items || items.length === 0) {
-      console.log(`知识库 ${base.name} 中没有项目`);
+      console.warn(`知识库为空: ${base.id} - ${base.name}`);
       return [];
     }
     
-    // 嵌入用户消息
+    // 计算消息的向量嵌入
     const queryEmbedding = await embedText(message, base.model);
+    
+    if (!queryEmbedding) {
+      console.error('无法为消息生成向量嵌入');
+      return [];
+    }
     
     // 计算相似度并排序
     const results = [];
@@ -248,10 +256,56 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
       let reference = {
         id: item.id,
         title: item.title || item.name,
-        content: item.content,
+        content: item.content || '',
         similarity,
+        source: `${base.name} - ${item.name}`,
         type: item.type
       };
+      
+      // 如果内容为空但有子项，尝试从子项获取内容
+      if ((!reference.content || reference.content.trim().length === 0) && 
+          item.childItems && item.childItems.length > 0) {
+        console.log(`条目 ${item.id} 内容为空，尝试从 ${item.childItems.length} 个子项获取内容`);
+        // 尝试查找子项
+        const childItem = await db.knowledgeItems.get(item.childItems[0]);
+        if (childItem && childItem.content) {
+          reference.content = childItem.content;
+          console.log(`从子项 ${childItem.id} 获取到内容，长度: ${reference.content.length}`);
+        }
+      }
+      
+      // 如果是文件类型且内容仍然为空，尝试直接从文件路径加载内容
+      if ((!reference.content || reference.content.trim().length === 0) && 
+          item.type === 'file' && 
+          (item.path || item.url)) {
+        try {
+          console.log(`尝试从文件路径加载 ${item.name} 的内容`);
+          // 对于本地文件，从blob URL获取内容
+          if (item.path && item.path.startsWith('blob:')) {
+            const response = await fetch(item.path);
+            const blob = await response.blob();
+            // 使用FileProcessingService读取文件，支持多种编码
+            const tempFile = new File([blob], item.name, { type: item.mimeType });
+            const fileContent = await FileProcessingService.readFileAsText(tempFile);
+            if (fileContent && fileContent.trim().length > 0) {
+              reference.content = fileContent;
+              console.log(`成功从文件路径加载内容，长度: ${reference.content.length}`);
+              
+              // 更新数据库中的内容
+              await db.knowledgeItems.update(item.id, { content: fileContent });
+              console.log(`已更新数据库中 ${item.id} 的内容`);
+            }
+          }
+        } catch (error) {
+          console.error(`尝试加载文件内容失败:`, error);
+        }
+      }
+      
+      // 如果内容仍然为空，给出提示信息
+      if (!reference.content || reference.content.trim().length === 0) {
+        console.warn(`引用项 ${item.id} (${reference.title}) 内容为空`);
+        reference.content = `[知识库项目 ${reference.title} 内容为空或无法提取内容]`;
+      }
       
       // 如果这是一个分块项目
       if (item.chunked && item.childItems && item.childItems.length > 0) {
@@ -287,8 +341,9 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
               results.push({
                 id: child.id,
                 title: `${reference.title} (块 ${child.chunkIndex || '?'})`,
-                content: child.content,
+                content: child.content || `[子块内容为空]`,
                 similarity: childSimilarity,
+                source: child.source || reference.source,
                 type: child.type,
                 parentId: item.id,
                 isChunk: true,
@@ -304,13 +359,15 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
     }
     
     // 按相似度降序排序并限制数量
-    return results
+    const finalResults = results
       .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit * 2); // 返回更多结果，以确保有足够的相关内容
+      .slice(0, limit);
       
+    console.log(`知识库 ${base.name} 找到 ${finalResults.length} 个相关引用`);
+    return finalResults;
   } catch (error) {
-    console.error(`从知识库 ${base.name} 获取引用失败:`, error);
-    throw error;
+    console.error('获取知识库引用失败:', error);
+    return [];
   }
 };
 
@@ -507,9 +564,26 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
       throw new Error(`知识库 ${baseId} 不存在`);
     }
     
+    // 预先检查文件有效性
+    try {
+      console.log(`预检查文件: ${file.name}, 大小: ${file.size} 字节, 类型: ${file.type}`);
+      
+      // 对于文本文件，先尝试读取内容
+      if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+        // 创建临时的FileReader来验证文件可读性
+        const validationResult = await validateTextFile(file);
+        if (!validationResult.valid) {
+          toastManager.warning(`文件预检查警告: ${validationResult.message}，我们将尝试使用不同的编码处理。`);
+        }
+      }
+    } catch (validateError) {
+      console.warn(`文件预检查警告: ${validateError.message}`);
+      toastManager.warning(`文件预检查警告: ${validateError.message}，我们将尝试恢复处理。`);
+    }
+    
     // 创建知识库项目
     const item = {
-      id: uuidv4(),
+      id: nanoid(),
       baseId,
       name: file.name,
       type: 'file',
@@ -522,30 +596,32 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
       updatedAt: new Date().toISOString()
     };
     
-    // 保存到数据库
+    // 添加到数据库
     await db.knowledgeItems.add(item);
     
-    // 更新知识库的更新时间和文档数量
-    await db.knowledgeBases.update(baseId, {
-      updatedAt: new Date().toISOString(),
-      itemCount: (base.itemCount || 0) + 1
-    });
+    // 更新知识库的items列表
+    base.items = base.items || [];
+    base.items.push(item.id);
+    base.updatedAt = new Date().toISOString();
+    await db.knowledgeBases.put(base);
     
-    // 使用FileProcessingService处理文件
+    // 使用知识库配置的默认参数
+    const params = getKnowledgeBaseParams(base);
+    const { chunkSize, chunkOverlap } = params;
+    
+    // 异步处理文件
+    const options = { chunkSize, chunkOverlap };
+    
     try {
-      const options = {
-        chunkSize: base.chunkSize || 1000,
-        chunkOverlap: base.chunkOverlap || 200
-      };
-      
-      // 异步处理文件
-      processFileAsync(item, file, base, options);
-      
+      // 处理文件并更新状态
+      await processFileAsync(item, file, base, options);
       return item;
-      } catch (error) {
+    } catch (error) {
       console.error('文件处理失败:', error);
       // 更新状态为失败
-      await updateKnowledgeItemStatus(item.id, 'error', { error: error.message });
+      await updateKnowledgeItemStatus(item.id, 'error', {
+        error: error.message
+      });
       throw error;
     }
   } catch (error) {
@@ -558,135 +634,300 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
 // 异步处理文件的函数
 const processFileAsync = async (item, file, base, options) => {
   try {
+    console.log(`开始处理知识库文件: ${file.name}, 大小: ${file.size} 字节`);
+    
+    // 增加日志，更清晰地显示处理过程
+    console.log(`处理文件 ${file.name}, 类型: ${file.type}, 大小: ${file.size}`);
+    
+    // 处理文件
     const result = await FileProcessingService.processFile(file, options);
     
-    if (result) {
-      // 获取文本内容
-      const text = result.content || '';
-      if (!text) {
-        await updateKnowledgeItemStatus(item.id, 'error', {
-          error: '无法提取文件内容'
+    if (!result) {
+      console.error(`处理文件失败: ${file.name} - 未收到处理结果`);
+      await updateKnowledgeItemStatus(item.id, 'error', {
+        error: '处理文件失败: 未收到处理结果'
+      });
+      return;
+    }
+    
+    // 检查处理状态
+    if (result.status === 'error') {
+      console.error(`处理文件失败: ${file.name} - ${result.error || '未知错误'}`);
+      await updateKnowledgeItemStatus(item.id, 'error', {
+        error: result.error || '处理文件时出现未知错误'
+      });
+      return;
+    }
+    
+    // 获取文本内容
+    const text = result.content || '';
+    
+    // 增加详细日志
+    console.log(`文件 ${file.name} 处理结果状态: ${result.status}`);
+    console.log(`文件 ${file.name} 获取到内容长度: ${text.length}`);
+    
+    // 检查内容是否有效
+    if (!text || text.trim().length === 0) {
+      console.warn(`文件内容为空: ${file.name}，尝试使用FileProcessingService直接读取`);
+      
+      // 如果是文本文件，尝试直接使用FileProcessingService读取
+      if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+        try {
+          const directContent = await FileProcessingService.readFileAsText(file);
+          if (directContent && directContent.trim().length > 0) {
+            console.log(`使用FileProcessingService直接读取成功，内容长度: ${directContent.length}`);
+            
+            // 更新数据库中的项目，直接保存内容
+            await updateKnowledgeItemStatus(item.id, 'processing', {
+              content: directContent
+            });
+            
+            // 更新文件内容后继续处理
+            await processFileContent(item, directContent, base, options);
+            return;
+          } else {
+            console.error(`即使使用FileProcessingService直接读取，文件内容仍为空: ${file.name}`);
+          }
+        } catch (readError) {
+          console.error(`使用FileProcessingService直接读取失败:`, readError);
+        }
+      }
+      
+      // 如果仍然无法获取内容，则设置状态为错误
+      await updateKnowledgeItemStatus(item.id, 'error', {
+        error: '文件内容为空或无法提取'
+      });
+      return;
+    }
+    
+    // 记录内容长度，便于调试
+    console.log(`文件 ${file.name} 内容长度: ${text.length} 字符`);
+    console.log(`文件 ${file.name} 内容开头: ${text.substring(0, 100)}...`);
+    
+    // 更新数据库中的项目，保存内容
+    await updateKnowledgeItemStatus(item.id, 'processing', {
+      content: text
+    });
+    
+    // 处理文件内容
+    await processFileContent(item, text, base, options);
+  } catch (error) {
+    console.error('处理文件时出错:', error);
+    await updateKnowledgeItemStatus(item.id, 'error', {
+      error: error.message || '处理文件时发生未知错误'
+    });
+  }
+};
+
+// 处理文件内容的函数
+const processFileContent = async (item, text, base, options) => {
+  try {
+    // 检查文本大小，决定是否需要分块处理
+    const MAX_EMBEDDING_TEXT = 8000; // SiliconFlow的大致限制
+    
+    if (text.length > MAX_EMBEDDING_TEXT) {
+      console.log(`文件内容超过${MAX_EMBEDDING_TEXT}字符，需要分块处理`);
+      
+      // 分块内容
+      const { chunkSize = 1000, chunkOverlap = 200 } = options;
+      // 使用内部定义的chunkText函数
+      const chunks = chunkText(text, chunkSize, chunkOverlap);
+      
+      console.log(`文本已分成${chunks.length}个块`);
+      
+      // 更新父项的状态
+      await updateKnowledgeItemStatus(item.id, 'chunking', {
+        chunked: true,
+        chunkCount: chunks.length,
+        childItems: []
+      });
+      
+      // 处理每个块
+      const childItems = [];
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        
+        // 创建子项
+        const childItem = {
+          id: nanoid(),
+          baseId: item.baseId,
+          parentId: item.id,
+          name: `${item.name} (块 ${i+1}/${chunks.length})`,
+          type: 'chunk',
+          content: chunk,
+          chunkIndex: i + 1,
+          status: 'processing',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        console.log(`正在处理块 ${i+1}/${chunks.length}, 内容长度: ${chunk.length}`);
+        
+        // 添加子项到数据库
+        const childId = await db.knowledgeItems.add(childItem);
+        childItems.push(childId);
+        
+        // 嵌入子块内容
+        const embedding = await embedText(chunk, base.model);
+        
+        // 更新子项状态
+        await updateKnowledgeItemStatus(childId, 'completed', {
+          embedding,
+          updatedAt: new Date().toISOString()
+        });
+      }
+      
+      // 更新父项状态为完成
+      await updateKnowledgeItemStatus(item.id, 'completed', {
+        childItems,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log(`文件分块处理完成，共${chunks.length}个块`);
+    } else {
+      console.log(`文件内容小于${MAX_EMBEDDING_TEXT}字符，进行整体嵌入`);
+      
+      // 嵌入整个文本
+      const embedding = await embedText(text, base.model);
+      
+      // 更新状态为完成
+      await updateKnowledgeItemStatus(item.id, 'completed', {
+        embedding,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log(`文件处理完成，嵌入向量维度: ${embedding.length}`);
+    }
+  } catch (error) {
+    console.error('处理文件内容时出错:', error);
+    await updateKnowledgeItemStatus(item.id, 'error', {
+      error: error.message || '处理文件内容时发生未知错误'
+    });
+  }
+};
+
+/**
+ * 文本分块函数
+ * 将长文本分成多个小块，考虑最大长度和重叠
+ */
+const chunkText = (text, maxLength = 8000, overlap = 200) => {
+  // 安全检查：如果文本为空，直接返回空数组
+  if (!text) {
+    return [''];
+  }
+  
+  // 安全检查：限制最大文本长度
+  const MAX_SAFE_TEXT_LENGTH = 1000000; // 100万字符上限
+  if (text.length > MAX_SAFE_TEXT_LENGTH) {
+    console.warn(`文本长度 ${text.length} 超过安全上限 ${MAX_SAFE_TEXT_LENGTH}，将被截断`);
+    text = text.substring(0, MAX_SAFE_TEXT_LENGTH);
+  }
+  
+  // 如果文本小于最大长度，直接返回
+  if (text.length <= maxLength) {
+    return [text];
+  }
+  
+  // 安全检查：确保块大小合理
+  if (maxLength <= 0) {
+    maxLength = 8000;
+  }
+  if (overlap < 0 || overlap >= maxLength) {
+    overlap = Math.min(200, Math.floor(maxLength * 0.1)); // 默认10%重叠
+  }
+  
+  const chunks = [];
+  let startIndex = 0;
+  
+  while (startIndex < text.length) {
+    // 确定当前块的结束位置
+    let endIndex = Math.min(startIndex + maxLength, text.length);
+    
+    // 如果还有更多文本，尝试在自然边界分割
+    if (endIndex < text.length) {
+      // 尝试在段落、句子或单词边界分割
+      const lastParagraph = text.lastIndexOf('\n\n', endIndex);
+      const lastSentence = text.lastIndexOf('. ', endIndex);
+      const lastSpace = text.lastIndexOf(' ', endIndex);
+      
+      // 选择最近的分割点，但不要回退太远
+      const minAcceptableIndex = startIndex + Math.floor(maxLength * 0.7);
+      
+      if (lastParagraph > minAcceptableIndex) {
+        endIndex = lastParagraph + 2;
+      } else if (lastSentence > minAcceptableIndex) {
+        endIndex = lastSentence + 2;
+      } else if (lastSpace > minAcceptableIndex) {
+        endIndex = lastSpace + 1;
+      }
+    }
+    
+    // 添加当前块
+    chunks.push(text.substring(startIndex, endIndex));
+    
+    // 移动到下一个块的起始位置，考虑重叠
+    startIndex = endIndex - overlap;
+    
+    // 确保不会死循环
+    if (startIndex >= text.length || chunks.length > 1000) {
+      break;
+    }
+  }
+  
+  return chunks;
+};
+
+/**
+ * 验证文本文件的有效性
+ * @param {File} file - 要验证的文件
+ * @returns {Promise<Object>} - 验证结果
+ */
+const validateTextFile = async (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const content = e.target.result;
+      if (!content || content.trim().length === 0) {
+        resolve({ 
+          valid: false, 
+          message: `文件内容为空或无法读取: ${file.name}`
         });
         return;
       }
       
-      // 检查文本大小，决定是否需要分块处理
-      const MAX_EMBEDDING_TEXT = 8000; // SiliconFlow的大致限制
-      const needsChunking = text.length > MAX_EMBEDDING_TEXT;
-      
-      // 更新知识项状态为处理中
-      await updateKnowledgeItemStatus(item.id, 'processing', {
-        contentLength: text.length,
-        needsChunking
-      });
-      
-      try {
-        if (needsChunking) {
-          // 文本分块处理
-          console.log(`文件内容超过${MAX_EMBEDDING_TEXT}字符(${text.length}字符)，进行分块处理`);
-          
-          // 更新知识库条目状态为分块中
-          await updateKnowledgeItemStatus(item.id, 'chunking');
-          
-          // 根据设置的分块大小进行分块
-          const chunks = FileProcessingService.chunkText(text, options.chunkSize, options.chunkOverlap);
-          console.log(`分块完成，共${chunks.length}个块`);
-          
-          // 标记主条目为分块的
-          const metadata = {
-            isChunked: true,
-            chunks: chunks.length,
-            originalLength: text.length,
-            childItems: []
-          };
-          
-          // 为每个块创建子条目
-          let processedChunks = 0;
-          let failedChunks = 0;
-          
-          for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            const chunkTitle = `${item.title} - 块 ${i+1}/${chunks.length}`;
-            
-            try {
-              // 为每个块创建一个子知识项
-              const childItem = await db.knowledgeItems.add({
-                baseId: base.id,
-                title: chunkTitle,
-                content: chunk,
-                type: 'chunk',
-                parentId: item.id,
-                status: 'processing',
-                created: new Date().toISOString(),
-                chunkIndex: i,
-                totalChunks: chunks.length
-              });
-              
-              // 为块生成嵌入向量
-              const embeddingVector = await embedText(chunk, base.model || base.modelId || 'silicon-flow');
-              
-              // 更新子项目
-              await db.knowledgeItems.update(childItem, {
-                embedding: embeddingVector,
-                status: 'ready'
-              });
-              
-              // 添加子项ID到父项的元数据
-              metadata.childItems.push(childItem);
-              processedChunks++;
-              
-              // 定期更新主条目状态
-              if (i % 5 === 0 || i === chunks.length - 1) {
-                await updateKnowledgeItemStatus(item.id, 'chunking', {
-                  progress: Math.round((i + 1) / chunks.length * 100),
-                  processedChunks,
-                  failedChunks,
-                  ...metadata
-                });
-              }
-            } catch (chunkError) {
-              console.error(`处理块 ${i+1}/${chunks.length} 失败:`, chunkError);
-              failedChunks++;
-              // 继续处理其他块
-            }
-          }
-          
-          // 最终更新主条目状态
-          const finalStatus = failedChunks === chunks.length ? 'error' : 'ready';
-          await updateKnowledgeItemStatus(item.id, finalStatus, {
-            processedChunks,
-            failedChunks,
-            ...metadata
-          });
-          
-          console.log(`分块处理完成，成功: ${processedChunks}，失败: ${failedChunks}`);
-        } else {
-          // 直接为整个文本生成嵌入向量
-          console.log('生成文本嵌入向量');
-          const embeddingVector = await embedText(text, base.model || base.modelId || 'silicon-flow');
-          
-          // 更新条目状态为完成
-          await updateKnowledgeItemStatus(item.id, 'ready', {
-            embedding: embeddingVector
-          });
-        }
-      } catch (processingError) {
-        console.error('处理文本内容失败:', processingError);
-        await updateKnowledgeItemStatus(item.id, 'error', {
-          error: processingError.message
+      // 检查是否有实际内容（不仅仅是空白字符）
+      if (content.trim().length < 10) {
+        resolve({ 
+          valid: false, 
+          message: `文件内容过短或几乎为空: ${file.name}` 
         });
+        return;
       }
-    } else {
-      await updateKnowledgeItemStatus(item.id, 'error', {
-        error: '文件处理结果为空'
+      
+      // 检查是否包含乱码（简单检测）
+      const invalidCharRatio = content.split('').filter(char => char === '' || char === '\ufffd').length / content.length;
+      if (invalidCharRatio > 0.1) {
+        resolve({ 
+          valid: false, 
+          message: `文件可能包含乱码: ${file.name}` 
+        });
+        return;
+      }
+      
+      resolve({ valid: true, content });
+    };
+    
+    reader.onerror = () => {
+      resolve({ 
+        valid: false, 
+        message: `无法读取文件: ${file.name}` 
       });
-    }
-  } catch (error) {
-    console.error('异步处理文件失败:', error);
-    await updateKnowledgeItemStatus(item.id, 'error', {
-      error: error.message
-    });
-  }
+    };
+    
+    // 使用默认编码读取
+    reader.readAsText(file);
+  });
 };
 
 /**

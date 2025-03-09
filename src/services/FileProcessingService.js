@@ -93,16 +93,39 @@ class FileProcessingService {
    * @private
    */
   async processTextFile(file, options) {
-    const text = await this.readFileAsText(file);
-    // 这里会调用后端API进行处理，现在是一个模拟
-    return {
-      type: 'text',
-      content: text,
-      name: file.name,
-      size: file.size,
-      options,
-      status: 'processed'
-    };
+    try {
+      console.log(`开始处理文本文件: ${file.name}`);
+      const text = await this.readFileAsText(file);
+      
+      // 验证文本内容
+      if (!text || text.trim().length === 0) {
+        console.error(`文件内容为空: ${file.name}`);
+        throw new Error(`文件内容为空或无法读取: ${file.name}`);
+      }
+      
+      console.log(`成功读取文本文件: ${file.name}, 内容长度: ${text.length}`);
+      
+      // 这里会调用后端API进行处理，现在是一个模拟
+      return {
+        type: 'text',
+        content: text,
+        name: file.name,
+        size: file.size,
+        options,
+        status: 'processed'
+      };
+    } catch (error) {
+      console.error(`处理文本文件失败: ${file.name}`, error);
+      // 返回错误状态而不是抛出异常，这样可以更平滑地处理错误
+      return {
+        type: 'text',
+        name: file.name,
+        size: file.size,
+        options,
+        status: 'error',
+        error: error.message
+      };
+    }
   }
   
   /**
@@ -667,16 +690,79 @@ class FileProcessingService {
   }
   
   /**
-   * 读取文件为文本
+   * 读取文件为文本，支持多种编码
    * @private
    */
   async readFileAsText(file) {
+    // 尝试不同的编码格式
+    const encodings = ['UTF-8', 'GBK', 'GB18030', 'UTF-16', 'UTF-16LE', 'UTF-16BE', 'ISO-8859-1'];
+    
+    // 首先尝试自动检测编码
+    try {
+      const result = await this.tryReadWithEncoding(file);
+      // 如果读取结果为空或只有空白字符，尝试其他编码
+      if (!result || result.trim().length === 0) {
+        console.warn(`文件 ${file.name} 使用默认编码读取为空，尝试其他编码...`);
+        return await this.tryMultipleEncodings(file, encodings);
+      }
+      return result;
+    } catch (error) {
+      console.error(`使用默认编码读取文件失败: ${error.message}`);
+      // 如果默认编码读取失败，尝试其他编码
+      return await this.tryMultipleEncodings(file, encodings);
+    }
+  }
+  
+  /**
+   * 使用指定编码尝试读取文件
+   * @private
+   */
+  async tryReadWithEncoding(file, encoding) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = (e) => reject(new Error('读取文件失败'));
-      reader.readAsText(file);
+      reader.onload = (e) => {
+        const result = e.target.result;
+        console.log(`文件 ${file.name} ${encoding ? `使用 ${encoding} 编码` : ''}读取成功，内容长度: ${result.length}`);
+        resolve(result);
+      };
+      reader.onerror = (e) => reject(new Error(`读取文件失败: ${e.target.error.message}`));
+      
+      if (encoding) {
+        // 尝试使用指定编码读取
+        try {
+          reader.readAsText(file, encoding);
+        } catch (error) {
+          // 如果浏览器不支持此编码，回退到默认编码
+          console.warn(`浏览器不支持 ${encoding} 编码，使用默认编码`);
+          reader.readAsText(file);
+        }
+      } else {
+        // 使用默认编码
+        reader.readAsText(file);
+      }
     });
+  }
+  
+  /**
+   * 尝试多种编码读取文件
+   * @private
+   */
+  async tryMultipleEncodings(file, encodings) {
+    for (const encoding of encodings) {
+      try {
+        const result = await this.tryReadWithEncoding(file, encoding);
+        // 检查读取结果是否有效
+        if (result && result.trim().length > 0) {
+          console.log(`成功使用 ${encoding} 编码读取文件 ${file.name}`);
+          return result;
+        }
+      } catch (error) {
+        console.warn(`使用 ${encoding} 编码读取失败: ${error.message}`);
+      }
+    }
+    
+    // 所有编码都失败了，抛出错误
+    throw new Error(`无法使用任何已知编码读取文件: ${file.name}`);
   }
 }
 
