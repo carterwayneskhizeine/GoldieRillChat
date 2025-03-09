@@ -31,7 +31,7 @@ export const InputArea = ({
   // 在组件挂载或重新渲染后设置正确的初始高度
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = '80px';
+      textareaRef.current.style.height = '100px';
     }
   }, []);
   
@@ -171,15 +171,15 @@ export const InputArea = ({
         
         <div className="relative">
           <textarea
-            className={`textarea textarea-bordered w-full min-h-[80px] max-h-[480px] rounded-3xl resize-none pb-10 bg-transparent scrollbar-hide aichat-input ${
+            className={`textarea textarea-bordered w-full min-h-[100px] max-h-[480px] rounded-3xl resize-none pb-10 bg-transparent scrollbar-hide aichat-input ${
               isCompact ? 'text-sm shadow-lg' : ''
             }`}
-            placeholder="请输入消息，按Shift+Enter换行，Enter发送..."
+            placeholder="Send a message..."
             value={messageInput}
             onChange={(e) => {
               setMessageInput(e.target.value);
-              e.target.style.height = '80px'; // 重置为初始高度（3行文字高度）
-              const scrollHeight = Math.max(e.target.scrollHeight, 80);
+              e.target.style.height = '100px'; // 重置为初始高度（3行文字高度）
+              const scrollHeight = Math.max(e.target.scrollHeight, 100);
               e.target.style.height = `${scrollHeight}px`;
               if (e.target.scrollHeight > 480) {
                 e.target.style.overflowY = 'scroll';

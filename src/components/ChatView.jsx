@@ -105,7 +105,7 @@ export function ChatView({
   // 在组件挂载或重新渲染后设置正确的初始高度
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = '80px';
+      textareaRef.current.style.height = '100px';
     }
   }, []);
 
@@ -1471,8 +1471,8 @@ export function ChatView({
                 value={messageInput}
                 onChange={(e) => {
                   setMessageInput(e.target.value);
-                  e.target.style.height = '80px'; // 重置为初始高度（3行文字高度）
-                  const scrollHeight = Math.max(e.target.scrollHeight, 80);
+                  e.target.style.height = '100px'; // 重置为初始高度（3行文字高度）
+                  const scrollHeight = Math.max(e.target.scrollHeight, 100);
                   e.target.style.height = `${scrollHeight}px`;
                   if (e.target.scrollHeight > 480) {
                     e.target.style.overflowY = 'scroll';
@@ -1484,14 +1484,14 @@ export function ChatView({
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
-                    e.target.style.height = '80px'; // 保持3行高度一致性
+                    e.target.style.height = '100px'; // 保持3行高度一致性
                     e.target.style.overflowY = 'hidden';
                   }
                 }}
                 onPaste={(e) => handlePaste(e, currentConversation, setSelectedFiles, window.electron)}
                 onContextMenu={handleContextMenu}
                 placeholder="Send a message..."
-                className={`textarea textarea-bordered w-full min-h-[80px] max-h-[480px] rounded-3xl resize-none pb-10 scrollbar-hide bg-transparent ${
+                className={`textarea textarea-bordered w-full min-h-[100px] max-h-[480px] rounded-3xl resize-none pb-10 scrollbar-hide bg-transparent ${
                   isCompact ? 'text-sm shadow-lg' : ''
                 }`}
                 style={{
