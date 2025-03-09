@@ -677,6 +677,32 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
           }
         }))
       
+      // 检查并处理images子目录
+      let imagesFiles = [];
+      try {
+        const imagesPath = path.join(folderPath, 'images');
+        if (fsSync.existsSync(imagesPath) && fsSync.statSync(imagesPath).isDirectory()) {
+          const imageContents = await fs.readdir(imagesPath, { withFileTypes: true });
+          imagesFiles = await Promise.all(imageContents
+            .filter(item => item.isFile() && /\.(jpg|jpeg|png|gif|webp)$/i.test(item.name))
+            .map(async file => {
+              const filePath = path.join(imagesPath, file.name);
+              const stats = await fs.stat(filePath);
+              
+              return {
+                name: file.name,
+                path: filePath,
+                type: path.extname(file.name).toLowerCase(),
+                size: stats.size,
+                timestamp: stats.mtime.toISOString()
+              }
+            }));
+          console.log(`找到 ${imagesFiles.length} 个图片文件在 ${imagesPath}`);
+        }
+      } catch (error) {
+        console.error(`读取images目录失败: ${error.message}`);
+      }
+      
       // 读取 messages.json 如果存在
       let messages = []
       try {
@@ -685,7 +711,7 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
         messages = JSON.parse(messagesContent)
         
         // 更新消息中的路径信息，而不是创建新消息
-        const updatedMessages = messages.map(msg => {
+        const updatedMessages = await Promise.all(messages.map(async msg => {
           // 创建消息的副本
           const updatedMsg = { ...msg };
           
@@ -700,40 +726,142 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
           
           // 更新files路径
           if (updatedMsg.files && Array.isArray(updatedMsg.files)) {
-            updatedMsg.files = updatedMsg.files.map(file => {
+            updatedMsg.files = await Promise.all(updatedMsg.files.map(async file => {
               if (file.path) {
                 const fileName = path.basename(file.path);
+                // 检查文件是在主目录还是在images子目录
+                const subDir = file.type && /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name) ? 'images' : '';
+                const filePath = subDir 
+                  ? path.join(folderPath, subDir, fileName)
+                  : path.join(folderPath, fileName);
+                
+                // 检查文件是否存在，如果不存在尝试在images目录中查找
+                if (!fsSync.existsSync(filePath) && /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)) {
+                  const imagesPath = path.join(folderPath, 'images', fileName);
+                  if (fsSync.existsSync(imagesPath)) {
+                    return {
+                      ...file,
+                      path: imagesPath
+                    };
+                  }
+                }
+                
                 return {
                   ...file,
-                  path: path.join(folderPath, fileName)
+                  path: filePath
                 };
               }
               return file;
-            });
+            }));
+          }
+          
+          // 检查内容中的Markdown图片链接
+          if (updatedMsg.content && typeof updatedMsg.content === 'string') {
+            // 使用正则表达式找出所有Markdown格式的图片链接
+            const imgRegex = /!\[(.*?)\]\((file:\/\/|local-file:\/\/)?([^)]+)\)/g;
+            let matches = [];
+            let match;
+            
+            // 创建一个数组来存储所有需要处理的图片匹配
+            const imgMatches = [];
+            while ((match = imgRegex.exec(updatedMsg.content)) !== null) {
+              imgMatches.push([...match]);
+            }
+            
+            // 使用Promise.all处理所有图片匹配
+            await Promise.all(imgMatches.map(async ([fullMatch, altText, protocol, imgPath]) => {
+              // 检查图片路径并修正
+              const imageName = path.basename(imgPath);
+              const possiblePaths = [
+                imgPath,
+                path.join(folderPath, 'images', imageName),
+                path.join(folderPath, imageName)
+              ];
+              
+              let validPath = null;
+              for (const checkPath of possiblePaths) {
+                try {
+                  if (fsSync.existsSync(checkPath)) {
+                    validPath = checkPath;
+                    break;
+                  }
+                } catch (err) {
+                  // 忽略访问错误
+                }
+              }
+              
+              if (validPath) {
+                // 更新内容中的图片路径
+                const newImgPath = validPath;
+                const newImgLink = `![${altText}](local-file://${newImgPath})`;
+                updatedMsg.content = updatedMsg.content.replace(fullMatch, newImgLink);
+                
+                // 确保files数组中包含这个图片
+                if (!updatedMsg.files) {
+                  updatedMsg.files = [];
+                }
+                
+                // 检查files中是否已存在该图片
+                const imageExists = updatedMsg.files.some(file => 
+                  file.path === newImgPath || path.basename(file.path) === imageName
+                );
+                
+                if (!imageExists) {
+                  try {
+                    const stats = await fs.stat(newImgPath);
+                    updatedMsg.files.push({
+                      name: imageName,
+                      path: newImgPath,
+                      type: path.extname(imageName).toLowerCase(),
+                      size: stats.size,
+                      timestamp: stats.mtime.toISOString()
+                    });
+                  } catch (statErr) {
+                    console.error(`获取图片状态失败: ${statErr.message}`);
+                  }
+                }
+              }
+            }));
+            
+            // 如果消息中有searchImages但没有相应的files，修复这个问题
+            if (updatedMsg.searchImages && Array.isArray(updatedMsg.searchImages)) {
+              await Promise.all(updatedMsg.searchImages.map(async (img) => {
+                if (img.src && img.src.startsWith('local-file://')) {
+                  const imgPath = img.src.replace('local-file://', '');
+                  const imageName = path.basename(imgPath);
+                  
+                  // 检查files中是否已存在该图片
+                  const imageExists = updatedMsg.files && updatedMsg.files.some(file => 
+                    file.path === imgPath || path.basename(file.path) === imageName
+                  );
+                  
+                  if (!imageExists) {
+                    try {
+                      if (fsSync.existsSync(imgPath)) {
+                        const stats = await fs.stat(imgPath);
+                        if (!updatedMsg.files) updatedMsg.files = [];
+                        updatedMsg.files.push({
+                          name: imageName,
+                          path: imgPath,
+                          type: path.extname(imageName).toLowerCase(),
+                          size: stats.size,
+                          timestamp: stats.mtime.toISOString()
+                        });
+                      }
+                    } catch (statErr) {
+                      console.error(`获取搜索图片状态失败: ${statErr.message}`);
+                    }
+                  }
+                }
+              }));
+            }
           }
           
           return updatedMsg;
-        });
+        }));
         
         // 如果有路径更新，保存回文件
-        const hasPathUpdates = updatedMessages.some((newMsg, index) => {
-          const oldMsg = messages[index];
-          if (!oldMsg) return false;
-          
-          // 检查txtFile路径
-          if (oldMsg.txtFile?.path !== newMsg.txtFile?.path) {
-            return true;
-          }
-          
-          // 检查files路径
-          if (oldMsg.files && newMsg.files) {
-            return oldMsg.files.some((oldFile, fileIndex) => {
-              return oldFile.path !== newMsg.files[fileIndex].path;
-            });
-          }
-          
-          return false;
-        });
+        const hasPathUpdates = true; // 强制更新文件，确保所有图片路径都被正确处理
         
         if (hasPathUpdates) {
           console.log(`更新 ${folderPath} 的消息路径信息`);
@@ -746,6 +874,7 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
         }
       } catch (error) {
         // 如果 messages.json 不存在，创建新的消息数组
+        console.error(`处理messages.json失败: ${error.message}`);
         messages = []
         
         // 处理文本文件
@@ -765,10 +894,10 @@ ipcMain.handle('scanFolders', async (event, basePath) => {
         }
         
         // 处理媒体文件和其他文件
-        const mediaFiles = files.filter(f => f.type !== '.txt' && f.type !== '.json')
-        if (mediaFiles.length > 0) {
+        const allMediaFiles = [...files.filter(f => f.type !== '.txt' && f.type !== '.json'), ...imagesFiles];
+        if (allMediaFiles.length > 0) {
           // 为每个文件创建独立的消息
-          mediaFiles.forEach(file => {
+          allMediaFiles.forEach(file => {
           messages.push({
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             content: '',
@@ -1424,7 +1553,133 @@ ipcMain.handle('load-messages', async (event, conversationPath) => {
         await fs.writeFile(messagesPath, '[]', 'utf8');
         return [];
       }
-      return messages;
+      
+      // 处理消息中的图片路径
+      const processedMessages = await Promise.all(messages.map(async (msg) => {
+        // 创建消息的副本
+        const processedMsg = { ...msg };
+        
+        // 检查files数组是否存在
+        if (processedMsg.files && Array.isArray(processedMsg.files)) {
+          // 验证文件路径
+          processedMsg.files = await Promise.all(processedMsg.files.map(async (file) => {
+            if (file && file.path) {
+              // 检查文件是否存在
+              try {
+                await fs.access(file.path);
+                // 文件存在，返回原始文件对象
+                return file;
+              } catch (error) {
+                // 文件不存在，尝试查找替代路径
+                const fileName = path.basename(file.path);
+                
+                // 检查images子目录
+                if (/\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {
+                  const imagesPath = path.join(conversationPath, 'images', fileName);
+                  try {
+                    await fs.access(imagesPath);
+                    // 如果在images目录中找到文件，更新路径
+                    return {
+                      ...file,
+                      path: imagesPath
+                    };
+                  } catch (imgError) {
+                    // 图片不在images目录中，再尝试在对话根目录中查找
+                    const rootPath = path.join(conversationPath, fileName);
+                    try {
+                      await fs.access(rootPath);
+                      return {
+                        ...file,
+                        path: rootPath
+                      };
+                    } catch (rootError) {
+                      // 所有尝试都失败，保留原始路径
+                      return file;
+                    }
+                  }
+                }
+                
+                // 非图片文件或无法找到替代路径，保留原始路径
+                return file;
+              }
+            }
+            return file;
+          }));
+        }
+        
+        // 处理消息内容中的图片链接
+        if (processedMsg.content && typeof processedMsg.content === 'string') {
+          // 使用正则表达式找出所有Markdown格式的图片链接
+          const imgRegex = /!\[(.*?)\]\((file:\/\/|local-file:\/\/)?([^)]+)\)/g;
+          let matches = [];
+          let match;
+          
+          // 创建一个数组来存储所有需要处理的图片匹配
+          const imgMatches = [];
+          while ((match = imgRegex.exec(processedMsg.content)) !== null) {
+            imgMatches.push([...match]);
+          }
+          
+          // 处理所有图片匹配
+          await Promise.all(imgMatches.map(async ([fullMatch, altText, protocol, imgPath]) => {
+            // 检查图片路径是否存在
+            try {
+              await fs.access(imgPath);
+              // 路径存在，不需要修改
+              return;
+            } catch (error) {
+              // 路径不存在，尝试查找替代路径
+              const fileName = path.basename(imgPath);
+              const alternativePaths = [
+                path.join(conversationPath, 'images', fileName),
+                path.join(conversationPath, fileName)
+              ];
+              
+              for (const altPath of alternativePaths) {
+                try {
+                  await fs.access(altPath);
+                  // 找到替代路径，更新内容
+                  const newImgLink = `![${altText}](local-file://${altPath})`;
+                  processedMsg.content = processedMsg.content.replace(fullMatch, newImgLink);
+                  
+                  // 确保files数组中包含这个图片
+                  if (!processedMsg.files) {
+                    processedMsg.files = [];
+                  }
+                  
+                  // 检查files中是否已存在该图片
+                  const imageExists = processedMsg.files.some(file => 
+                    file.path === altPath || path.basename(file.path) === fileName
+                  );
+                  
+                  if (!imageExists) {
+                    try {
+                      const stats = await fs.stat(altPath);
+                      processedMsg.files.push({
+                        name: fileName,
+                        path: altPath,
+                        type: path.extname(fileName).toLowerCase(),
+                        size: stats.size,
+                        timestamp: stats.mtime.toISOString()
+                      });
+                    } catch (statErr) {
+                      console.error(`获取图片状态失败: ${statErr.message}`);
+                    }
+                  }
+                  
+                  break; // 找到一个可用路径就退出循环
+                } catch (accessErr) {
+                  // 继续尝试下一个路径
+                }
+              }
+            }
+          }));
+        }
+        
+        return processedMsg;
+      }));
+      
+      return processedMessages;
     } catch (parseError) {
       console.error('JSON 解析失败，重置文件:', parseError);
       await fs.writeFile(messagesPath, '[]', 'utf8');
