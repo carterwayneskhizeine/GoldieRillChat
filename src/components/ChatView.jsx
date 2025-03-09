@@ -81,6 +81,7 @@ export function ChatView({
   setMessages
 }) {
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
   const dropZoneRef = useRef(null);
   const textareaRef = useRef(null);
   const [editorLanguage, setEditorLanguage] = useState("plaintext");
@@ -101,6 +102,9 @@ export function ChatView({
   // 添加拖放计数器引用
   const dragCounterRef = useRef(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // 添加用户滚动状态
+  const [userScrolled, setUserScrolled] = useState(false);
+  const scrollTimeoutRef = useRef(null);
 
   // 在组件挂载或重新渲染后设置正确的初始高度
   useEffect(() => {
@@ -129,8 +133,53 @@ export function ChatView({
 
   // 滚动到底部的函数
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // 备用方案：如果引用不存在，直接滚动容器
+      const container = document.querySelector('#chat-view-messages');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+    console.log('执行滚动到底部操作');
   };
+
+  // 添加滚动事件监听
+  useEffect(() => {
+    const container = document.querySelector('#chat-view-messages');
+    if (!container) return;
+    
+    const handleScroll = () => {
+      // 获取滚动位置
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 30; // 30px 容差
+      
+      // 清除之前的超时
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // 如果不在底部，标记为用户已滚动
+      if (!isAtBottom) {
+        setUserScrolled(true);
+      } else {
+        // 如果回到底部，重新启用自动滚动
+        scrollTimeoutRef.current = setTimeout(() => {
+          setUserScrolled(false);
+        }, 1000);
+      }
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [messages]);
 
   // 每次消息列表变化或组件挂载时滚动到底部
   useEffect(() => {
@@ -929,7 +978,7 @@ export function ChatView({
       </style>
 
       {/* 拖拽上传遮罩 */}
-      <div 
+      <div
         className={`drag-overlay ${isDragging ? '' : 'hidden'}`}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -945,9 +994,29 @@ export function ChatView({
         <div className="drag-subtext">支持图片、视频、音频、PDF和其他文件类型</div>
       </div>
 
+      {/* 添加滚动到底部按钮 - 放在消息容器外，固定位置 */}
+      {userScrolled && messages.length > 0 && (
+        <div 
+          className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
+          style={{ bottom: '140px', right: '-106px' }} // 使用px单位精确控制距底部的距离
+        >
+          <button 
+            className="btn btn-ghost btn-sm btn-circle bg-base-100 bg-opacity-50 backdrop-blur-sm pointer-events-auto shadow-md"
+            onClick={() => {
+              setUserScrolled(false);
+              setTimeout(scrollToBottom, 50);
+            }}
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7 7m0 0l7-7m-7 7V3" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* 消息列表容器 */}
-      <div 
-        id="ai-chat-messages"
+      <div
+        id="chat-view-messages"
         className={`flex-1 overflow-y-auto p-4 ${isCompact ? 'compact-scroll' : ''} chat-view-messages`}
         style={{
           paddingBottom: isCompact ? '100px' : '140px',
@@ -961,7 +1030,7 @@ export function ChatView({
         onMouseLeave={handleMouseLeave}
       >
         <div className="space-y-4 max-w-[1200px] mx-auto">
-          {messageList.map(message => (
+          {messages.map((message, index) => (
             <div
               key={message.id}
               className={`chat ${message.type === 'user' ? 'chat-end' : 'chat-start'} relative message-container`}
@@ -1505,7 +1574,8 @@ export function ChatView({
               )}
             </div>
           ))}
-          <div ref={messagesEndRef} />
+          {/* 添加底部引用元素，用于滚动定位 */}
+          <div ref={messagesEndRef} style={{ height: '1px', clear: 'both' }} />
         </div>
       </div>
 

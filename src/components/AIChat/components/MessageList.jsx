@@ -312,7 +312,6 @@ export const MessageList = ({
                 setUserScrolled(false);
                 setTimeout(scrollToBottom, 50);
               }}
-              title="滚动到最新消息"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7 7m0 0l7-7m-7 7V3" />
