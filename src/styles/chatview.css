@@ -89,4 +89,40 @@
 
 .edit-mode-button {
   @apply btn btn-sm px-4;
+}
+
+/* 聊天视图滚动条样式 */
+.chat-view-messages::-webkit-scrollbar {
+  width: 4px;
+  transition: width 0.3s ease;
+}
+
+.chat-view-messages::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.chat-view-messages::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 100, 0.6);
+  border-radius: 10px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.chat-view-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 100, 0.8);
+}
+
+/* 滚动条放大效果 - 由JS控制添加类名 */
+.chat-view-messages.scrollbar-expanded::-webkit-scrollbar {
+  width: 16px; /* 宽度放大4倍 (4px * 4 = 16px) */
+}
+
+/* 为Firefox添加滚动条样式 */
+.chat-view-messages {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 100, 0.6) rgba(0, 0, 0, 0.1);
+}
+
+.chat-view-messages.scrollbar-expanded {
+  scrollbar-width: auto;
 } 

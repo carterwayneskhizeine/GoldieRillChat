@@ -64,22 +64,19 @@
   
   /* 确保文本可读性 */
   .prose, .chat-bubble {
-    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.5);  /* 修改文本阴影使白色文本更清晰 */
-    color: white !important;  /* 添加白色文本 */
+    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.5);  /* 修改文本阴影使文本更清晰 */
   }
 
   /* 聊天气泡背景 */
   .chat-bubble {
     background-color: rgba(255, 255, 255, 0.1) !important;
     backdrop-filter: blur(8px);
-    color: white !important; /* 强制设置对话泡泡文字为白色 */
     border: 1px solid rgba(255, 255, 255, 0.1);  /* 添加微弱边框以便区分 */
   }
   
   /* 聊天气泡内所有文本元素 */
   .chat-bubble * {
-    color: white !important; /* 确保气泡内所有子元素文字都是白色 */
-    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.7); /* 增强文本阴影使白色文字在任何背景上都清晰 */
+    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.7); /* 增强文本阴影使文字在任何背景上都清晰 */
   }
 
   /* 输入框和按钮背景 */

@@ -452,17 +452,12 @@ export function ChatView({
     } else if (file.name && file.name.match(/\.mp4$/i)) {
       return (
         <div key={file.path} className="chat-media-container my-2">
-          <div className="video-info mb-2">
-            <div className="text-sm opacity-70">
-              视频文件: {file.name}
-            </div>
-          </div>
           <video
             src={`local-file://${file.path}`}
             controls
             className="rounded-lg max-w-full"
             style={{ maxHeight: '300px' }}
-            preload="none"
+            preload="metadata"
             onClick={(e) => {
               e.stopPropagation();
               onImageClick(e, file);
@@ -611,6 +606,30 @@ export function ChatView({
       eventBus.off('backgroundChange', handleBackgroundChange);
     };
   }, []);
+
+  // 处理鼠标移动检测滚动条距离
+  const handleMouseMove = (e) => {
+    const chatMessages = document.getElementById('ai-chat-messages');
+    if (!chatMessages) return;
+    
+    const containerRect = chatMessages.getBoundingClientRect();
+    const distanceToRightEdge = containerRect.right - e.clientX;
+    
+    // 如果鼠标距离容器右边缘50px以内，添加滚动条放大类
+    if (distanceToRightEdge <= 50 && distanceToRightEdge >= 0) {
+      chatMessages.classList.add('scrollbar-expanded');
+    } else {
+      chatMessages.classList.remove('scrollbar-expanded');
+    }
+  };
+
+  // 处理鼠标离开聊天区域
+  const handleMouseLeave = () => {
+    const chatMessages = document.getElementById('ai-chat-messages');
+    if (chatMessages) {
+      chatMessages.classList.remove('scrollbar-expanded');
+    }
+  };
 
   return (
     <div 
@@ -895,6 +914,8 @@ export function ChatView({
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
         <div className="space-y-4 max-w-[1200px] mx-auto">
           {messageList.map(message => (
