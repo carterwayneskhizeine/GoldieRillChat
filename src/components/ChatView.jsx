@@ -354,6 +354,49 @@ export function ChatView({
         throw new Error('无效的会话');
       }
 
+      // 处理文本文件 (txtFile)
+      if (message.txtFile) {
+        try {
+          // 构建新的文件名
+          const newFileNameWithExt = `${newFileName}.txt`;
+          // 重命名文件
+          const result = await window.electron.renameFile(
+            currentConversation.path,
+            message.txtFile.name,
+            newFileNameWithExt
+          );
+
+          // 更新消息
+          const updatedMessages = messages.map(msg => {
+            if (msg.id === message.id) {
+              return {
+                ...msg,
+                txtFile: {
+                  ...msg.txtFile,
+                  name: result.name,
+                  displayName: newFileName,
+                  path: result.path
+                }
+              };
+            }
+            return msg;
+          });
+
+          setMessages(updatedMessages);
+          setEditingFileName(null);
+          setFileNameInput('');
+          return;
+        } catch (error) {
+          console.error('重命名文本文件失败:', error);
+          throw error;
+        }
+      }
+
+      // 处理普通文件
+      if (!message.files || message.files.length === 0) {
+        throw new Error('找不到要重命名的文件');
+      }
+
       // 获取文件扩展名
       const file = message.files[0];
       const fileExt = file.name.split('.').pop();

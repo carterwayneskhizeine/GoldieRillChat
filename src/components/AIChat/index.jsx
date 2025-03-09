@@ -397,8 +397,17 @@ export const AIChat = ({
     }
   };
 
-  // 添加滚动到底部的函数
+  // 添加用户滚动控制状态
+  const [userScrolled, setUserScrolled] = useState(false);
+  const scrollTimeoutRef = useRef(null);
+  
+  // 修改滚动到底部的函数
   const scrollToBottom = () => {
+    // 如果用户已滚动且AI正在生成回复，则不自动滚动
+    if (userScrolled && messageState.messages.some(msg => msg.generating)) {
+      return;
+    }
+    
     const messagesContainer = document.querySelector('#ai-chat-messages');
     if (messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -408,7 +417,58 @@ export const AIChat = ({
   // 监听消息变化和对话切换，自动滚动到底部
   useEffect(() => {
     setTimeout(scrollToBottom, 100);
-  }, [messageState.messages, currentConversation]);
+  }, [messageState.messages, currentConversation, userScrolled]);
+
+  // 添加滚动事件监听
+  useEffect(() => {
+    const messagesContainer = document.querySelector('#ai-chat-messages');
+    
+    if (!messagesContainer) return;
+    
+    const handleScroll = (e) => {
+      // 检测是否有AI消息正在生成
+      const isGenerating = messageState.messages.some(msg => msg.generating);
+      
+      if (!isGenerating) return;
+      
+      // 获取滚动位置信息
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 30; // 30px 容差
+      
+      // 清除之前的超时
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // 如果不在底部，标记为用户已滚动
+      if (!isAtBottom) {
+        setUserScrolled(true);
+      } else {
+        // 如果回到底部，重新启用自动滚动
+        scrollTimeoutRef.current = setTimeout(() => {
+          setUserScrolled(false);
+        }, 1000); // 等待1秒以避免频繁切换状态
+      }
+    };
+    
+    messagesContainer.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      messagesContainer.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [messageState.messages]);
+
+  // AI消息完成生成后重置滚动状态
+  useEffect(() => {
+    const hasGeneratingMessage = messageState.messages.some(msg => msg.generating);
+    if (!hasGeneratingMessage) {
+      // 当没有生成中的消息时，重置用户滚动状态
+      setUserScrolled(false);
+    }
+  }, [messageState.messages]);
 
   // 在组件挂载时将创建新对话的函数绑定到 window.aichat
   useEffect(() => {

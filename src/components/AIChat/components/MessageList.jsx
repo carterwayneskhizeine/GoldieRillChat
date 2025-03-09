@@ -33,6 +33,11 @@ export const MessageList = ({
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
 
+  // 添加用户滚动状态控制
+  const [userScrolled, setUserScrolled] = useState(false);
+  const scrollTimeoutRef = useRef(null);
+  const containerRef = useRef(null);
+  
   // 使用折叠状态 hook
   const { isMessageCollapsed, toggleMessageCollapse } = useMessageCollapse();
 
@@ -80,12 +85,66 @@ export const MessageList = ({
   }, [messages]);
 
   const scrollToBottom = () => {
+    // 如果用户已滚动且有消息正在生成，不自动滚动
+    if (userScrolled && messages.some(msg => msg.generating)) {
+      return;
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   // 监听消息变化，自动滚动到底部
   useEffect(() => {
     setTimeout(scrollToBottom, 100);
+  }, [messages, userScrolled]);
+
+  // 添加滚动事件监听
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      // 检测是否有AI消息正在生成
+      const isGenerating = messages.some(msg => msg.generating);
+      
+      if (!isGenerating) return;
+      
+      // 获取滚动位置
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 30; // 30px 容差
+      
+      // 清除之前的超时
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // 如果不在底部，标记为用户已滚动
+      if (!isAtBottom) {
+        setUserScrolled(true);
+      } else {
+        // 如果回到底部，重新启用自动滚动
+        scrollTimeoutRef.current = setTimeout(() => {
+          setUserScrolled(false);
+        }, 1000);
+      }
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [messages]);
+
+  // AI消息完成生成后重置滚动状态
+  useEffect(() => {
+    const hasGeneratingMessage = messages.some(msg => msg.generating);
+    if (!hasGeneratingMessage) {
+      // 当没有生成中的消息时，重置用户滚动状态
+      setUserScrolled(false);
+    }
   }, [messages]);
 
   // 添加初始化消息
@@ -209,7 +268,7 @@ export const MessageList = ({
     >
       <div 
         id="ai-chat-messages-main"
-        className="h-full overflow-y-auto" 
+        className="h-full overflow-y-auto relative" 
         style={{ 
           paddingBottom: '45px',
           isolation: 'isolate',
@@ -218,7 +277,24 @@ export const MessageList = ({
         }}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        ref={containerRef}
       >
+        {/* 添加自动滚动暂停指示器 */}
+        {userScrolled && messages.some(msg => msg.generating) && (
+          <div 
+            className="fixed bottom-24 right-6 bg-primary text-white px-3 py-1 rounded-full shadow-lg cursor-pointer z-50 flex items-center space-x-2 animate-fadeIn"
+            onClick={() => {
+              setUserScrolled(false);
+              setTimeout(scrollToBottom, 50);
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+            <span className="text-xs font-medium">点击滚动到最新</span>
+          </div>
+        )}
+        
         <div className="space-y-4 p-4 max-w-[1200px] mx-auto">
           {messages.map(message => (
             <MessageItem
@@ -247,33 +323,21 @@ export const MessageList = ({
           ))}
           <div ref={messagesEndRef} />
         </div>
+        
+        {isDragging && (
+          <div className="absolute inset-0 bg-base-200 bg-opacity-70 flex items-center justify-center z-50">
+            <div className="bg-base-100 p-6 rounded-lg shadow-lg text-center max-w-md">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-primary mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+              <h3 className="text-lg font-bold mb-2">拖放文件到这里</h3>
+              <p className="text-sm opacity-70">支持图片、文档、音频和视频等多种文件格式</p>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* 拖拽上传遮罩 */}
-      <div 
-        className={`drag-overlay ${isDragging ? '' : 'hidden'}`}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 9999
-        }}
-      >
-        <div className="drag-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-        </div>
-        <div className="text-lg font-medium">拖放文件到这里上传</div>
-      </div>
-
-      {/* 删除确认对话框 */}
+      
+      {/* 弹窗确认删除消息 */}
       {deletingMessageId && (
         <div className="modal modal-open flex items-center justify-center">
           <div role="alert" className="alert w-[400px]">
@@ -289,14 +353,16 @@ export const MessageList = ({
           <div className="modal-backdrop" onClick={cancelDeleteMessage}></div>
         </div>
       )}
-
-      {/* 使用 ImageLightbox 组件 */}
-      <ImageLightbox
-        isOpen={lightboxOpen}
-        onClose={() => setLightboxOpen(false)}
-        images={lightboxImages}
-        startIndex={lightboxIndex}
-      />
+      
+      {/* 图片查看器 */}
+      {lightboxOpen && (
+        <ImageLightbox
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          images={lightboxImages}
+          startIndex={lightboxIndex}
+        />
+      )}
     </div>
   );
 }; 
