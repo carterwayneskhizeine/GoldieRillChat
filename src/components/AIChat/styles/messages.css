@@ -462,4 +462,40 @@
 
 .yarl__thumbnails_thumbnail_active {
   border: 2px solid var(--p);
+}
+
+/* 添加滚动条样式 */
+#ai-chat-messages-main::-webkit-scrollbar {
+  width: 4px;
+  transition: width 0.3s ease;
+}
+
+#ai-chat-messages-main::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+#ai-chat-messages-main::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 100, 0.6);
+  border-radius: 10px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+#ai-chat-messages-main::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 100, 0.8);
+}
+
+/* 滚动条放大效果 - 由JS控制添加类名 */
+#ai-chat-messages-main.scrollbar-expanded::-webkit-scrollbar {
+  width: 8px; /* 宽度放大2倍 (4px * 2 = 8px) */
+}
+
+/* 为Firefox添加滚动条样式 */
+#ai-chat-messages-main {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 100, 0.6) rgba(0, 0, 0, 0.1);
+}
+
+#ai-chat-messages-main.scrollbar-expanded {
+  scrollbar-width: auto;
 } 

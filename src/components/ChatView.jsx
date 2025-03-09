@@ -658,8 +658,8 @@ export function ChatView({
     const containerRect = chatMessages.getBoundingClientRect();
     const distanceToRightEdge = containerRect.right - e.clientX;
     
-    // 如果鼠标距离容器右边缘50px以内，添加滚动条放大类
-    if (distanceToRightEdge <= 50 && distanceToRightEdge >= 0) {
+    // 如果鼠标距离容器右边缘20px以内，添加滚动条放大类
+    if (distanceToRightEdge <= 20 && distanceToRightEdge >= 0) {
       chatMessages.classList.add('scrollbar-expanded');
     } else {
       chatMessages.classList.remove('scrollbar-expanded');

@@ -103,11 +103,6 @@ export const MessageList = ({
     if (!container) return;
     
     const handleScroll = () => {
-      // 检测是否有AI消息正在生成
-      const isGenerating = messages.some(msg => msg.generating);
-      
-      if (!isGenerating) return;
-      
       // 获取滚动位置
       const { scrollTop, scrollHeight, clientHeight } = container;
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 30; // 30px 容差
@@ -260,6 +255,30 @@ export const MessageList = ({
     }
   };
 
+  // 处理鼠标移动检测滚动条距离
+  const handleMouseMove = (e) => {
+    const messagesContainer = containerRef.current;
+    if (!messagesContainer) return;
+    
+    const containerRect = messagesContainer.getBoundingClientRect();
+    const distanceToRightEdge = containerRect.right - e.clientX;
+    
+    // 如果鼠标距离容器右边缘20px以内，添加滚动条放大类
+    if (distanceToRightEdge <= 20 && distanceToRightEdge >= 0) {
+      messagesContainer.classList.add('scrollbar-expanded');
+    } else {
+      messagesContainer.classList.remove('scrollbar-expanded');
+    }
+  };
+
+  // 处理鼠标离开消息容器
+  const handleMouseLeave = () => {
+    const messagesContainer = containerRef.current;
+    if (messagesContainer) {
+      messagesContainer.classList.remove('scrollbar-expanded');
+    }
+  };
+
   return (
     <div 
       className="flex-1 overflow-hidden bg-base-100"
@@ -278,20 +297,27 @@ export const MessageList = ({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
-        {/* 添加自动滚动暂停指示器 */}
-        {userScrolled && messages.some(msg => msg.generating) && (
+        {/* 添加自动滚动暂停指示器 - 输入框正上方 */}
+        {userScrolled && messages.length > 0 && (
           <div 
-            className="fixed bottom-24 right-6 bg-primary text-white px-3 py-1 rounded-full shadow-lg cursor-pointer z-50 flex items-center space-x-2 animate-fadeIn"
-            onClick={() => {
-              setUserScrolled(false);
-              setTimeout(scrollToBottom, 50);
-            }}
+            className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
+            style={{ bottom: '140px', right: '-106px' }} // 使用px单位精确控制距底部的距离
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-            </svg>
-            <span className="text-xs font-medium">点击滚动到最新</span>
+            <button 
+              className="btn btn-ghost btn-sm btn-circle bg-base-100 bg-opacity-50 backdrop-blur-sm pointer-events-auto shadow-md"
+              onClick={() => {
+                setUserScrolled(false);
+                setTimeout(scrollToBottom, 50);
+              }}
+              title="滚动到最新消息"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7 7m0 0l7-7m-7 7V3" />
+              </svg>
+            </button>
           </div>
         )}
         

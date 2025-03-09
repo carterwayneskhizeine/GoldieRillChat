@@ -296,21 +296,38 @@
 
 /* 优化滚动条样式 */
 .messages-container::-webkit-scrollbar {
-  width: 8px;
+  width: 4px;
+  transition: width 0.3s ease;
 }
 
 .messages-container::-webkit-scrollbar-track {
   background: var(--b1);
-  border-radius: 4px;
+  border-radius: 10px;
 }
 
 .messages-container::-webkit-scrollbar-thumb {
   background: var(--b3);
-  border-radius: 4px;
+  border-radius: 10px;
+  transition: width 0.3s ease, background-color 0.3s ease;
 }
 
 .messages-container::-webkit-scrollbar-thumb:hover {
   background: var(--b2);
+}
+
+/* 滚动条放大效果 - 由JS控制添加类名 */
+.messages-container.scrollbar-expanded::-webkit-scrollbar {
+  width: 8px; /* 宽度放大2倍 (4px * 2 = 8px) */
+}
+
+/* 为Firefox添加滚动条样式 */
+.messages-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--b3) var(--b1);
+}
+
+.messages-container.scrollbar-expanded {
+  scrollbar-width: auto;
 }
 
 /* 修改打字机效果样式 */

@@ -114,7 +114,7 @@
 
 /* 滚动条放大效果 - 由JS控制添加类名 */
 .chat-view-messages.scrollbar-expanded::-webkit-scrollbar {
-  width: 16px; /* 宽度放大4倍 (4px * 4 = 16px) */
+  width: 8px; /* 宽度放大2倍 (4px * 2 = 8px) */
 }
 
 /* 为Firefox添加滚动条样式 */

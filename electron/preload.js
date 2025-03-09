@@ -416,6 +416,12 @@ contextBridge.exposeInMainWorld('electron', {
   },
 
   openExternal: (url) => shell.openExternal(url),
+
+  // 添加读取目录内容的方法
+  readDir: (dirPath) => ipcRenderer.invoke('read-dir', dirPath),
+  
+  // 添加获取文件状态的方法
+  getFileStats: (filePath) => ipcRenderer.invoke('get-file-stats', filePath),
 })
 
 // 添加视频生成相关的 API

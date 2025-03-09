@@ -2951,3 +2951,37 @@ ipcMain.handle('download-search-images', async (event, imageUrls, folderPath) =>
     return { success: false, error: error.message };
   }
 });
+
+// 添加读取目录内容的方法
+ipcMain.handle('read-dir', async (event, dirPath) => {
+  try {
+    const items = await fs.readdir(dirPath, { withFileTypes: true });
+    return items.map(item => ({
+      name: item.name,
+      isDirectory: item.isDirectory(),
+      isFile: item.isFile(),
+      isSymbolicLink: item.isSymbolicLink()
+    }));
+  } catch (error) {
+    console.error('读取目录内容失败:', error);
+    throw error;
+  }
+});
+
+// 添加获取文件状态的方法
+ipcMain.handle('get-file-stats', async (event, filePath) => {
+  try {
+    const stats = await fs.stat(filePath);
+    return {
+      size: stats.size,
+      isDirectory: stats.isDirectory(),
+      isFile: stats.isFile(),
+      created: stats.birthtime,
+      modified: stats.mtime,
+      accessed: stats.atime
+    };
+  } catch (error) {
+    console.error('获取文件状态失败:', error);
+    throw error;
+  }
+});
