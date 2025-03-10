@@ -43,19 +43,24 @@ const FolderTree = ({
         className={`folder-item ${activeFolder === folder.id ? 'active' : ''}`}
         onClick={() => setActiveFolder(folder.id)}
       >
-        <span className="folder-toggle" onClick={(e) => {
-          e.stopPropagation();
-          toggleFolder(folder.id);
-        }}>
+        <span 
+          className="folder-toggle" 
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFolder(folder.id);
+          }}
+        >
           {subfolders.length > 0 && (
-            expandedFolders[folder.id] ? '▼' : '►'
+            expandedFolders[folder.id] 
+              ? <span style={{ fontSize: '10px', opacity: '0.8' }}>▼</span> 
+              : <span style={{ fontSize: '10px', opacity: '0.8' }}>▶</span>
           )}
         </span>
         <span className="folder-name">
-          {folder.name}
-          <span className="bookmark-count">
-            ({bookmarks.filter(b => b.folder === folder.id).length})
+          <span>
+            {folder.name}
           </span>
+          <span>{bookmarks.filter(b => b.folder === folder.id).length}</span>
         </span>
       </div>
       
@@ -296,38 +301,34 @@ const BookmarksPanel = ({ onClose }) => {
 
   return (
     <div className="bookmarks-panel fixed inset-0 bg-base-100 z-50">
-      <div className="bookmarks-header">
-        <div className="search-container flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="搜索书签..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input input-bordered input-sm w-64"
-          />
+      <div className="bookmarks-header">      
+        <div className="header-center">
           <button 
-            className={`all-bookmarks-btn btn btn-sm ${showAllBookmarks ? 'btn-primary' : 'btn-ghost'}`}
+            className={`all-bookmarks-btn ${showAllBookmarks ? 'active' : ''}`}
             onClick={() => setShowAllBookmarks(!showAllBookmarks)}
           >
-            {showAllBookmarks ? 'Folders' : 'Bookmarks'}
+            所有书签
           </button>
           <button 
-            className="refresh-btn btn btn-sm btn-ghost"
+            className="refresh-btn" 
             onClick={refreshBookmarks}
-            title="刷新书签"
+            title="刷新书签列表"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
             </svg>
           </button>
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="搜索书签..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-        <div className="header-right">
-          <button className="close-btn" onClick={onClose}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
+
+        <button className="close-button" onClick={onClose}>×</button>
       </div>
 
       <div className="bookmarks-content">
@@ -389,15 +390,15 @@ const BookmarksPanel = ({ onClose }) => {
                       onClick={() => openBookmark(bookmark.url)}
                       title={bookmark.url}
                     >
-                      <div className="bookmark-icon">
-                        {bookmark.icon ? (
-                          <img src={bookmark.icon} alt="" className="w-4 h-4" />
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm-5-5h10v2H7v-2zm0-4h10v2H7V9zm0-4h10v2H7V5z"/>
-                          </svg>
-                        )}
-                      </div>
+                      <img 
+                        src={bookmark.icon || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIj48L2NpcmNsZT48bGluZSB4MT0iMiIgeTE9IjEyIiB4Mj0iMjIiIHkyPSIxMiI+PC9saW5lPjxwYXRoIGQ9Ik0xMiAyYTE1LjMgMTUuMyAwIDAgMSA0IDEwIDE1LjMgMTUuMyAwIDAgMS00IDEwIDE1LjMgMTUuMyAwIDAgMS00LTEwIDE1LjMgMTUuMyAwIDAgMSA0LTEweiI+PC9wYXRoPjwvc3ZnPg=='} 
+                        alt="" 
+                        className="bookmark-icon"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIj48L2NpcmNsZT48bGluZSB4MT0iMiIgeTE9IjEyIiB4Mj0iMjIiIHkyPSIxMiI+PC9saW5lPjxwYXRoIGQ9Ik0xMiAyYTE1LjMgMTUuMyAwIDAgMSA0IDEwIDE1LjMgMTUuMyAwIDAgMS00IDEwIDE1LjMgMTUuMyAwIDAgMS00LTEwIDE1LjMgMTUuMyAwIDAgMSA0LTEweiI+PC9wYXRoPjwvc3ZnPg==';
+                        }}
+                      />
                       <div className="bookmark-title">
                         {bookmark.title || '未命名书签'}
                       </div>
@@ -406,8 +407,10 @@ const BookmarksPanel = ({ onClose }) => {
                         onClick={(e) => deleteBookmark(bookmark.id, e)}
                         title="删除书签"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                          <line x1="10" y1="11" x2="10" y2="17"/>
+                          <line x1="14" y1="11" x2="14" y2="17"/>
                         </svg>
                       </button>
                     </div>
