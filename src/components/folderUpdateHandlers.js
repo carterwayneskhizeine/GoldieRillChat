@@ -31,11 +31,36 @@ const pathUtils = {
 function normalizePath(filePath) {
   if (!filePath) return '';
   
+  // 移除file://或local-file://协议前缀
+  filePath = filePath.replace(/^(file:\/\/|local-file:\/\/)/, '');
+  
   // 将所有反斜杠转换为正斜杠
-  const normalizedPath = filePath.replace(/\\/g, '/');
+  let normalizedPath = filePath.replace(/\\/g, '/');
+  
+  // 处理Windows路径中的驱动器号（例如 /C:/path 变为 c:/path）
+  if (normalizedPath.match(/^\/[a-zA-Z]:\//)) {
+    normalizedPath = normalizedPath.substring(1);
+  }
+  
+  // 解码URL编码字符
+  try {
+    normalizedPath = decodeURIComponent(normalizedPath);
+  } catch (e) {
+    console.error('路径解码失败:', e, filePath);
+  }
   
   // 转为小写（Windows系统不区分大小写）
-  return normalizedPath.toLowerCase();
+  normalizedPath = normalizedPath.toLowerCase();
+  
+  // 规范化连续的斜杠
+  normalizedPath = normalizedPath.replace(/\/+/g, '/');
+  
+  // 移除末尾的斜杠（除非是根路径）
+  if (normalizedPath.length > 1 && normalizedPath.endsWith('/')) {
+    normalizedPath = normalizedPath.slice(0, -1);
+  }
+  
+  return normalizedPath;
 }
 
 /**
@@ -61,14 +86,29 @@ async function scanConversationFiles(window, conversationPath) {
       
       const filePath = pathUtils.join(conversationPath, file.name);
       const fileStats = await window.electron.getFileStats(filePath);
+      const fileExt = pathUtils.extname(file.name).toLowerCase();
       
-      allFiles.push({
+      // 判断文件类型
+      let fileType = fileExt;
+      if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(fileExt)) {
+        fileType = `image${fileExt}`;
+      } else if (['.mp4', '.webm', '.mov', '.avi'].includes(fileExt)) {
+        fileType = `video${fileExt}`;
+      } else if (['.mp3', '.wav', '.ogg'].includes(fileExt)) {
+        fileType = `audio${fileExt}`;
+      }
+      
+      const fileInfo = {
         name: file.name,
         path: filePath,
-        type: pathUtils.extname(file.name).toLowerCase(),
+        type: fileExt,
+        mimetype: fileType,
         size: fileStats.size,
         timestamp: fileStats.modified
-      });
+      };
+      
+      allFiles.push(fileInfo);
+      console.log(`扫描到文件: ${file.name}, 类型: ${fileType}, 大小: ${fileStats.size} 字节`);
     }
     
     // 检查是否存在images子文件夹
@@ -88,14 +128,25 @@ async function scanConversationFiles(window, conversationPath) {
         
         const filePath = pathUtils.join(imagesPath, file.name);
         const fileStats = await window.electron.getFileStats(filePath);
+        const fileExt = pathUtils.extname(file.name).toLowerCase();
         
-        allFiles.push({
+        // 判断图片类型
+        let fileType = fileExt;
+        if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(fileExt)) {
+          fileType = `image${fileExt}`;
+        }
+        
+        const fileInfo = {
           name: file.name,
           path: filePath,
-          type: pathUtils.extname(file.name).toLowerCase(),
+          type: fileExt,
+          mimetype: fileType,
           size: fileStats.size,
           timestamp: fileStats.modified
-        });
+        };
+        
+        allFiles.push(fileInfo);
+        console.log(`扫描到images目录中的文件: ${file.name}, 类型: ${fileType}, 大小: ${fileStats.size} 字节`);
       }
     } catch (error) {
       // images文件夹不存在，不处理
@@ -417,55 +468,78 @@ function identifyNewFiles(existingMessages, scannedFiles) {
   // 创建一个Map存储文件名到路径的映射，用于检测同名文件
   const fileNameMap = new Map();
   
+  // 创建一个Map存储消息ID到消息的映射，用于检测重复添加的AI回复
+  const messageIdMap = new Map();
+  
+  // 创建消息文件名到消息的映射，用于特殊处理AI回复的TXT文件
+  const messageFileNameMap = new Map();
+  
+  // 添加文件路径到集合的辅助函数
+  const addFilePathToSet = (filePath, source = "unknown") => {
+    if (!filePath) return;
+    
+    const normalizedPath = normalizePath(filePath);
+    existingFilePaths.add(normalizedPath);
+    
+    // 添加文件名映射
+    const fileName = pathUtils.basename(filePath);
+    if (!fileNameMap.has(fileName.toLowerCase())) {
+      fileNameMap.set(fileName.toLowerCase(), []);
+    }
+    fileNameMap.get(fileName.toLowerCase()).push({
+      path: normalizedPath,
+      source: source
+    });
+    
+    // 在调试模式下打印更多信息
+    console.log(`记录已存在文件: ${fileName} (来源: ${source}), 路径: ${normalizedPath}`);
+  };
+  
   // 将现有消息中的文件路径添加到Set中
   existingMessages.forEach(message => {
+    // 保存消息到映射表中
+    messageIdMap.set(message.id, message);
+    
     // 处理txtFile
     if (message.txtFile && message.txtFile.path) {
-      const normalizedPath = normalizePath(message.txtFile.path);
-      existingFilePaths.add(normalizedPath);
+      addFilePathToSet(message.txtFile.path, `txtFile of message ${message.id}`);
       
-      // 添加文件名映射
-      const fileName = pathUtils.basename(message.txtFile.path);
-      if (!fileNameMap.has(fileName.toLowerCase())) {
-        fileNameMap.set(fileName.toLowerCase(), []);
-      }
-      fileNameMap.get(fileName.toLowerCase()).push(normalizedPath);
+      // 添加到消息文件名映射
+      const txtFileName = pathUtils.basename(message.txtFile.path).toLowerCase();
+      messageFileNameMap.set(txtFileName, message);
     }
     
     // 处理files数组
     if (message.files && Array.isArray(message.files)) {
       message.files.forEach(file => {
         if (file.path) {
-          const normalizedPath = normalizePath(file.path);
-          existingFilePaths.add(normalizedPath);
-          
-          // 添加文件名映射
-          const fileName = pathUtils.basename(file.path);
-          if (!fileNameMap.has(fileName.toLowerCase())) {
-            fileNameMap.set(fileName.toLowerCase(), []);
-          }
-          fileNameMap.get(fileName.toLowerCase()).push(normalizedPath);
+          addFilePathToSet(file.path, `files array of message ${message.id}`);
         }
       });
     }
     
-    // 新增：处理searchImages数组
+    // 处理searchImages数组
     if (message.searchImages && Array.isArray(message.searchImages)) {
       message.searchImages.forEach(img => {
         if (img.url && img.url.startsWith('file://')) {
           // 从file://URL中提取实际文件路径
           const filePath = img.url.replace('file://', '');
-          const normalizedPath = normalizePath(filePath);
-          existingFilePaths.add(normalizedPath);
-          
-          // 添加文件名映射
-          const fileName = pathUtils.basename(filePath);
-          if (!fileNameMap.has(fileName.toLowerCase())) {
-            fileNameMap.set(fileName.toLowerCase(), []);
-          }
-          fileNameMap.get(fileName.toLowerCase()).push(normalizedPath);
+          addFilePathToSet(filePath, `searchImages of message ${message.id}`);
         }
       });
+    }
+    
+    // 处理Markdown内容中的图片链接
+    if (message.content && typeof message.content === 'string') {
+      // 匹配Markdown格式的图片链接: ![alt](url)
+      const imgRegex = /!\[(.*?)\]\((file:\/\/|local-file:\/\/)([^)]+)\)/g;
+      let match;
+      while ((match = imgRegex.exec(message.content)) !== null) {
+        const filePath = match[3];
+        if (filePath) {
+          addFilePathToSet(filePath, `markdown content of message ${message.id}`);
+        }
+      }
     }
   });
   
@@ -478,25 +552,73 @@ function identifyNewFiles(existingMessages, scannedFiles) {
     
     // 如果路径已存在，则跳过
     if (existingFilePaths.has(normalizedPath)) {
+      console.log(`跳过已存在的文件: ${file.name} (路径匹配)`);
       return false;
+    }
+    
+    // 特殊处理TXT文件，检查是否是AI回复的文本文件
+    const fileExt = file.type.toLowerCase();
+    if (fileExt === '.txt') {
+      const fileName = pathUtils.basename(file.path).toLowerCase();
+      
+      // 检查文件名是否格式为 message_[数字].txt
+      if (fileName.match(/^message_\d+\.txt$/i)) {
+        // 尝试提取消息ID
+        const possibleMessageId = fileName.replace(/^message_/i, '').replace(/\.txt$/i, '');
+        
+        // 检查是否存在对应ID的消息
+        if (messageIdMap.has(possibleMessageId) || messageFileNameMap.has(fileName)) {
+          console.log(`跳过AI回复的TXT文件: ${fileName}，已存在关联消息`);
+          return false;
+        }
+        
+        // 检查是否有相似ID的消息（避免时间戳差异导致的不匹配）
+        for (const [messageId, message] of messageIdMap.entries()) {
+          // 检查ID前缀是否匹配（忽略毫秒部分）
+          if (messageId.toString().startsWith(possibleMessageId.substring(0, 10))) {
+            console.log(`跳过AI回复的TXT文件: ${fileName}，找到匹配ID前缀的消息: ${messageId}`);
+            return false;
+          }
+          
+          // 检查消息内容是否包含此文件名的引用
+          if (message.content && message.content.includes(fileName)) {
+            console.log(`跳过AI回复的TXT文件: ${fileName}，消息内容中包含对此文件的引用`);
+            return false;
+          }
+        }
+      }
     }
     
     // 检查是否是同名文件但路径不同（可能是文件移动）
     const fileName = pathUtils.basename(file.path).toLowerCase();
     if (fileNameMap.has(fileName)) {
+      const matchingFiles = fileNameMap.get(fileName);
       // 记录日志，帮助调试
-      console.log(`发现同名文件: ${fileName}, 现有路径: ${fileNameMap.get(fileName).join(', ')}, 新路径: ${normalizedPath}`);
+      console.log(`发现同名文件: ${fileName}, 已存在于: ${matchingFiles.map(f => `${f.path} (${f.source})`).join(', ')}, 新路径: ${normalizedPath}`);
       
       // 如果是images目录下的图片文件，特殊处理
       const isInImagesDir = normalizedPath.includes('/images/');
-      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+      const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fileName);
       
       if (isInImagesDir && isImage) {
         // 检查是否有同名文件在非images目录
-        const existingNonImageDirPaths = fileNameMap.get(fileName).filter(p => !p.includes('/images/'));
+        const existingNonImageDirPaths = matchingFiles.filter(f => !f.path.includes('/images/'));
         if (existingNonImageDirPaths.length > 0) {
           console.log(`跳过images目录下的同名图片文件: ${fileName}`);
           return false; // 跳过此文件
+        }
+      }
+      
+      // 对于AI生成的图片，特殊处理
+      if (isImage && fileName.startsWith('image_')) {
+        console.log(`检测到可能是AI生成的图片: ${fileName}，执行特殊匹配`);
+        // 尝试完全忽略类型差异和路径格式差异，只通过文件名完全匹配
+        for (const existingFile of matchingFiles) {
+          const existingName = pathUtils.basename(existingFile.path).toLowerCase();
+          if (existingName === fileName) {
+            console.log(`通过文件名完全匹配确认AI生成图片已存在: ${fileName}`);
+            return false; // 跳过此文件
+          }
         }
       }
     }
@@ -511,12 +633,46 @@ function identifyNewFiles(existingMessages, scannedFiles) {
 /**
  * 将新文件转换为消息对象
  * @param {Array} newFiles - 新文件数组
+ * @param {Array} existingMessages - 现有的消息数组，用于检查潜在的重复
  * @returns {Array} 新消息对象数组
  */
-function convertFilesToMessages(newFiles) {
+function convertFilesToMessages(newFiles, existingMessages = []) {
   if (!newFiles || newFiles.length === 0) {
     return [];
   }
+  
+  // 根据文件扩展名获取MIME类型
+  const getMimeType = (fileName) => {
+    const ext = pathUtils.extname(fileName).toLowerCase();
+    const mimeTypes = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.bmp': 'image/bmp',
+      '.mp4': 'video/mp4',
+      '.mov': 'video/quicktime',
+      '.avi': 'video/x-msvideo',
+      '.webm': 'video/webm',
+      '.mp3': 'audio/mpeg',
+      '.wav': 'audio/wav',
+      '.ogg': 'audio/ogg',
+      '.txt': 'text/plain',
+      '.json': 'application/json',
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    };
+    return mimeTypes[ext] || 'application/octet-stream';
+  };
+  
+  // 创建消息ID到消息的映射，用于检查TXT文件是否属于现有AI回复
+  const messageIdMap = new Map();
+  existingMessages.forEach(message => {
+    messageIdMap.set(message.id.toString(), message);
+  });
   
   // 按文件类型分组
   const filesByType = new Map();
@@ -525,6 +681,40 @@ function convertFilesToMessages(newFiles) {
     const ext = file.type.toLowerCase();
     // 如果是txt文件，每个文件创建一个单独的消息
     if (ext === '.txt') {
+      // 额外过滤：检查是否是AI回复的TXT文件
+      const fileName = file.name.toLowerCase();
+      if (fileName.match(/^message_\d+\.txt$/)) {
+        const possibleMessageId = fileName.replace(/^message_/i, '').replace(/\.txt$/i, '');
+        
+        // 检查是否存在对应ID的消息
+        if (messageIdMap.has(possibleMessageId)) {
+          console.log(`【转换阶段】跳过AI回复的TXT文件: ${fileName}，已存在关联消息`);
+          return; // 跳过此文件
+        }
+        
+        // 检查是否有相似ID的消息
+        for (const messageId of messageIdMap.keys()) {
+          if (messageId.startsWith(possibleMessageId.substring(0, 10))) {
+            console.log(`【转换阶段】跳过AI回复的TXT文件: ${fileName}，找到匹配ID前缀的消息: ${messageId}`);
+            return; // 跳过此文件
+          }
+        }
+        
+        // 检查内容是否像是AI回复
+        if (file.content) {
+          const content = file.content.toLowerCase();
+          // 检测常见的AI回复标记
+          if (content.includes('prompt') && (
+              content.includes('model') || 
+              content.includes('seed') || 
+              content.includes('![')
+            )) {
+            console.log(`【转换阶段】疑似AI回复内容，跳过转换: ${fileName}`);
+            return; // 跳过此文件
+          }
+        }
+      }
+      
       if (!filesByType.has('txt')) {
         filesByType.set('txt', []);
       }
@@ -532,7 +722,7 @@ function convertFilesToMessages(newFiles) {
     } 
     // 图片和其他文件可以合并成一条消息
     else {
-      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+      const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
       const type = isImage ? 'image' : 'other';
       
       if (!filesByType.has(type)) {
@@ -568,7 +758,7 @@ function convertFilesToMessages(newFiles) {
       newMessages.push({
         id: `auto_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
         content: messageContent,
-        timestamp: txtFile.timestamp,
+        timestamp: txtFile.timestamp || new Date().toISOString(),
         txtFile: {
           name: txtFile.name,
           displayName: displayName,
@@ -591,10 +781,12 @@ function convertFilesToMessages(newFiles) {
         files: fileGroup.map(file => ({
           name: file.name,
           path: file.path,
-          type: file.type,
+          type: getMimeType(file.name), // 使用标准MIME类型
           size: file.size
         }))
       });
+      
+      console.log(`添加图片文件消息，包含 ${fileGroup.length} 张图片: ${fileGroup.map(f => f.name).join(', ')}`);
     });
   }
   
@@ -609,10 +801,12 @@ function convertFilesToMessages(newFiles) {
         files: fileGroup.map(file => ({
           name: file.name,
           path: file.path,
-          type: file.type,
+          type: getMimeType(file.name), // 使用标准MIME类型
           size: file.size
         }))
       });
+      
+      console.log(`添加其他文件消息，包含 ${fileGroup.length} 个文件: ${fileGroup.map(f => f.name).join(', ')}`);
     });
   }
   
@@ -656,6 +850,9 @@ async function updateConversationMessages(window, conversationPath) {
       let txtFileCount = 0;
       let attachmentFilesCount = 0;
       let searchImagesCount = 0;
+      let assistantMessageCount = 0;
+      let userMessageCount = 0;
+      let typeNMessageCount = 0;
       
       existingMessages.forEach(msg => {
         if (msg.txtFile && msg.txtFile.path) txtFileCount++;
@@ -664,8 +861,18 @@ async function updateConversationMessages(window, conversationPath) {
           searchImagesCount += msg.searchImages.length;
           console.log(`检测到消息ID ${msg.id} 包含 ${msg.searchImages.length} 张网络搜索图片`);
         }
+        
+        // 统计消息类型
+        if (msg.type === 'assistant') {
+          assistantMessageCount++;
+        } else if (msg.type === 'user') {
+          userMessageCount++;
+        } else {
+          typeNMessageCount++;
+        }
       });
       
+      console.log(`现有消息类型统计: assistant=${assistantMessageCount}, user=${userMessageCount}, typeN=${typeNMessageCount}`);
       console.log(`现有消息中包含 ${txtFileCount} 个文本文件, ${attachmentFilesCount} 个附件文件, 和 ${searchImagesCount} 张网络搜索图片`);
     } catch (error) {
       console.warn(`无法加载messages.json, 创建新文件: ${error.message}`);
@@ -695,11 +902,24 @@ async function updateConversationMessages(window, conversationPath) {
     
     // 打印新增文件的类型统计
     const newFileTypeStats = {};
+    let txtCount = 0;
+    let imageCount = 0;
+    let otherCount = 0;
+    
     newFiles.forEach(file => {
       const ext = file.type.toLowerCase();
       newFileTypeStats[ext] = (newFileTypeStats[ext] || 0) + 1;
+      
+      if (ext === '.txt') {
+        txtCount++;
+      } else if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(ext)) {
+        imageCount++;
+      } else {
+        otherCount++;
+      }
     });
     console.log('新增文件类型统计:', newFileTypeStats);
+    console.log(`新增文件分类统计: TXT=${txtCount}, 图片=${imageCount}, 其他=${otherCount}`);
     
     // 4. 为.txt文件读取内容
     for (const file of newFiles) {
@@ -709,6 +929,13 @@ async function updateConversationMessages(window, conversationPath) {
           const content = await readTxtFileContent(window, file.path);
           file.content = content;
           console.log(`已读取文件内容: ${file.name} (${content.length} 字符)`);
+          
+          // 检查内容特征，识别是否是AI回复
+          if (content.toLowerCase().includes('prompt') && 
+              (content.toLowerCase().includes('model') || 
+               content.toLowerCase().includes('seed'))) {
+            console.log(`文件 ${file.name} 疑似为AI回复内容`);
+          }
         } catch (error) {
           console.error(`读取文件内容失败: ${file.path}`, error);
           file.content = null;
@@ -717,8 +944,14 @@ async function updateConversationMessages(window, conversationPath) {
     }
     
     // 5. 转换新文件为消息对象
-    const newMessages = convertFilesToMessages(newFiles);
+    const newMessages = convertFilesToMessages(newFiles, existingMessages);
     console.log(`创建了 ${newMessages.length} 条新消息`);
+    
+    // 如果没有新消息，直接返回
+    if (newMessages.length === 0) {
+      console.log(`没有生成新消息，跳过更新`);
+      return false;
+    }
     
     // 6. 合并并保存更新后的消息
     const updatedMessages = [...existingMessages, ...newMessages];
