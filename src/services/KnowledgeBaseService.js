@@ -29,6 +29,9 @@ const cosineSimilarity = (vecA, vecB) => {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 };
 
+// 定义常量
+const MAX_EMBEDDING_TEXT = 8000; // SiliconFlow的大致限制
+
 /**
  * 获取知识库参数
  * @param {Object} base 知识库对象
@@ -37,13 +40,22 @@ const cosineSimilarity = (vecA, vecB) => {
 export const getKnowledgeBaseParams = (base) => {
   if (!base) return null;
   
+  // 默认参数
+  const defaultChunkCount = 6;
+  const defaultChunkSize = 8000; // 使用嵌入最大长度作为默认值
+  const defaultChunkOverlap = 200;
+  
   return {
     id: base.id,
     name: base.name,
     model: base.model.id,
     dimensions: base.dimensions,
     threshold: base.threshold || 0.1,
-    documentCount: base.documentCount || 0
+    documentCount: base.documentCount || 0,
+    chunkCount: base.chunkCount || defaultChunkCount,
+    // 如果base中有值则使用，否则使用默认值
+    chunkSize: base.chunkSize || defaultChunkSize,
+    chunkOverlap: base.chunkOverlap || defaultChunkOverlap
   };
 };
 
@@ -607,10 +619,10 @@ export const addFileToKnowledgeBase = async (baseId, file) => {
     
     // 使用知识库配置的默认参数
     const params = getKnowledgeBaseParams(base);
-    const { chunkSize, chunkOverlap } = params;
+    const { chunkSize, chunkOverlap, chunkCount } = params;
     
     // 异步处理文件
-    const options = { chunkSize, chunkOverlap };
+    const options = { chunkSize, chunkOverlap, chunkCount };
     
     try {
       // 处理文件并更新状态
@@ -638,6 +650,7 @@ const processFileAsync = async (item, file, base, options) => {
     
     // 增加日志，更清晰地显示处理过程
     console.log(`处理文件 ${file.name}, 类型: ${file.type}, 大小: ${file.size}`);
+    console.log(`分块设置: 目标数量=${options.chunkCount || '未指定'}, 重叠=${options.chunkOverlap || 200}`);
     
     // 处理文件
     const result = await FileProcessingService.processFile(file, options);
@@ -665,6 +678,63 @@ const processFileAsync = async (item, file, base, options) => {
     // 增加详细日志
     console.log(`文件 ${file.name} 处理结果状态: ${result.status}`);
     console.log(`文件 ${file.name} 获取到内容长度: ${text.length}`);
+    
+    // 检查FileProcessingService是否已经做了分块处理
+    if (result.chunked && result.chunks && result.chunks.length > 0) {
+      console.log(`FileProcessingService已完成分块，共${result.chunks.length}块`);
+      
+      // 更新父项的状态
+      await updateKnowledgeItemStatus(item.id, 'chunking', {
+        chunked: true,
+        chunkCount: result.chunks.length,
+        childItems: []
+      });
+      
+      // 处理每个块
+      const childItems = [];
+      for (let i = 0; i < result.chunks.length; i++) {
+        const chunk = result.chunks[i];
+        
+        // 创建子项
+        const childItem = {
+          id: nanoid(),
+          baseId: item.baseId,
+          parentId: item.id,
+          name: `${item.name} (块 ${i+1}/${result.chunks.length})`,
+          type: 'chunk',
+          content: chunk,
+          chunkIndex: i + 1,
+          status: 'processing',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        // 添加到数据库
+        await db.knowledgeItems.add(childItem);
+        
+        // 添加到子项数组
+        childItems.push(childItem);
+        
+        // 生成嵌入向量
+        const embedding = await embedText(chunk, base.model);
+        
+        // 更新子项状态
+        await updateKnowledgeItemStatus(childItem.id, 'completed', {
+          length: chunk.length,
+          embedding
+        });
+      }
+      
+      // 更新父项的子项列表
+      await updateKnowledgeItemStatus(item.id, 'completed', {
+        chunked: true,
+        childItems: childItems.map(child => child.id),
+        chunkCount: childItems.length
+      });
+      
+      console.log(`所有文本块都已处理完成，共 ${childItems.length} 个块`);
+      return;
+    }
     
     // 检查内容是否有效
     if (!text || text.trim().length === 0) {
@@ -722,18 +792,49 @@ const processFileAsync = async (item, file, base, options) => {
 // 处理文件内容的函数
 const processFileContent = async (item, text, base, options) => {
   try {
-    // 检查文本大小，决定是否需要分块处理
-    const MAX_EMBEDDING_TEXT = 8000; // SiliconFlow的大致限制
+    // 获取参数
+    const { chunkOverlap = 200, chunkCount } = options;
+    // 不直接获取chunkSize，因为我们希望它根据文档长度和chunkCount动态计算
     
+    // 记录文件内容详细信息
+    console.log(`文件 ${item.name} 内容长度: ${text.length} 字符`);
+    console.log(`文件 ${item.name} 内容开头: ${text.substring(0, 100)}...`);
+    console.log(`知识库ID: ${base.id}, 知识库名称: ${base.name}, 知识库参数:`, JSON.stringify({
+      chunkCount: chunkCount || '未指定',
+      chunkOverlap: chunkOverlap || 200,
+      model: base.model?.id || '未知',
+      threshold: base.threshold || 0.1
+    }));
+    
+    // 根据是否设置了分块数量来决定是否分块
+    let chunks = [];
+    let shouldChunk = false;
+    
+    // 检查是否需要分块
     if (text.length > MAX_EMBEDDING_TEXT) {
+      // 超过最大嵌入长度，必须分块
       console.log(`文件内容超过${MAX_EMBEDDING_TEXT}字符，需要分块处理`);
+      shouldChunk = true;
+    } else if (chunkCount && chunkCount > 1) {
+      // 用户明确设置了分块数量
+      console.log(`文件内容虽然不超过${MAX_EMBEDDING_TEXT}字符，但用户设置了分块数量: ${chunkCount}`);
+      shouldChunk = true;
+    }
+    
+    if (shouldChunk) {
+      // 进行分块处理
+      console.log(`分块参数: 重叠=${chunkOverlap}, 目标数量=${chunkCount || '未指定'}`);
       
-      // 分块内容
-      const { chunkSize = 1000, chunkOverlap = 200 } = options;
-      // 使用内部定义的chunkText函数
-      const chunks = chunkText(text, chunkSize, chunkOverlap);
+      // 动态计算chunkSize，而不是使用传入的值
+      // 这里传入undefined作为maxLength，让chunkText函数自己根据chunkCount计算
+      chunks = chunkText(text, undefined, chunkOverlap, chunkCount);
+      console.log(`文本已分成${chunks.length}个块, 第一块长度: ${chunks[0]?.length || 0}`);
       
-      console.log(`文本已分成${chunks.length}个块`);
+      try { 
+        console.log(`分块详情: [${chunks.map(c => c.length).join(', ')}]`);
+      } catch (e) {
+        console.error('无法记录分块详情:', e.message);
+      }
       
       // 更新父项的状态
       await updateKnowledgeItemStatus(item.id, 'chunking', {
@@ -761,39 +862,42 @@ const processFileContent = async (item, text, base, options) => {
           updatedAt: new Date().toISOString()
         };
         
-        console.log(`正在处理块 ${i+1}/${chunks.length}, 内容长度: ${chunk.length}`);
+        // 添加到数据库
+        await db.knowledgeItems.add(childItem);
         
-        // 添加子项到数据库
-        const childId = await db.knowledgeItems.add(childItem);
-        childItems.push(childId);
+        // 添加到子项数组
+        childItems.push(childItem);
         
-        // 嵌入子块内容
+        // 生成嵌入向量
         const embedding = await embedText(chunk, base.model);
         
         // 更新子项状态
-        await updateKnowledgeItemStatus(childId, 'completed', {
-          embedding,
-          updatedAt: new Date().toISOString()
+        await updateKnowledgeItemStatus(childItem.id, 'completed', {
+          length: chunk.length,
+          embedding
         });
       }
       
-      // 更新父项状态为完成
+      // 更新父项的子项列表
       await updateKnowledgeItemStatus(item.id, 'completed', {
-        childItems,
-        updatedAt: new Date().toISOString()
+        chunked: true,
+        childItems: childItems.map(child => child.id),
+        chunkCount: childItems.length
       });
       
-      console.log(`文件分块处理完成，共${chunks.length}个块`);
+      console.log(`所有文本块都已处理完成，共 ${childItems.length} 个块`);
     } else {
-      console.log(`文件内容小于${MAX_EMBEDDING_TEXT}字符，进行整体嵌入`);
+      // 整体嵌入
+      console.log(`文件内容小于${MAX_EMBEDDING_TEXT}字符，未设置分块，进行整体嵌入`);
       
-      // 嵌入整个文本
+      // 生成嵌入向量
       const embedding = await embedText(text, base.model);
       
-      // 更新状态为完成
+      // 更新父项状态
       await updateKnowledgeItemStatus(item.id, 'completed', {
-        embedding,
-        updatedAt: new Date().toISOString()
+        length: text.length,
+        chunked: false,
+        embedding
       });
       
       console.log(`文件处理完成，嵌入向量维度: ${embedding.length}`);
@@ -809,8 +913,13 @@ const processFileContent = async (item, text, base, options) => {
 /**
  * 文本分块函数
  * 将长文本分成多个小块，考虑最大长度和重叠
+ * @param {string} text 要分块的文本
+ * @param {number} maxLength 每块的最大长度
+ * @param {number} overlap 块之间的重叠字符数
+ * @param {number} targetChunkCount 目标分块数量
+ * @returns {Array<string>} 分块后的文本数组
  */
-const chunkText = (text, maxLength = 8000, overlap = 200) => {
+const chunkText = (text, maxLength = 8000, overlap = 200, targetChunkCount = 0) => {
   // 安全检查：如果文本为空，直接返回空数组
   if (!text) {
     return [''];
@@ -823,9 +932,60 @@ const chunkText = (text, maxLength = 8000, overlap = 200) => {
     text = text.substring(0, MAX_SAFE_TEXT_LENGTH);
   }
   
-  // 如果文本小于最大长度，直接返回
-  if (text.length <= maxLength) {
+  // 如果设置了目标分块数量且大于1，始终根据文本长度和目标块数计算每块大小
+  // 无视传入的maxLength参数
+  if (targetChunkCount && targetChunkCount > 1) {
+    console.log(`使用目标分块数量: ${targetChunkCount}，文本长度: ${text.length}`);
+    
+    // 简单方法：直接根据段数均匀分割文本
+    if (targetChunkCount <= 10) { // 对于小段数，使用简单平均分割更准确
+      const chunkSize = Math.ceil(text.length / targetChunkCount);
+      console.log(`使用简单平均分割法，每块大小约: ${chunkSize}`);
+      
+      const chunks = [];
+      for (let i = 0; i < targetChunkCount; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, text.length);
+        if (start < text.length) { // 确保不会添加空块
+          chunks.push(text.substring(start, end));
+        }
+      }
+      
+      console.log(`成功将文本分成 ${chunks.length} 个块，目标块数为 ${targetChunkCount}`);
+      return chunks;
+    }
+    
+    // 复杂方法：考虑重叠，适用于较多的段数
+    // 计算每块的长度（考虑重叠）
+    const totalOverlap = (targetChunkCount - 1) * overlap;
+    const effectiveLength = text.length - totalOverlap;
+    // 确保平均长度有意义
+    if (effectiveLength > 0) {
+      // 强制重新计算maxLength，确保精确匹配用户设置的分块数量
+      maxLength = Math.ceil(effectiveLength / targetChunkCount);
+      console.log(`基于目标分块数量(${targetChunkCount})计算的每块长度: ${maxLength}`);
+    }
+  } else {
+    // 只有在没有设置目标分块数量时，才使用默认或传入的maxLength
+    if (!maxLength || maxLength <= 0) {
+      maxLength = 8000;
+      console.log(`使用默认块大小: ${maxLength}`);
+    }
+  }
+  
+  // 如果文本小于最大长度且没有设置分块数量，直接返回
+  if (text.length <= maxLength && !(targetChunkCount && targetChunkCount > 1)) {
+    console.log(`文本长度(${text.length})小于最大长度(${maxLength})且未设置分块数量，进行整体嵌入`);
     return [text];
+  }
+  
+  // 如果设置了分块数量，但文本长度太小导致计算出的maxLength大于文本长度
+  // 这种情况下我们仍然强制分块，确保至少达到用户期望的分块数
+  if (targetChunkCount && targetChunkCount > 1 && text.length <= maxLength) {
+    console.log(`强制分块：文本长度(${text.length})小于计算的块长度(${maxLength})，但用户设置了分块数量(${targetChunkCount})`);
+    // 简单平均分割
+    maxLength = Math.ceil(text.length / targetChunkCount);
+    console.log(`重新计算的块长度: ${maxLength}`);
   }
   
   // 安全检查：确保块大小合理
@@ -989,8 +1149,8 @@ export const addUrlToKnowledgeBase = async (baseId, url) => {
       // 更新状态为失败
       await updateKnowledgeItemStatus(item.id, 'error', { error: error.message });
       throw error;
-            }
-          } catch (error) {
+    }
+  } catch (error) {
     console.error('添加URL失败:', error);
     toastManager.error(`添加URL失败: ${error.message}`);
     throw error;

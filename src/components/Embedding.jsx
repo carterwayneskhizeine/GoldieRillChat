@@ -10,6 +10,16 @@ import { useKnowledgeBases, useKnowledge } from '../hooks/useKnowledgeBase';
 import AddKnowledgeBaseDialog from './AddKnowledgeBaseDialog';
 import { detectFileType, TEXT_FILE_TYPES, DOCUMENT_FILE_TYPES } from '../utils/fileTypes';
 
+// 更新滑动条进度的辅助函数
+const updateRangeProgress = (rangeElement) => {
+  if (!rangeElement) return;
+  const min = parseFloat(rangeElement.min) || 0;
+  const max = parseFloat(rangeElement.max) || 100;
+  const value = parseFloat(rangeElement.value) || min;
+  const percentage = ((value - min) / (max - min)) * 100;
+  rangeElement.style.setProperty('--range-shdw', `${percentage}%`);
+};
+
 // 自定义样式，解决滚动条问题
 const customStyles = {
   kbListContainer: {
@@ -183,6 +193,8 @@ const Embedding = ({ isActive = false }) => {
       setThreshold(selectedKnowledgeBase.threshold || 0.7);
       setChunkSize(selectedKnowledgeBase.chunkSize || '');
       setChunkOverlap(selectedKnowledgeBase.chunkOverlap || '');
+      // 设置分段数量，如果知识库中有此值则使用，否则使用默认值6
+      setChunkCount(selectedKnowledgeBase.chunkCount || 6);
     }
   }, [selectedKnowledgeBase, showSettingsDialog]);
   
@@ -969,7 +981,8 @@ const Embedding = ({ isActive = false }) => {
           name: knowledgeBaseName,
           threshold: threshold,
           chunkSize: chunkSize || undefined,
-          chunkOverlap: chunkOverlap || undefined
+          chunkOverlap: chunkOverlap || undefined,
+          chunkCount: chunkCount
         };
         
         await updateBase(selectedKnowledgeBase.id, updatedBase);
@@ -1043,11 +1056,24 @@ const Embedding = ({ isActive = false }) => {
                     min="1" 
                     max="30" 
                     value={chunkCount}
-                    onChange={(e) => setChunkCount(parseInt(e.target.value))} 
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      setChunkCount(value);
+                      updateRangeProgress(e.target);
+                    }} 
                     className="range range-xs range-primary w-full" 
+                    style={{
+                      "--range-shdw": `${((chunkCount - 1) / (30 - 1)) * 100}%`
+                    }}
+                    onInput={(e) => updateRangeProgress(e.target)}
                   />
                 </div>
                 <span className="text-xl font-medium text-white">{chunkCount}</span>
+              </div>
+              <div className="text-xs opacity-70 mt-1 text-[#cccccc]">
+                设置为1表示不分段，大于1时将强制分段。
+                <br />
+                <span className="text-yellow-300">注意: 设置生效需要保存并重新上传文档。</span>
               </div>
             </div>
             
@@ -1091,8 +1117,16 @@ const Embedding = ({ isActive = false }) => {
                     max="1" 
                     step="0.05"
                     value={threshold}
-                    onChange={(e) => setThreshold(parseFloat(e.target.value))} 
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      setThreshold(value);
+                      updateRangeProgress(e.target);
+                    }} 
                     className="range range-xs range-primary w-full" 
+                    style={{
+                      "--range-shdw": `${(threshold / 1) * 100}%`
+                    }}
+                    onInput={(e) => updateRangeProgress(e.target)}
                   />
                 </div>
                 <span className="text-xl font-medium text-white">{threshold}</span>

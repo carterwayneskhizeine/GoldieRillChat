@@ -50,15 +50,15 @@ function getIconPath() {
   
   if (process.env.NODE_ENV === 'development') {
     // 开发环境优先使用项目根目录的resources文件夹
-    iconPath = path.join(process.cwd(), 'resources/GoldieRillicon.ico');
+    iconPath = path.join(process.cwd(), 'resources/favicon.ico');
     
     // 如果不存在则使用构建目录的resources
     if (!require('fs').existsSync(iconPath)) {
-      iconPath = path.join(__dirname, '../resources/GoldieRillicon.ico');
+      iconPath = path.join(__dirname, '../resources/favicon.ico');
     }
   } else {
     // 生产环境使用打包后的resources目录
-    iconPath = path.join(process.resourcesPath, 'GoldieRillicon.ico');
+    iconPath = path.join(process.resourcesPath, 'favicon.ico');
   }
 
   console.log('最终图标路径:', iconPath);
@@ -77,7 +77,7 @@ async function ensureIconAvailable() {
     await fs.mkdir(targetDir, { recursive: true });
 
     const iconFiles = [
-      'GoldieRillicon.ico',
+      'favicon.ico',
       'GoldieRillicon.icns', 
       'GoldieRillIcon.png'
     ];

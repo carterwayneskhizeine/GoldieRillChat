@@ -46,7 +46,7 @@
             "asar": true,
             "win": {
                   "target": "nsis",
-                  "icon": "resources/GoldieRillicon.ico",
+                  "icon": "resources/favicon.ico",
                   "signingHashAlgorithms": [
                         "sha256"
                   ],
@@ -70,8 +70,8 @@
                   "createDesktopShortcut": true,
                   "createStartMenuShortcut": true,
                   "shortcutName": "GoldieRillChat",
-                  "installerIcon": "resources/GoldieRillicon.ico",
-                  "uninstallerIcon": "resources/GoldieRillicon.ico",
+                  "installerIcon": "resources/favicon.ico",
+                  "uninstallerIcon": "resources/favicon.ico",
                   "uninstallDisplayName": "GoldieRillChat",
                   "artifactName": "GoldieRillChat-Setup-${version}.${ext}"
             },

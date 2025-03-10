@@ -12,23 +12,25 @@ class FileProcessingService {
    * @param {Object} options - 处理选项
    * @param {number} options.chunkSize - 分块大小
    * @param {number} options.chunkOverlap - 分块重叠大小
+   * @param {number} options.chunkCount - 目标分块数量
    * @returns {Promise<Object>} - 处理结果
    */
   async processFile(file, options = {}) {
-    const { chunkSize = 1000, chunkOverlap = 200 } = options;
+    const { chunkSize = 1000, chunkOverlap = 200, chunkCount } = options;
     const fileType = detectFileType(file.name);
     
     console.log(`处理文件: ${file.name}, 类型: ${fileType}`);
+    console.log(`接收到的处理选项: chunkSize=${chunkSize}, chunkOverlap=${chunkOverlap}, chunkCount=${chunkCount || '未指定'}`);
     
     try {
       // 根据文件类型选择不同的处理方法
       switch (fileType) {
         case 'text':
-          return await this.processTextFile(file, { chunkSize, chunkOverlap });
+          return await this.processTextFile(file, { chunkSize, chunkOverlap, chunkCount });
         case 'document':
-          return await this.processDocumentFile(file, { chunkSize, chunkOverlap });
+          return await this.processDocumentFile(file, { chunkSize, chunkOverlap, chunkCount });
         case 'web':
-          return await this.processWebFile(file, { chunkSize, chunkOverlap });
+          return await this.processWebFile(file, { chunkSize, chunkOverlap, chunkCount });
         case 'image':
           // 图片处理 (如果支持的话)
           return await this.processImageFile(file);
@@ -40,21 +42,21 @@ class FileProcessingService {
               file.name.endsWith('.markdown') ||
               file.name.endsWith('.txt')) {
             console.log(`基于文件名和MIME类型判断为文本文件: ${file.name}`);
-            return await this.processTextFile(file, { chunkSize, chunkOverlap });
+            return await this.processTextFile(file, { chunkSize, chunkOverlap, chunkCount });
           } else if (file.type.includes('pdf') || 
                     file.type.includes('word') || 
                     file.type.includes('document')) {
             console.log(`基于MIME类型判断为文档文件: ${file.name}`);
-            return await this.processDocumentFile(file, { chunkSize, chunkOverlap });
+            return await this.processDocumentFile(file, { chunkSize, chunkOverlap, chunkCount });
           } else if (file.type.includes('html') || 
                     file.type.includes('xml')) {
             console.log(`基于MIME类型判断为网页文件: ${file.name}`);
-            return await this.processWebFile(file, { chunkSize, chunkOverlap });
+            return await this.processWebFile(file, { chunkSize, chunkOverlap, chunkCount });
           } else {
             // 对于完全未知的类型，尝试作为文本文件处理
             console.log(`未知文件类型，尝试作为文本文件处理: ${file.name}`);
             try {
-              return await this.processTextFile(file, { chunkSize, chunkOverlap });
+              return await this.processTextFile(file, { chunkSize, chunkOverlap, chunkCount });
             } catch (textError) {
               throw new Error(`无法处理此文件类型: ${file.name}, MIME类型: ${file.type}`);
             }
@@ -91,10 +93,18 @@ class FileProcessingService {
   /**
    * 处理文本文件
    * @private
+   * @param {File} file - 文件对象
+   * @param {Object} options - 处理选项
+   * @param {number} options.chunkSize - 分块大小
+   * @param {number} options.chunkOverlap - 分块重叠大小
+   * @param {number} options.chunkCount - 目标分块数量
    */
   async processTextFile(file, options) {
     try {
       console.log(`开始处理文本文件: ${file.name}`);
+      const { chunkSize = 1000, chunkOverlap = 200, chunkCount } = options;
+      console.log(`文本处理参数: 大小=${chunkSize}, 重叠=${chunkOverlap}, 目标数量=${chunkCount || '未指定'}`);
+      
       const text = await this.readFileAsText(file);
       
       // 验证文本内容
@@ -105,12 +115,30 @@ class FileProcessingService {
       
       console.log(`成功读取文本文件: ${file.name}, 内容长度: ${text.length}`);
       
-      // 这里会调用后端API进行处理，现在是一个模拟
+      // 检查是否需要分块
+      let chunks = [];
+      let chunked = false;
+      
+      if (chunkCount && chunkCount > 1) {
+        console.log(`根据用户设置的分段数量(${chunkCount})对文本进行分段`);
+        chunks = this.chunkText(text, chunkSize, chunkOverlap, chunkCount);
+        chunked = chunks.length > 1;
+        console.log(`文本已分成${chunks.length}个块, 第一块长度: ${chunks[0]?.length || 0}`);
+      } else if (text.length > 8000) { // 超过最大嵌入长度
+        console.log(`文本长度(${text.length})超过最大嵌入长度(8000)，自动分块`);
+        chunks = this.chunkText(text, chunkSize, chunkOverlap);
+        chunked = chunks.length > 1;
+        console.log(`文本已分成${chunks.length}个块, 第一块长度: ${chunks[0]?.length || 0}`);
+      }
+      
       return {
         type: 'text',
         content: text,
         name: file.name,
         size: file.size,
+        chunks: chunked ? chunks : undefined,
+        chunked: chunked,
+        chunkCount: chunked ? chunks.length : 0,
         options,
         status: 'processed'
       };
@@ -283,7 +311,9 @@ class FileProcessingService {
         // ==== 新增: 长文本分块处理 ====
         const MAX_CONTENT_LENGTH = 8000; // 每个块的最大字符数
         console.log(`开始分块处理文本，长度: ${rawText.length}，最大块大小: ${MAX_CONTENT_LENGTH}`);
-        const chunks = this.chunkText(rawText, MAX_CONTENT_LENGTH, chunkOverlap);
+        const { chunkCount } = options;
+        console.log(`分块参数：最大长度=${MAX_CONTENT_LENGTH}, 重叠=${chunkOverlap}, 目标数量=${chunkCount || '未指定'}`);
+        const chunks = this.chunkText(rawText, MAX_CONTENT_LENGTH, chunkOverlap, chunkCount);
         
         console.log(`从URL提取文本, 原始长度: ${rawText.length}, 分为 ${chunks.length} 块`);
         
@@ -389,13 +419,14 @@ class FileProcessingService {
   }
   
   /**
-   * 将文本分割成多个块
+   * 将文本分割成块
    * @param {string} text - 要分割的文本
-   * @param {number} maxLength - 每个块的最大长度
+   * @param {number} maxLength - 每块的最大长度
    * @param {number} overlap - 块之间的重叠字符数
+   * @param {number} targetChunkCount - 目标分块数量
    * @returns {Array<string>} - 文本块数组
    */
-  chunkText(text, maxLength = 8000, overlap = 200) {
+  chunkText(text, maxLength = 8000, overlap = 200, targetChunkCount = 0) {
     // 安全检查：如果文本为空，直接返回空数组
     if (!text) {
       return [''];
@@ -408,9 +439,40 @@ class FileProcessingService {
       text = text.substring(0, MAX_SAFE_TEXT_LENGTH);
     }
     
-    // 如果文本小于最大长度，直接返回
-    if (text.length <= maxLength) {
+    // 如果设置了目标分块数量且大于1，直接根据段数均匀分割文本
+    if (targetChunkCount && targetChunkCount > 1) {
+      console.log(`[FileProcessingService] 使用目标分块数量: ${targetChunkCount}，文本长度: ${text.length}`);
+      
+      // 简单方法：直接根据段数均匀分割文本
+      const chunkSize = Math.ceil(text.length / targetChunkCount);
+      console.log(`[FileProcessingService] 使用简单平均分割法，每块大小约: ${chunkSize}`);
+      
+      const chunks = [];
+      for (let i = 0; i < targetChunkCount; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, text.length);
+        if (start < text.length) { // 确保不会添加空块
+          chunks.push(text.substring(start, end));
+        }
+      }
+      
+      console.log(`[FileProcessingService] 成功将文本分成 ${chunks.length} 个块，目标块数为 ${targetChunkCount}`);
+      return chunks;
+    }
+    
+    // 如果文本小于最大长度且没有设置分块数量，直接返回
+    if (text.length <= maxLength && !(targetChunkCount && targetChunkCount > 1)) {
+      console.log(`[FileProcessingService] 文本长度(${text.length})小于最大长度(${maxLength})且未设置分块数量，进行整体嵌入`);
       return [text];
+    }
+    
+    // 如果设置了分块数量，但文本长度太小导致计算出的maxLength大于文本长度
+    // 这种情况下我们仍然强制分块，确保至少达到用户期望的分块数
+    if (targetChunkCount && targetChunkCount > 1 && text.length <= maxLength) {
+      console.log(`[FileProcessingService] 强制分块：文本长度(${text.length})小于计算的块长度(${maxLength})，但用户设置了分块数量(${targetChunkCount})`);
+      // 简单平均分割
+      maxLength = Math.ceil(text.length / targetChunkCount);
+      console.log(`[FileProcessingService] 重新计算的块长度: ${maxLength}`);
     }
     
     // 安全检查：确保块大小合理

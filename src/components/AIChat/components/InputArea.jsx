@@ -21,6 +21,9 @@ export const InputArea = ({
   isCompact = false
 }) => {
   const [isTranslating, setIsTranslating] = useState(false);
+  const [useKnowledgeBase, setUseKnowledgeBase] = useState(() => {
+    return localStorage.getItem('aichat_use_knowledge_base') === 'true';
+  });
   const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState(() => {
     // 从localStorage中恢复已选择的知识库
     const savedBases = localStorage.getItem('aichat_selected_knowledge_bases');
@@ -39,6 +42,20 @@ export const InputArea = ({
   useEffect(() => {
     localStorage.setItem('aichat_selected_knowledge_bases', JSON.stringify(selectedKnowledgeBases));
   }, [selectedKnowledgeBases]);
+
+  // 监听localStorage中知识库功能状态的变化
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'aichat_use_knowledge_base') {
+        setUseKnowledgeBase(e.newValue === 'true');
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   // 处理翻译功能
   const handleTranslation = async () => {
@@ -122,6 +139,13 @@ export const InputArea = ({
   // 发送消息时包含知识库信息
   const sendMessage = () => {
     console.log('发送消息，当前选中的知识库:', selectedKnowledgeBases?.length || 0);
+    
+    // 如果有选择知识库但知识库功能未启用，则自动启用
+    if (selectedKnowledgeBases?.length > 0 && !useKnowledgeBase) {
+      localStorage.setItem('aichat_use_knowledge_base', 'true');
+      setUseKnowledgeBase(true);
+      toastManager.success('已自动启用知识库功能');
+    }
     
     // 创建包含知识库信息的参数
     const messageParams = {
@@ -240,7 +264,20 @@ export const InputArea = ({
             </button>
             <KnowledgeBaseButton 
               selectedBases={selectedKnowledgeBases}
-              onSelect={handleKnowledgeBaseSelect}
+              onSelect={(bases) => {
+                // 启用知识库功能
+                const newKnowledgeBaseState = true;
+                localStorage.setItem('aichat_use_knowledge_base', 'true');
+                setUseKnowledgeBase(newKnowledgeBaseState);
+                // 显示提示
+                if (bases.length > 0 && !useKnowledgeBase) {
+                  toastManager.success('已启用知识库功能');
+                }
+                // 调用原有的知识库选择处理函数
+                handleKnowledgeBaseSelect(bases);
+              }}
+              disabled={false}
+              title={`${useKnowledgeBase ? '知识库功能已启用' : '点击选择知识库并启用功能'}${selectedKnowledgeBases.length > 0 ? `（已选择${selectedKnowledgeBases.length}个知识库）` : ''}`}
             />
             <button
               className="btn btn-ghost btn-sm btn-circle"

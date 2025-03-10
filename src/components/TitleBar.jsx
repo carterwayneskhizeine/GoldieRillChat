@@ -230,7 +230,7 @@ export default function TitleBar({
     window.electron.window.isMaximized().then(setIsMaximized)
 
     // 获取图标路径
-    const iconName = 'GoldieRillicon.png'
+    const iconName = 'favicon.png'
     setIconPath(`app-resource://${iconName}`)
 
     // 监听窗口最大化状态变化
