@@ -441,7 +441,6 @@ export const MessageItem = ({
         // 如果没有本地文件，使用原始URL
         processedImg.src = img.src || img.url;
         processedImg.isLocal = false;
-        console.log(`使用网络图片: ${processedImg.src}`);
       }
       
       return processedImg;

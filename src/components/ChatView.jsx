@@ -701,7 +701,7 @@ export function ChatView({
 
   // 处理鼠标移动检测滚动条距离
   const handleMouseMove = (e) => {
-    const chatMessages = document.getElementById('ai-chat-messages');
+    const chatMessages = document.getElementById('chat-view-messages');
     if (!chatMessages) return;
     
     const containerRect = chatMessages.getBoundingClientRect();
@@ -717,7 +717,7 @@ export function ChatView({
 
   // 处理鼠标离开聊天区域
   const handleMouseLeave = () => {
-    const chatMessages = document.getElementById('ai-chat-messages');
+    const chatMessages = document.getElementById('chat-view-messages');
     if (chatMessages) {
       chatMessages.classList.remove('scrollbar-expanded');
     }
