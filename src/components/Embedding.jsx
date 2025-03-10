@@ -1275,24 +1275,25 @@ const Embedding = ({ isActive = false }) => {
       
       {/* 删除知识库确认对话框 */}
       {showDeleteDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-          <div className="bg-[rgba(30,30,40,0.95)] p-6 rounded-lg shadow-xl max-w-md w-full border border-base-content/10">
-            <h3 className="font-bold text-lg mb-4">确认删除</h3>
-            <p className="mb-6">
-              您确定要删除知识库 "{knowledgeBaseToDelete?.name}" 吗？
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+          <div className="bg-[#1e1e1e] p-6 rounded-sm shadow-xl max-w-md w-full border border-[#3c3c3c]">
+            <h3 className="font-medium text-[#cccccc] text-base mb-4 border-b border-[#3c3c3c] pb-2">确认删除</h3>
+            <p className="mb-6 text-[#cccccc] text-sm">
+              您确定要删除知识库 "<span className="text-[#9cdcfe]">{knowledgeBaseToDelete?.name}</span>" 吗？
               <br />
-              <span className="text-error">此操作不可逆，知识库中的所有内容将被永久删除。</span>
+              <span className="text-[#ce9178] text-xs mt-2 block">此操作不可逆，知识库中的所有内容将被永久删除。</span>
             </p>
             <div className="flex justify-end gap-2">
               <button 
-                className="shader-btn"
+                className="px-4 py-1 text-sm rounded-sm"
+                style={{backgroundColor: "#3c3c3c", color: "#cccccc", border: "1px solid #3c3c3c"}}
                 onClick={cancelDeleteKnowledgeBase}
               >
                 取消
               </button>
               <button 
-                className="shader-btn"
-                style={{backgroundColor: "rgba(220, 38, 38, 0.3)", borderColor: "rgba(220, 38, 38, 0.4)"}}
+                className="px-4 py-1 text-sm rounded-sm"
+                style={{backgroundColor: "#9d8a12", color: "#ffffff", border: "1px solid #9d8a12"}}
                 onClick={confirmDeleteKnowledgeBase}
               >
                 确认删除

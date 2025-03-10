@@ -1631,13 +1631,13 @@ export default function App() {
               <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg">Folder</h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm opacity-70">{storagePath || 'No folder selected'}</span>
+                    <div className="flex flex-col items-center gap-2">
                       <button className="shader-btn save-btn" onClick={() => handleSelectFolder(setStoragePath, currentConversation, messages, window, setConversations, setCurrentConversation)}>
                         Modify Folder
                       </button>
+                      <span className="text-sm opacity-70 text-center">{storagePath || 'No folder selected'}</span>
+                    </div>
                   </div>
-              </div>
               
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg">Update</h3>
