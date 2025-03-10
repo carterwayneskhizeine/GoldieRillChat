@@ -229,7 +229,12 @@ export const createMessageHandlers = ({
     }
   };
 
-  // 重试失败的消息
+  // 读取历史消息数量设置
+  const getMaxHistoryMessages = () => {
+    return parseInt(localStorage.getItem('aichat_max_history_messages')) || 5;
+  };
+
+  // 重试消息
   const handleRetry = async (messageId) => {
     // 创建新的 AbortController
     const controller = new AbortController();
@@ -427,7 +432,7 @@ export const createMessageHandlers = ({
       }
 
       // 获取历史消息数量设置
-      const maxHistoryMessages = parseInt(localStorage.getItem('aichat_max_history_messages')) || 5;
+      const maxHistoryMessages = getMaxHistoryMessages();
       
       // 添加历史对话消息
       const recentMessages = messages

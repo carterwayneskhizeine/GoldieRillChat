@@ -202,6 +202,11 @@ export default function TitleBar({
   const initializedRef = useRef(false);
   const lastProviderRef = useRef(null);
   
+  // 添加maxHistoryMessages状态
+  const [maxHistoryMessages, setMaxHistoryMessages] = useState(() => {
+    return parseInt(localStorage.getItem('aichat_max_history_messages') || '5');
+  });
+  
   // 安全的temperature和maxTokens值
   const safeMaxTokens = maxTokens || parseInt(localStorage.getItem('aichat_max_tokens') || '2000');
   const safeTemperature = temperature !== undefined ? temperature : parseFloat(localStorage.getItem('aichat_temperature') || '0.7');
@@ -218,7 +223,7 @@ export default function TitleBar({
     const timer = setTimeout(updateAllRanges, 100);
     
     return () => clearTimeout(timer);
-  }, [safeMaxTokens, safeTemperature]);
+  }, [safeMaxTokens, safeTemperature, maxHistoryMessages]);
 
   useEffect(() => {
     // 初始化窗口状态
@@ -422,6 +427,31 @@ export default function TitleBar({
     
     const googleTranslateUrl = `https://translate.google.com/?sl=auto&tl=zh-CN&text=${encodeURIComponent(text)}&op=translate`;
     openUrl(googleTranslateUrl, true, true);
+  };
+
+  // 处理maxHistoryMessages变更
+  const handleMaxHistoryMessagesChange = (value) => {
+    const numValue = parseInt(value);
+    setMaxHistoryMessages(numValue);
+    localStorage.setItem('aichat_max_history_messages', numValue.toString());
+    
+    // 触发自定义storage事件以通知其他组件设置已更改
+    const storageEvent = new CustomEvent('aichat-settings-change', {
+      detail: {
+        key: 'aichat_max_history_messages',
+        newValue: numValue.toString(),
+        oldValue: localStorage.getItem('aichat_max_history_messages')
+      }
+    });
+    window.dispatchEvent(storageEvent);
+    
+    // 显示提示消息
+    if (window.message) {
+      window.message.success({
+        content: `历史消息数量已设置为${numValue === 21 ? '全部' : numValue}条`,
+        duration: 2
+      });
+    }
   };
 
   return (
@@ -644,6 +674,44 @@ export default function TitleBar({
                   }}
                 >
                   <div className="p-2">
+                    {/* 消息历史记录数量控制 */}
+                    <div className="flex flex-col gap-1 mb-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium" style={isImageBackground ? { 
+                          color: 'white', 
+                          textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
+                        } : {}}>Number of message:</span>
+                        <span className="text-xs min-w-[35px] text-right" 
+                          style={isImageBackground ? { 
+                            color: 'white', 
+                            textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            padding: '1px 4px',
+                            borderRadius: '2px'
+                          } : {}}
+                        >{maxHistoryMessages === 21 ? '全部' : maxHistoryMessages}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="21"
+                        value={maxHistoryMessages}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleMaxHistoryMessagesChange(value);
+                          // 更新滑动条进度效果
+                          updateRangeProgress(e.target);
+                        }}
+                        className="range range-xs range-primary w-full"
+                        step="1"
+                        style={{
+                          ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
+                          "--range-shdw": `${((maxHistoryMessages - 0) / (21 - 0)) * 100}%`
+                        }}
+                        onInput={(e) => updateRangeProgress(e.target)}
+                      />
+                    </div>
+
                     {/* Max Tokens 控制 */}
                     <div className="flex flex-col gap-1 mb-3">
                       <div className="flex justify-between items-center">

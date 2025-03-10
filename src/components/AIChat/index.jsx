@@ -591,6 +591,27 @@ export const AIChat = ({
     console.log('localStorage中的值:', localStorage.getItem('aichat_use_web_search'));
   }, [isNetworkEnabled]);
 
+  // 监听历史消息数量设置
+  useEffect(() => {
+    const handleSettingsChange = (event) => {
+      if (event.detail && event.detail.key === 'aichat_max_history_messages') {
+        console.log('AIChat收到历史消息数量更新:', event.detail.newValue);
+        // 强制组件刷新
+        forceUpdate();
+      }
+    };
+    
+    window.addEventListener('aichat-settings-change', handleSettingsChange);
+    
+    return () => {
+      window.removeEventListener('aichat-settings-change', handleSettingsChange);
+    };
+  }, []);
+
+  // 强制刷新函数
+  const [, updateState] = useState({});
+  const forceUpdate = useCallback(() => updateState({}), []);
+
   return (
     <div className="flex flex-col h-full w-full">
       {/* 只在 handlers 都准备好后渲染内容 */}

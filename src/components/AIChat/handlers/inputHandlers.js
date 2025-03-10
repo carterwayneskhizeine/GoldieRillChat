@@ -12,6 +12,7 @@ import { getKnowledgeBaseReferences } from '../../../services/KnowledgeBaseServi
 import { getWebSearchPrompt, FOOTNOTE_PROMPT } from '../../../utils/prompts';
 import { formatISODate } from '../../../utils/dateUtils';
 import { formatReferencesForModel, sortAndFilterReferences } from '../../../utils/referenceUtils';
+import { useEffect } from 'react';
 
 export const createInputHandlers = ({
   messageInput,
@@ -46,6 +47,14 @@ export const createInputHandlers = ({
   systemPrompt,
   systemPromptEnabled
 }) => {
+  // 定义输入处理器变量包
+  let inputHandlers = {};
+  
+  // 读取历史消息数量设置
+  const getMaxHistoryMessages = () => {
+    return parseInt(localStorage.getItem('aichat_max_history_messages')) || 5;
+  };
+
   // 处理发送消息
   const handleSendMessage = async (messageParams = {}, isRetry = false, retryContent = null, forceNetworkSearch = false) => {
     if (!messageInput.trim() && !isRetry) return;
@@ -615,7 +624,7 @@ export const createInputHandlers = ({
       }
 
       // 获取历史消息数量设置
-      const maxHistoryMessages = parseInt(localStorage.getItem('aichat_max_history_messages')) || 5;
+      const maxHistoryMessages = getMaxHistoryMessages();
       
       // 获取历史消息
       const recentMessages = messages
