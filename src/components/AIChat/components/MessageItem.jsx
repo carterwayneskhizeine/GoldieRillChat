@@ -1100,8 +1100,7 @@ export const MessageItem = ({
                     minimap: { enabled: false },
                     scrollBeyondLastLine: false,
                     wordWrap: "on",
-                    automaticLayout: true,
-                    padding: { top: 8, bottom: 8 }
+                    automaticLayout: true
                   }}
                 />
               </div>

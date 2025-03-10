@@ -448,6 +448,25 @@ function identifyNewFiles(existingMessages, scannedFiles) {
         }
       });
     }
+    
+    // 新增：处理searchImages数组
+    if (message.searchImages && Array.isArray(message.searchImages)) {
+      message.searchImages.forEach(img => {
+        if (img.url && img.url.startsWith('file://')) {
+          // 从file://URL中提取实际文件路径
+          const filePath = img.url.replace('file://', '');
+          const normalizedPath = normalizePath(filePath);
+          existingFilePaths.add(normalizedPath);
+          
+          // 添加文件名映射
+          const fileName = pathUtils.basename(filePath);
+          if (!fileNameMap.has(fileName.toLowerCase())) {
+            fileNameMap.set(fileName.toLowerCase(), []);
+          }
+          fileNameMap.get(fileName.toLowerCase()).push(normalizedPath);
+        }
+      });
+    }
   });
   
   console.log(`现有消息中包含 ${existingFilePaths.size} 个文件`);
@@ -636,13 +655,18 @@ async function updateConversationMessages(window, conversationPath) {
       // 打印现有消息中文件的数量，帮助调试
       let txtFileCount = 0;
       let attachmentFilesCount = 0;
+      let searchImagesCount = 0;
       
       existingMessages.forEach(msg => {
         if (msg.txtFile && msg.txtFile.path) txtFileCount++;
         if (msg.files && Array.isArray(msg.files)) attachmentFilesCount += msg.files.length;
+        if (msg.searchImages && Array.isArray(msg.searchImages)) {
+          searchImagesCount += msg.searchImages.length;
+          console.log(`检测到消息ID ${msg.id} 包含 ${msg.searchImages.length} 张网络搜索图片`);
+        }
       });
       
-      console.log(`现有消息中包含 ${txtFileCount} 个文本文件和 ${attachmentFilesCount} 个附件文件`);
+      console.log(`现有消息中包含 ${txtFileCount} 个文本文件, ${attachmentFilesCount} 个附件文件, 和 ${searchImagesCount} 张网络搜索图片`);
     } catch (error) {
       console.warn(`无法加载messages.json, 创建新文件: ${error.message}`);
       existingMessages = [];
