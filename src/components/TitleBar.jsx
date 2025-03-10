@@ -208,7 +208,7 @@ export default function TitleBar({
   });
   
   // 安全的temperature和maxTokens值
-  const safeMaxTokens = maxTokens || parseInt(localStorage.getItem('aichat_max_tokens') || '2000');
+  const safeMaxTokens = maxTokens || parseInt(localStorage.getItem('aichat_max_tokens') || '4096');
   const safeTemperature = temperature !== undefined ? temperature : parseFloat(localStorage.getItem('aichat_temperature') || '0.7');
   
   // 在组件挂载后和参数变化时更新滑动条
@@ -660,7 +660,7 @@ export default function TitleBar({
                     <line x1="8" y1="16" x2="16" y2="16" strokeWidth="2"/>
                   </svg>
                 </label>
-                <div tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-md w-[409px]" 
+                <div tabIndex={0} className="dropdown-content z-[1] menu p-1 shadow bg-base-100 rounded-md w-[350px]" 
                   style={isImageBackground ? { 
                     backgroundColor: 'rgba(0, 0, 0, 0.8)', 
                     backdropFilter: 'blur(10px)',
@@ -673,9 +673,9 @@ export default function TitleBar({
                     transform: 'translateX(-100%)'
                   }}
                 >
-                  <div className="p-2">
+                  <div className="p-1">
                     {/* 消息历史记录数量控制 */}
-                    <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex flex-col gap-0.5 mb-2">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-medium" style={isImageBackground ? { 
                           color: 'white', 
@@ -712,65 +712,8 @@ export default function TitleBar({
                       />
                     </div>
 
-                    {/* Max Tokens 控制 */}
-                    <div className="flex flex-col gap-1 mb-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium" style={isImageBackground ? { 
-                          color: 'white', 
-                          textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
-                        } : {}}>Max Tokens:</span>
-                        <span className="text-xs min-w-[35px] text-right" 
-                          style={isImageBackground ? { 
-                            color: 'white', 
-                            textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
-                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                            padding: '1px 4px',
-                            borderRadius: '2px'
-                          } : {}}
-                        >{safeMaxTokens === 999999 ? '∞' : safeMaxTokens}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="1024"
-                        max="8192"
-                        step="128"
-                        value={safeMaxTokens > 8192 ? 8192 : safeMaxTokens}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          setMaxTokens && setMaxTokens(value);
-                          localStorage.setItem('aichat_max_tokens', value.toString());
-                          updateRangeProgress(e.target);
-                        }}
-                        className="range range-xs range-primary w-full"
-                        style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
-                          "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`
-                        }}
-                        onInput={(e) => updateRangeProgress(e.target)}
-                      />
-                      <div className="flex justify-end mt-1">
-                        <button
-                          className="btn btn-xs btn-ghost"
-                          onClick={() => {
-                            const value = safeMaxTokens === 999999 ? 2000 : 999999;
-                            setMaxTokens && setMaxTokens(value);
-                            localStorage.setItem('aichat_max_tokens', value.toString());
-                            updateRangeProgress(e.target);
-                          }}
-                          title={safeMaxTokens === 999999 ? "点击设置为默认值" : "点击设置为无限制"}
-                          style={isImageBackground ? { 
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                            color: 'white',
-                            borderColor: 'rgba(255, 255, 255, 0.2)'
-                          } : {}}
-                        >
-                          {safeMaxTokens === 999999 ? "设为默认值" : "设为无限制"}
-                        </button>
-                      </div>
-                    </div>
-
                     {/* Temperature 控制 */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-0.5 mb-2">
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-medium" style={isImageBackground ? { 
                           color: 'white', 
@@ -805,6 +748,71 @@ export default function TitleBar({
                         }}
                         onInput={(e) => updateRangeProgress(e.target)}
                       />
+                    </div>
+
+                    {/* Max Tokens 控制 */}
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium" style={isImageBackground ? { 
+                          color: 'white', 
+                          textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
+                        } : {}}>Max Tokens:</span>
+                        <span className="text-xs min-w-[35px] text-right" 
+                          style={isImageBackground ? { 
+                            color: 'white', 
+                            textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            padding: '1px 4px',
+                            borderRadius: '2px'
+                          } : {}}
+                        >{safeMaxTokens === 999999 ? '∞' : safeMaxTokens}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1024"
+                        max="8192"
+                        step="128"
+                        value={safeMaxTokens > 8192 ? 8192 : safeMaxTokens}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          setMaxTokens && setMaxTokens(value);
+                          localStorage.setItem('aichat_max_tokens', value.toString());
+                          updateRangeProgress(e.target);
+                        }}
+                        className="range range-xs range-primary w-full"
+                        style={{
+                          ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
+                          "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`
+                        }}
+                        onInput={(e) => updateRangeProgress(e.target)}
+                      />
+                      <div className="flex justify-end mt-0.5">
+                        <button
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => {
+                            const value = safeMaxTokens === 999999 ? 4096 : 999999;
+                            setMaxTokens && setMaxTokens(value);
+                            localStorage.setItem('aichat_max_tokens', value.toString());
+                            
+                            // 手动更新滑动条样式
+                            const rangeElement = document.querySelector('.dropdown-content input[type="range"][min="1024"]');
+                            if (rangeElement) {
+                              // 更新滑动条的值
+                              rangeElement.value = Math.min(value, 8192);
+                              // 更新滑动条的进度效果
+                              updateRangeProgress(rangeElement);
+                            }
+                          }}
+                          title={safeMaxTokens === 999999 ? "点击设置为默认值" : "点击设置为无限制"}
+                          style={isImageBackground ? { 
+                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                            color: 'white',
+                            borderColor: 'rgba(255, 255, 255, 0.2)'
+                          } : {}}
+                        >
+                          {safeMaxTokens === 999999 ? "设为默认值" : "设为无限制"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
