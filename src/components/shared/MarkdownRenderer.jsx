@@ -181,8 +181,23 @@ const useProcessedContent = (content) => {
     processed = processed.replace(/^(#+\s*\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
     processed = processed.replace(/^(\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
 
-    // 处理行内代码块，将非代码块的反引号去掉
+    // 处理行内代码块，将非代码块的反引号去掉，但保留特定关键词的代码风格
     processed = processed.replace(/`([^`\n]+)`/g, (match, content) => {
+      // 特殊关键词，保持代码块格式
+      if (content === 'CODE' || content === 'code') {
+        return match;
+      }
+      
+      // 对于纯中文内容，去掉反引号
+      if (/^[\u4e00-\u9fa5]+$/.test(content)) {
+        return content;
+      }
+      
+      // 如果包含中文字符且不包含代码特征字符，去掉反引号
+      if (/[\u4e00-\u9fa5]/.test(content) && !/[{}[\]()=+*<>!|&;$]/.test(content)) {
+        return content;
+      }
+      
       // 如果内容不包含代码特征，则去掉反引号
       if (
         /^[@a-zA-Z][\w\-\/.]*$/.test(content) ||
@@ -324,9 +339,21 @@ const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLig
       margin: '0.5em 0',
     };
     
+    // 检查是否有子元素需要特殊处理
+    const processedChildren = React.Children.map(children, child => {
+      // 如果子元素是一个带有classname的React元素
+      if (React.isValidElement(child) && 
+          child.props && 
+          child.props.className === 'inline-text-block') {
+        // 将其转换为行内元素，确保正确显示
+        return <span className="inline-text-in-paragraph">{child.props.children}</span>;
+      }
+      return child;
+    });
+    
     return (
       <p {...props} data-selectable="true" style={styles} onContextMenu={handleContextMenu}>
-        {children}
+        {processedChildren}
       </p>
     );
   },
@@ -1429,6 +1456,59 @@ export const MarkdownRenderer = React.memo(({
             font-size: 0.875rem;
             color: var(--error);
           }
+
+          /* 简单文本块样式 */
+          .simple-text-block {
+            font-family: inherit;
+            font-size: inherit;
+            line-height: 1.5;
+            margin: 0.5em 0;
+            color: inherit;
+            background: none;
+            border: none;
+            padding: 0;
+            white-space: normal;
+            word-break: break-word;
+          }
+
+          /* 行内文本块样式 */
+          .inline-text-block {
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            color: inherit;
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            white-space: normal;
+            display: inline;
+          }
+
+          /* 保留代码样式的行内代码 */
+          .inline-code-preserved {
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+            background-color: var(--b2);
+            color: var(--bc);
+            padding: 0.15em 0.3em;
+            border-radius: 0.2em;
+            display: inline;
+            white-space: break-spaces;
+          }
+
+          /* 段落内的行内文本 */
+          .inline-text-in-paragraph {
+            display: inline;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            color: inherit;
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+          }
         `}
       </style>
 
@@ -1448,15 +1528,30 @@ export const MarkdownRenderer = React.memo(({
                 return <span>{content.replace(/`/g, '')}</span>;
               }
               
-              // 如果内容不包含代码特征，则不使用代码样式
-              if (
-                // 如果是包名或技术名称（允许 @ - / . 字符）
-                /^[@a-zA-Z][\w\-\/.]*$/.test(content) ||
-                // 或者是多个单词（允许空格分隔的单词）
-                /^[\w\-\./\s]+$/.test(content)
-              ) {
+              // 检查内容是否被单引号包围，如果是则使用普通文本样式
+              if (/^'[^']+'$/.test(content)) {
+                return <span>{content.substring(1, content.length - 1)}</span>;
+              }
+              
+              // 对于纯中文内容，始终使用普通文本样式
+              if (/^[\u4e00-\u9fa5]+$/.test(content)) {
                 return <span>{content}</span>;
               }
+              
+              // 如果包含中文字符且不包含代码特征字符，使用普通文本样式
+              if (/[\u4e00-\u9fa5]/.test(content) && !/[{}[\]()=+*<>!|&;$]/.test(content)) {
+                return <span>{content}</span>;
+              }
+              
+              // 简单的技术名称、单词或缩写等
+              if (/^[@a-zA-Z][\w\-\/.]*$/.test(content) || /^[\w\-\./\s]+$/.test(content)) {
+                if (content === 'CODE' || content === 'code') {
+                  // 保留 CODE 的代码样式，但使用内联风格
+                  return <code className="inline-code-preserved" {...props}>{content}</code>;
+                }
+                return <span>{content}</span>;
+              }
+              
               // 如果包含代码关键字，使用代码样式
               if (content.includes('function') ||
                   content.includes('return') ||
@@ -1483,6 +1578,25 @@ export const MarkdownRenderer = React.memo(({
               }
               // 其他情况不使用代码样式
               return <span>{content}</span>;
+            }
+
+            // 针对独立成行的代码块进行处理
+            const codeContent = String(children).replace(/\n$/, '');
+            
+            // 特殊情况：单行中文内容或技术名称（如：`axios`、`欧卡`），作为文本渲染
+            if (!codeContent.includes('\n') && 
+                (
+                  // 纯中文内容
+                  /^[\u4e00-\u9fa5]+$/.test(codeContent) || 
+                  // 包含中文的内容且不包含代码特征字符
+                  (/[\u4e00-\u9fa5]/.test(codeContent) && !/[{}[\]()=+*<>!|&;$]/.test(codeContent)) ||
+                  // 简单技术名称，如：axios, react 等（排除CODE/code特殊关键字）
+                  (/^[@a-zA-Z][\w\-\/.]*$/.test(codeContent) && !['CODE', 'code'].includes(codeContent)) ||
+                  // 简单词汇
+                  /^[\w\-\./\s]+$/.test(codeContent)
+                )
+            ) {
+              return <span className="inline-text-block">{codeContent}</span>;
             }
 
             const language = match ? match[1].toLowerCase() : '';
@@ -1577,9 +1691,21 @@ export const MarkdownRenderer = React.memo(({
               margin: '0.5em 0',
             };
             
+            // 检查是否有子元素需要特殊处理
+            const processedChildren = React.Children.map(children, child => {
+              // 如果子元素是一个带有classname的React元素
+              if (React.isValidElement(child) && 
+                  child.props && 
+                  child.props.className === 'inline-text-block') {
+                // 将其转换为行内元素，确保正确显示
+                return <span className="inline-text-in-paragraph">{child.props.children}</span>;
+              }
+              return child;
+            });
+            
             return (
               <p {...props} data-selectable="true" style={styles} onContextMenu={handleContextMenu}>
-                {children}
+                {processedChildren}
               </p>
             );
           },
