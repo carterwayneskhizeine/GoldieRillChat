@@ -358,12 +358,29 @@ canvas.three-background {
   z-index: 1;
 }
 
-/* 确保文本在ThreeJS背景上可读 */
-:is(body), :is(html), .app, .chat-container, .main-content,
-.drawer-content, .drawer-side, .sidebar,
-.header, .app-header, .modal, .dropdown,
-.card, .btn, .input, .textarea, .select,
-.menu, .tabs, .tab, .prose, .chat-bubble {
+/* 确保文本在ThreeJS背景上可读 - 仅限bg-theme主题 */
+[data-theme="bg-theme"] :is(body), 
+[data-theme="bg-theme"] :is(html), 
+[data-theme="bg-theme"] .app, 
+[data-theme="bg-theme"] .chat-container, 
+[data-theme="bg-theme"] .main-content,
+[data-theme="bg-theme"] .drawer-content, 
+[data-theme="bg-theme"] .drawer-side, 
+[data-theme="bg-theme"] .sidebar,
+[data-theme="bg-theme"] .header, 
+[data-theme="bg-theme"] .app-header, 
+[data-theme="bg-theme"] .modal, 
+[data-theme="bg-theme"] .dropdown,
+[data-theme="bg-theme"] .card, 
+[data-theme="bg-theme"] .btn, 
+[data-theme="bg-theme"] .input, 
+[data-theme="bg-theme"] .textarea, 
+[data-theme="bg-theme"] .select,
+[data-theme="bg-theme"] .menu, 
+[data-theme="bg-theme"] .tabs, 
+[data-theme="bg-theme"] .tab, 
+[data-theme="bg-theme"] .prose, 
+[data-theme="bg-theme"] .chat-bubble {
   text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
   color: white;
 }
