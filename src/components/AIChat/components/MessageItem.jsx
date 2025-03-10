@@ -912,7 +912,7 @@ export const MessageItem = ({
                 <button className="btn btn-ghost btn-xs" onClick={() => handleRetry(message.id)}>Retry</button>
                 {message.generating && (
                   <button 
-                    className="btn btn-ghost btn-xs text-error" 
+                    className="btn btn-ghost btn-xs" 
                     onClick={() => handleStop(message.id)}
                     title="停止生成"
                   >
