@@ -101,6 +101,7 @@ const treeViewStyles = {
     letterSpacing: '0',
     overflow: 'visible',
     fontSize: '0.9rem',
+    textAlign: 'left'
   },
   branch: {
     color: 'inherit',
@@ -112,11 +113,15 @@ const treeViewStyles = {
 const inlineStyles = `
   .tree-view {
     font-family: monospace, Consolas, "Courier New", Courier, monospace;
-    white-space: pre;
+    white-space: pre !important;
     line-height: 1.5;
     letter-spacing: 0;
     overflow: visible;
     font-size: 0.9rem;
+    text-align: left;
+    padding: 1em;
+    background-color: var(--b2);
+    border-radius: 0.5rem;
   }
   .tree-view ul {
     list-style-type: none !important;
@@ -133,10 +138,21 @@ const inlineStyles = `
   }
   .tree-view p {
     margin: 0.3em 0;
+    white-space: pre !important;
   }
   .tree-view code {
     font-family: inherit !important;
     background: none !important;
+    padding: 0 !important;
+    white-space: pre !important;
+    display: block;
+  }
+  .tree-view pre {
+    white-space: pre !important;
+    font-family: inherit !important;
+    background: none !important;
+    border: none !important;
+    margin: 0 !important;
     padding: 0 !important;
   }
 `;
@@ -156,11 +172,39 @@ const TreeView = ({ children }) => {
 // 添加树形结构特殊字符识别函数
 const hasTreeStructure = (text) => {
   if (typeof text !== 'string') return false;
-  return text.includes('┌─') || 
-         text.includes('├─') || 
-         text.includes('└─') || 
-         text.includes('│') ||
-         /^\s*[├└┬┼│]/.test(text);
+  
+  // 检查是否包含树形结构符号
+  const hasTreeSymbols = text.includes('┌─') || 
+                         text.includes('├─') || 
+                         text.includes('└─') || 
+                         text.includes('│') ||
+                         /^\s*[├└┬┼│]/.test(text);
+  
+  // 检查是否有缩进的行，以数字或项目符号开头，表示树形结构
+  const hasIndentedList = /^\s+[1-9]\d*\.\s/.test(text) || 
+                         /^\s+[•◦▪▫-]\s/.test(text);
+  
+  // 检查是否有类似树形结构的行模式
+  // 例如：
+  // ├─ 条目1
+  //    ├─ 子条目1
+  //    └─ 子条目2
+  const lines = text.split('\n');
+  if (lines.length > 2) {
+    let hasPattern = false;
+    for (let i = 0; i < lines.length - 1; i++) {
+      const currentLine = lines[i].trim();
+      const nextLine = lines[i + 1].trim();
+      if ((currentLine.startsWith('├─') || currentLine.startsWith('└─')) && 
+          (nextLine.startsWith('   ├─') || nextLine.startsWith('   └─'))) {
+        hasPattern = true;
+        break;
+      }
+    }
+    if (hasPattern) return true;
+  }
+  
+  return hasTreeSymbols || hasIndentedList;
 };
 
 // 检查内容是否包含树形结构
@@ -169,6 +213,41 @@ const contentHasTreeStructure = (children) => {
   return childrenArray.some(child => 
     typeof child === 'string' && hasTreeStructure(child)
   );
+};
+
+// 格式化树形结构文本
+const formatTreeStructure = (text) => {
+  if (typeof text !== 'string') return text;
+  
+  // 将文本按行分割
+  const lines = text.split('\n');
+  
+  // 处理带有树形结构的行
+  const formattedLines = lines.map(line => {
+    // 保留原始的缩进
+    const leadingSpaces = line.match(/^\s*/)[0];
+    const trimmedLine = line.trimStart();
+    
+    // 检查是否是树形结构行或数字列表项
+    if (
+      // 树形结构符号
+      trimmedLine.startsWith('├─') || 
+      trimmedLine.startsWith('└─') || 
+      trimmedLine.startsWith('│') ||
+      /^[├└┬┼│]/.test(trimmedLine) ||
+      // 数字列表项，如 "1. 标题"
+      /^\d+\.\s/.test(trimmedLine)
+    ) {
+      // 为了确保缩进正确，我们保持原始格式
+      return line;
+    }
+    
+    return line;
+  });
+  
+  // 用```包裹整个文本，以确保它作为一个代码块渲染
+  // 这样可以保持原始的空格和缩进
+  return "```\n" + formattedLines.join('\n') + "\n```";
 };
 
 // 添加内容处理的缓存函数
@@ -1509,6 +1588,48 @@ export const MarkdownRenderer = React.memo(({
             padding: 0;
             margin: 0;
           }
+
+          /* 保留代码样式的行内代码 */
+          .inline-code-preserved {
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+            background-color: var(--b2);
+            color: var(--bc);
+            padding: 0.15em 0.3em;
+            border-radius: 0.2em;
+            display: inline;
+            white-space: break-spaces;
+          }
+
+          /* 树形结构代码样式 */
+          .tree-structure-code {
+            font-family: monospace, Consolas, "Courier New", Courier, monospace !important;
+            white-space: pre !important;
+            line-height: 1.5 !important;
+            tab-size: 4 !important;
+            hyphens: none !important;
+            background: transparent !important;
+            color: inherit !important;
+            text-align: left !important;
+            word-spacing: normal !important;
+            word-break: normal !important;
+            word-wrap: normal !important;
+            font-size: 0.9em !important;
+            display: block !important;
+          }
+
+          /* 段落内的行内文本 */
+          .inline-text-in-paragraph {
+            display: inline;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            color: inherit;
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+          }
         `}
       </style>
 
@@ -1582,6 +1703,17 @@ export const MarkdownRenderer = React.memo(({
 
             // 针对独立成行的代码块进行处理
             const codeContent = String(children).replace(/\n$/, '');
+            
+            // 检查是否包含树形结构，如果是，使用特殊的树形渲染
+            if (hasTreeStructure(codeContent)) {
+              return (
+                <TreeView>
+                  <pre>
+                    <code className="tree-structure-code">{codeContent}</code>
+                  </pre>
+                </TreeView>
+              );
+            }
             
             // 特殊情况：单行中文内容或技术名称（如：`axios`、`欧卡`），作为文本渲染
             if (!codeContent.includes('\n') && 
