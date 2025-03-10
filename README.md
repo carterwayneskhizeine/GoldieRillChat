@@ -410,7 +410,6 @@ npm run electron:build
 - Black
 - Luxury
 - Business
-- Coffee
 - Dim
 - Sunset
 - bg-theme（自定义背景，支持图片、视频和ThreeJS Shaders）
