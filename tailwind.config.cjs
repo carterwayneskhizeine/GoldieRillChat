@@ -22,8 +22,8 @@ module.exports = {
   ],
   daisyui: {
     themes: [
-      "dark", "black", "forest", "luxury", "business", "coffee", 
-      "night", "dim", "sunset"
+      "dark", "black", "luxury", "business", "coffee", 
+      "dim", "sunset"
     ],
   },
 } 

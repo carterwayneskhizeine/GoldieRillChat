@@ -258,56 +258,139 @@
   border-bottom: 1px solid rgba(255, 215, 0, 0.3) !important;
 }
 
-/* 范围滑块样式 */
+/* 范围滑块样式 - 完全重新设计 */
 .settings-panel .range {
-  height: 0.5rem !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  border-radius: 0.25rem !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-.settings-panel .range::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
   appearance: none !important;
-  width: 1rem !important;
-  height: 1rem !important;
-  border-radius: 0.5rem !important;
-  background-color: rgba(255, 215, 0, 0.7) !important;
+  width: 100% !important;
+  height: 0 !important; /* 最小高度 */
+  padding: 15px 0 !important; /* 增加上下填充区域便于点击 */
+  margin: 15px 0 !important;
+  background: transparent !important; /* 背景透明 */
+  position: relative !important;
   cursor: pointer !important;
-  border: 1px solid rgba(255, 215, 0, 0.8) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
-  transition: all 0.2s ease !important;
+  z-index: 1 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: none !important; /* 确保没有过渡效果 */
+  animation: none !important; /* 确保没有动画 */
 }
 
+/* 为滑动条创建单独的线条 */
+.settings-panel .range::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 2px !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  z-index: 0 !important;
+  border-radius: 1px !important;
+}
+
+/* 滑动条左侧进度条效果 */
+.settings-panel .range.range-primary::before {
+  background: linear-gradient(
+    to right,
+    rgba(255, 215, 0, 0.8) 0%,
+    rgba(255, 215, 0, 0.8) var(--range-shdw, 0%),
+    rgba(255, 255, 255, 0.15) var(--range-shdw, 0%),
+    rgba(255, 255, 255, 0.15) 100%
+  ) !important;
+}
+
+/* Chrome滑动点样式 */
+.settings-panel .range::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  background-color: rgb(255, 215, 0) !important;
+  cursor: grab !important;
+  border: 2px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7) !important;
+  transition: none !important;
+  position: relative !important;
+  z-index: 3 !important;
+  margin: 0 !important;
+}
+
+/* Firefox滑动点样式 */
 .settings-panel .range::-moz-range-thumb {
-  width: 1rem !important;
-  height: 1rem !important;
-  border-radius: 0.5rem !important;
-  background-color: rgba(255, 215, 0, 0.7) !important;
-  cursor: pointer !important;
-  border: 1px solid rgba(255, 215, 0, 0.8) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
-  transition: all 0.2s ease !important;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  background-color: rgb(255, 215, 0) !important;
+  cursor: grab !important;
+  border: 2px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7) !important;
+  transition: none !important;
+  position: relative !important;
+  z-index: 3 !important;
 }
 
+/* 完全隐藏原始track */
+.settings-panel .range::-webkit-slider-runnable-track {
+  width: 100% !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.settings-panel .range::-moz-range-track {
+  width: 100% !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+/* 滑动点悬停效果 */
 .settings-panel .range::-webkit-slider-thumb:hover {
-  background-color: rgba(255, 215, 0, 0.9) !important;
-  transform: scale(1.1) !important;
+  background-color: rgb(255, 225, 70) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7) !important;
+  cursor: grabbing !important;
 }
 
 .settings-panel .range::-moz-range-thumb:hover {
-  background-color: rgba(255, 215, 0, 0.9) !important;
-  transform: scale(1.1) !important;
+  background-color: rgb(255, 225, 70) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7) !important;
+  cursor: grabbing !important;
 }
 
-/* 范围显示值样式 */
-.settings-panel .range-value {
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  color: white !important;
-  border-radius: 4px !important;
-  padding: 0.25rem 0.5rem !important;
-  min-width: 2.5rem !important;
-  text-align: center !important;
+/* 激活状态样式 - 只改变颜色 */
+.settings-panel .range:active::-webkit-slider-thumb {
+  cursor: grabbing !important;
+  background-color: rgb(255, 225, 50) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7) !important; /* 保持一致的阴影 */
+  transition: none !important;
+}
+
+.settings-panel .range:active::-moz-range-thumb {
+  cursor: grabbing !important;
+  background-color: rgb(255, 225, 50) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7) !important; /* A保持一致的阴影 */
+  transition: none !important;
+}
+
+/* 焦点状态样式 - 保持简单 */
+.settings-panel .range:focus {
+  outline: none !important;
+}
+
+.settings-panel .range:focus::-webkit-slider-thumb {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7) !important; /* 保持一致的阴影 */
+  transition: none !important;
+}
+
+.settings-panel .range:focus::-moz-range-thumb {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7) !important; /* 保持一致的阴影 */
+  transition: none !important;
 }
 
 /* 折叠面板样式 */
@@ -732,4 +815,130 @@
 .template-edit-dialog textarea {
   min-height: 200px !important;
   resize: vertical !important;
+}
+
+/* Firefox专用滑动条样式 */
+@-moz-document url-prefix() {
+  .settings-panel .range {
+    height: 2px !important;
+  }
+  
+  .settings-panel .range::-moz-range-thumb {
+    transform: translateY(-10px) !important;
+    transition: none !important;
+  }
+  
+  .settings-panel .range::-moz-range-thumb:hover {
+    transform: translateY(-10px) !important;
+    transition: none !important;
+  }
+  
+  .settings-panel .range:active::-moz-range-thumb {
+    transform: translateY(-10px) !important;
+    transition: none !important;
+  }
+}
+
+/* 为TitleBar中的滑动条应用相同的样式 */
+.range.range-xs {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 100% !important;
+  height: 0 !important; /* 最小高度 */
+  padding: 15px 0 !important; /* 增加上下填充区域便于点击 */
+  margin: 15px 0 !important;
+  background: transparent !important; /* 背景透明 */
+  position: relative !important;
+  cursor: pointer !important;
+  z-index: 1 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: none !important; /* 确保没有过渡效果 */
+  animation: none !important; /* 确保没有动画 */
+}
+
+/* 为TitleBar中的滑动条创建单独的线条 */
+.range.range-xs::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 2px !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  z-index: 0 !important;
+  border-radius: 1px !important;
+}
+
+/* TitleBar中的滑动条左侧进度条效果 */
+.range.range-xs.range-primary::before {
+  background: linear-gradient(
+    to right,
+    rgba(255, 215, 0, 0.8) 0%,
+    rgba(255, 215, 0, 0.8) var(--range-shdw, 0%),
+    rgba(255, 255, 255, 0.15) var(--range-shdw, 0%),
+    rgba(255, 255, 255, 0.15) 100%
+  ) !important;
+}
+
+/* TitleBar中的Chrome滑动点样式 - 控制点大小保持不变 */
+.range.range-xs::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 12px !important; /* 保持小一些的控制点大小 */
+  height: 12px !important;
+  border-radius: 50% !important;
+  background-color: rgb(255, 215, 0) !important;
+  cursor: grab !important;
+  border: 2px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7) !important;
+  transition: none !important;
+  position: relative !important;
+  z-index: 3 !important;
+  margin: 0 !important;
+}
+
+/* TitleBar中的Firefox滑动点样式 */
+.range.range-xs::-moz-range-thumb {
+  width: 12px !important; /* 保持小一些的控制点大小 */
+  height: 12px !important;
+  border-radius: 50% !important;
+  background-color: rgb(255, 215, 0) !important;
+  cursor: grab !important;
+  border: 2px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7) !important;
+  transition: none !important;
+  position: relative !important;
+  z-index: 3 !important;
+}
+
+/* TitleBar中的滑动条track完全隐藏 */
+.range.range-xs::-webkit-slider-runnable-track {
+  width: 100% !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.range.range-xs::-moz-range-track {
+  width: 100% !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+/* TitleBar中的Firefox专用修复 */
+@-moz-document url-prefix() {
+  .range.range-xs {
+    height: 2px !important;
+  }
+  
+  .range.range-xs::-moz-range-thumb {
+    transform: translateY(-5px) !important;
+    transition: none !important;
+  }
 } 

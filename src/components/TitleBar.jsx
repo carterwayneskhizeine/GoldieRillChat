@@ -7,6 +7,16 @@ import { openUrl, openUrlDirectly } from '../utils/browserUtils'
 // 导入翻译服务
 // import { translateText, getGoogleTranslateConfig } from '../services/webTranslationService'
 
+// 更新滑动条进度的辅助函数
+const updateRangeProgress = (rangeElement) => {
+  if (!rangeElement) return;
+  const min = parseFloat(rangeElement.min) || 0;
+  const max = parseFloat(rangeElement.max) || 100;
+  const value = parseFloat(rangeElement.value) || min;
+  const percentage = ((value - min) / (max - min)) * 100;
+  rangeElement.style.setProperty('--range-shdw', `${percentage}%`);
+};
+
 // 添加简化的翻译按钮组件
 const TranslateButton = ({ currentUrl, activeTabId }) => {
   const [isTranslating, setIsTranslating] = useState(false);
@@ -149,47 +159,66 @@ const TranslateButton = ({ currentUrl, activeTabId }) => {
 };
 
 export default function TitleBar({ 
-  activeTool, 
-  currentUrl, 
-  setCurrentUrl, 
-  isLoading, 
-  currentTheme, 
+  title, 
+  onBackClick,
+  onNewChat,
+  onRetry,
+  showBackButton = false,
+  onAction,
+  temperature,
+  setTemperature,
+  maxTokens,
+  setMaxTokens,
+  onRenameChat,
+  onDeleteChat,
+  onUpdateImage,
+  onClose,
+  activeTool,
+  currentUrl,
+  setCurrentUrl,
+  isLoading,
+  currentTheme,
   setCurrentTheme,
-  // 添加书签相关属性
   onAddBookmark,
   onToggleBookmarksPanel,
   showBookmarksPanel,
-  // 添加导入书签功能
   onImportBookmarks,
-  // 添加活动标签页ID
   activeTabId,
-  // 添加AI Chat相关属性
   selectedModel,
   setSelectedModel,
   availableModels,
   currentConversation,
-  maxTokens,
-  setMaxTokens,
-  temperature,
-  setTemperature,
   systemPromptEnabled,
   setShowSettings,
-  // 添加模型供应商相关属性
   selectedProvider
 }) {
-  const [isMaximized, setIsMaximized] = useState(false)
-  const [iconPath, setIconPath] = useState('')
-  const [currentChatName, setCurrentChatName] = useState('')
-  const [isNavigating, setIsNavigating] = useState(false) // 添加导航状态
-  const [isImageBackground, setIsImageBackground] = useState(false) // 添加图片背景状态
-  
-  // 使用ref记录初始化状态和上一次的值
+  const [isNavigating, setIsNavigating] = useState(false); // 添加导航状态
+  const [isImageBackground, setIsImageBackground] = useState(false); // 添加图片背景状态
+  const [chatTitle, setChatTitle] = useState(title || '新对话');
+  const [isEditing, setIsEditing] = useState(false);
+  const titleInputRef = useRef(null);
+  const [iconPath, setIconPath] = useState(null);
+  const [isMaximized, setIsMaximized] = useState(false);
   const initializedRef = useRef(false);
-  const lastProviderRef = useRef(selectedProvider);
+  const lastProviderRef = useRef(null);
   
-  // 确保maxTokens和temperature有默认值，防止undefined错误
-  const safeMaxTokens = maxTokens || 2000;
-  const safeTemperature = temperature !== undefined ? temperature : 0.7;
+  // 安全的temperature和maxTokens值
+  const safeMaxTokens = maxTokens || parseInt(localStorage.getItem('aichat_max_tokens') || '2000');
+  const safeTemperature = temperature !== undefined ? temperature : parseFloat(localStorage.getItem('aichat_temperature') || '0.7');
+  
+  // 在组件挂载后和参数变化时更新滑动条
+  useEffect(() => {
+    const updateAllRanges = () => {
+      document.querySelectorAll('.range.range-xs').forEach(rangeElement => {
+        updateRangeProgress(rangeElement);
+      });
+    };
+    
+    // 延迟执行，确保DOM已渲染
+    const timer = setTimeout(updateAllRanges, 100);
+    
+    return () => clearTimeout(timer);
+  }, [safeMaxTokens, safeTemperature]);
 
   useEffect(() => {
     // 初始化窗口状态
@@ -209,7 +238,7 @@ export default function TitleBar({
       const savedConversation = localStorage.getItem('aichat_current_conversation');
       if (savedConversation) {
         const conversation = JSON.parse(savedConversation);
-        setCurrentChatName(conversation?.name || '');
+        setChatTitle(conversation?.name || '新对话');
       }
     };
 
@@ -642,12 +671,14 @@ export default function TitleBar({
                           const value = parseInt(e.target.value);
                           setMaxTokens && setMaxTokens(value);
                           localStorage.setItem('aichat_max_tokens', value.toString());
+                          updateRangeProgress(e.target);
                         }}
                         className="range range-xs range-primary w-full"
-                        style={isImageBackground ? { 
-                          position: 'relative', 
-                          zIndex: 10 
-                        } : {}}
+                        style={{
+                          ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
+                          "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`
+                        }}
+                        onInput={(e) => updateRangeProgress(e.target)}
                       />
                       <div className="flex justify-end mt-1">
                         <button
@@ -656,6 +687,7 @@ export default function TitleBar({
                             const value = safeMaxTokens === 999999 ? 2000 : 999999;
                             setMaxTokens && setMaxTokens(value);
                             localStorage.setItem('aichat_max_tokens', value.toString());
+                            updateRangeProgress(e.target);
                           }}
                           title={safeMaxTokens === 999999 ? "点击设置为默认值" : "点击设置为无限制"}
                           style={isImageBackground ? { 
@@ -696,36 +728,19 @@ export default function TitleBar({
                           const value = parseFloat(e.target.value);
                           setTemperature && setTemperature(value);
                           localStorage.setItem('aichat_temperature', e.target.value);
+                          updateRangeProgress(e.target);
                         }}
                         className="range range-xs range-primary w-full"
-                        style={isImageBackground ? { 
-                          position: 'relative', 
-                          zIndex: 10 
-                        } : {}}
+                        style={{
+                          ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
+                          "--range-shdw": `${(safeTemperature / 2) * 100}%`
+                        }}
+                        onInput={(e) => updateRangeProgress(e.target)}
                       />
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* 设置按钮 */}
-              <button
-                className="btn btn-ghost btn-xs btn-circle"
-                onClick={() => setShowSettings(true)}
-                title="打开设置"
-                style={isImageBackground ? { 
-                  position: 'relative', 
-                  zIndex: 10,
-                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                  color: 'white',
-                  borderColor: 'rgba(255, 255, 255, 0.2)'
-                } : {}}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </button>
             </div>
           </div>
         ) : null}

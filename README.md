@@ -406,16 +406,11 @@ npm run electron:build
 ```
 
 ## 🎨 主题预览
-"dark", "black", "forest", "luxury", "business", "coffee", 
-      "night", "dim", "sunset"
-支持多种精美主题：
 - Dark
-- Forest
 - Black
 - Luxury
 - Business
 - Coffee
-- Night
 - Dim
 - Sunset
 - bg-theme（自定义背景，支持图片、视频和ThreeJS Shaders）

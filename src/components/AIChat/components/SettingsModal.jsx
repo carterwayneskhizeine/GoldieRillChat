@@ -236,6 +236,24 @@ export const SettingsModal = ({
     setImageGenApiKey(imgApiKey || '');
     setImageGenApiHost(imgApiHost || '');
   }, []);
+  
+  // 初始化滑动条进度效果
+  useEffect(() => {
+    // 在初始渲染和标签页切换时都更新滑动条
+    const updateAllRanges = () => {
+      document.querySelectorAll('.settings-panel .range').forEach(rangeElement => {
+        updateRangeProgress(rangeElement);
+      });
+    };
+
+    // 立即更新一次
+    updateAllRanges();
+    
+    // 延迟后再次更新，确保DOM已完全渲染
+    const timer = setTimeout(updateAllRanges, 100);
+    
+    return () => clearTimeout(timer);
+  }, [activeTab, maxHistoryMessages, imageSteps, imageGuidance, imageSafety, imageInterval, devImageSteps]);
 
   // 处理翻译 API 密钥变更
   const handleTranslationApiKeyChange = (value) => {
@@ -287,6 +305,16 @@ export const SettingsModal = ({
     const numValue = parseInt(value);
     setMaxHistoryMessages(numValue);
     localStorage.setItem('aichat_max_history_messages', numValue.toString());
+  };
+  
+  // 更新滑动条进度效果
+  const updateRangeProgress = (rangeElement) => {
+    if (!rangeElement) return;
+    const min = parseInt(rangeElement.min) || 0;
+    const max = parseInt(rangeElement.max) || 100;
+    const value = parseInt(rangeElement.value) || min;
+    const percentage = ((value - min) / (max - min)) * 100;
+    rangeElement.style.setProperty('--range-shdw', `${percentage}%`);
   };
 
   // 处理生图模型变更
@@ -793,19 +821,26 @@ export const SettingsModal = ({
                   <div className="flex items-center gap-4">
                     <input
                       type="range"
-                      min="5"
+                      min="1"
                       max="21"
                       value={maxHistoryMessages}
-                      onChange={(e) => handleMaxHistoryMessagesChange(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        handleMaxHistoryMessagesChange(value);
+                        // 更新滑动条进度效果
+                        updateRangeProgress(e.target);
+                      }}
                       className="range range-primary"
                       step="1"
+                      style={{"--range-shdw": `${((maxHistoryMessages - 5) / (21 - 5)) * 100}%`}}
+                      onInput={(e) => updateRangeProgress(e.target)}
                     />
                     <span className="text-lg font-medium min-w-[5ch]">
                       {maxHistoryMessages === 21 ? '全部' : maxHistoryMessages}
                     </span>
                   </div>
                   <div className="text-xs opacity-70">
-                    设置每次重试时使用的历史消息数量（5-20条，或全部历史消息）
+                    设置每次重试时使用的历史消息数量（1-20条，或全部历史消息）
                   </div>
                 </div>
               </div>
@@ -1088,8 +1123,11 @@ export const SettingsModal = ({
                             const value = parseInt(e.target.value);
                             setImageSteps(value);
                             localStorage.setItem('aichat_image_steps', value.toString());
+                            updateRangeProgress(e.target);
                           }}
                           className="range range-primary flex-1"
+                          style={{"--range-shdw": `${((imageSteps - 2) / (50 - 2)) * 100}%`}}
+                          onInput={(e) => updateRangeProgress(e.target)}
                         />
                         <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
                           {imageSteps}
@@ -1112,8 +1150,11 @@ export const SettingsModal = ({
                             const value = parseFloat(e.target.value);
                             setImageGuidance(value);
                             localStorage.setItem('aichat_image_guidance', value.toString());
+                            updateRangeProgress(e.target);
                           }}
                           className="range range-primary flex-1"
+                          style={{"--range-shdw": `${((imageGuidance - 1.5) / (5 - 1.5)) * 100}%`}}
+                          onInput={(e) => updateRangeProgress(e.target)}
                         />
                         <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
                           {imageGuidance}
@@ -1136,8 +1177,11 @@ export const SettingsModal = ({
                             const value = parseInt(e.target.value);
                             setImageSafety(value);
                             localStorage.setItem('aichat_image_safety', value.toString());
+                            updateRangeProgress(e.target);
                           }}
                           className="range range-primary flex-1"
+                          style={{"--range-shdw": `${((imageSafety - 0) / (6 - 0)) * 100}%`}}
+                          onInput={(e) => updateRangeProgress(e.target)}
                         />
                         <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
                           {imageSafety}
@@ -1160,8 +1204,11 @@ export const SettingsModal = ({
                             const value = parseFloat(e.target.value);
                             setImageInterval(value);
                             localStorage.setItem('aichat_image_interval', value.toString());
+                            updateRangeProgress(e.target);
                           }}
                           className="range range-primary flex-1"
+                          style={{"--range-shdw": `${((imageInterval - 1) / (4 - 1)) * 100}%`}}
+                          onInput={(e) => updateRangeProgress(e.target)}
                         />
                         <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
                           {imageInterval}
@@ -1223,8 +1270,11 @@ export const SettingsModal = ({
                             const value = parseInt(e.target.value);
                             setDevImageSteps(value);
                             localStorage.setItem('aichat_dev_image_steps', value.toString());
+                            updateRangeProgress(e.target);
                           }}
                           className="range range-primary flex-1"
+                          style={{"--range-shdw": `${((devImageSteps - 2) / (29 - 2)) * 100}%`}}
+                          onInput={(e) => updateRangeProgress(e.target)}
                         />
                         <div className="w-12 text-center font-medium bg-base-200 px-2 py-1 rounded">
                           {devImageSteps}

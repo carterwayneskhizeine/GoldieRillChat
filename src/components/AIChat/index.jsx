@@ -637,25 +637,27 @@ export const AIChat = ({
           </div>
 
           {/* 底部输入区域 */}
-          <div className="flex-none">
-            <InputArea
-              messageInput={inputState.messageInput}
-              setMessageInput={inputState.setMessageInput}
-              handleSendMessage={inputHandlers.handleSendMessage}
-              handleKeyDown={inputHandlers.handleKeyDown}
-              fileInputRef={fileInputRef}
-              isNetworkEnabled={isNetworkEnabled}
-              setIsNetworkEnabled={setIsNetworkEnabled}
-              selectedFiles={inputState.selectedFile}
-              handleFileSelect={handleFileSelect}
-              removeFile={removeFile}
-              selectedProvider={modelState.selectedProvider}
-              selectedModel={modelState.selectedModel}
-              apiKey={modelState.apiKey}
-              apiHost={modelState.apiHost}
-              isCompact={isCompact}
-            />
-          </div>
+          {!modelState.showSettings && (
+            <div className="flex-none">
+              <InputArea
+                messageInput={inputState.messageInput}
+                setMessageInput={inputState.setMessageInput}
+                handleSendMessage={inputHandlers.handleSendMessage}
+                handleKeyDown={inputHandlers.handleKeyDown}
+                fileInputRef={fileInputRef}
+                isNetworkEnabled={isNetworkEnabled}
+                setIsNetworkEnabled={setIsNetworkEnabled}
+                selectedFiles={inputState.selectedFile}
+                handleFileSelect={handleFileSelect}
+                removeFile={removeFile}
+                selectedProvider={modelState.selectedProvider}
+                selectedModel={modelState.selectedModel}
+                apiKey={modelState.apiKey}
+                apiHost={modelState.apiHost}
+                isCompact={isCompact}
+              />
+            </div>
+          )}
 
           {/* 隐藏的文件输入 */}
           <input

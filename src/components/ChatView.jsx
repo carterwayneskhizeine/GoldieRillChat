@@ -1001,7 +1001,7 @@ export function ChatView({
           style={{ bottom: '140px', right: '-106px' }} // 使用px单位精确控制距底部的距离
         >
           <button 
-            className="btn btn-ghost btn-sm btn-circle bg-base-100 bg-opacity-50 backdrop-blur-sm pointer-events-auto shadow-md"
+            className="btn btn-ghost btn-sm btn-circle bg-transparent backdrop-blur-sm pointer-events-auto shadow-md"
             onClick={() => {
               setUserScrolled(false);
               setTimeout(scrollToBottom, 50);

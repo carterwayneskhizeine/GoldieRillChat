@@ -59,7 +59,6 @@ import {
 import Sidebar from './components/Sidebar'
 import { AIChat } from './components/AIChat'
 import './styles/aichat.css'
-import { generateRandomTheme } from './utils/themeGenerator'
 import { 
   handleDeleteConversation, 
   handleRenameConversation,
@@ -972,12 +971,6 @@ export default function App() {
       console.error('发送消息到侧边栏失败:', error);
       alert('发送消息到侧边栏失败: ' + error.message);
     }
-  };
-
-  // 将 randomTheme 函数移到组件内部
-  const randomTheme = () => {
-    generateRandomTheme();
-    setCurrentTheme('custom');  // 现在可以访问到 setCurrentTheme
   };
 
   // 会话管理相关函数
