@@ -204,16 +204,27 @@ export const InputArea = ({
           
           {/* 左侧按钮容器 - 绝对定位在textarea底部，增加左侧内边距使按钮位置更明显 */}
           <div className="absolute left-6 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
-            <button
-              className={`btn btn-ghost btn-sm btn-circle ${isTranslating ? 'loading' : ''}`}
-              onClick={handleTranslation}
-              title="翻译（使用 Qwen2-1.5B-Instruct 模型，支持中英互译）"
-              disabled={isTranslating}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-              </svg>
-            </button>
+            {isTranslating ? (
+              <div className="relative inline-flex items-center justify-center w-8 h-8">
+                <button
+                  className="btn btn-sm btn-circle translation-loading-btn absolute inset-0"
+                  disabled={true}
+                  title="正在翻译..."
+                >
+                </button>
+                <div className="translation-loading-spinner z-10"></div>
+              </div>
+            ) : (
+              <button
+                className="btn btn-ghost btn-sm btn-circle"
+                onClick={handleTranslation}
+                title="翻译（使用 DeepSeek 的 deepseek-chat 模型，支持中英互译）"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                </svg>
+              </button>
+            )}
             <button
               className={`btn btn-ghost btn-sm btn-circle ${isNetworkEnabled ? 'text-primary search-enabled' : 'search-disabled'}`}
               onClick={() => {

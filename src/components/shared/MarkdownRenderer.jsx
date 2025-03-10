@@ -649,8 +649,6 @@ export const MarkdownRenderer = React.memo(({
           // 添加标记，表示这是本地文件，可能无法在浏览器中显示
           processedImg.isLocalFile = true;
         }
-        
-        console.log('处理Lightbox图片路径:', processedImg.src);
       }
       
       return processedImg;

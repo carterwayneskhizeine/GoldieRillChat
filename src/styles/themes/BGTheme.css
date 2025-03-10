@@ -316,6 +316,26 @@
     z-index: 5 !important;
   }
   
+  /* 翻译加载按钮在bg-theme主题下的样式 */
+  [data-theme="bg-theme"] .translation-loading-btn {
+    background-color: transparent !important;
+    border-color: transparent !important;
+  }
+  
+  [data-theme="bg-theme"] .translation-loading-spinner {
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: translation-spinner-rotate 1s linear infinite;
+  }
+  
+  @keyframes translation-spinner-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
   [data-theme="bg-theme"] .scrollbar-thumb-base-content::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.4) !important;
     border-radius: 4px;

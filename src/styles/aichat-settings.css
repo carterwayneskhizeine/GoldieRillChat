@@ -941,4 +941,24 @@
     transform: translateY(-5px) !important;
     transition: none !important;
   }
-} 
+}
+
+/* 定义翻译加载动画 */
+@keyframes translation-spinner-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 图片背景模式下保证翻译按钮加载效果的可见性 */
+.bg-theme .translation-loading-btn {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.bg-theme .translation-loading-spinner {
+  border: 3px solid rgba(255, 255, 255, 0.2) !important;
+  border-top-color: white !important;
+  width: 24px !important;
+  height: 24px !important;
+}

@@ -296,4 +296,20 @@
   background-color: rgba(0, 0, 0, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* 翻译加载按钮样式 */
+.translation-loading-btn {
+  background-color: transparent;
+  border-color: transparent;
+  position: relative;
+}
+
+.translation-loading-spinner {
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: translation-spinner-rotate 1s linear infinite;
 } 

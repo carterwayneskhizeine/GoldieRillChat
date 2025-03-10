@@ -60,4 +60,28 @@
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
   box-shadow: 0 0 8px rgba(0, 120, 255, 0.5) !important;
   font-weight: 600 !important;
+}
+
+/* 翻译按钮加载样式 */
+.translation-loading-btn {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+/* 确保在bg-theme模式下翻译按钮加载效果保持白色转圈效果 */
+[data-theme="bg-theme"] .translation-loading-btn,
+[data-theme="bg-theme"].image-background-mode .translation-loading-btn {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 翻译加载动画 */
+.translation-loading-spinner {
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: translation-spinner-rotate 1s linear infinite;
 } 

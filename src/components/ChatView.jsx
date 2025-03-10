@@ -1283,11 +1283,9 @@ export function ChatView({
                                 </div>
                               )}
                               {/* 然后显示视频 */}
-                              {console.log('渲染视频文件:', message.files.filter(file => file.name && file.name.match(/\.mp4$/i)))}
                               {message.files
                                 .filter(file => file.name && file.name.match(/\.mp4$/i))
                                 .map(file => {
-                                  console.log('处理视频文件:', file);
                                   return (
                                     <div key={file.path} className="video-wrapper relative">
                                       {renderMediaContent(file, handleImageClick)}

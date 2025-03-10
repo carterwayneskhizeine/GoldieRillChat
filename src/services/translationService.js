@@ -4,11 +4,11 @@ import toastManager from '../utils/toastManager';
 import { STORAGE_KEYS } from '../components/AIChat/constants';
 
 // 翻译服务的存储键名
-const TRANSLATION_API_KEY = 'translation_siliconflow_api_key';
-const TRANSLATION_API_HOST = 'translation_siliconflow_api_host';
+const TRANSLATION_API_KEY = 'translation_deepseek_api_key';
+const TRANSLATION_API_HOST = 'translation_deepseek_api_host';
 
-// 默认的 SiliconFlow API 地址
-const DEFAULT_SILICONFLOW_API_HOST = 'https://api.siliconflow.cn';
+// 默认的 DeepSeek API 地址
+const DEFAULT_DEEPSEEK_API_HOST = 'https://api.deepseek.com';
 
 /**
  * 检测文本是否包含中文字符
@@ -36,15 +36,15 @@ export const getTranslationApiConfig = () => {
   let apiKey = localStorage.getItem(TRANSLATION_API_KEY);
   let apiHost = localStorage.getItem(TRANSLATION_API_HOST);
 
-  // 如果没有专门的翻译服务配置，尝试使用 siliconflow 提供商的配置
+  // 如果没有专门的翻译服务配置，尝试使用 deepseek 提供商的配置
   if (!apiKey) {
-    apiKey = localStorage.getItem(`${STORAGE_KEYS.API_KEY_PREFIX}_siliconflow`);
+    apiKey = localStorage.getItem(`${STORAGE_KEYS.API_KEY_PREFIX}_deepseek`);
   }
   
   if (!apiHost) {
-    apiHost = localStorage.getItem(`${STORAGE_KEYS.API_HOST}_siliconflow`);
+    apiHost = localStorage.getItem(`${STORAGE_KEYS.API_HOST}_deepseek`);
     if (!apiHost) {
-      apiHost = DEFAULT_SILICONFLOW_API_HOST; // 默认 siliconflow API 地址
+      apiHost = DEFAULT_DEEPSEEK_API_HOST; // 默认 DeepSeek API 地址
     }
   }
 
@@ -67,7 +67,7 @@ export const setTranslationApiConfig = (apiKey, apiHost) => {
 };
 
 /**
- * 翻译文本（仅使用siliconflow的Qwen/Qwen2-1.5B-Instruct模型）
+ * 翻译文本（使用DeepSeek的deepseek-chat模型）
  * @param {string} text - 要翻译的文本
  * @param {string} provider - 模型提供商（将被忽略）
  * @param {string} model - 模型名称（将被忽略）
@@ -84,19 +84,18 @@ export const translateText = async (text, provider, model, userApiKey, userApiHo
     // 获取翻译服务的 API 配置
     const { apiKey: translationApiKey, apiHost: translationApiHost } = getTranslationApiConfig();
     
-    // 优先使用翻译专用的配置，如果没有则使用传入的配置，但始终确保使用 SiliconFlow API
+    // 优先使用翻译专用的配置，如果没有则使用传入的配置
     const apiKey = translationApiKey || userApiKey || '';
     
-    // 强制使用 SiliconFlow API 主机地址，忽略用户当前选择的提供商
-    // 优先使用翻译专用配置的 API 主机地址，如果没有则使用默认的 SiliconFlow API 地址
-    const apiHost = translationApiHost || DEFAULT_SILICONFLOW_API_HOST;
+    // 使用DeepSeek的API主机地址，如果没有设置，则使用默认地址
+    const apiHost = userApiHost || 'https://api.deepseek.com';
     
     // 添加调试日志
     console.log('翻译服务使用的 API 配置:', { apiKey: apiKey ? '已设置' : '未设置', apiHost });
     
     // 如果没有 API 密钥，则无法进行翻译
     if (!apiKey) {
-      toastManager.error('未配置 API 密钥，请在设置中添加 siliconflow 的 API 密钥', { duration: 5000 });
+      toastManager.error('未配置 API 密钥，请在设置中添加 DeepSeek 的 API 密钥', { duration: 5000 });
       return text;
     }
     
@@ -118,16 +117,16 @@ ${text}
     // 构建对话消息
     const messages = [
       {
-        type: 'user',
+        role: 'user',
         content: translationPrompt
       }
     ];
 
-    // 强制使用 Qwen/Qwen2-1.5B-Instruct 模型
-    const translationModel = 'Qwen/Qwen2-1.5B-Instruct';
+    // 使用 DeepSeek 的 deepseek-chat 模型
+    const translationModel = 'deepseek-chat';
 
     // 通知用户正在使用特定模型
-    toastManager.info(`使用 ${translationModel} 模型进行翻译...`);
+    toastManager.info(`使用 DeepSeek 的 ${translationModel} 模型进行翻译...`);
     
     // 添加更多调试日志
     console.log('翻译请求配置:', {
@@ -136,8 +135,10 @@ ${text}
       messageCount: messages.length
     });
 
-    // 直接调用 SiliconFlow API，而不是通过 callModelAPI
-    const response = await callSiliconCloud({
+    // 使用 DeepSeek API
+    const { callModelAPI } = await import('./modelProviders');
+    const response = await callModelAPI({
+      provider: 'deepseek',
       apiKey,
       apiHost,
       model: translationModel,

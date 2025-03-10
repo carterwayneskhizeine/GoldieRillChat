@@ -202,7 +202,8 @@ export const SettingsModal = ({
     'stabilityai/stable-diffusion-3-medium',
     'stabilityai/stable-diffusion-2-1',
     'Pro/black-forest-labs/FLUX.1-schnell',
-    'LoRA/black-forest-labs/FLUX.1-dev'
+    'LoRA/black-forest-labs/FLUX.1-dev',
+    'Kwai-Kolors/Kolors'
   ];
 
   // 视频模型列表
@@ -845,7 +846,7 @@ export const SettingsModal = ({
                 </div>
               </div>
 
-              {/* 原有的翻译设置 */}
+              {/* 翻译设置 */}
               <div className="divider my-6"></div>
               <div className="space-y-4 px-0">
                 <h3 className="text-lg font-medium">翻译设置</h3>
@@ -854,17 +855,17 @@ export const SettingsModal = ({
                 <div className="mb-4">
                   <div className="form-control w-full max-w-none">
                     <label className="label">
-                      <span className="label-text font-medium text-base">SiliconFlow API 地址</span>
+                      <span className="label-text font-medium text-base">DeepSeek API 地址</span>
                     </label>
                     <input
                       type="text"
                       className="input input-bordered w-full h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary"
                       value={translationApiHost}
                       onChange={(e) => handleTranslationApiHostChange(e.target.value)}
-                      placeholder="https://api.siliconflow.cn"
+                      placeholder="https://api.deepseek.com"
                     />
                     <label className="label">
-                      <span className="label-text-alt text-opacity-70">翻译功能使用的API地址</span>
+                      <span className="label-text-alt text-opacity-70">翻译功能使用的 DeepSeek API 地址</span>
                     </label>
                   </div>
                 </div>
@@ -873,7 +874,7 @@ export const SettingsModal = ({
                 <div className="mb-4">
                   <div className="form-control w-full max-w-none">
                     <label className="label">
-                      <span className="label-text font-medium text-base">SiliconFlow API 密钥</span>
+                      <span className="label-text font-medium text-base">DeepSeek API 密钥</span>
                     </label>
                     <div className="input-group w-full max-w-none flex">
                       <input
@@ -881,7 +882,7 @@ export const SettingsModal = ({
                         className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
                         value={translationApiKey}
                         onChange={(e) => handleTranslationApiKeyChange(e.target.value)}
-                        placeholder="请输入用于翻译功能的 SiliconFlow API 密钥..."
+                        placeholder="请输入用于翻译功能的 DeepSeek API 密钥..."
                       />
                       <button 
                         type="button"
@@ -905,7 +906,7 @@ export const SettingsModal = ({
                       </button>
                     </div>
                     <label className="label">
-                      <span className="label-text-alt text-opacity-70">SiliconFlow API 密钥，用于翻译功能</span>
+                      <span className="label-text-alt text-opacity-70">DeepSeek API 密钥，用于翻译功能</span>
                     </label>
                   </div>
                 </div>

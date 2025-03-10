@@ -40,11 +40,6 @@ export const useMessageState = (currentConversation) => {
 
   // 当对话改变时重置状态
   useEffect(() => {
-    console.log('useMessageState检测到对话变化:', {
-      conversationId: currentConversation?.id,
-      path: currentConversation?.path,
-    });
-
     // 清除状态
     resetState();
     
@@ -86,7 +81,6 @@ export const useMessageState = (currentConversation) => {
         try {
           const loadedMessages = await window.electron.loadMessages(updatedPath);
           if (Array.isArray(loadedMessages)) {
-            console.log('成功加载消息，对话ID:', currentConversation.id, '消息数量:', loadedMessages.length);
             setMessages(loadedMessages);
           } else {
             console.warn('加载的消息不是数组:', loadedMessages);
@@ -123,10 +117,6 @@ export const useMessageState = (currentConversation) => {
             const savedConversations = JSON.parse(localStorage.getItem('aichat_conversations') || '[]');
             const updatedConversation = savedConversations.find(c => c.id === currentConversation.id);
             if (updatedConversation && updatedConversation.path !== currentConversation.path) {
-              console.log('保存消息时检测到会话路径已更新:', {
-                oldPath: currentConversation.path,
-                newPath: updatedConversation.path
-              });
               updatedPath = updatedConversation.path;
               // 验证新路径是否存在
               await window.electron.access(updatedPath);
@@ -145,7 +135,6 @@ export const useMessageState = (currentConversation) => {
           currentConversation.id,
           messages
         );
-        console.log('消息已保存，对话ID:', currentConversation.id);
       } catch (error) {
         console.error('保存消息失败:', error);
       }

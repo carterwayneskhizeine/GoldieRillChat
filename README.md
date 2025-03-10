@@ -1,46 +1,19 @@
 # GoldieRillChat
 
-一个好看的可自定义背景的 AI Chatbox
+一个好看的，可自定义背景的 AI Chatbox，可以把你喜欢的图片、视频、ThreeJS Shaders作为聊天背景。
 
-## ✨ 主要功能
+GoldieRillChat 提供了丰富的功能特性,包括 AI 聊天管理、嵌入模型知识库、主题系统、ThreeJS 着色器背景、系统提示词功能、翻译功能、AI 图片生成、Monaco Editor 编辑器、内置浏览器、书签系统、消息功能、文件管理以及图片处理等功能。
 
-### 💬 AI聊天管理
-
-### 📚 嵌入模型知识库功能
-
-### 🎨 主题系统
-
-### 🌈 ThreeJS着色器背景
-
-### 🤖 系统提示词功能
-
-### 🌐 翻译功能
-
-### 🎨 AI 图片生成
-
-### 📝 Monaco Editor
-
-### 🌏 内置浏览器
-
-### 🔖 书签系统
-
-### 📝 消息功能
-
-### 📁 文件管理
-
-### 🖼️ 图片处理
----
-
-## 📦 安装和使用
-
-- **API 支持**
-  - OpenAI API（自定义BASE_URL）
+- API 支持
+  - OpenAI API
   - Claude API
   - SiliconFlow API
   - OpenRouter API
   - DeepSeek API
   - StepFun API
   - Tavily API
+
+## 📦 安装和使用
 
 1. 克隆仓库
 ```bash
