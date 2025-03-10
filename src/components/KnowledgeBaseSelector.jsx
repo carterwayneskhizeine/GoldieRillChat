@@ -94,8 +94,6 @@ const KnowledgeBaseSelector = ({ selectedBases = [], onSelect }) => {
               <div className="knowledge-base-item-content">
                 <div className="knowledge-base-item-name">{kb.name}</div>
                 <div className="knowledge-base-item-info">
-                  <span>{kb.type || '知识库'}</span>
-                  <span>{kb.itemCount || 0}个文件</span>
                 </div>
               </div>
               {selectedIds.includes(kb.id) && <CheckIcon />}

@@ -320,9 +320,11 @@ const Embedding = ({ isActive = false }) => {
                 <h3 className="font-medium text-sm truncate">{kb.name}</h3>
                 <div className="flex items-center mt-1.5 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-base-content/60">
-                      {kb.itemCount || kb.documentCount || 0} 项
-                    </span>
+                    {selectedKnowledgeBase?.id === kb.id && (
+                      <span className="text-base-content/60">
+                        {kb.itemCount || kb.documentCount || items.length || 0} 项
+                      </span>
+                    )}
                     <span className="text-base-content/60">
                       {kb.model.name}
                     </span>
