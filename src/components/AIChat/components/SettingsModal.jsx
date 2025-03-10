@@ -822,7 +822,7 @@ export const SettingsModal = ({
                   <div className="flex items-center gap-4">
                     <input
                       type="range"
-                      min="1"
+                      min="0"
                       max="21"
                       value={maxHistoryMessages}
                       onChange={(e) => {
@@ -833,7 +833,7 @@ export const SettingsModal = ({
                       }}
                       className="range range-primary"
                       step="1"
-                      style={{"--range-shdw": `${((maxHistoryMessages - 5) / (21 - 5)) * 100}%`}}
+                      style={{"--range-shdw": `${((maxHistoryMessages - 0) / (21 - 0)) * 100}%`}}
                       onInput={(e) => updateRangeProgress(e.target)}
                     />
                     <span className="text-lg font-medium min-w-[5ch]">
@@ -841,7 +841,7 @@ export const SettingsModal = ({
                     </span>
                   </div>
                   <div className="text-xs opacity-70">
-                    设置每次重试时使用的历史消息数量（1-20条，或全部历史消息）
+                    设置每次重试时使用的历史消息数量（0-20条，或全部历史消息）
                   </div>
                 </div>
               </div>

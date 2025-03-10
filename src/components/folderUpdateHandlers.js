@@ -70,10 +70,18 @@ function normalizePath(filePath) {
  * @returns {Promise<Array>} 扫描到的文件列表
  */
 async function scanConversationFiles(window, conversationPath) {
-  // 初始化文件数组
-  const allFiles = [];
+  if (!conversationPath || conversationPath.trim() === '') {
+    console.error('无效的会话路径', conversationPath);
+    return [];
+  }
+  
+  console.log(`开始扫描会话文件夹: ${conversationPath}`);
+  console.log(`时间戳: ${new Date().toISOString()}, 会话ID: ${pathUtils.basename(conversationPath)}`);
   
   try {
+    // 初始化文件数组
+    const allFiles = [];
+    
     // 扫描主文件夹中的文件
     const mainFiles = await window.electron.readDir(conversationPath);
     
@@ -169,6 +177,8 @@ async function scanConversationFiles(window, conversationPath) {
  * @returns {Promise<Array>} 更新后的对话列表
  */
 export const handleUpdateFolders = async (storagePath, setConversations, window, showAlert = true) => {
+  console.log('开始处理会话文件夹...');
+  console.log('版本: 1.0.1 - 优化AI图片识别');
   if (!storagePath) {
     if (showAlert) toastManager.error('请先在设置中选择存储文件夹');
     return [];
@@ -725,16 +735,24 @@ function convertFilesToMessages(newFiles, existingMessages = []) {
       const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
       const type = isImage ? 'image' : 'other';
       
-      if (!filesByType.has(type)) {
-        filesByType.set(type, []);
-      }
+      // 检查是否是AI生成的图片文件 - 使用特定命名模式识别
+      const isAIGeneratedImage = isImage && file.name.match(/^image_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.(png|jpg|jpeg|webp|gif)$/i);
       
-      // 将所有同类型的文件放在一个数组中
-      const lastGroup = filesByType.get(type)[filesByType.get(type).length - 1];
-      if (!lastGroup || lastGroup.length >= 5) { // 每组最多5个文件
-        filesByType.get(type).push([file]);
+      if (isAIGeneratedImage) {
+        console.log(`【转换阶段】识别为AI生成图片，跳过添加为新消息: ${file.name}`);
       } else {
-        lastGroup.push(file);
+        // 只有非AI生成的图片才进行处理
+        if (!filesByType.has(type)) {
+          filesByType.set(type, []);
+        }
+        
+        // 将所有同类型的文件放在一个数组中
+        const lastGroup = filesByType.get(type)[filesByType.get(type).length - 1];
+        if (!lastGroup || lastGroup.length >= 5) { // 每组最多5个文件
+          filesByType.get(type).push([file]);
+        } else {
+          lastGroup.push(file);
+        }
       }
     }
   });
@@ -992,4 +1010,4 @@ async function updateConversationMessages(window, conversationPath) {
     console.error(`更新会话消息失败: ${error.message}`, error);
     return false;
   }
-} 
+}
