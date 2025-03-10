@@ -4,6 +4,9 @@
   padding-bottom: 32px;
   contain: paint;
   isolation: isolate;
+  width: calc(100% - 6rem); /* 增加边距，从两侧各减少1.5rem的宽度 */
+  margin: 0 auto; /* 居中显示 */
+  max-width: 100%;
 }
 
 .message-content {
@@ -123,6 +126,7 @@
   color: var(--bc) !important;
   border-bottom-left-radius: 0.25rem;
   margin-right: auto;
+  margin-left: 0; /* 移除左边距，依赖容器的边距 */
 }
 
 /* 用户消息气泡样式 */
@@ -131,6 +135,7 @@
   color: var(--bc) !important;
   border-bottom-right-radius: 0.25rem;
   margin-left: auto;
+  margin-right: 0; /* 移除右边距，依赖容器的边距 */
 }
 
 /* 操作按钮样式 */

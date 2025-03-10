@@ -348,18 +348,6 @@ export const MessageList = ({
           ))}
           <div ref={messagesEndRef} />
         </div>
-        
-        {isDragging && (
-          <div className="absolute inset-0 bg-base-200 bg-opacity-70 flex items-center justify-center z-50">
-            <div className="bg-base-100 p-6 rounded-lg shadow-lg text-center max-w-md">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-primary mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-              </svg>
-              <h3 className="text-lg font-bold mb-2">拖放文件到这里</h3>
-              <p className="text-sm opacity-70">支持图片、文档、音频和视频等多种文件格式</p>
-            </div>
-          </div>
-        )}
       </div>
       
       {/* 弹窗确认删除消息 */}

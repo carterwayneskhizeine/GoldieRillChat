@@ -363,7 +363,7 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
         <div className="monaco-toolbar-right-group">
           {/* 自动保存开关 */}
           <div className="monaco-autosave-control">
-            <span className="mr-2">自动保存</span>
+            <span className="mr-2">AutoSave</span>
             <input 
               type="checkbox" 
               className="toggle toggle-primary toggle-sm" 

@@ -35,15 +35,19 @@ export const showLinkOpenDialog = (url) => {
     // 提高z-index到最高，增加背景不透明度，添加特定于bg-theme的类名
     dialog.className = 'fixed inset-0 bg-black bg-opacity-70 z-[10000] flex justify-center items-center link-dialog-overlay';
     
-    // 对话框内容 - 使用DaisyUI样式并添加特定类用于bg-theme模式下的样式
+    // 对话框内容 - 使用Monaco Editor风格
     dialog.innerHTML = `
-      <div class="modal-box bg-base-100 shadow-xl max-w-md w-11/12 link-dialog-content">
-        <h3 class="font-bold text-lg text-base-content">打开链接</h3>
-        <p class="py-4 text-base-content break-all">${url}</p>
-        <div class="modal-action">
-          <button id="cancel-btn" class="btn btn-ghost">取消</button>
-          <button id="external-btn" class="btn btn-outline">外部浏览器</button>
-          <button id="internal-btn" class="btn btn-primary">内部浏览器</button>
+      <div class="bg-[rgba(0,0,0,0.8)] backdrop-filter backdrop-blur-[3px] border border-[rgba(255,255,255,0.1)] shadow-xl max-w-md w-11/12 rounded-md link-dialog-content text-white">
+        <div class="border-b border-[rgba(255,255,255,0.1)] py-3 px-4 font-medium">
+          <h3 class="text-lg">打开链接</h3>
+        </div>
+        <div class="py-4 px-4">
+          <p class="break-all text-sm opacity-90">${url}</p>
+        </div>
+        <div class="border-t border-[rgba(255,255,255,0.1)] py-3 px-4 flex justify-end space-x-2">
+          <button id="cancel-btn" class="bg-[rgba(0,0,0,0.7)] border border-[rgba(255,255,255,0.2)] text-white px-4 py-1.5 rounded-sm hover:bg-[rgba(40,40,40,0.8)] transition-colors text-sm">取消</button>
+          <button id="external-btn" class="bg-[rgba(0,0,0,0.7)] border border-[rgba(255,255,255,0.2)] text-white px-4 py-1.5 rounded-sm hover:bg-[rgba(60,60,150,0.4)] transition-colors text-sm">外部浏览器</button>
+          <button id="internal-btn" class="bg-[rgba(60,100,180,0.3)] border border-[rgba(100,150,255,0.4)] text-white px-4 py-1.5 rounded-sm hover:bg-[rgba(60,100,180,0.5)] transition-colors text-sm">内部浏览器</button>
         </div>
       </div>
     `;
