@@ -122,7 +122,11 @@ export const MessageItem = ({
   openInBrowserTab,
   currentConversation,
   setMessages,
-  messages
+  messages,
+  handleThumbUp,
+  handleThumbDown,
+  isCompact = false,
+  onSendToEditor,
 }) => {
   // 添加推理过程折叠状态
   const [isReasoningCollapsed, setIsReasoningCollapsed] = useState(false);
@@ -135,6 +139,7 @@ export const MessageItem = ({
   
   // 添加处理搜索图片的状态
   const [processedSearchImages, setProcessedSearchImages] = useState([]);
+  const [copiedMessageId, setCopiedMessageId] = useState(null);
   
   // 获取消息内容的样式
   const contentStyle = getMessageContentStyle(isCollapsed);
@@ -545,6 +550,17 @@ export const MessageItem = ({
     }
   };
 
+  // 处理复制消息内容
+  const handleCopyMessage = (messageId, content) => {
+    navigator.clipboard.writeText(content);
+    setCopiedMessageId(messageId);
+    
+    // 1秒后重置状态
+    setTimeout(() => {
+      setCopiedMessageId(null);
+    }, 1000);
+  };
+
   // 添加MessageStatus组件显示消息状态
   const MessageStatus = ({ message, messageState }) => {
     // 确定消息状态
@@ -901,7 +917,12 @@ export const MessageItem = ({
             <button className="btn btn-ghost btn-xs" onClick={() => handleDeleteMessage(message.id)}>Delete</button>
             {/* 仅当消息没有附件文件时显示复制按钮 */}
             {!message.files?.length && (
-              <button className="btn btn-ghost btn-xs" onClick={() => navigator.clipboard.writeText(message.content)}>Copy</button>
+              <button 
+                className="btn btn-ghost btn-xs" 
+                onClick={() => handleCopyMessage(message.id, message.content)}
+              >
+                {copiedMessageId === message.id ? "Copied" : "Copy"}
+              </button>
             )}
             {/* AI 消息的编辑按钮 */}
             {!message.files?.length && message.type === 'assistant' && (

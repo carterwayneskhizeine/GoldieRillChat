@@ -2,7 +2,19 @@
 
 一个好看的，可自定义背景的 AI Chatbox，可以把你喜欢的图片、视频、ThreeJS Shaders作为聊天背景。
 
-GoldieRillChat 提供了丰富的功能特性,包括 AI 聊天管理、嵌入模型知识库、主题系统、ThreeJS 着色器背景、系统提示词功能、翻译功能、AI 图片生成、Monaco Editor 编辑器、内置浏览器、书签系统、消息功能、文件管理以及图片处理等功能。
+GoldieRillChat 是一款高级人工智能对话平台，集成多项前沿技术与实用功能于一体。该系统架构包括：
+
+- **智能交互系统**：先进的AI对话管理机制，集成知识库嵌入模型
+- **视觉渲染引擎**：支持自定义主题系统，ThreeJS着色器背景渲染技术
+- **多模态处理能力**：系统级提示词优化、多语言翻译引擎、AI图像生成
+- **开发者工具集**：内置Monaco编辑器、浏览器环境、书签管理系统、Pyodide Python运行时（支持requests库实现API调用）
+- **数据管理框架**：消息处理系统、文件管理模块、图像处理算法
+
+系统支持三类交互消息模式：TypeU(用户输入)、TypeA(AI助手响应)以及TypeN(非参与式记录)，后者可作为独立笔记不计入AI对话上下文。平台提供灵活的消息排序机制，可上下移动消息的顺序，支持身份快速切换，并通过顶部导航栏的"Number of messages"下拉菜单精确控制当前对话上下文的消息数量。
+
+对话数据以结构化JSON格式存储于消息文件夹的messages.json中，包含完整聊天记录、Tavily搜索结果及图像描述元数据。此文件设计兼容多平台LLM接口，可作为标准化文档上传至其它AI系统继续进行交互分析。
+
+在图片文件消息的按钮下点击BG设置图片为背景，在视频消息下则是点击MBG。
 
 - API 支持
   - OpenAI API
@@ -65,7 +77,7 @@ npm run electron:build
   - React Markdown - Markdown 渲染
   - React Syntax Highlighter - 代码高亮
   - React Virtual - 虚拟列表
-  - Pyodide - Python 运行时
+  - Pyodide - Python 运行时（支持在Monaco编辑器中使用requests库进行API调用）
   - Cheerio - HTML 解析
   - Tavily API - AI优化的搜索引擎
 

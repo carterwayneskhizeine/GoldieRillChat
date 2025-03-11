@@ -106,6 +106,7 @@ export function ChatView({
   // 添加用户滚动状态
   const [userScrolled, setUserScrolled] = useState(false);
   const scrollTimeoutRef = useRef(null);
+  const [copiedMessageIds, setCopiedMessageIds] = useState(new Set());
 
   // 在组件挂载或重新渲染后设置正确的初始高度
   useEffect(() => {
@@ -721,6 +722,25 @@ export function ChatView({
     const chatMessages = document.getElementById('chat-view-messages');
     if (chatMessages) {
       chatMessages.classList.remove('scrollbar-expanded');
+    }
+  };
+
+  const handleCopyClick = async (message) => {
+    // 调用复制函数
+    const success = await copyMessageContent(message);
+    
+    if (success) {
+      // 标记当前消息为已复制
+      setCopiedMessageIds(prev => new Set([...prev, message.id]));
+      
+      // 1秒后重置状态
+      setTimeout(() => {
+        setCopiedMessageIds(prev => {
+          const newSet = new Set([...prev]);
+          newSet.delete(message.id);
+          return newSet;
+        });
+      }, 1000);
     }
   };
 
@@ -1426,9 +1446,9 @@ export function ChatView({
                   )}
                   <button
                     className="btn btn-ghost btn-xs"
-                    onClick={() => copyMessageContent(message)}
+                    onClick={() => handleCopyClick(message)}
                   >
-                    Copy
+                    {copiedMessageIds.has(message.id) ? "Copied" : "Copy"}
                   </button>
                   {/* 添加文件按钮 */}
                   {message.files?.length > 0 && (
@@ -1443,8 +1463,16 @@ export function ChatView({
                   {messages.indexOf(message) > 0 && (
                     <button
                       className="btn btn-ghost btn-xs"
-                      onClick={() => {
-                        moveMessage(message.id, 'up');
+                      title="上移消息（按住Ctrl快速移到顶部）"
+                      onClick={(e) => {
+                        // 检查是否按住Ctrl键
+                        if (e.ctrlKey) {
+                          // 移动到最顶部（第一条消息之后）
+                          moveMessage(message.id, 'top');
+                        } else {
+                          // 普通上移
+                          moveMessage(message.id, 'up');
+                        }
                         // 获取消息元素
                         const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
                         // 判断是否是长对话
@@ -1473,8 +1501,16 @@ export function ChatView({
                   {messages.indexOf(message) < messages.length - 1 && (
                     <button
                       className="btn btn-ghost btn-xs"
-                      onClick={() => {
-                        moveMessage(message.id, 'down');
+                      title="下移消息（按住Ctrl快速移到底部）"
+                      onClick={(e) => {
+                        // 检查是否按住Ctrl键
+                        if (e.ctrlKey) {
+                          // 移动到最底部（最后一条消息之前）
+                          moveMessage(message.id, 'bottom');
+                        } else {
+                          // 普通下移
+                          moveMessage(message.id, 'down');
+                        }
                         // 获取消息元素
                         const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
                         // 判断是否是长对话
@@ -1757,7 +1793,7 @@ export function ChatView({
               <span className="text-sm">Delete this message?</span>
               <div>
                 <button className="btn btn-xs" onClick={cancelDeleteMessage}>No</button>
-                <button className="btn btn-xs btn-error ml-2" onClick={confirmDeleteMessage}>Yes</button>
+                <button className="btn btn-xs btn-error ml-2" onClick={deleteMessage}>Yes</button>
               </div>
             </div>
             <div className="absolute inset-0 bg-black opacity-50 -z-10"></div>
@@ -1771,7 +1807,7 @@ export function ChatView({
               <span>Delete this message?</span>
               <div>
                 <button className="btn btn-sm" onClick={cancelDeleteMessage}>No</button>
-                <button className="btn btn-sm btn-primary ml-2" onClick={confirmDeleteMessage}>Yes</button>
+                <button className="btn btn-sm btn-primary ml-2" onClick={deleteMessage}>Yes</button>
               </div>
             </div>
             <div className="modal-backdrop" onClick={cancelDeleteMessage}></div>

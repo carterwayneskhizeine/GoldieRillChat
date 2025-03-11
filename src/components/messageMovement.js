@@ -8,7 +8,13 @@ export const moveMessage = async (messageId, direction, messages, isCtrlPressed,
     
     // 计算目标位置
     let targetIndex
-    if (isCtrlPressed) {
+    if (direction === 'top') {
+      // 移动到最顶部（第一条消息之后）
+      targetIndex = 0
+    } else if (direction === 'bottom') {
+      // 移动到最底部（最后一条消息之前）
+      targetIndex = newMessages.length - 1
+    } else if (isCtrlPressed) {
       // Ctrl 按下时移动到最上/最下
       targetIndex = direction === 'up' ? 0 : newMessages.length - 1
     } else {
