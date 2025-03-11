@@ -83,3 +83,76 @@ nav .tab,
 }
 
 /* 下拉菜单样式覆盖已移至embedding.css */ 
+
+/* 全局Alert弹窗Monaco风格样式 */
+.alert,
+[role="alert"],
+.modal-box,
+.dialog-container {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 6px !important;
+}
+
+/* 弹窗内按钮样式 */
+.alert button,
+[role="alert"] button,
+.modal-box button:not(.btn-primary),
+.dialog-actions button:not(.submit-button) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  min-height: 2rem !important;
+  font-weight: 500 !important;
+}
+
+/* 弹窗内按钮悬停样式 */
+.alert button:hover:not(:disabled),
+[role="alert"] button:hover:not(:disabled),
+.modal-box button:not(.btn-primary):hover:not(:disabled),
+.dialog-actions button:not(.submit-button):hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 主要行动按钮样式（通常是确认、保存等） */
+.alert button.btn-primary,
+.alert button.btn-error,
+[role="alert"] button.btn-primary,
+[role="alert"] button.btn-error,
+.modal-box button.btn-primary,
+.modal-box button.btn-error,
+.dialog-actions button.submit-button {
+  background-color: rgba(255, 215, 0, 0.3) !important; /* 金色 */
+  border: 1px solid rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  min-height: 2rem !important;
+  font-weight: 500 !important;
+}
+
+/* 主要行动按钮悬停样式 */
+.alert button.btn-primary:hover:not(:disabled),
+.alert button.btn-error:hover:not(:disabled),
+[role="alert"] button.btn-primary:hover:not(:disabled),
+[role="alert"] button.btn-error:hover:not(:disabled),
+.modal-box button.btn-primary:hover:not(:disabled),
+.modal-box button.btn-error:hover:not(:disabled),
+.dialog-actions button.submit-button:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.5) !important;
+  border-color: rgba(255, 215, 0, 0.6) !important;
+}
+
+/* 模态框背景 */
+.modal-backdrop,
+.dialog-overlay {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(3px) !important;
+} 

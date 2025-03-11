@@ -306,7 +306,7 @@ const Embedding = ({ isActive = false }) => {
               key={kb.id} 
               className={`knowledge-base-item p-3 rounded-lg transition-all cursor-pointer relative
                 ${selectedKnowledgeBase?.id === kb.id 
-                  ? 'border-2 border-accent/40 bg-accent/5'
+                  ? 'border-2 border-amber-400/80 bg-amber-400/10'
                   : 'border border-base-content/10 hover:border-base-content/20 hover:bg-base-200/30'}
                 shadow-sm`}
               onClick={() => setSelectedKnowledgeBase(kb)}
@@ -469,7 +469,6 @@ const Embedding = ({ isActive = false }) => {
           <div className="flex flex-col">
             <div className="border-2 border-dashed border-base-300 rounded-lg flex flex-col items-center justify-center p-10 mb-4">
               <div className="text-5xl mb-4">📄</div>
-              <p className="mb-4 text-center">拖放文件到此处或点击上传</p>
               <button 
                 className="shader-btn"
                 onClick={() => {

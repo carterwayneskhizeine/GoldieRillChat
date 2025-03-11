@@ -427,7 +427,7 @@ export default function App() {
       // Reset textarea height and scrollbar
       const textarea = document.querySelector('textarea')
       if (textarea) {
-        textarea.style.height = '48px'
+        textarea.style.height = '100px'
         textarea.style.overflowY = 'hidden'
       }
     } catch (error) {
@@ -1460,6 +1460,7 @@ export default function App() {
           deletingMessageId={deletingMessageId}
           setDeletingMessageId={setDeletingMessageId}
           cancelDeleteMessage={cancelDeleteMessage}
+          confirmDeleteMessage={confirmDeleteMessage}
           scrollToMessage={scrollToMessage}
           sendToMonaco={sendToMonaco}
           sendToEditor={sendToEditor}
@@ -1513,6 +1514,7 @@ export default function App() {
               deletingMessageId={deletingMessageId}
               setDeletingMessageId={setDeletingMessageId}
               cancelDeleteMessage={cancelDeleteMessage}
+              confirmDeleteMessage={confirmDeleteMessage}
               scrollToMessage={scrollToMessage}
               window={window}
               sendToMonaco={sendToMonaco}

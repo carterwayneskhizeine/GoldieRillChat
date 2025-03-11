@@ -208,9 +208,9 @@
 }
 
 .knowledge-base-item.selected {
-  background-color: rgba(100, 149, 237, 0.2); /* 使用淡蓝色 cornflowerblue */
-  border-color: rgba(100, 149, 237, 0.3);
-  box-shadow: 0 0 0 1px rgba(100, 149, 237, 0.2);
+  background-color: rgba(255, 215, 0, 0.15); /* 淡金色背景 */
+  border-color: rgba(255, 215, 0, 0.8); /* 金色边框 */
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.3);
 }
 
 /* 知识库项目列表滚动条 */
