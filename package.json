@@ -15,6 +15,7 @@
             "preview": "vite preview",
             "electron:dev": "cross-env NODE_ENV=development vite --mode development",
             "electron:build": "npm run prepare-resources && vite build && electron-builder",
+            "electron:build:portable": "npm run prepare-resources && vite build && electron-builder --win portable",
             "electron:preview": "vite preview",
             "prepare-resources": "node scripts/prepare-resources.js"
       },
@@ -45,7 +46,10 @@
             ],
             "asar": true,
             "win": {
-                  "target": "nsis",
+                  "target": [
+                        "nsis",
+                        "portable"
+                  ],
                   "icon": "resources/favicon.ico",
                   "signingHashAlgorithms": [
                         "sha256"
@@ -62,6 +66,9 @@
                               ]
                         }
                   ]
+            },
+            "portable": {
+                  "artifactName": "GoldieRillChat-Portable-${version}.${ext}"
             },
             "nsis": {
                   "oneClick": false,

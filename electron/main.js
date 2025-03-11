@@ -112,12 +112,11 @@ app.whenReady().then(async () => {
         app.setAppUserModelId('com.goldie.chat');
       }
       
-      // 设置应用图标
-      app.setIcon(icon);
-      console.log('Icon set successfully');
+      // 图标会自动在BrowserWindow创建时使用
+      console.log('Icon path prepared successfully');
     }
   } catch (error) {
-    console.error('Failed to set app icon:', error);
+    console.error('Failed to prepare app icon:', error);
   }
 
   // 创建主窗口
