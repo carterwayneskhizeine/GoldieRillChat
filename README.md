@@ -17,7 +17,10 @@ GoldieRillChat 是一款高级人工智能对话平台，集成多项前沿技�
 
 ThreeJS Shaders 的 AI 提问模板在[这里](ThreeJS_Shaders示列.txt)
 
-AI Chat界面可以发送 /image + 空格 + 英文提示词 ，使用 SiliconFlow 的 Flux.1系列模型生成图片，也可以选择其它支持的模型。
+AI Chat界面可以发送 /image + 空格 + 英文提示词 ，使用 SiliconFlow 的 Flux.1系列模型生成图片，在Settings的MEDIA选项中切换生图模型、分辨率和启用提示增强器。
+
+在选择StepFun作为模型提供方的时候使用 /tts 你好世界 --voice cixingnansheng --volume 1.0 --speed 1.0 来生成TTS音频，
+音色选项参考[这里](src/components/AIChat/constants/index.js)
 
 - API 支持
   - OpenAI API

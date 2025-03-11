@@ -506,15 +506,17 @@ export function ChatView({
 
     return (
       <div className="audio-message">
-        <div className="audio-info mb-4">
-          <div className="font-medium mb-2">文本：{message.audioParams?.text}</div>
-          <div className="text-sm opacity-70">
-            <span className="mr-4">音色：{message.audioParams?.voice}</span>
-            <span className="mr-4">音量：{message.audioParams?.volume}</span>
-            <span>语速：{message.audioParams?.speed}</span>
+        {message.audioParams && (
+          <div className="audio-info mb-4">
+            <div className="font-medium mb-2">文本：{message.audioParams?.text}</div>
+            <div className="text-sm opacity-70">
+              <span className="mr-4">音色：{message.audioParams?.voice}</span>
+              <span className="mr-4">音量：{message.audioParams?.volume}</span>
+              <span>语速：{message.audioParams?.speed}</span>
+            </div>
           </div>
-        </div>
-        <div className="audio-player relative rounded-lg overflow-hidden bg-base-100/50 p-4">
+        )}
+        <div className="audio-player relative overflow-hidden p-4 rounded-md">
           <ReactAudioPlayer
             src={`local-file://${audioFile.path}`}
             controls
@@ -522,6 +524,7 @@ export function ChatView({
             className="w-full"
             controlsList="nodownload"
             preload="metadata"
+            style={{ width: '380px', maxWidth: '100%' }}
           />
         </div>
       </div>
@@ -1029,7 +1032,7 @@ export function ChatView({
             }}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7 7m0 0l7-7m-7 7V3" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7 7m0 0l7-7m-7-7v18" />
             </svg>
           </button>
         </div>

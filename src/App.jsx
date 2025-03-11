@@ -71,6 +71,7 @@ import BookmarksPanel from './components/BookmarksPanel'
 import ThreeJSShaders from './components/ThreeJSShaders'
 import { openUrl, switchToBrowserEvent } from './utils/browserUtils'
 import './styles/settings-modal.css'
+import './styles/audio-player.css'
 
 // 模拟引入书签Store
 const useBookmarkStore = {

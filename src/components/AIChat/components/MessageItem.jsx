@@ -400,7 +400,7 @@ export const MessageItem = ({
             <span>语速：{message.audioParams?.speed}</span>
           </div>
         </div>
-        <div className="audio-player relative rounded-lg overflow-hidden bg-base-200 p-4">
+        <div className="audio-player relative overflow-hidden p-4 rounded-md">
           <ReactAudioPlayer
             src={`local-file://${audioFile.path}`}
             controls
@@ -408,6 +408,7 @@ export const MessageItem = ({
             className="w-full"
             controlsList="nodownload"
             preload="metadata"
+            style={{ width: '380px', maxWidth: '100%' }}
           />
         </div>
       </div>
