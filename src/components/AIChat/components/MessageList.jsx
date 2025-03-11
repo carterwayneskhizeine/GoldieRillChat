@@ -22,7 +22,8 @@ export const MessageList = ({
   currentConversation,
   setMessages,
   handleFileDrop,
-  fileInputRef
+  fileInputRef,
+  sidebarOpen = true
 }) => {
   const messagesEndRef = useRef(null);
 
@@ -301,7 +302,7 @@ export const MessageList = ({
         onMouseLeave={handleMouseLeave}
       >
         {/* 添加自动滚动暂停指示器 - 输入框正上方 */}
-        {userScrolled && messages.length > 0 && (
+        {userScrolled && messages.length > 0 && sidebarOpen && (
           <div 
             className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
             style={{ bottom: '140px', right: '-106px' }} // 使用px单位精确控制距底部的距离

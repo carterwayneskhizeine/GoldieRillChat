@@ -78,7 +78,8 @@ export function ChatView({
   sendToEditor,
   shouldScrollToBottom = false,
   setShouldScrollToBottom,
-  setMessages
+  setMessages,
+  sidebarOpen = true
 }) {
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -995,7 +996,7 @@ export function ChatView({
       </div>
 
       {/* 添加滚动到底部按钮 - 放在消息容器外，固定位置 */}
-      {userScrolled && messages.length > 0 && (
+      {userScrolled && messages.length > 0 && sidebarOpen && (
         <div 
           className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
           style={{ bottom: '140px', right: '-106px' }} // 使用px单位精确控制距底部的距离

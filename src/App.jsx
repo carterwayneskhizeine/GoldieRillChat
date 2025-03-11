@@ -1434,7 +1434,7 @@ export default function App() {
           selectedFiles={selectedFiles}
           setSelectedFiles={setSelectedFiles}
           sendMessage={sendMessage}
-          confirmDeleteMessage={confirmDeleteMessage}
+          deleteMessage={confirmDeleteMessage}
           updateMessageInApp={updateMessageInApp}
           moveMessageInApp={moveMessageInApp}
           enterEditMode={enterEditMode}
@@ -1513,13 +1513,13 @@ export default function App() {
               deletingMessageId={deletingMessageId}
               setDeletingMessageId={setDeletingMessageId}
               cancelDeleteMessage={cancelDeleteMessage}
-              confirmDeleteMessage={confirmDeleteMessage}
               scrollToMessage={scrollToMessage}
               window={window}
               sendToMonaco={sendToMonaco}
               sendToEditor={sendToEditor}
               shouldScrollToBottom={shouldScrollToBottom}
               setShouldScrollToBottom={setShouldScrollToBottom}
+              sidebarOpen={sidebarOpen}
             />
           </div>
           
@@ -1578,6 +1578,7 @@ export default function App() {
               selectedProvider={selectedProvider}
               setSelectedProvider={setSelectedProvider}
               isCompact={isCompact}
+              sidebarOpen={sidebarOpen}
             />
           </div>
 
