@@ -1,7 +1,7 @@
 {
       "name": "goldie-rill-chat",
       "private": true,
-      "version": "1.0.7",
+      "version": "2.0.0",
       "description": "A powerful desktop chat application with AI capabilities, supporting file management, image generation, built-in browser, and Markdown rendering",
       "author": {
             "name": "Goldie",
