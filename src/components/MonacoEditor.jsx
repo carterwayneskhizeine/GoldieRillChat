@@ -143,9 +143,22 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
           setPyodide(py);
           
           // 预加载一些常用的 Python 包
-          await py.loadPackage(['numpy', 'pandas']);
+          setOutput("正在加载Python包，请稍候...\n");
+          
+          // 加载内置包 - numpy, pandas, matplotlib, scipy, pygame-ce等
+          await py.loadPackage(['numpy', 'pandas', 'matplotlib', 'scipy', 'pygame-ce', 'Pillow', 'scikit-learn']);
+          
+          // 初始化micropip以支持安装更多包
+          await py.loadPackage('micropip');
+          await py.runPythonAsync(`
+            import micropip
+            
+            # 可以在这里预安装其他需要的包
+            # await micropip.install('某个包名')
+          `);
           
           console.log("Pyodide loaded successfully!");
+          setOutput(prev => prev + "Python环境加载完成！\n");
         } catch (error) {
           console.error("Failed to load Pyodide:", error);
           setOutput("Failed to load Python runtime: " + error.message);

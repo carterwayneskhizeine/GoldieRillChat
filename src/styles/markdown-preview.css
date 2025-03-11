@@ -91,6 +91,44 @@
 .prose input[type="checkbox"] {
   margin: 0 0.5rem 0 0;
   transform: translateY(2px);
+  /* 重新设计复选框样式 */
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.2em;
+  height: 1.2em;
+  border: 2px solid hsl(var(--bc) / 0.3);
+  border-radius: 0.25rem;
+  background-color: hsl(var(--b1));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.prose input[type="checkbox"]:hover {
+  border-color: hsl(var(--p) / 0.5);
+}
+
+.prose input[type="checkbox"]:checked {
+  background-color: hsl(var(--p));
+  border-color: hsl(var(--p));
+}
+
+.prose input[type="checkbox"]:checked::after {
+  content: "";
+  display: block;
+  width: 0.5em;
+  height: 0.25em;
+  border-left: 2px solid hsl(var(--pc));
+  border-bottom: 2px solid hsl(var(--pc));
+  transform: rotate(-45deg) translate(0, -1px);
+}
+
+.prose input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--p) / 0.3);
 }
 
 /* 引用块样式 */

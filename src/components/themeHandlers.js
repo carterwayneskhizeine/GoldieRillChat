@@ -35,7 +35,7 @@ export const toggleTheme = async (currentTheme, themes, setCurrentTheme) => {
 
 // 主题配置
 export const themes = [
-  "dark", "black", "luxury", "business","dim", "sunset", "bg-theme"
+  "night","black", "luxury", "business","bg-theme"
 ]
 
 // 主题初始化函数

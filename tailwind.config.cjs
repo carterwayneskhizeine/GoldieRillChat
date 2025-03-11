@@ -22,7 +22,7 @@ module.exports = {
   ],
   daisyui: {
     themes: [
-      "dark", "black", "luxury", "business","dim", "sunset"
+      "night","black", "luxury", "business"
     ],
   },
 } 

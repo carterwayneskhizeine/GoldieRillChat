@@ -160,6 +160,19 @@
 .settings-panel .toggle {
   border-color: rgba(255, 255, 255, 0.3) !important;
   background-color: rgba(0, 0, 0, 0.3) !important;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 2.5em;
+  height: 1.3em;
+  border-radius: 1em;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
 
 /* 复选框和开关选中状态 */
@@ -167,6 +180,35 @@
 .settings-panel .toggle:checked {
   border-color: rgba(255, 215, 0, 0.5) !important;
   background-color: rgba(255, 215, 0, 0.3) !important;
+}
+
+/* Toggle开关滑块 */
+.settings-panel .toggle::after {
+  content: "";
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  left: 0.15em;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Toggle开关选中状态的滑块 */
+.settings-panel .toggle:checked::after {
+  left: calc(100% - 0.15em - 1em);
+  background: rgba(255, 255, 255, 1);
+}
+
+/* Toggle开关悬停效果 */
+.settings-panel .toggle:hover {
+  border-color: rgba(255, 215, 0, 0.3) !important;
+}
+
+/* Toggle开关焦点效果 */
+.settings-panel .toggle:focus {
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2) !important;
 }
 
 /* 标签文本 */
@@ -961,4 +1003,71 @@
   border-top-color: white !important;
   width: 24px !important;
   height: 24px !important;
+}
+
+/* 小尺寸Toggle开关 */
+.toggle.toggle-sm {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 2em !important;
+  height: 1em !important;
+  border-radius: 0.8em !important;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 小尺寸Toggle开关选中状态 */
+.toggle.toggle-sm:checked {
+  border-color: rgba(255, 215, 0, 0.5) !important;
+  background-color: rgba(255, 215, 0, 0.3) !important;
+}
+
+/* 小尺寸Toggle开关滑块 */
+.toggle.toggle-sm::after {
+  content: "";
+  position: absolute;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  left: 0.15em;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 小尺寸Toggle开关选中状态的滑块 */
+.toggle.toggle-sm:checked::after {
+  left: calc(100% - 0.15em - 0.7em);
+  background: rgba(255, 255, 255, 1);
+}
+
+/* 小尺寸Toggle开关悬停效果 */
+.toggle.toggle-sm:hover {
+  border-color: rgba(255, 215, 0, 0.3) !important;
+}
+
+/* 小尺寸Toggle开关焦点效果 */
+.toggle.toggle-sm:focus {
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2) !important;
+}
+
+/* Primary风格Toggle开关 */
+.toggle.toggle-primary:checked {
+  border-color: rgba(255, 215, 0, 0.5) !important;
+  background-color: rgba(255, 215, 0, 0.3) !important;
+}
+
+.toggle.toggle-primary:hover {
+  border-color: rgba(255, 215, 0, 0.3) !important;
+}
+
+.toggle.toggle-primary:focus {
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2) !important;
 }

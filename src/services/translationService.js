@@ -87,15 +87,16 @@ export const translateText = async (text, provider, model, userApiKey, userApiHo
     // 优先使用翻译专用的配置，如果没有则使用传入的配置
     const apiKey = translationApiKey || userApiKey || '';
     
-    // 使用DeepSeek的API主机地址，如果没有设置，则使用默认地址
-    const apiHost = userApiHost || 'https://api.deepseek.com';
+    // 修改：优先使用翻译专用的API主机地址，如果没有则使用默认的DeepSeek API地址
+    // 注意：翻译功能强制使用DeepSeek提供商，所以必须使用DeepSeek的API主机地址
+    const apiHost = translationApiHost || DEFAULT_DEEPSEEK_API_HOST;
     
     // 添加调试日志
     console.log('翻译服务使用的 API 配置:', { apiKey: apiKey ? '已设置' : '未设置', apiHost });
     
     // 如果没有 API 密钥，则无法进行翻译
     if (!apiKey) {
-      toastManager.error('未配置 API 密钥，请在设置中添加 DeepSeek 的 API 密钥', { duration: 5000 });
+      toastManager.error('未配置 DeepSeek API 密钥，请在设置中的"翻译设置"部分添加 DeepSeek 的 API 密钥', { duration: 5000 });
       return text;
     }
     
@@ -130,6 +131,7 @@ ${text}
     
     // 添加更多调试日志
     console.log('翻译请求配置:', {
+      provider: 'deepseek',
       apiHost,
       model: translationModel,
       messageCount: messages.length
