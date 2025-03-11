@@ -153,8 +153,52 @@ export const MonacoEditor = ({ currentNote, saveNote }) => {
           await py.runPythonAsync(`
             import micropip
             
-            # 可以在这里预安装其他需要的包
-            # await micropip.install('某个包名')
+            # 安装requests库用于发送HTTP请求
+            try:
+              print("正在安装requests库，请稍候...")
+              await micropip.install('requests')
+              print("requests库安装成功！")
+              
+              # 定义一个发送HTTP请求到DeepSeek API的函数
+              import requests
+              
+              def call_deepseek_api(api_key, prompt, system_message="You are a helpful assistant."):
+                  """
+                  调用DeepSeek API的函数
+                  
+                  参数:
+                      api_key (str): DeepSeek API密钥
+                      prompt (str): 用户提问内容
+                      system_message (str): 系统消息
+                      
+                  返回:
+                      dict: API响应内容
+                  """
+                  url = "https://api.deepseek.com/chat/completions"
+                  headers = {
+                      "Content-Type": "application/json",
+                      "Authorization": f"Bearer {api_key}"
+                  }
+                  data = {
+                      "model": "deepseek-chat",
+                      "messages": [
+                          {"role": "system", "content": system_message},
+                          {"role": "user", "content": prompt}
+                      ],
+                      "stream": False
+                  }
+                  
+                  response = requests.post(url, json=data, headers=headers)
+                  return response.json()
+              
+              # 使用示例:
+              # response = call_deepseek_api("your_api_key", "Hello!")
+              # print(response)
+              
+              print("已添加call_deepseek_api函数，可以直接调用！")
+              
+            except Exception as e:
+              print(f"设置HTTP请求功能失败: {str(e)}")
           `);
           
           console.log("Pyodide loaded successfully!");
