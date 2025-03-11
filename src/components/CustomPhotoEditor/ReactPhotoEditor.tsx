@@ -387,33 +387,35 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
   return (
     <div className="rpe-overlay">
       <div className="rpe-modal">
-        {/* 标签页切换 */}
+        {/* 标签页切换 - 改为垂直排列在左侧 */}
         <div className="rpe-tabs">
           <button 
             className={`rpe-tab ${activeTab === 'edit' ? 'active' : ''}`}
             onClick={() => setActiveTab('edit')}
+            title={mergedLabels.editPicture}
           >
-            {mergedLabels.editPicture}
+            <span className="rpe-tab-text">{mergedLabels.editPicture}</span>
           </button>
           <button 
             className={`rpe-tab ${activeTab === 'color' ? 'active' : ''}`}
             onClick={() => setActiveTab('color')}
+            title={mergedLabels.color}
           >
-            {mergedLabels.color}
+            <span className="rpe-tab-text">{mergedLabels.color}</span>
           </button>
         </div>
 
-        {/* 主区域 - 固定结构，确保画布位置一致 */}
+        {/* 主区域 - 水平分布：左侧控制面板(1/4)，右侧画布(3/4) */}
         <div className="rpe-main-container">
-          {/* 顶部控制面板 - 根据标签页显示不同内容 */}
+          {/* 左侧控制面板 - 根据标签页显示不同内容 */}
           <div className="rpe-top-controls">
             {activeTab === 'edit' && (
               <div className="rpe-edit-controls">
-                {/* 按钮行 */}
+                {/* 按钮组 - 垂直排列 */}
                 <div className="rpe-button-row">
                   {allowResolutionSettings && (
                     <div className="dropdown dropdown-bottom">
-                      <label tabIndex={0} className="btn btn-sm">Res</label>
+                      <label tabIndex={0} className="btn btn-sm w-full">分辨率预设</label>
                       <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
                         {resolutionOptions.map((option, index) => (
                           <li key={index}>
@@ -428,15 +430,11 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
 
                   {allowRotate && (
                     <>
-                      <button className="btn btn-sm btn-circle" onClick={() => setRotate((prev) => prev - 90)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M9,4 L4,9 L9,14 M4,9 C7.86599045,9 11,12.1340096 11,16 C11,19.8659904 7.86599045,23 4,23" />
-                        </svg>
+                      <button className="btn btn-sm w-full" onClick={() => setRotate((prev) => prev - 90)}>
+                        {mergedLabels.rotate} ↺
                       </button>
-                      <button className="btn btn-sm btn-circle" onClick={() => setRotate((prev) => prev + 90)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M15,4 L20,9 L15,14 M20,9 C16.1340096,9 13,12.1340096 13,16 C13,19.8659904 16.1340096,23 20,23" />
-                        </svg>
+                      <button className="btn btn-sm w-full" onClick={() => setRotate((prev) => prev + 90)}>
+                        {mergedLabels.rotate} ↻
                       </button>
                     </>
                   )}
@@ -444,47 +442,37 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                   {allowFlip && (
                     <>
                       <button 
-                        className={`btn btn-sm btn-circle ${flipHorizontal ? 'btn-primary' : ''}`}
+                        className={`btn btn-sm w-full ${flipHorizontal ? 'btn-primary' : ''}`}
                         onClick={() => setFlipHorizontal((prev) => !prev)}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12,2 L12,22 M3,12 L21,12" />
-                        </svg>
-                      </button>
-                      <button className="btn btn-sm btn-circle" onClick={fitToHeight}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M2,5 L22,5 L22,19 L2,19 L2,5 Z M12,5 L12,19" />
-                        </svg>
+                        {mergedLabels.flipHorizontal}
                       </button>
                       <button 
-                        className={`btn btn-sm btn-circle ${flipVertical ? 'btn-primary' : ''}`}
+                        className={`btn btn-sm w-full ${flipVertical ? 'btn-primary' : ''}`}
                         onClick={() => setFlipVertical((prev) => !prev)}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M2,12 L22,12 M12,2 L12,22" />
-                        </svg>
+                        {mergedLabels.flipVertical}
                       </button>
                     </>
                   )}
 
                   {allowZoom && (
                     <>
-                      <button className="btn btn-sm btn-circle" onClick={() => handleZoom(0.01)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12,2 L12,22 M2,12 L22,12" />
-                        </svg>
+                      <button className="btn btn-sm w-full" onClick={() => handleZoom(0.1)}>
+                        {mergedLabels.zoomIn} +
                       </button>
-                      <button className="btn btn-sm btn-circle" onClick={() => handleZoom(-0.01)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M2,12 L22,12" />
-                        </svg>
+                      <button className="btn btn-sm w-full" onClick={() => handleZoom(-0.1)}>
+                        {mergedLabels.zoomOut} -
+                      </button>
+                      <button className="btn btn-sm w-full" onClick={fitToHeight}>
+                        {mergedLabels.fitHeight}
                       </button>
                     </>
                   )}
 
                   {allowAspectRatioSettings && (
                     <div className="dropdown dropdown-bottom">
-                      <label tabIndex={0} className="btn btn-sm">AR</label>
+                      <label tabIndex={0} className="btn btn-sm w-full">{mergedLabels.aspectRatio}</label>
                       <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
                         {aspectRatioOptions.map((ratio, index) => (
                           <li key={index}>
@@ -508,19 +496,19 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                   <div className="rpe-control-group">
                     <input 
                       type="number" 
-                      className="input input-bordered input-sm w-24"
+                      className="input input-bordered input-sm w-full mb-2"
                       placeholder="宽度" 
                       value={widthInput}
                       onChange={handleWidthChange}
                     />
                     <input 
                       type="number" 
-                      className="input input-bordered input-sm w-24"
+                      className="input input-bordered input-sm w-full mb-2"
                       placeholder="高度" 
                       value={heightInput}
                       onChange={handleHeightChange}
                     />
-                    <button className="btn btn-sm btn-primary" onClick={applyResolution}>
+                    <button className="btn btn-sm btn-primary w-full" onClick={applyResolution}>
                       {mergedLabels.apply}
                     </button>
                   </div>
@@ -535,69 +523,67 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                   <div className="rpe-slider-group">
                     <div className="rpe-slider-label-row">
                       <span>{mergedLabels.brightness}: {brightness}%</span>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="200" 
-                        value={brightness} 
-                        onChange={(e) => handleInputChange(e, setBrightness, 0, 200)}
-                        className="range range-sm"
-                      />
                     </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="200" 
+                      value={brightness} 
+                      onChange={(e) => handleInputChange(e, setBrightness, 0, 200)}
+                      className="range range-sm w-full"
+                    />
                   </div>
                   
                   {/* 对比度滑块 */}
                   <div className="rpe-slider-group">
                     <div className="rpe-slider-label-row">
                       <span>{mergedLabels.contrast}: {contrast}%</span>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="200" 
-                        value={contrast} 
-                        onChange={(e) => handleInputChange(e, setContrast, 0, 200)}
-                        className="range range-sm"
-                      />
                     </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="200" 
+                      value={contrast} 
+                      onChange={(e) => handleInputChange(e, setContrast, 0, 200)}
+                      className="range range-sm w-full"
+                    />
                   </div>
-                </div>
                 
-                <div className="rpe-slider-row">
                   {/* 饱和度滑块 */}
                   <div className="rpe-slider-group">
                     <div className="rpe-slider-label-row">
                       <span>{mergedLabels.saturate}: {saturate}%</span>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="200" 
-                        value={saturate} 
-                        onChange={(e) => handleInputChange(e, setSaturate, 0, 200)}
-                        className="range range-sm"
-                      />
                     </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="200" 
+                      value={saturate} 
+                      onChange={(e) => handleInputChange(e, setSaturate, 0, 200)}
+                      className="range range-sm w-full"
+                    />
                   </div>
                   
                   {/* 灰度滑块 */}
                   <div className="rpe-slider-group">
                     <div className="rpe-slider-label-row">
                       <span>{mergedLabels.grayscale}: {grayscale}%</span>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="100" 
-                        value={grayscale} 
-                        onChange={(e) => handleInputChange(e, setGrayscale, 0, 100)}
-                        className="range range-sm"
-                      />
                     </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="100" 
+                      value={grayscale} 
+                      onChange={(e) => handleInputChange(e, setGrayscale, 0, 100)}
+                      className="range range-sm w-full"
+                    />
                   </div>
                 </div>
                 
                 {/* 重置按钮行 */}
                 <div className="rpe-reset-row">
                   <button 
-                    className="btn btn-sm btn-outline" 
+                    className="btn btn-sm btn-outline w-full" 
                     onClick={handleResetColors}
                   >
                     {mergedLabels.reset}
@@ -607,7 +593,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
             )}
           </div>
 
-          {/* 画布区域 - 固定位置 */}
+          {/* 右侧画布区域 */}
           <div className="rpe-content">
             <div 
               className="rpe-canvas-wrapper"
@@ -645,7 +631,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                 <button className="btn btn-sm" onClick={handleClose}>
                   {mergedLabels.cancel}
                 </button>
-                <button className="btn btn-sm btn-primary" onClick={handleSave}>
+                <button className="btn btn-sm btn-primary ml-2" onClick={handleSave}>
                   {mergedLabels.save}
                 </button>
               </div>
