@@ -1362,6 +1362,44 @@ export default function App() {
     }
   }, [activeTool]); // 只在activeTool变化时触发
 
+  // 添加侧边栏快捷键控制 (ALT + G) 和工具页面快捷键 (ALT + 数字键)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 检测 ALT + G 组合键
+      if (e.ctrlKey && e.key === 'g') {
+        // 切换侧边栏状态
+        setSidebarOpen(!sidebarOpen);
+        console.log('快捷键: ALT+G 切换侧边栏', !sidebarOpen ? '显示' : '隐藏');
+        return;
+      }
+
+      // 添加工具页面快捷键切换功能 (ALT + 1-6)
+      if (e.ctrlKey && /^[1-6]$/.test(e.key)) {
+        const index = parseInt(e.key) - 1;
+        if (index >= 0 && index < tools.length) {
+          // 直接切换到对应的工具页面
+          const targetTool = tools[index];
+          console.log(`快捷键: ALT+${e.key} 切换到工具: ${getToolDisplayName(targetTool)}`);
+          setActiveTool(targetTool);
+        }
+      }
+    };
+
+    // 打印当前可用的工具列表，用于调试
+    console.log('当前工具页面快捷键映射:');
+    tools.forEach((tool, index) => {
+      console.log(`ALT+${index + 1}: ${getToolDisplayName(tool)}`);
+    });
+
+    // 添加全局键盘事件监听器
+    window.addEventListener('keydown', handleKeyDown);
+
+    // 清理函数，组件卸载时移除事件监听器
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [sidebarOpen, setActiveTool]); // 添加setActiveTool到依赖数组
+
   return (
     <div className="h-screen flex flex-col bg-base-100">
       <ThreeBackground />
