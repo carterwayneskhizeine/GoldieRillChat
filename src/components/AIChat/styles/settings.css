@@ -84,4 +84,24 @@
   width: 24px;
   height: 24px;
   animation: translation-spinner-rotate 1s linear infinite;
+}
+
+/* 确保AI Chat弹窗背景蒙层有一致的透明度和模糊效果 */
+.chat-container .modal-backdrop,
+.chat-container .fixed.inset-0,
+.chat-container div[class*="backdrop"],
+.chat-container div[class*="overlay"] {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+  z-index: 40;
+}
+
+/* 背景图片模式下，弹窗背景蒙层效果增强 */
+[data-theme="bg-theme"] .chat-container .modal-backdrop,
+[data-theme="bg-theme"] .chat-container .fixed.inset-0,
+[data-theme="bg-theme"] .chat-container div[class*="backdrop"],
+[data-theme="bg-theme"] .chat-container div[class*="overlay"] {
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
 } 

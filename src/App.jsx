@@ -1829,11 +1829,7 @@ export default function App() {
           <div 
             className="modal-backdrop" 
             onClick={() => setShowSettings(false)}
-            style={{
-              backdropFilter: 'blur(3px)',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)'
-            }}
-          ></div>
+          />
         </div>
       )}
 

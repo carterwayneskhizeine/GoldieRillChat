@@ -89,12 +89,12 @@ nav .tab,
 [role="alert"],
 .modal-box,
 .dialog-container {
-  background-color: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
   color: white !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(3px) !important;
   -webkit-backdrop-filter: blur(3px) !important;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
   border-radius: 6px !important;
 }
 
@@ -150,11 +150,37 @@ nav .tab,
   border-color: rgba(255, 215, 0, 0.6) !important;
 }
 
-/* 模态框背景 */
+/* 确保所有模态框背景都使用一致的透明度和模糊效果 */
 .modal-backdrop,
-.dialog-overlay {
-  background-color: rgba(0, 0, 0, 0.7) !important;
+.dialog-overlay,
+.settings-modal-backdrop,
+.fixed.inset-0[class*="modal"],
+.fixed.inset-0[class*="backdrop"],
+.fixed.inset-0[class*="dialog"] {
+  background-color: rgba(0, 0, 0, 0.5) !important;
   backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+}
+
+/* 添加更多针对弹窗背景蒙层的选择器 */
+.fixed.inset-0,
+.fixed[class*="overlay"],
+div[class*="backdrop"]:not(.settings-modal-backdrop),
+div[class*="overlay"],
+div[role="presentation"].fixed.inset-0 {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+}
+
+/* 特殊情况兼容 */
+.embedding-container .modal-backdrop,
+.chat-container .modal-backdrop,
+body > .modal-backdrop,
+#root > .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
 }
 
 /* 添加键盘导航高亮样式 */
@@ -173,4 +199,35 @@ nav .tab,
   100% {
     box-shadow: 0 0 8px gold;
   }
+}
+
+/* 确保所有类似模态框的容器也使用一致的背景透明度和模糊效果 */
+.settings-panel,
+.settings-panel-container,
+.settings-container,
+.fixed.z-50 > div[class*="panel"],
+.fixed.z-50 > div[class*="container"],
+.fixed.z-50 > div[class*="content"],
+.fixed.z-40 > div[class*="panel"],
+.fixed.z-40 > div[class*="container"],
+.fixed.z-40 > div[class*="content"] {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 6px !important;
+}
+
+/* 背景图片模式下的弹窗背景蒙层效果增强 */
+[data-theme="bg-theme"] .modal-backdrop,
+[data-theme="bg-theme"] .dialog-overlay,
+[data-theme="bg-theme"] .settings-modal-backdrop,
+[data-theme="bg-theme"] .fixed.inset-0,
+[data-theme="bg-theme"] div[class*="backdrop"],
+[data-theme="bg-theme"] div[class*="overlay"],
+[data-theme="bg-theme"] div[role="presentation"].fixed.inset-0 {
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
 } 
