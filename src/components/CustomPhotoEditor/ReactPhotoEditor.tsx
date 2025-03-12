@@ -222,10 +222,10 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
       return newZoom;
     });
     
-    // 重新应用滤镜以更新显示
-    setTimeout(() => {
+    // 使用requestAnimationFrame优化滤镜应用
+    requestAnimationFrame(() => {
       applyFilter();
-    }, 10);
+    });
   };
 
   // 处理鼠标滚轮缩放
@@ -241,8 +241,10 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
     // 更新缩放
     setZoom(newZoom);
     
-    // 立即应用滤镜以更新显示
-    applyFilter();
+    // 使用requestAnimationFrame优化滤镜应用
+    requestAnimationFrame(() => {
+      applyFilter();
+    });
   };
 
   // 处理Ctrl+点击旋转
@@ -390,10 +392,16 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
     // 重置位置，使图片居中
     setPosition({ x: 0, y: 0 });
     
-    // 再次应用滤镜，确保图像正确渲染
+    // 强制重绘，确保应用所有更改
     setTimeout(() => {
-      applyFilter();
-    }, 50);
+      const newZoomValue = newZoom * 1.01;  // 略微调整缩放值，强制重绘
+      setZoom(newZoomValue);
+      
+      setTimeout(() => {
+        setZoom(newZoom);  // 恢复原来的精确缩放值
+        applyFilter();
+      }, 20);
+    }, 10);
   };
 
   const handleAspectRatioSelect = (ratio: string) => {
@@ -501,6 +509,12 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
     document.documentElement.style.setProperty('--grayscale-height', `${grayscale}%`);
   }, [brightness, contrast, saturate, grayscale]);
 
+  // 添加一个处理适应高度的自定义函数
+  const handleFitToHeight = () => {
+    // 直接调用我们优化过的fitToCanvas函数
+    fitToCanvas();
+  };
+
   if (!isOpen) {
     return null;
   }
@@ -518,14 +532,14 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
             onClick={() => setActiveTab('edit')}
             title={mergedLabels.editPicture}
           >
-            <span className="rpe-tab-text">编辑图片</span>
+            <span className="rpe-tab-text">Edit</span>
           </button>
           <button 
             className={`rpe-tab ${activeTab === 'color' ? 'active' : ''}`}
             onClick={() => setActiveTab('color')}
             title={mergedLabels.color}
           >
-            <span className="rpe-tab-text">颜色调整</span>
+            <span className="rpe-tab-text">Color</span>
           </button>
         </div>
 
@@ -541,10 +555,10 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                   {allowRotate && (
                     <>
                       <button className="monaco-style-btn" onClick={() => setRotate((prev) => prev - 90)}>
-                        左旋
+                        Rotate Left
                       </button>
                       <button className="monaco-style-btn" onClick={() => setRotate((prev) => prev + 90)}>
-                        右旋
+                        Rotate Right
                       </button>
                     </>
                   )}
@@ -556,13 +570,13 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                         className={`monaco-style-btn ${flipHorizontal ? 'active' : ''}`}
                         onClick={() => setFlipHorizontal((prev) => !prev)}
                       >
-                        水平翻转
+                        Flip Horizontal
                       </button>
                       <button 
                         className={`monaco-style-btn ${flipVertical ? 'active' : ''}`}
                         onClick={() => setFlipVertical((prev) => !prev)}
                       >
-                        垂直翻转
+                        Flip Vertical
                       </button>
                     </>
                   )}
@@ -571,10 +585,10 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                   {allowZoom && (
                     <>
                       <button className="monaco-style-btn" onClick={() => handleZoom(0.1)}>
-                        放大
+                        Zoom In
                       </button>
                       <button className="monaco-style-btn" onClick={() => handleZoom(-0.1)}>
-                        缩小
+                        Zoom Out
                       </button>
                     </>
                   )}
@@ -600,7 +614,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                   {/* 分辨率信息 */}
                   {allowResolutionSettings && (
                     <div className="rpe-canvas-info" style={{ gridColumn: 'span 2' }}>
-                      分辨率: {currentResolution.width} x {currentResolution.height}
+                      Resolution: {currentResolution.width} x {currentResolution.height}
                     </div>
                   )}
 
@@ -608,10 +622,10 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                   {allowResolutionSettings && (
                     <>
                       <button className="monaco-style-btn" onClick={applyResolution}>
-                        应用
+                        Apply
                       </button>
-                      <button className="monaco-style-btn" onClick={fitToHeight}>
-                        适应高度
+                      <button className="monaco-style-btn" onClick={handleFitToHeight}>
+                        Fit
                       </button>
                     </>
                   )}
@@ -632,7 +646,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                             }
                           }
                         }}>
-                          分辨率预设
+                          Resolution Presets
                         </button>
                         {/* 分辨率预设下拉内容 */}
                         <div 
@@ -666,7 +680,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                             }
                           }
                         }}>
-                          宽高比
+                          Aspect Ratio
                     </button>
                         {/* 宽高比下拉内容 */}
                         <div 
@@ -706,7 +720,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                         <div className="vertical-slider-value">{brightness}%</div>
                       </div>
                     </div>
-                    <div className="vertical-slider-label">亮度</div>
+                    <div className="vertical-slider-label">B</div>
                   </div>
 
                   {/* 对比度滑块 - 范围0-200% */}
@@ -721,7 +735,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                         <div className="vertical-slider-value">{contrast}%</div>
                       </div>
                     </div>
-                    <div className="vertical-slider-label">对比度</div>
+                    <div className="vertical-slider-label">C</div>
                   </div>
 
                   {/* 饱和度滑块 - 范围0-200% */}
@@ -736,7 +750,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                         <div className="vertical-slider-value">{saturate}%</div>
                       </div>
                     </div>
-                    <div className="vertical-slider-label">饱和度</div>
+                    <div className="vertical-slider-label">S</div>
                   </div>
 
                   {/* 灰度滑块 - 保持范围0-100% */}
@@ -751,7 +765,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                         <div className="vertical-slider-value">{grayscale}%</div>
                       </div>
                     </div>
-                    <div className="vertical-slider-label">灰度</div>
+                    <div className="vertical-slider-label">G</div>
                   </div>
                 </div>
 
@@ -813,7 +827,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                     onClick={handleResetColors}
                   style={{ width: '100%', marginTop: '20px' }}
                   >
-                  重置
+                  Reset
                   </button>
               </div>
             )}
