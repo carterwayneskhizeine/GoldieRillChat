@@ -79,7 +79,8 @@ export function ChatView({
   shouldScrollToBottom = false,
   setShouldScrollToBottom,
   setMessages,
-  sidebarOpen = true
+  sidebarOpen = true,
+  sidebarMode = 'chat'
 }) {
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -1015,11 +1016,11 @@ export function ChatView({
           </svg>
         </div>
         <div className="drag-text">拖放文件到这里上传</div>
-        <div className="drag-subtext">支持图片、视频、音频、PDF和其他文件类型</div>
+        <div className="drag-subtext">支持图片、视频、音频和其他文件类型</div>
       </div>
 
       {/* 添加滚动到底部按钮 - 放在消息容器外，固定位置 */}
-      {userScrolled && messages.length > 0 && sidebarOpen && (
+      {userScrolled && messages.length > 0 && sidebarOpen && sidebarMode !== 'chat' && (
         <div 
           className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
           style={{ bottom: '140px', right: '-106px' }} // 使用px单位精确控制距底部的距离
@@ -1032,7 +1033,7 @@ export function ChatView({
             }}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7 7m0 0l7-7m-7-7v18" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7 7m0 0l7-7m-7 7V3" />
             </svg>
           </button>
         </div>
@@ -1923,63 +1924,45 @@ export function ChatView({
 
       {/* 内联图片编辑器 */}
       {showInlineEditor && editingImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-          <div className="bg-base-100 rounded-lg p-4 max-w-4xl w-full max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center mb-4 editor-header">
-              <h3 className="text-lg font-bold">编辑图片</h3>
-              <div className="flex items-center gap-2 editor-controls">
-                <button 
-                  className="btn btn-sm btn-circle"
-                  onClick={handleCancelEdit}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            
-            <div className="flex-1 overflow-auto editor-content">
-              <ReactPhotoEditor
-                open={true}
-                onClose={handleCancelEdit}
-                file={editingImage}
-                onSaveImage={handleSaveEditedImage}
-                allowColorEditing={true}
-                allowRotate={true}
-                allowFlip={true}
-                allowZoom={true}
-                allowResolutionSettings={true}
-                allowAspectRatioSettings={true}
-                downloadOnSave={false}
-                resolution={{ width: 512, height: 512 }}
-                resolutionOptions={[
-                  { width: 512, height: 512 },
-                  { width: 512, height: 288 },
-                  { width: 768, height: 320 },
-                  { width: 768, height: 512 },
-                  { width: 1024, height: 576 }
-                ]}
-                aspectRatioOptions={['16:9', '9:16', '21:9', '4:3', '1:1']}
-                labels={{
-                  close: '关闭',
-                  save: '保存',
-                  rotate: '旋转',
-                  brightness: '亮度',
-                  contrast: '对比度',
-                  saturate: '饱和度',
-                  grayscale: '灰度',
-                  reset: '重置',
-                  flipHorizontal: '水平翻转',
-                  flipVertical: '垂直翻转',
-                  zoomIn: '放大',
-                  zoomOut: '缩小',
-                  resolution: '分辨率',
-                  aspectRatio: '宽高比',
-                  apply: '应用'
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        <ReactPhotoEditor
+          open={true}
+          onClose={handleCancelEdit}
+          file={editingImage}
+          onSaveImage={handleSaveEditedImage}
+          allowColorEditing={true}
+          allowRotate={true}
+          allowFlip={true}
+          allowZoom={true}
+          allowResolutionSettings={true}
+          allowAspectRatioSettings={true}
+          downloadOnSave={false}
+          resolution={{ width: 512, height: 512 }}
+          resolutionOptions={[
+            { width: 512, height: 512 },
+            { width: 512, height: 288 },
+            { width: 768, height: 320 },
+            { width: 768, height: 512 },
+            { width: 1024, height: 576 }
+          ]}
+          aspectRatioOptions={['16:9', '9:16', '21:9', '4:3', '1:1']}
+          labels={{
+            close: '关闭',
+            save: '保存',
+            rotate: '旋转',
+            brightness: '亮度',
+            contrast: '对比度',
+            saturate: '饱和度',
+            grayscale: '灰度',
+            reset: '重置',
+            flipHorizontal: '水平翻转',
+            flipVertical: '垂直翻转',
+            zoomIn: '放大',
+            zoomOut: '缩小',
+            resolution: '分辨率',
+            aspectRatio: '宽高比',
+            apply: '应用'
+          }}
+        />
       )}
     </div>
   );

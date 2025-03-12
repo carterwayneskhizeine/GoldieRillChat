@@ -4,7 +4,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -21,7 +21,7 @@
 .rpe-modal {
   width: 90%;
   height: 90%;
-  background-color: rgba(30, 30, 30, 0.95);
+  background-color: rgba(0, 0, 0, 0.5);
   border-radius: 8px;
   color: #d4d4d4;
   display: flex;
@@ -40,7 +40,7 @@
 /* 左侧垂直标签 */
 .rpe-tabs {
   width: 40px;
-  background-color: rgba(37, 37, 38, 0.9);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(57, 57, 57, 0.8);
@@ -67,9 +67,9 @@
 }
 
 .rpe-tab.active {
-  background-color: rgba(30, 30, 30, 0.9);
+  background-color: rgba(0, 0, 0, 0.35);
   color: #ffffff;
-  border-left: 2px solid rgba(255, 215, 0, 0.8); /* 使用金色边框，与其他组件一致 */
+  border-left: 2px solid rgba(255, 215, 0, 0.8);
 }
 
 .rpe-tab-text {
@@ -91,10 +91,10 @@
   width: 25%;
   padding: 15px;
   overflow-y: auto;
-  background-color: rgba(30, 30, 30, 0.97);
+  background-color: rgba(0, 0, 0, 0.4);
   border-right: 1px solid rgba(57, 57, 57, 0.8);
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 100, 100, 0.5) rgba(30, 30, 30, 0.1);
+  scrollbar-color: rgba(100, 100, 100, 0.5) rgba(0, 0, 0, 0.1);
 }
 
 .rpe-top-controls::-webkit-scrollbar {
@@ -102,7 +102,7 @@
 }
 
 .rpe-top-controls::-webkit-scrollbar-track {
-  background: rgba(30, 30, 30, 0.1);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .rpe-top-controls::-webkit-scrollbar-thumb {
@@ -125,7 +125,7 @@
   justify-content: center;
   align-items: center;
   padding: 8px 12px;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.35);
   color: #dddddd;
   border: 1px solid rgba(68, 68, 68, 0.6);
   border-radius: 4px;
@@ -161,7 +161,7 @@
 /* 底部按钮 */
 .bottom-btn {
   padding: 6px 14px;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.35);
   color: #dddddd;
   border: 1px solid rgba(68, 68, 68, 0.6);
   border-radius: 4px;
@@ -227,7 +227,7 @@
 
 /* Monaco风格输入框 */
 .monaco-style-input {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.35);
   color: #dddddd;
   border: 1px solid rgba(68, 68, 68, 0.6);
   border-radius: 4px;
@@ -235,6 +235,7 @@
   width: 100%;
   font-size: 12px;
   transition: all 0.15s ease;
+  text-align: center;
 }
 
 .monaco-style-input:focus {
@@ -257,13 +258,13 @@
   font-size: 13px;
   color: #dddddd;
   padding: 4px 0;
-  background-color: rgba(30, 30, 30, 0.6);
+  background-color: rgba(0, 0, 0, 0.35);
   border-left: 2px solid rgba(255, 215, 0, 0.4);
 }
 
 /* 下拉菜单样式 */
 .settings-style-dropdown-content {
-  background-color: rgba(37, 37, 38, 0.95);
+  background-color: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(68, 68, 68, 0.7);
   border-radius: 4px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
@@ -277,7 +278,7 @@
   margin-top: 4px;
   backdrop-filter: blur(3px);
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 100, 100, 0.5) rgba(30, 30, 30, 0.1);
+  scrollbar-color: rgba(100, 100, 100, 0.5) rgba(0, 0, 0, 0.1);
 }
 
 .settings-style-dropdown-content::-webkit-scrollbar {
@@ -285,7 +286,7 @@
 }
 
 .settings-style-dropdown-content::-webkit-scrollbar-track {
-  background: rgba(30, 30, 30, 0.1);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .settings-style-dropdown-content::-webkit-scrollbar-thumb {
@@ -320,14 +321,14 @@
   flex-direction: column;
   position: relative;
   height: 100%;
-  background-color: rgba(25, 25, 25, 0.95);
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 .rpe-canvas-wrapper {
   flex: 1;
   overflow: hidden;
   position: relative;
-  background-color: rgba(37, 37, 38, 0.6);
+  background-color: rgba(0, 0, 0, 0.3);
 }
 
 .rpe-canvas-container {
@@ -357,7 +358,7 @@
   display: flex;
   justify-content: flex-end;
   padding: 15px;
-  background-color: rgba(30, 30, 30, 0.97);
+  background-color: rgba(0, 0, 0, 0.4);
   border-top: 1px solid rgba(57, 57, 57, 0.8);
 }
 
@@ -377,8 +378,8 @@
   width: 100%;
   height: 300px;
   margin-bottom: 20px;
-  padding-top: 30px; /* 为上方的百分比值留出空间 */
-  background-color: rgba(20, 20, 20, 0.3);
+  padding-top: 30px;
+  background-color: rgba(0, 0, 0, 0.35);
   border-radius: 6px;
   padding: 30px 10px 10px 10px;
   border: 1px solid rgba(60, 60, 60, 0.3);

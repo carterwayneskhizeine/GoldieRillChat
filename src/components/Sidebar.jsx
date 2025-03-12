@@ -461,6 +461,7 @@ export default function Sidebar({
                     window={window}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
+                    sidebarMode={sidebarMode}
                   />
                 )}
               </div>
@@ -603,6 +604,7 @@ export default function Sidebar({
                     window={window}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
+                    sidebarMode={sidebarMode}
                   />
                 )}
               </div>
@@ -666,6 +668,7 @@ export default function Sidebar({
                     window={window}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
+                    sidebarMode={sidebarMode}
                   />
                 )}
               </div>
@@ -731,6 +734,7 @@ export default function Sidebar({
                     window={window}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
+                    sidebarMode={sidebarMode}
                   />
                 )}
               </div>
@@ -780,6 +784,7 @@ export default function Sidebar({
                     window={window}
                     sendToMonaco={sendToMonaco}
                     sendToEditor={sendToEditor}
+                    sidebarMode={sidebarMode}
                   />
                 )}
               </div>

@@ -1436,8 +1436,8 @@ export default function App() {
           setSelectedFiles={setSelectedFiles}
           sendMessage={sendMessage}
           deleteMessage={confirmDeleteMessage}
-          updateMessageInApp={updateMessageInApp}
-          moveMessageInApp={moveMessageInApp}
+          updateMessage={updateMessageInApp}
+          moveMessage={moveMessageInApp}
           enterEditMode={enterEditMode}
           exitEditMode={exitEditMode}
           collapsedMessages={collapsedMessages}
@@ -1523,6 +1523,7 @@ export default function App() {
               shouldScrollToBottom={shouldScrollToBottom}
               setShouldScrollToBottom={setShouldScrollToBottom}
               sidebarOpen={sidebarOpen}
+              sidebarMode={sidebarMode}
             />
           </div>
           

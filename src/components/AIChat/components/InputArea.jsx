@@ -96,6 +96,21 @@ export const InputArea = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      // 检查文本框是否有多行文本
+      const textarea = e.target;
+      const text = textarea.value;
+      const hasMultipleLines = text.includes('\n');
+      
+      // 如果有多行文本，则不阻止默认行为，允许在文本中移动光标
+      if (hasMultipleLines) {
+        // 不做任何处理，让浏览器默认行为生效
+        // 这样可以在多行文本中正常移动光标
+        e.stopPropagation(); // 阻止事件冒泡，防止父组件处理
+      } else {
+        // 否则，将事件传递给父组件的handleKeyDown
+        handleKeyDown(e);
+      }
     } else {
       // 将其他键盘事件传递给原始的handleKeyDown
       handleKeyDown(e);

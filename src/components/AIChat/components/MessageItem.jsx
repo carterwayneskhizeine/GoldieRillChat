@@ -688,14 +688,14 @@ export const MessageItem = ({
                             >
                               {isReasoningCollapsed ? (
                                 <div className="flex items-center gap-1">
-                                  <span>展开</span>
+                                  <span>Expand</span>
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                   </svg>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-1">
-                                  <span>收起</span>
+                                  <span>Collapse</span>
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                                   </svg>
@@ -850,7 +850,7 @@ export const MessageItem = ({
                                 onClick={() => openFileLocation(file)}
                                 title="打开文件位置"
                               >
-                                打开
+                                Open
                               </button>
                             </div>
                           ))}
@@ -967,14 +967,14 @@ export const MessageItem = ({
                   onClick={() => handleHistoryNavigation(message.id, 'prev')}
                   disabled={message.currentHistoryIndex === 0}
                 >
-                  上一条
+                  Previous
                 </button>
                 <button
                   className="btn btn-ghost btn-xs"
                   onClick={() => handleHistoryNavigation(message.id, 'next')}
                   disabled={message.currentHistoryIndex >= message.history.length}
                 >
-                  下一条
+                  Next
                 </button>
                 <span className="text-xs opacity-50">
                   {message.currentHistoryIndex + 1}/{message.history.length + 1}

@@ -243,7 +243,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
     
     // 使用requestAnimationFrame优化滤镜应用
     requestAnimationFrame(() => {
-      applyFilter();
+    applyFilter();
     });
   };
 
@@ -399,7 +399,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
       
       setTimeout(() => {
         setZoom(newZoom);  // 恢复原来的精确缩放值
-        applyFilter();
+      applyFilter();
       }, 20);
     }, 10);
   };
@@ -868,14 +868,14 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
             {/* 底部操作按钮 */}
             <div className="rpe-bottom-controls">
               <button className="bottom-btn" onClick={handleClose}>
-                取消
+                Cancel
                 </button>
               <button 
                 className="bottom-btn save-btn" 
                 onClick={handleSave}
                 style={{ marginLeft: '10px' }}
               >
-                保存
+                Save
                 </button>
             </div>
           </div>
