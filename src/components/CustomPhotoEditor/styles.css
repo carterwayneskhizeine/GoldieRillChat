@@ -4,444 +4,534 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .rpe-modal {
-  width: 100%;
-  height: 100%;
+  width: 90%;
+  height: 90%;
+  background-color: rgba(30, 30, 30, 0.95);
+  border-radius: 8px;
+  color: #d4d4d4;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: scaleIn 0.2s ease;
+  transform-origin: center;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* 左侧垂直标签 */
+.rpe-tabs {
+  width: 40px;
+  background-color: rgba(37, 37, 38, 0.9);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  background-color: #1a1a1a;
-}
-
-/* 主容器样式 - 改为水平分割布局 */
-.rpe-main-container {
-  display: flex;
-  flex-direction: row; /* 改为水平方向 */
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-}
-
-/* 将标签页重新定位到左侧边框 */
-.rpe-tabs {
-  display: flex;
-  flex-direction: column; /* 改为垂直方向 */
-  background-color: #222;
-  border-right: 1px solid #333; /* 改为右侧边框 */
-  border-bottom: none; /* 移除底部边框 */
-  width: 40px; /* 固定宽度 */
-  height: 100%; /* 占满高度 */
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 10;
+  border-right: 1px solid rgba(57, 57, 57, 0.8);
+  justify-content: center;
 }
 
 .rpe-tab {
-  padding: 12px 0; /* 垂直方向的内边距 */
-  width: 100%; /* 占满宽度 */
-  background: none;
+  width: 100%;
+  height: 80px;
+  background-color: transparent;
   border: none;
-  color: #ccc;
-  font-size: 14px;
+  color: #cccccc;
   cursor: pointer;
-  transition: all 0.2s;
-  border-right: 2px solid transparent; /* 右侧指示器 */
-  border-bottom: none; /* 移除底部边框 */
-  height: 50px;
   display: flex;
   justify-content: center;
   align-items: center;
-  writing-mode: vertical-lr; /* 垂直文字 */
-  transform: rotate(180deg); /* 旋转文字方向 */
+  position: relative;
+  padding: 0;
+  transition: all 0.2s ease;
 }
 
 .rpe-tab:hover {
-  background-color: #2a2a2a;
+  background-color: rgba(255, 215, 0, 0.5);
 }
 
 .rpe-tab.active {
-  color: #fff;
-  border-right: 2px solid #89b4fa; /* 右侧活动指示器 */
-  border-bottom: none; /* 移除底部边框 */
-  background-color: #2a2a2a;
+  background-color: rgba(30, 30, 30, 0.9);
+  color: #ffffff;
+  border-left: 2px solid rgba(255, 215, 0, 0.8); /* 使用金色边框，与其他组件一致 */
 }
 
-.rpe-header {
+.rpe-tab-text {
+  writing-mode: vertical-lr;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 主容器 */
+.rpe-main-container {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px; /* 减小内边距 */
-  border-bottom: 1px solid #333;
+  flex: 1;
+  height: 100%;
 }
 
-.rpe-header h3 {
-  margin: 0;
-  font-size: 16px; /* 减小字体 */
-  color: #fff;
-}
-
-.rpe-close-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  color: #ccc;
-}
-
-.rpe-close-button:hover {
-  color: #fff;
-}
-
-/* 左侧控制面板 - 占1/4宽度 */
+/* 左侧控制面板 */
 .rpe-top-controls {
-  background-color: #222;
+  width: 25%;
   padding: 15px;
-  border-right: 1px solid #333; /* 右侧边框 */
-  border-bottom: none; /* 移除底部边框 */
-  width: 25%; /* 占1/4宽度 */
-  height: 100%; /* 占满高度 */
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start; /* 左对齐 */
-  overflow-y: auto; /* 内容过多时可滚动 */
-  position: relative;
-  z-index: 5;
-  margin-left: 40px; /* 为左侧标签页腾出空间 */
+  overflow-y: auto;
+  background-color: rgba(30, 30, 30, 0.97);
+  border-right: 1px solid rgba(57, 57, 57, 0.8);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 100, 0.5) rgba(30, 30, 30, 0.1);
 }
 
-/* 修改内容区域 - 占3/4宽度 */
-.rpe-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  width: 75%; /* 占3/4宽度 */
-  overflow: hidden;
-  position: relative;
-  background-color: #1a1a1a;
+.rpe-top-controls::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* 修改画布包装器，使其占满内容区域 */
-.rpe-canvas-wrapper {
-  flex: 1;
+.rpe-top-controls::-webkit-scrollbar-track {
+  background: rgba(30, 30, 30, 0.1);
+}
+
+.rpe-top-controls::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.5);
+  border-radius: 6px;
+  border: 2px solid rgba(30, 30, 30, 0.1);
+}
+
+/* 按钮网格布局（两列） */
+.rpe-button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Monaco风格按钮 */
+.monaco-style-btn {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #dddddd;
+  border: 1px solid rgba(68, 68, 68, 0.6);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  max-width: 100%;
+  white-space: nowrap;
   overflow: hidden;
-  padding: 15px;
-  background-color: #1a1a1a;
-  position: relative; /* 改为相对定位 */
-  top: 0;
+  text-overflow: ellipsis;
+  transition: all 0.15s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.monaco-style-btn:hover {
+  background-color: rgba(255, 215, 0, 0.5);
+  border-color: rgba(255, 215, 0, 0.6);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.monaco-style-btn.active {
+  background-color: rgba(14, 99, 156, 0.6);
+  color: #ffffff;
+}
+
+.monaco-style-btn:active {
+  transform: translateY(0);
+  background-color: rgba(20, 20, 20, 0.8);
+  transition: all 0.05s ease;
+}
+
+/* 底部按钮 */
+.bottom-btn {
+  padding: 6px 14px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #dddddd;
+  border: 1px solid rgba(68, 68, 68, 0.6);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.save-btn {
+  background-color: rgba(255, 215, 0, 0.3);
+  color: #ffffff;
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+.bottom-btn:hover {
+  background-color: rgba(255, 215, 0, 0.5);
+  border-color: rgba(255, 215, 0, 0.6);
+  transform: translateY(-1px);
+}
+
+.bottom-btn:active {
+  transform: translateY(0);
+  background-color: rgba(20, 20, 20, 0.8);
+  transition: all 0.05s ease;
+}
+
+.save-btn:hover {
+  background-color: rgba(255, 215, 0, 0.5);
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
+.save-btn:active {
+  background-color: rgba(255, 215, 0, 0.6);
+}
+
+/* 输入框两列布局 */
+.rpe-two-column-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  grid-column: span 2;
+}
+
+/* 并排按钮 */
+.rpe-buttons-inline {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  grid-column: span 2;
+  margin-top: 10px;
+}
+
+/* 下拉菜单容器 */
+.rpe-dropdown-container {
+  position: relative;
+  flex: 1;
+}
+
+.rpe-dropdown-container button {
+  width: 100%;
+}
+
+/* Monaco风格输入框 */
+.monaco-style-input {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #dddddd;
+  border: 1px solid rgba(68, 68, 68, 0.6);
+  border-radius: 4px;
+  padding: 7px 10px;
+  width: 100%;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.monaco-style-input:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.1);
+  animation: focusPulse 0.3s ease;
+}
+
+@keyframes focusPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.1); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.2); }
+  100% { box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.1); }
+}
+
+/* 分辨率信息 */
+.rpe-canvas-info {
+  text-align: center;
+  margin: 5px 0;
+  font-size: 13px;
+  color: #dddddd;
+  padding: 4px 0;
+  background-color: rgba(30, 30, 30, 0.6);
+  border-left: 2px solid rgba(255, 215, 0, 0.4);
+}
+
+/* 下拉菜单样式 */
+.settings-style-dropdown-content {
+  background-color: rgba(37, 37, 38, 0.95);
+  border: 1px solid rgba(68, 68, 68, 0.7);
+  border-radius: 4px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  position: absolute;
+  top: 100%;
   left: 0;
-  right: 0;
-  bottom: 60px; /* 为底部按钮预留空间 */
-  height: calc(100% - 60px); /* 计算高度 */
+  margin-top: 4px;
+  backdrop-filter: blur(3px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 100, 0.5) rgba(30, 30, 30, 0.1);
+}
+
+.settings-style-dropdown-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-style-dropdown-content::-webkit-scrollbar-track {
+  background: rgba(30, 30, 30, 0.1);
+}
+
+.settings-style-dropdown-content::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.5);
+  border-radius: 6px;
+  border: 2px solid rgba(30, 30, 30, 0.1);
+}
+
+.settings-style-dropdown-content a {
+  color: #dddddd;
+  padding: 8px 12px;
+  text-decoration: none;
+  display: block;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-style-dropdown-content a:hover {
+  background-color: rgba(255, 215, 0, 0.5);
+  color: #ffffff;
+}
+
+.settings-style-dropdown-content a:active {
+  background-color: rgba(255, 215, 0, 0.4);
+}
+
+/* 右侧画布区域 */
+.rpe-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  background-color: rgba(25, 25, 25, 0.95);
+}
+
+.rpe-canvas-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background-color: rgba(37, 37, 38, 0.6);
 }
 
 .rpe-canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: transparent; /* 透明背景 */
-  overflow: hidden;
-  touch-action: none;
-  width: 100%;
-  height: 100%;
-  max-width: 1200px;
-  max-height: 800px;
-  margin: 0 auto;
 }
 
 .rpe-canvas-preview {
   position: relative;
-  border: 1px solid #444; /* 边框 */
-  background-color: transparent; /* 透明背景 */
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); /* 阴影效果 */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(60, 60, 60, 0.5);
 }
 
 .rpe-canvas {
   display: block;
-  cursor: move;
-  background-color: transparent; /* 透明背景，因为实际白色背景是在canvas中绘制的 */
+  background-color: transparent;
 }
 
-/* 修改底部控制区，仅占据右侧区域 */
+/* 底部控制区域 */
 .rpe-bottom-controls {
-  background-color: #222;
-  padding: 10px 15px;
-  border-top: 1px solid #333;
+  display: flex;
+  justify-content: flex-end;
+  padding: 15px;
+  background-color: rgba(30, 30, 30, 0.97);
+  border-top: 1px solid rgba(57, 57, 57, 0.8);
+}
+
+/* 颜色调整页内容 */
+.rpe-color-controls {
+  width: 100%;
+  padding: 15px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 垂直滑块组 */
+.vertical-slider-container {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  height: 300px;
+  margin-bottom: 20px;
+  padding-top: 30px; /* 为上方的百分比值留出空间 */
+  background-color: rgba(20, 20, 20, 0.3);
+  border-radius: 6px;
+  padding: 30px 10px 10px 10px;
+  border: 1px solid rgba(60, 60, 60, 0.3);
+}
+
+.vertical-slider-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  width: 60px; /* 设置固定宽度 */
+  position: relative;
+}
+
+.vertical-slider {
+  height: 200px;
+  width: 4px; /* 更细的滑块轨道 */
+  background-color: rgba(51, 51, 51, 0.8);
+  border-radius: 2px;
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.vertical-slider-thumb {
+  width: 16px;
+  height: 16px;
+  background-color: #ffffff; /* 白色滑块 */
+  border-radius: 50%;
+  position: absolute;
+  left: -6px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  transition: transform 0.1s ease;
+}
+
+.vertical-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+  background-color: rgba(255, 215, 0, 0.9);
+}
+
+.vertical-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+/* 橙色滑块轨道 */
+.vertical-slider::after {
+  content: '';
   position: absolute;
   bottom: 0;
-  right: 0;
-  width: 75%; /* 与内容区域同宽 */
-  height: 60px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-/* 按钮行样式改为垂直方向 */
-.rpe-button-row {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  margin-bottom: 20px;
-}
-
-.dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.dropdown-btn {
-  background-color: #45475a;
-  color: #cdd6f4;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  min-width: 50px;
-  text-align: center;
-}
-
-.dropdown-content {
-  display: none;
-  position: absolute;
-  background-color: #313244;
-  min-width: 120px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-  z-index: 1;
-  border-radius: 4px;
-  bottom: 100%;
   left: 0;
-  margin-bottom: 5px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.dropdown:hover .dropdown-content {
-  display: block;
-}
-
-.dropdown-content button {
-  color: #cdd6f4;
-  padding: 6px 10px;
-  text-decoration: none;
-  display: block;
-  background: none;
-  border: none;
   width: 100%;
-  text-align: left;
-  cursor: pointer;
+  background-color: rgba(255, 215, 0, 0.7); /* 金色轨道 */
+  border-radius: 2px;
+  z-index: 1;
 }
 
-.dropdown-content button:hover {
-  background-color: #45475a;
+.brightness-slider::after {
+  height: calc(var(--brightness-height, 100%) / 2); 
 }
 
-.icon-button {
-  background-color: #45475a;
-  color: #cdd6f4;
-  border: none;
-  border-radius: 4px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.contrast-slider::after {
+  height: calc(var(--contrast-height, 100%) / 2);
 }
 
-.icon-button:hover {
-  background-color: #585b70;
+.saturate-slider::after {
+  height: calc(var(--saturate-height, 100%) / 2);
 }
 
-.icon-button.active {
-  background-color: #89b4fa;
-  color: #1e1e2e;
+.grayscale-slider::after {
+  height: var(--grayscale-height, 0%);
 }
 
-.icon-button svg {
-  width: 18px;
-  height: 18px;
+/* 添加200%标记，只为亮度、对比度、饱和度滑块添加 */
+.brightness-slider::before,
+.contrast-slider::before,
+.saturate-slider::before {
+  content: '200%';
+  position: absolute;
+  top: -20px;
+  left: -15px;
+  color: #666666;
+  font-size: 10px;
 }
 
-.rpe-canvas-info {
+.vertical-slider-value {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ffffff;
+  font-size: 12px;
+  white-space: nowrap;
+  font-weight: 500;
+  background-color: rgba(255, 215, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 3px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.vertical-slider-label {
+  color: #ffffff;
+  font-size: 14px;
+  margin-top: 8px;
   text-align: center;
-  margin: 6px 0;
-  color: #ccc;
-  font-size: 13px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.rpe-control-panel {
-  margin-bottom: 6px;
-}
-
-.rpe-control-group {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-}
-
-.rpe-control-group input {
-  background-color: #313244;
-  color: #cdd6f4;
-  border: 1px solid #45475a;
-  border-radius: 4px;
-  padding: 6px 8px;
-  width: 80px;
-  font-size: 13px;
-}
-
-.rpe-control-group button {
-  background-color: #89b4fa;
-  color: #1e1e2e;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: bold;
-}
-
-.rpe-action-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-}
-
-.rpe-cancel-button {
-  background-color: #45475a;
-  color: #cdd6f4;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 20px;
-  cursor: pointer;
-  font-size: 14px;
-  min-width: 80px;
-}
-
-.rpe-save-button {
-  background-color: #89b4fa;
-  color: #1e1e2e;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 20px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: bold;
-  min-width: 80px;
-}
-
-.rpe-cancel-button:hover {
-  background-color: #585b70;
-}
-
-.rpe-save-button:hover {
-  background-color: #74c7ec;
-}
-
-/* 分辨率和宽高比设置样式 */
-.rpe-resolution-info {
-  font-size: 13px;
-  color: #ccc;
-  margin-bottom: 6px;
-}
-
-.rpe-resolution-presets,
-.rpe-aspect-ratio-presets {
-  margin-bottom: 10px;
-}
-
-.rpe-resolution-presets select,
-.rpe-aspect-ratio-presets select {
+/* 隐藏滑动条样式 */
+.hidden-range {
+  appearance: none;
   width: 100%;
-  padding: 6px;
-  border: 1px solid #444;
-  border-radius: 4px;
-  font-size: 13px;
-  background-color: #333;
-  color: #ccc;
+  height: 4px;
+  background: rgba(51, 51, 51, 0.8);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
 }
 
-.rpe-resolution-inputs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: flex-end;
-}
-
-.rpe-input-group {
-  flex: 1;
-  min-width: 70px;
-}
-
-.rpe-input-group label {
-  display: block;
-  font-size: 11px;
-  margin-bottom: 3px;
-  color: #ccc;
-}
-
-.rpe-input-group input {
-  width: 100%;
-  padding: 4px 6px;
-  border: 1px solid #444;
-  border-radius: 4px;
-  font-size: 13px;
-  background-color: #333;
-  color: #ccc;
-}
-
-.rpe-resolution-inputs button {
-  padding: 4px 10px;
-  background-color: #1890ff;
-  border: none;
-  border-radius: 4px;
-  color: #fff;
+.hidden-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
   cursor: pointer;
-  font-size: 13px;
-  height: 28px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
 }
 
-.rpe-resolution-inputs button:hover {
-  background-color: #40a9ff;
+.hidden-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
 }
 
-.rpe-reset-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 4px;
-  width: 100%;
+.hidden-range::-webkit-slider-thumb:hover,
+.hidden-range::-moz-range-thumb:hover {
+  background: rgba(255, 215, 0, 0.9);
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
 }
 
-/* 自定义样式，使选项卡文字更清晰 */
-.rpe-tab-text {
-  transform: rotate(180deg); /* 旋转文字 */
-}
-
-/* 调整编辑控制面板样式 */
-.rpe-edit-controls {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start; /* 左对齐 */
-}
-
-/* 修复可能的媒体查询冲突 */
-@media (min-width: 768px) {
-  .rpe-content {
-    flex-direction: column; /* 保持列方向 */
-    width: 75%; /* 维持宽度 */
-  }
+.hidden-range::-webkit-slider-runnable-track,
+.hidden-range::-moz-range-track {
+  background: linear-gradient(to right, rgba(255, 215, 0, 0.7) var(--range-shdw, 0%), rgba(51, 51, 51, 0.8) var(--range-shdw, 0%));
+  height: 4px;
+  border-radius: 2px;
 } 

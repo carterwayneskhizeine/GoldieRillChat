@@ -26,14 +26,72 @@ const defaultLabels = {
 };
 
 const defaultResolutionOptions: Resolution[] = [
-  { width: 512, height: 512 },
+  // 按宽度排序的分辨率预设
   { width: 512, height: 288 },
+  { width: 512, height: 512 },
   { width: 768, height: 320 },
   { width: 768, height: 512 },
-  { width: 1024, height: 576 }
+  { width: 1024, height: 576 },
+  { width: 1024, height: 768 },
+  { width: 1152, height: 768 },
+  { width: 1280, height: 720 },
+  { width: 1600, height: 1200 },
+  { width: 1920, height: 800 },
+  { width: 1920, height: 1080 },
+  { width: 2048, height: 858 },
+  { width: 2560, height: 1080 },
+  { width: 2560, height: 1440 },
+  { width: 3000, height: 2000 },
+  { width: 3440, height: 1440 },
+  { width: 3840, height: 2160 }
 ];
 
-const defaultAspectRatioOptions: string[] = ['16:9', '9:16', '21:9', '4:3', '1:1'];
+const defaultAspectRatioOptions: string[] = [
+  '16:9',
+  '16:10',
+  '16:11',
+  '4:3',
+  '2:1',
+  '21:9',
+  '3:2',
+  '19.5:9',
+  '2.39:1',
+  '2.76:1',
+  '12:5',
+  '4:1',
+  '9:16',
+  '1:1'
+];
+
+// 添加一个检测图片尺寸的辅助函数
+const getImageDimensions = (fileUrl: string): Promise<{width: number, height: number}> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve({
+        width: img.naturalWidth,
+        height: img.naturalHeight
+      });
+    };
+    img.onerror = () => {
+      // 加载失败时返回默认尺寸
+      resolve({ width: 512, height: 512 });
+    };
+    img.src = fileUrl;
+  });
+};
+
+// 更新范围进度的辅助函数
+const updateRangeProgress = (rangeElement: HTMLInputElement | null) => {
+  if (!rangeElement) return;
+  
+  const min = Number(rangeElement.min) || 0;
+  const max = Number(rangeElement.max) || 100;
+  const val = Number(rangeElement.value) || 0;
+  
+  const percentage = ((val - min) / (max - min)) * 100;
+  rangeElement.style.setProperty('--range-shdw', `${percentage}%`);
+};
 
 export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
   file,
@@ -377,6 +435,72 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
     }
   }, [currentResolution]);
 
+  // 添加图片分辨率检测逻辑
+  useEffect(() => {
+    if (file && isOpen) {
+      const detectImageSize = async () => {
+        try {
+          // 创建文件URL
+          const fileUrl = URL.createObjectURL(file);
+          
+          // 获取图片真实尺寸
+          const dimensions = await getImageDimensions(fileUrl);
+          
+          // 更新分辨率设置
+          if (dimensions.width > 0 && dimensions.height > 0) {
+            // 使用handleResolutionChange而不是setCurrentResolution
+            handleResolutionChange(dimensions);
+            setWidthInput(dimensions.width.toString());
+            setHeightInput(dimensions.height.toString());
+          }
+          
+          // 释放URL
+          URL.revokeObjectURL(fileUrl);
+        } catch (error) {
+          console.error('Error detecting image size:', error);
+        }
+      };
+      
+      detectImageSize();
+    }
+  }, [file, isOpen, handleResolutionChange]);
+
+  // 垂直滑块的事件处理函数，用于亮度、对比度和饱和度（0-200%）
+  const handleVerticalSliderMouseDown = (
+    event: React.MouseEvent<HTMLDivElement>,
+    setter: React.Dispatch<React.SetStateAction<number>>,
+    min: number,
+    max: number
+  ) => {
+    const slider = event.currentTarget.parentElement;
+    if (!slider) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = slider.getBoundingClientRect();
+      const height = rect.height;
+      // 对于0-200%范围，需要适当调整计算方式
+      const offsetY = Math.min(Math.max(0, height - (e.clientY - rect.top)), height);
+      const percentage = Math.round((offsetY / height) * (max - min) + min);
+      setter(percentage);
+    };
+    
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // 计算滑块CSS变量，控制橙色轨道高度
+  useEffect(() => {
+    document.documentElement.style.setProperty('--brightness-height', `${brightness}%`);
+    document.documentElement.style.setProperty('--contrast-height', `${contrast}%`);
+    document.documentElement.style.setProperty('--saturate-height', `${saturate}%`);
+    document.documentElement.style.setProperty('--grayscale-height', `${grayscale}%`);
+  }, [brightness, contrast, saturate, grayscale]);
+
   if (!isOpen) {
     return null;
   }
@@ -387,130 +511,180 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
   return (
     <div className="rpe-overlay">
       <div className="rpe-modal">
-        {/* 标签页切换 - 改为垂直排列在左侧 */}
+        {/* 标签页切换 - 垂直排列在最左侧 */}
         <div className="rpe-tabs">
           <button 
             className={`rpe-tab ${activeTab === 'edit' ? 'active' : ''}`}
             onClick={() => setActiveTab('edit')}
             title={mergedLabels.editPicture}
           >
-            <span className="rpe-tab-text">{mergedLabels.editPicture}</span>
+            <span className="rpe-tab-text">编辑图片</span>
           </button>
           <button 
             className={`rpe-tab ${activeTab === 'color' ? 'active' : ''}`}
             onClick={() => setActiveTab('color')}
             title={mergedLabels.color}
           >
-            <span className="rpe-tab-text">{mergedLabels.color}</span>
+            <span className="rpe-tab-text">颜色调整</span>
           </button>
         </div>
 
         {/* 主区域 - 水平分布：左侧控制面板(1/4)，右侧画布(3/4) */}
         <div className="rpe-main-container">
-          {/* 左侧控制面板 - 根据标签页显示不同内容 */}
+          {/* 左侧控制面板 - 根据选项卡显示不同内容 */}
           <div className="rpe-top-controls">
             {activeTab === 'edit' && (
               <div className="rpe-edit-controls">
-                {/* 按钮组 - 垂直排列 */}
+                {/* 按钮按两列排列 */}
                 <div className="rpe-button-row">
-                  {allowResolutionSettings && (
-                    <div className="dropdown dropdown-bottom">
-                      <label tabIndex={0} className="btn btn-sm w-full">分辨率预设</label>
-                      <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
-                        {resolutionOptions.map((option, index) => (
-                          <li key={index}>
-                            <a onClick={() => applyPresetResolution(option)}>
-                              {option.width} x {option.height}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
+                  {/* 旋转按钮 */}
                   {allowRotate && (
                     <>
-                      <button className="btn btn-sm w-full" onClick={() => setRotate((prev) => prev - 90)}>
-                        {mergedLabels.rotate} ↺
+                      <button className="monaco-style-btn" onClick={() => setRotate((prev) => prev - 90)}>
+                        左旋
                       </button>
-                      <button className="btn btn-sm w-full" onClick={() => setRotate((prev) => prev + 90)}>
-                        {mergedLabels.rotate} ↻
+                      <button className="monaco-style-btn" onClick={() => setRotate((prev) => prev + 90)}>
+                        右旋
                       </button>
                     </>
                   )}
 
+                  {/* 翻转按钮 */}
                   {allowFlip && (
                     <>
                       <button 
-                        className={`btn btn-sm w-full ${flipHorizontal ? 'btn-primary' : ''}`}
+                        className={`monaco-style-btn ${flipHorizontal ? 'active' : ''}`}
                         onClick={() => setFlipHorizontal((prev) => !prev)}
                       >
-                        {mergedLabels.flipHorizontal}
+                        水平翻转
                       </button>
                       <button 
-                        className={`btn btn-sm w-full ${flipVertical ? 'btn-primary' : ''}`}
+                        className={`monaco-style-btn ${flipVertical ? 'active' : ''}`}
                         onClick={() => setFlipVertical((prev) => !prev)}
                       >
-                        {mergedLabels.flipVertical}
+                        垂直翻转
                       </button>
                     </>
                   )}
 
+                  {/* 缩放按钮 */}
                   {allowZoom && (
                     <>
-                      <button className="btn btn-sm w-full" onClick={() => handleZoom(0.1)}>
-                        {mergedLabels.zoomIn} +
+                      <button className="monaco-style-btn" onClick={() => handleZoom(0.1)}>
+                        放大
                       </button>
-                      <button className="btn btn-sm w-full" onClick={() => handleZoom(-0.1)}>
-                        {mergedLabels.zoomOut} -
-                      </button>
-                      <button className="btn btn-sm w-full" onClick={fitToHeight}>
-                        {mergedLabels.fitHeight}
+                      <button className="monaco-style-btn" onClick={() => handleZoom(-0.1)}>
+                        缩小
                       </button>
                     </>
                   )}
 
-                  {allowAspectRatioSettings && (
-                    <div className="dropdown dropdown-bottom">
-                      <label tabIndex={0} className="btn btn-sm w-full">{mergedLabels.aspectRatio}</label>
-                      <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
-                        {aspectRatioOptions.map((ratio, index) => (
-                          <li key={index}>
-                            <a onClick={() => handleAspectRatioSelect(ratio)}>
-                              {ratio}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-
-                {/* 分辨率信息 */}
-                <div className="rpe-canvas-info">
-                  <p>分辨率: <span id="currentResolution">{currentResolution.width} x {currentResolution.height}</span></p>
-                </div>
-
-                {/* 分辨率输入控制 */}
-                <div className="rpe-control-panel">
-                  <div className="rpe-control-group">
+                  {/* 分辨率输入框 - 两列 */}
+                  {allowResolutionSettings && (
+                    <div className="rpe-two-column-group">
                     <input 
                       type="number" 
-                      className="input input-bordered input-sm w-full mb-2"
-                      placeholder="宽度" 
+                        className="monaco-style-input"
                       value={widthInput}
                       onChange={handleWidthChange}
                     />
                     <input 
                       type="number" 
-                      className="input input-bordered input-sm w-full mb-2"
-                      placeholder="高度" 
+                        className="monaco-style-input"
                       value={heightInput}
                       onChange={handleHeightChange}
                     />
-                    <button className="btn btn-sm btn-primary w-full" onClick={applyResolution}>
-                      {mergedLabels.apply}
+                    </div>
+                  )}
+
+                  {/* 分辨率信息 */}
+                  {allowResolutionSettings && (
+                    <div className="rpe-canvas-info" style={{ gridColumn: 'span 2' }}>
+                      分辨率: {currentResolution.width} x {currentResolution.height}
+                    </div>
+                  )}
+
+                  {/* 应用和适应高度按钮 */}
+                  {allowResolutionSettings && (
+                    <>
+                      <button className="monaco-style-btn" onClick={applyResolution}>
+                        应用
+                      </button>
+                      <button className="monaco-style-btn" onClick={fitToHeight}>
+                        适应高度
+                      </button>
+                    </>
+                  )}
+
+                  {/* 分辨率预设和宽高比按钮排在同一行 */}
+                  <div className="rpe-buttons-inline">
+                    {/* 分辨率预设按钮 */}
+                    {allowResolutionSettings && (
+                      <div className="rpe-dropdown-container">
+                        <button className="monaco-style-btn" onClick={() => {
+                          const dropdown = document.getElementById('resolution-dropdown');
+                          if (dropdown) {
+                            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                            // 隐藏另一个下拉菜单
+                            const otherDropdown = document.getElementById('aspect-ratio-dropdown');
+                            if (otherDropdown) {
+                              otherDropdown.style.display = 'none';
+                            }
+                          }
+                        }}>
+                          分辨率预设
+                        </button>
+                        {/* 分辨率预设下拉内容 */}
+                        <div 
+                          id="resolution-dropdown" 
+                          className="settings-style-dropdown-content" 
+                          style={{ display: 'none', maxHeight: '350px' }}
+                        >
+                          {defaultResolutionOptions.map((option, index) => (
+                            <a key={index} onClick={() => {
+                              applyPresetResolution(option);
+                              document.getElementById('resolution-dropdown')!.style.display = 'none';
+                            }}>
+                              {option.width} x {option.height}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 宽高比按钮 */}
+                    {allowAspectRatioSettings && (
+                      <div className="rpe-dropdown-container">
+                        <button className="monaco-style-btn" onClick={() => {
+                          const dropdown = document.getElementById('aspect-ratio-dropdown');
+                          if (dropdown) {
+                            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                            // 隐藏另一个下拉菜单
+                            const otherDropdown = document.getElementById('resolution-dropdown');
+                            if (otherDropdown) {
+                              otherDropdown.style.display = 'none';
+                            }
+                          }
+                        }}>
+                          宽高比
                     </button>
+                        {/* 宽高比下拉内容 */}
+                        <div 
+                          id="aspect-ratio-dropdown" 
+                          className="settings-style-dropdown-content" 
+                          style={{ display: 'none', maxHeight: '350px' }}
+                        >
+                          {defaultAspectRatioOptions.map((ratio, index) => (
+                            <a key={index} onClick={() => {
+                              handleAspectRatioSelect(ratio);
+                              document.getElementById('aspect-ratio-dropdown')!.style.display = 'none';
+                            }}>
+                              {ratio}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -518,77 +692,129 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
 
             {activeTab === 'color' && (
               <div className="rpe-color-controls">
-                <div className="rpe-slider-row">
-                  {/* 亮度滑块 */}
-                  <div className="rpe-slider-group">
-                    <div className="rpe-slider-label-row">
-                      <span>{mergedLabels.brightness}: {brightness}%</span>
+                {/* 使用垂直滑动条布局，类似截图 */}
+                <div className="vertical-slider-container">
+                  {/* 亮度滑块 - 范围0-200% */}
+                  <div className="vertical-slider-group">
+                    <div className="vertical-slider brightness-slider">
+                      <div 
+                        className="vertical-slider-thumb"
+                        style={{ bottom: `${brightness / 2}%` }} // 调整为0-200%范围
+                        title={`亮度: ${brightness}%`}
+                        onMouseDown={(e) => handleVerticalSliderMouseDown(e, setBrightness, 0, 200)}
+                      >
+                        <div className="vertical-slider-value">{brightness}%</div>
+                      </div>
                     </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="200" 
-                      value={brightness} 
-                      onChange={(e) => handleInputChange(e, setBrightness, 0, 200)}
-                      className="range range-sm w-full"
-                    />
+                    <div className="vertical-slider-label">亮度</div>
                   </div>
-                  
-                  {/* 对比度滑块 */}
-                  <div className="rpe-slider-group">
-                    <div className="rpe-slider-label-row">
-                      <span>{mergedLabels.contrast}: {contrast}%</span>
+
+                  {/* 对比度滑块 - 范围0-200% */}
+                  <div className="vertical-slider-group">
+                    <div className="vertical-slider contrast-slider">
+                      <div 
+                        className="vertical-slider-thumb"
+                        style={{ bottom: `${contrast / 2}%` }} // 调整为0-200%范围
+                        title={`对比度: ${contrast}%`}
+                        onMouseDown={(e) => handleVerticalSliderMouseDown(e, setContrast, 0, 200)}
+                      >
+                        <div className="vertical-slider-value">{contrast}%</div>
+                      </div>
                     </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="200" 
-                      value={contrast} 
-                      onChange={(e) => handleInputChange(e, setContrast, 0, 200)}
-                      className="range range-sm w-full"
-                    />
+                    <div className="vertical-slider-label">对比度</div>
                   </div>
-                
-                  {/* 饱和度滑块 */}
-                  <div className="rpe-slider-group">
-                    <div className="rpe-slider-label-row">
-                      <span>{mergedLabels.saturate}: {saturate}%</span>
+
+                  {/* 饱和度滑块 - 范围0-200% */}
+                  <div className="vertical-slider-group">
+                    <div className="vertical-slider saturate-slider">
+                      <div 
+                        className="vertical-slider-thumb"
+                        style={{ bottom: `${saturate / 2}%` }} // 调整为0-200%范围
+                        title={`饱和度: ${saturate}%`}
+                        onMouseDown={(e) => handleVerticalSliderMouseDown(e, setSaturate, 0, 200)}
+                      >
+                        <div className="vertical-slider-value">{saturate}%</div>
+                      </div>
                     </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="200" 
-                      value={saturate} 
-                      onChange={(e) => handleInputChange(e, setSaturate, 0, 200)}
-                      className="range range-sm w-full"
-                    />
+                    <div className="vertical-slider-label">饱和度</div>
                   </div>
-                  
-                  {/* 灰度滑块 */}
-                  <div className="rpe-slider-group">
-                    <div className="rpe-slider-label-row">
-                      <span>{mergedLabels.grayscale}: {grayscale}%</span>
+
+                  {/* 灰度滑块 - 保持范围0-100% */}
+                  <div className="vertical-slider-group">
+                    <div className="vertical-slider grayscale-slider">
+                      <div 
+                        className="vertical-slider-thumb"
+                        style={{ bottom: `${grayscale}%` }} // 保持原样
+                        title={`灰度: ${grayscale}%`}
+                        onMouseDown={(e) => handleVerticalSliderMouseDown(e, setGrayscale, 0, 100)}
+                      >
+                        <div className="vertical-slider-value">{grayscale}%</div>
+                      </div>
                     </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={grayscale} 
-                      onChange={(e) => handleInputChange(e, setGrayscale, 0, 100)}
-                      className="range range-sm w-full"
-                    />
+                    <div className="vertical-slider-label">灰度</div>
                   </div>
                 </div>
+
+                {/* 隐藏的实际滑动条控件 */}
+                <div style={{ display: 'none' }}>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="200" 
+                        value={brightness} 
+                    onChange={(e) => {
+                      handleInputChange(e, setBrightness, 0, 200);
+                      updateRangeProgress(e.target);
+                    }}
+                    className="hidden-range"
+                    style={{ ["--range-shdw" as any]: `${brightness/2}%` }}
+                  />
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="200" 
+                        value={contrast} 
+                    onChange={(e) => {
+                      handleInputChange(e, setContrast, 0, 200);
+                      updateRangeProgress(e.target);
+                    }}
+                    className="hidden-range"
+                    style={{ ["--range-shdw" as any]: `${contrast/2}%` }}
+                  />
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="200" 
+                        value={saturate} 
+                    onChange={(e) => {
+                      handleInputChange(e, setSaturate, 0, 200);
+                      updateRangeProgress(e.target);
+                    }}
+                    className="hidden-range"
+                    style={{ ["--range-shdw" as any]: `${saturate/2}%` }}
+                  />
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={grayscale} 
+                    onChange={(e) => {
+                      handleInputChange(e, setGrayscale, 0, 100);
+                      updateRangeProgress(e.target);
+                    }}
+                    className="hidden-range"
+                    style={{ ["--range-shdw" as any]: `${grayscale}%` }}
+                  />
+                </div>
                 
-                {/* 重置按钮行 */}
-                <div className="rpe-reset-row">
+                {/* 重置按钮 */}
                   <button 
-                    className="btn btn-sm btn-outline w-full" 
+                  className="monaco-style-btn" 
                     onClick={handleResetColors}
+                  style={{ width: '100%', marginTop: '20px' }}
                   >
-                    {mergedLabels.reset}
+                  重置
                   </button>
-                </div>
               </div>
             )}
           </div>
@@ -627,14 +853,16 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
 
             {/* 底部操作按钮 */}
             <div className="rpe-bottom-controls">
-              <div className="rpe-action-buttons">
-                <button className="btn btn-sm" onClick={handleClose}>
-                  {mergedLabels.cancel}
+              <button className="bottom-btn" onClick={handleClose}>
+                取消
                 </button>
-                <button className="btn btn-sm btn-primary ml-2" onClick={handleSave}>
-                  {mergedLabels.save}
+              <button 
+                className="bottom-btn save-btn" 
+                onClick={handleSave}
+                style={{ marginLeft: '10px' }}
+              >
+                保存
                 </button>
-              </div>
             </div>
           </div>
         </div>
