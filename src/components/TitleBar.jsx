@@ -648,8 +648,8 @@ export default function TitleBar({
         ) : activeTool === 'aichat' ? (
           <div className="w-full flex items-center gap-3 no-drag app-drag-region">
             {/* 左侧会话名称 */}
-            <div className="flex-1 flex justify-start items-center ml-2 min-w-0">
-              <h2 className="text-xs opacity-70 truncate max-w-[200px]">
+            <div className="flex-1 flex justify-start items-center ml-2 min-w-0 app-drag-region">
+              <h2 className="text-xs opacity-70 truncate max-w-[200px] app-drag-region">
                 {currentConversation?.name || 'Current session'}
               </h2>
             </div>
@@ -862,8 +862,8 @@ export default function TitleBar({
         ) : activeTool === 'chat' ? (
           <div className="w-full flex items-center gap-3 no-drag app-drag-region">
             {/* 只显示左侧会话名称 */}
-            <div className="flex-1 flex justify-start items-center ml-2 min-w-0">
-              <h2 className="text-xs opacity-70 truncate max-w-[200px]">
+            <div className="flex-1 flex justify-start items-center ml-2 min-w-0 app-drag-region">
+              <h2 className="text-xs opacity-70 truncate max-w-[200px] app-drag-region">
                 {currentConversation?.name || 'Current session'}
               </h2>
             </div>
