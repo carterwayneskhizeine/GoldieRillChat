@@ -1384,7 +1384,7 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       // 如果当前正在编辑消息，或者当前有输入框被选中，不处理快捷键
-      if (editingMessageId || document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+      if (editingMessage || document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
         return;
       }
            
