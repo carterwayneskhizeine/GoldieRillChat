@@ -184,7 +184,7 @@ export const InputArea = ({
 
   return (
     <div className="border-t border-base-300 p-4 bg-transparent">
-      <div className="relative max-w-[750px] mx-auto">
+      <div className="relative max-w-[770px] mx-auto">
         {/* 显示已选择的文件 */}
         {selectedFiles && selectedFiles.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">

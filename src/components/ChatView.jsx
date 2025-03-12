@@ -1623,7 +1623,7 @@ export function ChatView({
         <div className={`absolute bottom-0 left-0 ${isCompact ? 'right-[20px] p-2 pointer-events-none bg-transparent' : 'right-[20px] p-4 bg-transparent'}`} style={{ 
           bottom: isCompact ? '48px' : '0px'
         }}>
-          <div className={`${isCompact ? 'max-w-[300px] mx-auto pointer-events-auto' : 'max-w-3xl mx-auto'}`}>
+          <div className={`${isCompact ? 'max-w-[300px] mx-auto pointer-events-auto' : 'max-w-[770px] mx-auto'}`}>
             {selectedFiles.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
                 {selectedFiles.map((file, index) => (
