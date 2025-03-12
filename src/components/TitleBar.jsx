@@ -581,11 +581,18 @@ export default function TitleBar({
             </div>
           </div>
         ) : activeTool === 'aichat' ? (
-          <div className="w-full flex items-center gap-1 no-drag app-drag-region">
-            {/* 左侧模型选择 */}
-            <div className="flex-none ml-5 no-drag" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
+          <div className="w-full flex items-center gap-3 no-drag app-drag-region">
+            {/* 左侧会话名称 */}
+            <div className="flex-1 flex justify-start items-center ml-2 min-w-0">
+              <h2 className="text-xs opacity-70 truncate max-w-[200px]">
+                {currentConversation?.name || 'Current session'}
+              </h2>
+            </div>
+
+            {/* 中间右侧模型选择 */}
+            <div className="flex-none ml-auto mr-4" style={{ width: '220px' }}>
               <select 
-                className="select select-bordered select-xs w-[300px] no-drag"
+                className="select select-bordered select-xs w-full"
                 value={selectedModel || ''}
                 onChange={(e) => {
                   setSelectedModel && setSelectedModel(e.target.value);
@@ -611,22 +618,8 @@ export default function TitleBar({
               </select>
             </div>
 
-            {/* 中间对话名称 - 使用flex-1确保占据剩余空间并居中显示 */}
-            <div className="flex-1 flex justify-center items-center app-drag-region" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
-              <h2 className="text-xs opacity-70 app-drag-region" 
-                  style={isImageBackground ? { 
-                    textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
-                    color: 'white',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    padding: '2px 6px',
-                    borderRadius: '4px'
-                  } : {}}>
-                {currentConversation?.name || 'Current session'}
-              </h2>
-            </div>
-
-            {/* 右侧设置区域 */}
-            <div className="flex-none flex items-center gap-4" style={isImageBackground ? { position: 'relative', zIndex: 10 } : {}}>
+            {/* 右侧参数控制 */}
+            <div className="flex-none flex items-center gap-4">
               {/* 参数控制下拉菜单 */}
               <div className="dropdown dropdown-bottom dropdown-end">
                 <label tabIndex={0} className="btn btn-ghost btn-xs btn-circle m-1" style={isImageBackground ? { 
@@ -799,6 +792,15 @@ export default function TitleBar({
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        ) : activeTool === 'chat' ? (
+          <div className="w-full flex items-center gap-3 no-drag app-drag-region">
+            {/* 只显示左侧会话名称 */}
+            <div className="flex-1 flex justify-start items-center ml-2 min-w-0">
+              <h2 className="text-xs opacity-70 truncate max-w-[200px]">
+                {currentConversation?.name || 'Current session'}
+              </h2>
             </div>
           </div>
         ) : null}
