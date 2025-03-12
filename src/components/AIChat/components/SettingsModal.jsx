@@ -1430,7 +1430,7 @@ export const SettingsModal = ({
                       </svg>
                     </button>
                   </div>
-                  <div className="text-xs opacity-70 mt-1">设置随机种子以获得可重复的结果（0-9999999999），留空则随机生成</div>
+                  <div className="text-xs opacity-70 mt-1">设置随机种子以获得可重复的结果，留空则随机生成</div>
                 </div>
 
                 {/* 帮助信息 */}
