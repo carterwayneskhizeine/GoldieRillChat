@@ -749,6 +749,35 @@ export function ChatView({
     }
   };
 
+  // 添加键盘事件处理，处理Ctrl+S快捷键
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // 检测是否是 Ctrl+S
+      if (e.ctrlKey && e.key === 's') {
+        // 获取当前活动工具
+        const activeTool = localStorage.getItem('active_tool');
+        
+        // 只有当前是Chat页面才处理快捷键
+        if (activeTool === 'chat') {
+          e.preventDefault();
+          e.stopPropagation(); // 阻止事件冒泡，确保App.jsx中的处理也能正确工作
+
+          // 直接触发自定义设置事件，确保在Chat界面可以打开设置
+          const event = new CustomEvent('open-chat-settings');
+          window.dispatchEvent(event);
+        }
+      }
+    };
+    
+    // 添加事件监听
+    window.addEventListener('keydown', handleKeyPress, true); // 使用捕获阶段
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress, true);
+    };
+  }, []);
+
   return (
     <div 
       className={`flex flex-col h-full relative ${isCompact ? 'chat-view-compact' : ''}`}

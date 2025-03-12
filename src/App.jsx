@@ -1383,13 +1383,20 @@ export default function App() {
   // 添加侧边栏快捷键控制和工具页面快捷键
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // 检测 Ctrl + G 组合键
+      // 如果当前正在编辑消息，或者当前有输入框被选中，不处理快捷键
+      if (editingMessageId || document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+        return;
+      }
+           
+      // 切换侧边栏显示/隐藏
       if (e.ctrlKey && e.key === 'g') {
+        e.preventDefault(); // 阻止默认行为
+        
         // 切换侧边栏状态
         setSidebarOpen(!sidebarOpen);
         return;
       }
-
+      
       // 添加工具页面快捷键切换功能 (Ctrl + 1-6)
       if (e.ctrlKey && /^[1-6]$/.test(e.key)) {
         const index = parseInt(e.key) - 1;
@@ -1478,6 +1485,33 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [sidebarOpen, setActiveTool, switchTool, activeTool, conversations, currentConversation, keyboardSelectedConversationId, isKeyboardNavigating, handleConversationSelect]); // 更新依赖数组
+
+  // 添加activeTool变更时的处理，将当前工具记录到localStorage
+  useEffect(() => {
+    // 将当前活动工具保存到localStorage，供其他组件判断当前界面使用
+    localStorage.setItem('active_tool', activeTool);
+    
+    // 触发自定义事件通知其他组件工具已切换
+    const event = new CustomEvent('tool-changed', { 
+      detail: { tool: activeTool } 
+    });
+    window.dispatchEvent(event);
+  }, [activeTool]);
+
+  // 添加监听Chat界面设置事件的处理
+  useEffect(() => {
+    const handleOpenChatSettings = () => {
+      // 直接打开设置弹窗
+      setShowSettings(true);
+      console.log('打开Chat设置事件被触发');
+    };
+    
+    window.addEventListener('open-chat-settings', handleOpenChatSettings);
+    
+    return () => {
+      window.removeEventListener('open-chat-settings', handleOpenChatSettings);
+    };
+  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-base-100">

@@ -23,7 +23,8 @@ export const MessageList = ({
   setMessages,
   handleFileDrop,
   fileInputRef,
-  sidebarOpen = true
+  sidebarOpen = true,
+  setShowSettings
 }) => {
   const messagesEndRef = useRef(null);
 
@@ -48,6 +49,36 @@ export const MessageList = ({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxImages, setLightboxImages] = useState([]);
+
+  // 添加键盘事件监听，Ctrl+S 打开设置弹窗
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // 检测 Ctrl+S 组合键
+      if (e.ctrlKey && e.key === 's') {
+        // 获取当前活动工具
+        const activeTool = localStorage.getItem('active_tool') || 'aichat';
+        
+        // 只有当前是AI Chat界面时才处理快捷键
+        if (activeTool === 'aichat') {
+          e.preventDefault(); // 阻止浏览器默认的保存行为
+          e.stopPropagation(); // 阻止事件冒泡，避免与App.jsx中的处理冲突
+          
+          // 如果设置打开函数存在，则调用
+          if (typeof setShowSettings === 'function') {
+            setShowSettings(true);
+          }
+        }
+      }
+    };
+    
+    // 添加事件监听 - 使用捕获阶段以确保能够先于其他处理函数执行
+    window.addEventListener('keydown', handleKeyPress, true);
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress, true);
+    };
+  }, [setShowSettings]);
 
   // 新增：wheel事件监听器，用于捕获鼠标滚轮方向及累积值
   useEffect(() => {

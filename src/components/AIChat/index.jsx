@@ -613,6 +613,29 @@ export const AIChat = ({
   const [, updateState] = useState({});
   const forceUpdate = useCallback(() => updateState({}), []);
 
+  // 监听工具切换，确保当离开AIChat界面时关闭设置弹窗
+  useEffect(() => {
+    const handleToolChange = (event) => {
+      // 如果有事件对象，从事件中获取当前工具
+      const currentTool = event?.detail?.tool || localStorage.getItem('active_tool');
+      
+      // 如果当前工具不是AIChat且设置面板是打开的，则关闭设置面板
+      if (currentTool && currentTool !== 'aichat' && modelState.showSettings) {
+        modelState.setShowSettings(false);
+      }
+    };
+    
+    // 添加自定义事件监听
+    window.addEventListener('tool-changed', handleToolChange);
+    
+    // 初始检查
+    handleToolChange();
+    
+    return () => {
+      window.removeEventListener('tool-changed', handleToolChange);
+    };
+  }, [modelState.showSettings, modelState.setShowSettings]);
+
   return (
     <div className="flex flex-col h-full w-full">
       {/* 只在 handlers 都准备好后渲染内容 */}
@@ -656,6 +679,7 @@ export const AIChat = ({
               handleFileDrop={handleFileDrop}
               fileInputRef={fileInputRef}
               sidebarOpen={sidebarOpen}
+              setShowSettings={modelState.setShowSettings}
             />
           </div>
 
