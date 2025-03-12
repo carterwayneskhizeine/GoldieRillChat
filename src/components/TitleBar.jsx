@@ -650,11 +650,9 @@ export default function TitleBar({
                     backdropFilter: 'blur(10px)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     color: 'white',
-                    right: 0,
-                    transform: 'translateX(-100%)'
+                    right: 0
                   } : {
-                    right: 0,
-                    transform: 'translateX(-100%)'
+                    right: 0
                   }}
                 >
                   <div className="p-1">

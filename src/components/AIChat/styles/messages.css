@@ -4,9 +4,9 @@
   padding-bottom: 32px;
   contain: paint;
   isolation: isolate;
-  width: calc(100% - 6rem); /* 增加边距，从两侧各减少1.5rem的宽度 */
+  width: 100%;
+  max-width: 770px; /* 设置最大宽度为770px */
   margin: 0 auto; /* 居中显示 */
-  max-width: 100%;
 }
 
 .message-content {

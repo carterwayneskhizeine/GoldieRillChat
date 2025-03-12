@@ -242,7 +242,7 @@ export const InputArea = ({
           />
           
           {/* 左侧按钮容器 - 绝对定位在textarea底部，增加左侧内边距使按钮位置更明显 */}
-          <div className="absolute left-6 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
+          <div className="absolute left-4 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
             {isTranslating ? (
               <div className="relative inline-flex items-center justify-center w-8 h-8">
                 <button
@@ -306,7 +306,7 @@ export const InputArea = ({
           </div>
           
           {/* 右侧按钮容器 - 绝对定位在textarea底部，增加右侧内边距使按钮位置更明显 */}
-          <div className="absolute right-6 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
+          <div className="absolute right-4 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
             <button 
               className="btn btn-ghost btn-sm btn-circle"
               onClick={sendMessage}

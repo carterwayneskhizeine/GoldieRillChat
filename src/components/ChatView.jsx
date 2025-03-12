@@ -59,7 +59,7 @@ export function ChatView({
   collapsedMessages,
   setCollapsedMessages,
   handleImageClick,
-  fileInputRef,
+  fileInputRef: externalFileInputRef,
   editingFileName,
   setEditingFileName,
   fileNameInput,
@@ -86,6 +86,7 @@ export function ChatView({
   const chatContainerRef = useRef(null);
   const dropZoneRef = useRef(null);
   const textareaRef = useRef(null);
+  const localFileInputRef = useRef(null);
   const [editorLanguage, setEditorLanguage] = useState("plaintext");
   const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [fontSize, setFontSize] = useState(14);
@@ -1680,14 +1681,7 @@ export function ChatView({
               <div className="absolute bottom-3 left-[15px] flex items-center gap-2">
                 <button
                   className="btn btn-ghost btn-sm btn-circle"
-                  onClick={() => {
-                    console.log('点击上传文件按钮');
-                    if (fileInputRef && fileInputRef.current) {
-                      fileInputRef.current.click();
-                    } else {
-                      console.error('fileInputRef未正确初始化');
-                    }
-                  }}
+                  onClick={() => (externalFileInputRef || localFileInputRef).current?.click()}
                   title="上传文件"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1710,76 +1704,6 @@ export function ChatView({
           </div>
         </div>
       )}
-
-      {/* 隐藏的文件输入元素 */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: 'none' }}
-        multiple
-        onChange={(e) => {
-          console.log('文件选择事件触发', e.target.files);
-          if (!currentConversation) {
-            alert('请先选择或创建一个对话');
-            return;
-          }
-
-          if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files);
-            
-            // 显示上传状态
-            setIsUploading(true);
-            setUploadProgress(0);
-            
-            // 记录总文件数和已处理文件数
-            const totalFiles = files.length;
-            let processedCount = 0;
-            
-            Promise.all(
-              files.map(async (file) => {
-                try {
-                  console.log(`处理文件: ${file.name} (${file.type}), 大小: ${(file.size/1024/1024).toFixed(2)}MB`);
-                  
-                  // 将文件保存到对话文件夹
-                  const result = await window.electron.saveFile(currentConversation.path, {
-                    name: file.name,
-                    data: await file.arrayBuffer()
-                  });
-                  
-                  // 更新进度
-                  processedCount++;
-                  setUploadProgress(Math.floor((processedCount / totalFiles) * 100));
-                  
-                  console.log(`文件保存成功: ${result.path}`);
-                  return {
-                    name: result.name,
-                    path: result.path,
-                    type: file.type
-                  };
-                } catch (error) {
-                  console.error('保存文件失败:', error);
-                  throw error;
-                }
-              })
-            )
-            .then((processedFiles) => {
-              // 更新选中的文件列表
-              setSelectedFiles([...selectedFiles, ...processedFiles]);
-              // 重置文件输入元素，允许再次选择相同文件
-              e.target.value = '';
-              // 完成上传
-              setIsUploading(false);
-              console.log(`成功上传 ${processedFiles.length} 个文件`);
-            })
-            .catch((error) => {
-              console.error('处理文件时出错:', error);
-              alert('上传文件失败: ' + error.message);
-              e.target.value = '';
-              setIsUploading(false);
-            });
-          }
-        }}
-      />
 
       {/* 上传进度指示器 */}
       {isUploading && (
@@ -1964,6 +1888,76 @@ export function ChatView({
           }}
         />
       )}
+
+      {/* 隐藏的文件输入元素 */}
+      <input
+        type="file"
+        ref={externalFileInputRef || localFileInputRef}
+        style={{ display: 'none' }}
+        multiple
+        onChange={(e) => {
+          console.log('文件选择事件触发', e.target.files);
+          if (!currentConversation) {
+            alert('请先选择或创建一个对话');
+            return;
+          }
+
+          if (e.target.files && e.target.files.length > 0) {
+            const files = Array.from(e.target.files);
+            
+            // 显示上传状态
+            setIsUploading(true);
+            setUploadProgress(0);
+            
+            // 记录总文件数和已处理文件数
+            const totalFiles = files.length;
+            let processedCount = 0;
+            
+            Promise.all(
+              files.map(async (file) => {
+                try {
+                  console.log(`处理文件: ${file.name} (${file.type}), 大小: ${(file.size/1024/1024).toFixed(2)}MB`);
+                  
+                  // 将文件保存到对话文件夹
+                  const result = await window.electron.saveFile(currentConversation.path, {
+                    name: file.name,
+                    data: await file.arrayBuffer()
+                  });
+                  
+                  // 更新进度
+                  processedCount++;
+                  setUploadProgress(Math.floor((processedCount / totalFiles) * 100));
+                  
+                  console.log(`文件保存成功: ${result.path}`);
+                  return {
+                    name: result.name,
+                    path: result.path,
+                    type: file.type
+                  };
+                } catch (error) {
+                  console.error('保存文件失败:', error);
+                  throw error;
+                }
+              })
+            )
+            .then((processedFiles) => {
+              // 更新选中的文件列表
+              setSelectedFiles([...selectedFiles, ...processedFiles]);
+              // 重置文件输入元素，允许再次选择相同文件
+              e.target.value = '';
+              // 完成上传
+              setIsUploading(false);
+              console.log(`成功上传 ${processedFiles.length} 个文件`);
+            })
+            .catch((error) => {
+              console.error('处理文件时出错:', error);
+              alert('上传文件失败: ' + error.message);
+              e.target.value = '';
+              setIsUploading(false);
+            });
+          }
+        }}
+      />
     </div>
   );
 } 
