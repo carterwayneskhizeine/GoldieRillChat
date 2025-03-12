@@ -74,7 +74,9 @@ export default function Sidebar({
   shaderPresets,
   setShaderPresets,
   currentShaderPreset,
-  setCurrentShaderPreset
+  setCurrentShaderPreset,
+  keyboardSelectedConversationId,
+  isKeyboardNavigating
 }) {
   const [openChatFolder, setOpenChatFolder] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -178,6 +180,15 @@ export default function Sidebar({
 
   const handleConversationClick = (conversation) => {
     if (editingFolderName === conversation.id) return;
+    
+    // 点击时退出键盘导航模式
+    if (isKeyboardNavigating) {
+      // 这里只通过事件触发，使App.jsx中的状态更新
+      window.dispatchEvent(new CustomEvent('exit-keyboard-nav', {
+        detail: { conversationId: conversation.id }
+      }));
+    }
+    
     loadConversation(conversation.id);
     setTimeout(() => {
       const messagesContainer = document.querySelector('.chat-view-messages');
@@ -322,7 +333,11 @@ export default function Sidebar({
                   {conversations.map(conversation => (
                     <div
                       key={conversation.id}
-                      className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''} ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                      className={`btn btn-ghost justify-between 
+                        ${currentConversation?.id === conversation.id ? 'btn-active' : ''} 
+                        ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}
+                        ${isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? 'keyboard-selected-conversation' : ''}
+                        conversation-item-${conversation.id}`}
                       draggable={editingFolderName === null}
                       onDragStart={() => {
                         if (editingFolderName !== null) return;
@@ -359,6 +374,11 @@ export default function Sidebar({
                         });
                       }}
                       onClick={() => handleConversationClick(conversation)}
+                      style={isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? {
+                        borderColor: 'gold',
+                        borderWidth: '2px',
+                        boxShadow: '0 0 4px gold'
+                      } : {}}
                     >
                       <div className="flex items-center gap-2 flex-1">
                         {editingFolderName === conversation.id ? (
@@ -478,7 +498,11 @@ export default function Sidebar({
                         {conversations.map(conversation => (
                           <div
                             key={conversation.id}
-                            className={`btn btn-ghost justify-between ${currentConversation?.id === conversation.id ? 'btn-active' : ''} ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}`}
+                            className={`btn btn-ghost justify-between 
+                              ${currentConversation?.id === conversation.id ? 'btn-active' : ''} 
+                              ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}
+                              ${isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? 'keyboard-selected-conversation' : ''}
+                              conversation-item-${conversation.id}`}
                             draggable={editingFolderName === null}
                             onDragStart={() => {
                               if (editingFolderName !== null) return;
@@ -515,6 +539,11 @@ export default function Sidebar({
                               });
                             }}
                             onClick={() => handleConversationClick(conversation)}
+                            style={isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? {
+                              borderColor: 'gold',
+                              borderWidth: '2px',
+                              boxShadow: '0 0 4px gold'
+                            } : {}}
                           >
                             <div className="flex items-center gap-2 flex-1">
                               {editingFolderName === conversation.id ? (

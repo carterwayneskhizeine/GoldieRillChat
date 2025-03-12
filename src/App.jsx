@@ -94,6 +94,10 @@ export default function App() {
   const [sidebarMode, setSidebarMode] = useState(initialSidebarState.sidebarMode)
   const [previousMode, setPreviousMode] = useState(initialSidebarState.previousMode)
 
+  // 添加键盘导航状态
+  const [keyboardSelectedConversationId, setKeyboardSelectedConversationId] = useState(null)
+  const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false)
+
   // UI状态
   const initialUIState = initializeUIState()
   const [showSettings, setShowSettings] = useState(initialUIState.showSettings)
@@ -171,7 +175,7 @@ export default function App() {
   // 在useEffect中添加电子书签store的连接
   useEffect(() => {
     // 这里是实际项目中书签状态的集成代码
-    // 在生产环境中，这里应该从window.bookmarks获取书签状态
+    // 在生产环境中，这里应该从window.electron?.bookmarks获取书签状态
     const unsubscribe = window.electron?.bookmarks?.onBookmarksPanelToggle((isVisible) => {
       setShowBookmarksPanel(isVisible);
     });
@@ -635,18 +639,22 @@ export default function App() {
     drawImage(canvasRef.current, editorState)
   }, [editorState, canvasSize])
 
-  // 添加对activeTool的监听，处理面板切换
+  // 在切换工具时处理状态初始化
   useEffect(() => {
-    if (activeTool === 'editor') {
-      // 使用setTimeout确保canvas已经渲染
-      setTimeout(() => {
-        drawImage(canvasRef.current, editorState)
-      }, 0)
-    } else if (activeTool === 'chat') {
-      // 切换到chat面板时滚动到底部
-      setTimeout(() => {
-        scrollToBottom()
-      }, 0)
+    // 工具切换时重置键盘导航状态
+    setIsKeyboardNavigating(false);
+    setKeyboardSelectedConversationId(null);
+
+    // 其它工具状态初始化代码...
+    if (activeTool === 'chat') {
+      // 进入chat工具时，如果有之前保存的对话，加载它
+      if (currentConversation) {
+        handleConversationSelect(currentConversation.id);
+      } else if (conversations.length > 0) {
+        setTimeout(() => {
+          handleConversationSelect(conversations[0].id);
+        }, 200);
+      }
     } else if (activeTool === 'aichat') {
       // 切换到 AI Chat 界面时清空选中的会话和消息
       setCurrentConversation(null);
@@ -834,18 +842,14 @@ export default function App() {
       if (tool === 'aichat') {
         // 确保有当前对话
         if (currentConversation) {
-          console.log('切换到AIChat，保持当前对话:', currentConversation.name);
           // 使用setTimeout确保工具切换完成后再选择对话
           setTimeout(() => {
             handleConversationSelect(currentConversation.id);
           }, 100);
-        } else {
-          console.log('切换到AIChat，但没有当前对话');
         }
       }
       // 如果提供了新的对话，创建并选择它
       else if (conversation) {
-        console.log('收到新对话:', conversation.name || '未命名');
         handleConversationCreate(conversation)
           .then(() => {
             handleConversationSelect(conversation.id);
@@ -1354,7 +1358,6 @@ export default function App() {
   useEffect(() => {
     // 如果当前工具是AI Chat并且有当前对话
     if (activeTool === 'aichat' && currentConversation) {
-      console.log('当前工具是AI Chat，确保使用当前对话:', currentConversation.name);
       // 使用setTimeout确保状态更新后再选择对话
       setTimeout(() => {
         handleConversationSelect(currentConversation.id);
@@ -1362,41 +1365,109 @@ export default function App() {
     }
   }, [activeTool]); // 只在activeTool变化时触发
 
-  // 添加侧边栏快捷键控制 (ALT + G) 和工具页面快捷键 (ALT + 数字键)
+  // 监听退出键盘导航事件
+  useEffect(() => {
+    const handleExitKeyboardNav = (e) => {
+      setIsKeyboardNavigating(false);
+      setKeyboardSelectedConversationId(null);
+    };
+    
+    window.addEventListener('exit-keyboard-nav', handleExitKeyboardNav);
+    
+    return () => {
+      window.removeEventListener('exit-keyboard-nav', handleExitKeyboardNav);
+    };
+  }, []);
+
+  // 添加侧边栏快捷键控制和工具页面快捷键
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // 检测 ALT + G 组合键
+      // 检测 Ctrl + G 组合键
       if (e.ctrlKey && e.key === 'g') {
         // 切换侧边栏状态
         setSidebarOpen(!sidebarOpen);
-        console.log('快捷键: ALT+G 切换侧边栏', !sidebarOpen ? '显示' : '隐藏');
         return;
       }
 
-      // 添加工具页面快捷键切换功能 (ALT + 1-6)
+      // 添加工具页面快捷键切换功能 (Ctrl + 1-6)
       if (e.ctrlKey && /^[1-6]$/.test(e.key)) {
         const index = parseInt(e.key) - 1;
         if (index >= 0 && index < tools.length) {
           // 直接切换到对应的工具页面
           const targetTool = tools[index];
-          console.log(`快捷键: ALT+${e.key} 切换到工具: ${getToolDisplayName(targetTool)}`);
           setActiveTool(targetTool);
         }
+        return;
       }
 
       // 添加Ctrl+左右方向键切换工具功能
       if (e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         const direction = e.key === 'ArrowLeft' ? 'prev' : 'next';
         switchTool(direction);
-        console.log(`快捷键: Ctrl+${e.key === 'ArrowLeft' ? '←' : '→'} 切换到${direction === 'prev' ? '上' : '下'}一个工具`);
+        return;
+      }
+
+      // 添加Ctrl+上下方向键导航对话文件夹功能 (仅在AI Chat和Chat面板有效)
+      if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && 
+          (activeTool === 'aichat' || activeTool === 'chat') && 
+          conversations.length > 0) {
+        
+        e.preventDefault(); // 防止页面滚动
+        
+        // 设置键盘导航模式
+        setIsKeyboardNavigating(true);
+        
+        // 确定当前选中的对话索引
+        let currentIndex = -1;
+        if (keyboardSelectedConversationId) {
+          currentIndex = conversations.findIndex(c => c.id === keyboardSelectedConversationId);
+        } else if (currentConversation) {
+          currentIndex = conversations.findIndex(c => c.id === currentConversation.id);
+        }
+        
+        // 计算新的索引
+        let newIndex;
+        if (e.key === 'ArrowUp') {
+          // 向上导航 (如果已经是第一个则循环到最后一个)
+          newIndex = currentIndex <= 0 ? conversations.length - 1 : currentIndex - 1;
+        } else {
+          // 向下导航 (如果已经是最后一个则循环到第一个)
+          newIndex = currentIndex >= conversations.length - 1 ? 0 : currentIndex + 1;
+        }
+        
+        // 更新键盘选中的对话ID
+        setKeyboardSelectedConversationId(conversations[newIndex].id);
+        
+        // 确保选中的对话在视野内
+        setTimeout(() => {
+          const selectedElement = document.querySelector(`.conversation-item-${conversations[newIndex].id}`);
+          if (selectedElement) {
+            selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 50);
+        return;
+      }
+      
+      // 处理Enter键确认选择对话
+      if (e.key === 'Enter' && isKeyboardNavigating && keyboardSelectedConversationId) {
+        const selectedConversation = conversations.find(c => c.id === keyboardSelectedConversationId);
+        if (selectedConversation) {
+          // 加载选中的对话
+          handleConversationSelect(keyboardSelectedConversationId);
+          
+          // 退出键盘导航模式
+          setIsKeyboardNavigating(false);
+        }
+        return;
+      }
+      
+      // 按ESC键取消键盘导航
+      if (e.key === 'Escape' && isKeyboardNavigating) {
+        setIsKeyboardNavigating(false);
+        setKeyboardSelectedConversationId(null);
+        return;
       }
     };
-
-    // 打印当前可用的工具列表，用于调试
-    console.log('当前工具页面快捷键映射:');
-    tools.forEach((tool, index) => {
-      console.log(`ALT+${index + 1}: ${getToolDisplayName(tool)}`);
-    });
 
     // 添加全局键盘事件监听器
     window.addEventListener('keydown', handleKeyDown);
@@ -1405,7 +1476,7 @@ export default function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [sidebarOpen, setActiveTool, switchTool]); // 添加switchTool到依赖数组
+  }, [sidebarOpen, setActiveTool, switchTool, activeTool, conversations, currentConversation, keyboardSelectedConversationId, isKeyboardNavigating, handleConversationSelect]); // 更新依赖数组
 
   return (
     <div className="h-screen flex flex-col bg-base-100">
@@ -1470,9 +1541,10 @@ export default function App() {
           handleDrop={handleDrop}
           handleConversationDelete={handleConversationDelete}
           handleConversationRename={handleConversationRename}
-          handleRenameConfirm={handleRenameConfirm}
+          renameChatFolder={renameChatFolder}
+          setConversations={setConversations}
+          setCurrentConversation={setCurrentConversation}
           messages={messages}
-          setMessages={setMessages}
           editingMessage={editingMessage}
           setEditingMessage={setEditingMessage}
           messageInput={messageInput}
@@ -1480,9 +1552,9 @@ export default function App() {
           selectedFiles={selectedFiles}
           setSelectedFiles={setSelectedFiles}
           sendMessage={sendMessage}
-          deleteMessage={confirmDeleteMessage}
-          updateMessage={updateMessageInApp}
-          moveMessage={moveMessageInApp}
+          confirmDeleteMessage={confirmDeleteMessage}
+          updateMessageInApp={updateMessageInApp}
+          moveMessageInApp={moveMessageInApp}
           enterEditMode={enterEditMode}
           exitEditMode={exitEditMode}
           collapsedMessages={collapsedMessages}
@@ -1506,7 +1578,6 @@ export default function App() {
           deletingMessageId={deletingMessageId}
           setDeletingMessageId={setDeletingMessageId}
           cancelDeleteMessage={cancelDeleteMessage}
-          confirmDeleteMessage={confirmDeleteMessage}
           scrollToMessage={scrollToMessage}
           sendToMonaco={sendToMonaco}
           sendToEditor={sendToEditor}
@@ -1515,10 +1586,13 @@ export default function App() {
           notes={notes}
           currentNote={currentNote}
           loadNote={loadNote}
+          handleRenameConfirm={handleRenameConfirm}
           shaderPresets={shaderPresets}
-          currentShaderPreset={currentShaderPreset}
           setShaderPresets={setShaderPresets}
+          currentShaderPreset={currentShaderPreset}
           setCurrentShaderPreset={setCurrentShaderPreset}
+          keyboardSelectedConversationId={keyboardSelectedConversationId}
+          isKeyboardNavigating={isKeyboardNavigating}
         />
 
         {/* Main content area */}

@@ -155,4 +155,22 @@ nav .tab,
 .dialog-overlay {
   background-color: rgba(0, 0, 0, 0.7) !important;
   backdrop-filter: blur(3px) !important;
+}
+
+/* 添加键盘导航高亮样式 */
+.keyboard-selected-conversation {
+  border: 2px solid gold !important;
+  box-shadow: 0 0 5px gold !important;
+  animation: keyboard-nav-pulse 1.5s infinite alternate;
+  position: relative;
+  z-index: 10;
+}
+
+@keyframes keyboard-nav-pulse {
+  0% {
+    box-shadow: 0 0 2px gold;
+  }
+  100% {
+    box-shadow: 0 0 8px gold;
+  }
 } 
