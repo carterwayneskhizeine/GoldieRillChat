@@ -481,11 +481,11 @@ const BookmarksPanel = ({ onClose }) => {
               <h3 className="font-bold">确认删除</h3>
               <div className="text-sm">确定要删除所有书签吗？此操作无法撤销。</div>
             </div>
-            <div className="flex gap-2">
-              <button className="btn btn-sm btn-error" onClick={deleteAllBookmarks}>
+            <div className="flex gap-2 mt-3">
+              <button className="btn btn-sm btn-error" onClick={deleteAllBookmarks} title="确认删除所有书签">
                 删除
               </button>
-              <button className="btn btn-sm" onClick={() => setShowDeleteConfirm(false)}>
+              <button className="btn btn-sm" onClick={() => setShowDeleteConfirm(false)} title="取消操作">
                 取消
               </button>
             </div>

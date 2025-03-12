@@ -5,15 +5,15 @@
   right: 0;
   bottom: 0;
   z-index: 1000; /* 确保在最上层 */
-  background-color: rgba(0, 0, 0, 0.8); /* 与Monaco Editor一致 */
+  background-color: rgba(0, 0, 0, 0.8) !important; /* 与Monaco Editor一致 */
   display: flex;
   flex-direction: column;
   overflow: hidden;
   animation: fade-in 0.3s ease;
-  backdrop-filter: blur(3px); /* 与Monaco Editor一致 */
+  backdrop-filter: blur(3px) !important; /* 与Monaco Editor一致 */
   -webkit-backdrop-filter: blur(3px);
   color: white;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4); /* 与Monaco Editor一致 */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important; /* 与Monaco Editor一致 */
 }
 
 @keyframes fade-in {
@@ -26,9 +26,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.7); /* 与Monaco Editor工具栏一致 */
+  background-color: rgba(0, 0, 0, 0.3) !important; /* 与message-editor-toolbar一致 */
   color: white;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* 与Monaco Editor一致 */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important; /* 与message-editor一致 */
 }
 
 .header-left {
@@ -53,83 +53,82 @@
   gap: 8px;
 }
 
-.all-bookmarks-btn {
-  background-color: rgba(0, 0, 0, 0.7); /* 与Monaco Editor按钮一致 */
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+/* 通用按钮样式 */
+.bookmarks-panel .all-bookmarks-btn,
+.bookmarks-panel .delete-all-btn,
+.bookmarks-panel .import-btn,
+.bookmarks-panel .refresh-btn {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 0.85rem !important;
+  padding: 0.5rem 0.8rem !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  height: 2.2rem !important;
+  min-height: 2.2rem !important;
+  line-height: 1 !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-.all-bookmarks-btn:hover {
-  background-color: rgba(60, 60, 150, 0.4); /* 蓝色调，与Monaco Editor风格一致 */
-  border-color: rgba(100, 150, 255, 0.4);
+/* 按钮悬停效果 - 统一使用黄色 */
+.bookmarks-panel .all-bookmarks-btn:hover,
+.bookmarks-panel .delete-all-btn:hover,
+.bookmarks-panel .import-btn:hover,
+.bookmarks-panel .refresh-btn:hover {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
 }
 
-.all-bookmarks-btn.active {
-  background-color: rgba(60, 100, 180, 0.3); /* 与Monaco Editor主按钮一致 */
-  border-color: rgba(100, 150, 255, 0.4);
+/* 按钮激活效果 */
+.bookmarks-panel .all-bookmarks-btn:active,
+.bookmarks-panel .delete-all-btn:active,
+.bookmarks-panel .import-btn:active,
+.bookmarks-panel .refresh-btn:active {
+  transform: translateY(0) !important;
 }
 
-.delete-all-btn {
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* 选中状态的按钮样式 */
+.bookmarks-panel .all-bookmarks-btn.active {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
 }
 
-.delete-all-btn:hover {
-  background-color: rgba(255, 60, 60, 0.3);
-  border-color: rgba(255, 60, 60, 0.4);
+/* 删除按钮保持红色风格，但使用相同的悬停效果机制 */
+.delete-bookmark {
+  opacity: 0;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 4px !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  z-index: 5;
+  padding: 0 !important;
 }
 
-.import-btn {
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.bookmark-item:hover .delete-bookmark {
+  opacity: 1;
 }
 
-.import-btn:hover {
-  background-color: rgba(60, 60, 150, 0.4);
-  border-color: rgba(100, 150, 255, 0.4);
-}
-
-.refresh-btn {
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.refresh-btn:hover {
-  background-color: rgba(60, 60, 150, 0.4);
-  border-color: rgba(100, 150, 255, 0.4);
+.delete-bookmark:hover {
+  background-color: rgba(255, 60, 60, 0.3) !important;
+  border-color: rgba(255, 60, 60, 0.4) !important;
+  transform: scale(1.1) !important;
 }
 
 .search-container {
@@ -137,40 +136,51 @@
 }
 
 .search-container input {
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  border-radius: 4px;
-  padding: 8px 16px;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border-radius: 4px !important;
+  padding: 8px 16px !important;
   width: 100%;
-  transition: all 0.2s;
-  font-size: 0.9rem;
+  transition: all 0.2s ease !important;
+  font-size: 0.9rem !important;
+  height: 2.2rem !important;
 }
 
 .search-container input:focus {
-  background-color: rgba(0, 0, 0, 0.6);
-  border-color: rgba(100, 150, 255, 0.4);
-  outline: none;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
 }
 
 .search-container input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.5) !important;
 }
 
-.close-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.8rem;
-  color: white;
-  padding: 0 5px;
-  line-height: 1;
-  opacity: 0.8;
-  transition: all 0.2s;
+/* 关闭按钮样式 */
+.bookmarks-panel .close-button {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 16px !important;
+  transition: all 0.3s ease !important;
+  padding: 0 !important;
+  cursor: pointer !important;
 }
 
-.close-button:hover {
-  opacity: 1;
+/* 关闭按钮悬停效果 */
+.bookmarks-panel .close-button:hover {
+  background-color: rgba(255, 215, 0, 0.2) !important;
+  border-color: rgba(255, 215, 0, 0.3) !important;
+  color: white !important;
+  transform: rotate(90deg) !important;
 }
 
 .bookmarks-content {
@@ -188,6 +198,18 @@
   height: 100%;
   color: white;
   opacity: 0.8;
+  padding: 40px 0;
+}
+
+.loading-container .loading {
+  color: rgba(255, 215, 0, 0.7) !important;
+  margin-bottom: 1rem;
+}
+
+.loading-container p {
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .empty-message {
@@ -196,6 +218,7 @@
   opacity: 0.8;
   padding: 50px 0;
   font-size: 1.1rem;
+  letter-spacing: 0.5px;
 }
 
 /* 两栏布局 */
@@ -207,8 +230,8 @@
 
 .folders-sidebar {
   width: 280px;
-  background-color: rgba(0, 0, 0, 0.6); /* 与Monaco Editor一致 */
-  border-right: 1px solid rgba(255, 255, 255, 0.1); /* 与Monaco Editor一致 */
+  background-color: rgba(0, 0, 0, 0.6) !important; /* 与Monaco Editor一致 */
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important; /* 与Monaco Editor一致 */
   overflow-y: auto;
   flex-shrink: 0;
   padding: 15px 0;
@@ -225,15 +248,15 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: rgba(0, 0, 0, 0.6); /* 与Monaco Editor一致 */
+  background-color: rgba(0, 0, 0, 0.6) !important; /* 与Monaco Editor一致 */
 }
 
 .current-folder-path {
   padding: 12px 16px;
   font-size: 1.1rem;
   font-weight: 500;
-  background-color: rgba(0, 0, 0, 0.7); /* 与Monaco Editor一致 */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.3) !important; /* 与message-editor-toolbar一致 */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -244,8 +267,8 @@
   font-size: 0.85rem;
   opacity: 0.7;
   font-weight: normal;
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -267,80 +290,88 @@
 
 .bookmark-grid::-webkit-scrollbar-track,
 .folders-sidebar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.2) !important;
 }
 
 .bookmark-grid::-webkit-scrollbar-thumb,
 .folders-sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.2) !important;
   border-radius: 4px;
 }
 
 .bookmark-grid::-webkit-scrollbar-thumb:hover,
 .folders-sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 215, 0, 0.3) !important; /* 悬停时变成黄色 */
 }
 
 /* 文件夹树样式 */
 .folder-tree-item {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .folder-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease !important;
   border-radius: 4px;
   margin: 0 8px;
-  color: rgba(255, 255, 255, 0.85);
 }
 
 .folder-item:hover {
-  background-color: rgba(60, 60, 150, 0.2); /* 蓝色调，与Monaco Editor一致 */
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .folder-item.active {
-  background-color: rgba(60, 100, 180, 0.3); /* 与Monaco Editor主按钮一致 */
-  border: 1px solid rgba(100, 150, 255, 0.4);
-  color: white;
+  background-color: rgba(255, 215, 0, 0.2) !important;
+  border-color: rgba(255, 215, 0, 0.3) !important;
 }
 
 .folder-toggle {
-  display: inline-flex;
   width: 20px;
-  height: 20px;
+  display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 8px;
-  font-size: 0.8rem;
-  user-select: none;
-  opacity: 0.8;
-  transition: transform 0.2s ease;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+}
+
+.folder-toggle:hover {
+  opacity: 1;
+  color: rgba(255, 215, 0, 0.9) !important;
 }
 
 .folder-name {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-weight: 400;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.folder-name span:last-child {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  opacity: 0.7;
 }
 
 .subfolder-list {
-  margin-left: 20px;
+  margin-left: 15px;
+  border-left: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-left: 5px;
 }
 
 /* 没有文件夹时的提示样式 */
 .no-folders-message {
   padding: 20px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.7);
-  font-style: italic;
+  opacity: 0.7;
+  font-size: 0.9rem;
 }
 
 /* 书签项样式 */
@@ -349,18 +380,19 @@
   align-items: center;
   padding: 12px 16px;
   border-radius: 4px; /* 更改为方形边角，与Monaco Editor一致 */
-  background-color: rgba(0, 0, 0, 0.7); /* 与Monaco Editor一致 */
-  transition: all 0.2s;
+  background-color: rgba(0, 0, 0, 0.5) !important; /* 与Monaco Editor一致 */
+  transition: all 0.2s ease !important;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.1); /* 与Monaco Editor一致 */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important; /* 与Monaco Editor一致 */
   position: relative;
   overflow: hidden;
   color: white;
 }
 
 .bookmark-item:hover {
-  background-color: rgba(60, 60, 150, 0.2); /* 蓝色调，与Monaco Editor一致 */
-  border-color: rgba(100, 150, 255, 0.4);
+  background-color: rgba(255, 215, 0, 0.15) !important; /* 黄色调，与保存按钮一致 */
+  border-color: rgba(255, 215, 0, 0.3) !important;
+  transform: translateY(-1px) !important;
 }
 
 .bookmark-icon {
@@ -369,7 +401,7 @@
   margin-right: 12px;
   border-radius: 3px;
   object-fit: contain;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.1) !important;
   padding: 2px;
   flex-shrink: 0;
 }
@@ -383,31 +415,6 @@
   letter-spacing: 0.3px;
 }
 
-.delete-bookmark {
-  opacity: 0;
-  background-color: rgba(255, 60, 60, 0.2);
-  border: 1px solid rgba(255, 60, 60, 0.4);
-  color: white;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-left: 8px;
-  font-size: 14px;
-}
-
-.bookmark-item:hover .delete-bookmark {
-  opacity: 1;
-}
-
-.delete-bookmark:hover {
-  background-color: rgba(255, 60, 60, 0.4);
-}
-
 /* 响应式布局 */
 @media (max-width: 768px) {
   .bookmarks-layout {
@@ -418,7 +425,7 @@
     width: 100%;
     max-height: 40%;
     border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
   
   .bookmark-grid {
@@ -429,11 +436,21 @@
   .header-center {
     flex-wrap: wrap;
     justify-content: center;
+    gap: 6px !important;
   }
   
   .search-container {
     width: 100%;
     margin-top: 8px;
+    order: -1; /* 搜索框放在最上面 */
+  }
+  
+  .bookmarks-panel .all-bookmarks-btn,
+  .bookmarks-panel .delete-all-btn,
+  .bookmarks-panel .import-btn,
+  .bookmarks-panel .refresh-btn {
+    padding: 0.5rem 0.6rem !important;
+    font-size: 0.8rem !important;
   }
 }
 
@@ -453,17 +470,77 @@
   }
   
   .bookmarks-header {
-    padding: 12px 16px;
+    padding: 12px;
     flex-direction: column;
     gap: 10px;
+    align-items: stretch;
   }
   
-  .search-container {
-    order: 3;
-    width: 100%;
+  .bookmarks-panel .close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
   }
   
-  .bookmarks-header h2 {
-    font-size: 1.2rem;
+  .search-container input {
+    font-size: 0.85rem !important;
   }
+}
+
+/* 确认删除弹窗样式 */
+.fixed.inset-0.bg-black.bg-opacity-50 {
+  backdrop-filter: blur(3px) !important;
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.alert.w-96.bg-base-100 {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 6px !important;
+  padding: 1.5rem !important;
+}
+
+.alert.w-96.bg-base-100 h3 {
+  color: white !important;
+  font-size: 1.1rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.alert.w-96.bg-base-100 .text-sm {
+  color: rgba(255, 255, 255, 0.8) !important;
+  margin-bottom: 1rem !important;
+}
+
+.alert .btn-sm {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 0.85rem !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  height: 2.2rem !important;
+  min-height: 2.2rem !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  font-weight: 500 !important;
+}
+
+.alert .btn-sm:hover {
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+}
+
+.alert .btn-sm.btn-error {
+  background-color: rgba(255, 60, 60, 0.3) !important;
+  border-color: rgba(255, 60, 60, 0.4) !important;
+}
+
+.alert .btn-sm.btn-error:hover {
+  background-color: rgba(255, 60, 60, 0.5) !important;
+  border-color: rgba(255, 60, 60, 0.6) !important;
 } 
