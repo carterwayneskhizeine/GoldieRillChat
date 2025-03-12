@@ -1,4 +1,4 @@
-![GoldieRillChat Logo](resources\Banner.jpg)
+![GoldieRillChat Logo](resources/Banner.jpg)
 
 ## 📝 项目介绍
 
