@@ -96,6 +96,7 @@ const BookmarksPanel = ({ onClose }) => {
   const [showAllBookmarks, setShowAllBookmarks] = useState(false);
   const [isCreatingDefaultFolder, setIsCreatingDefaultFolder] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // 添加刷新键
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // 添加确认弹窗状态
 
   // 加载书签数据的函数
   const loadBookmarks = async (forceRefresh = false) => {
@@ -232,6 +233,22 @@ const BookmarksPanel = ({ onClose }) => {
     return [...directBookmarks, ...subfoldersBookmarks];
   };
 
+  // 删除所有书签
+  const deleteAllBookmarks = async () => {
+    try {
+      await window.electron.bookmarks.deleteAllBookmarks();
+      // 更新本地状态
+      setBookmarks([]);
+      setAllFolders([]); // 同时清空文件夹状态
+      setActiveFolder(null); // 重置当前选中的文件夹
+      setShowDeleteConfirm(false); // 关闭确认弹窗
+      // 刷新书签列表
+      refreshBookmarks();
+    } catch (error) {
+      console.error('删除所有书签失败:', error);
+    }
+  };
+
   // 获取当前展示的书签
   const getDisplayedBookmarks = () => {
     if (showAllBookmarks) {
@@ -243,8 +260,8 @@ const BookmarksPanel = ({ onClose }) => {
       return bookmarks.filter(b => !b.folder);
     }
     
-    // 获取当前文件夹及其所有子文件夹中的书签
-    return getAllBookmarksInFolder(activeFolder);
+    // 只返回当前文件夹中的书签，不包含子文件夹中的书签
+    return bookmarks.filter(b => b.folder === activeFolder);
   };
 
   // 过滤书签
@@ -303,6 +320,37 @@ const BookmarksPanel = ({ onClose }) => {
     <div className="bookmarks-panel fixed inset-0 bg-base-100 z-50">
       <div className="bookmarks-header">      
         <div className="header-center">
+          <button 
+            className="delete-all-btn"
+            onClick={() => setShowDeleteConfirm(true)}
+            title="删除所有书签"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+          </button>
+          <button 
+            className="import-btn"
+            onClick={() => window.electron.selectBookmarkFile().then(async (filePath) => {
+              if (!filePath) return;
+              try {
+                const fileContent = await window.electron.readFile(filePath);
+                const result = await window.electron.bookmarks.parseAndImportBookmarks(fileContent);
+                if (result && result.success) {
+                  refreshBookmarks();
+                }
+              } catch (error) {
+                console.error('导入书签失败:', error);
+              }
+            })}
+            title="导入书签文件"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </button>
           <button 
             className={`all-bookmarks-btn ${showAllBookmarks ? 'active' : ''}`}
             onClick={() => setShowAllBookmarks(!showAllBookmarks)}
@@ -421,6 +469,29 @@ const BookmarksPanel = ({ onClose }) => {
           </div>
         )}
       </div>
+
+      {/* 确认删除弹窗 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="alert w-96 bg-base-100 shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-error flex-shrink-0 w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+              <h3 className="font-bold">确认删除</h3>
+              <div className="text-sm">确定要删除所有书签吗？此操作无法撤销。</div>
+            </div>
+            <div className="flex gap-2">
+              <button className="btn btn-sm btn-error" onClick={deleteAllBookmarks}>
+                删除
+              </button>
+              <button className="btn btn-sm" onClick={() => setShowDeleteConfirm(false)}>
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

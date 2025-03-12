@@ -2242,6 +2242,23 @@ ipcMain.handle('bookmarks-get-folders', async () => {
   return exports.bookmarkFolders || [];
 });
 
+// 添加删除所有书签的处理程序
+ipcMain.handle('bookmarks-delete-all', async () => {
+  try {
+    // 清空书签和文件夹数组
+    exports.bookmarks = [];
+    exports.bookmarkFolders = [];
+    
+    // 保存更新后的书签数据
+    saveBookmarks();
+    
+    return { success: true };
+  } catch (error) {
+    console.error('删除所有书签失败:', error);
+    throw new Error(`无法删除所有书签: ${error.message}`);
+  }
+});
+
 // 文件操作相关的IPC处理程序
 ipcMain.handle('ensure-directory', async (event, basePath, dirName) => {
   try {

@@ -366,6 +366,9 @@ contextBridge.exposeInMainWorld('electron', {
     // 删除书签
     deleteBookmark: (id) => ipcRenderer.invoke('bookmarks-delete', id),
     
+    // 删除所有书签
+    deleteAllBookmarks: () => ipcRenderer.invoke('bookmarks-delete-all'),
+    
     // 切换书签面板显示状态
     toggleBookmarksPanel: (isVisible) => ipcRenderer.invoke('bookmarks-toggle-panel', isVisible),
     
