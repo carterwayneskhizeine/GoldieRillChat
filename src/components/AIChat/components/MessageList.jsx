@@ -38,6 +38,8 @@ export const MessageList = ({
   const [userScrolled, setUserScrolled] = useState(false);
   const scrollTimeoutRef = useRef(null);
   const containerRef = useRef(null);
+  // 新增：累计向上滚动距离，用于判断用户是否真的主动向上滚动
+  const accumulatedUpDeltaRef = useRef(0);
   
   // 使用折叠状态 hook
   const { isMessageCollapsed, toggleMessageCollapse } = useMessageCollapse();
@@ -46,6 +48,27 @@ export const MessageList = ({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxImages, setLightboxImages] = useState([]);
+
+  // 新增：wheel事件监听器，用于捕获鼠标滚轮方向及累积值
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const handleWheel = (e) => {
+      if (e.deltaY < 0) { // 用户向上滚动
+        accumulatedUpDeltaRef.current += Math.abs(e.deltaY);
+      } else {
+        // 向下滚动时重置累计
+        accumulatedUpDeltaRef.current = 0;
+      }
+    };
+    
+    container.addEventListener('wheel', handleWheel);
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   // 收集所有媒体文件（图片和视频）
   const collectMedia = useCallback(() => {
@@ -106,21 +129,24 @@ export const MessageList = ({
     const handleScroll = () => {
       // 获取滚动位置
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 30; // 30px 容差
+      const maxScrollTop = scrollHeight - clientHeight;
+      const diff = maxScrollTop - scrollTop; // 距离底部的距离
       
       // 清除之前的超时
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
       
-      // 如果不在底部，标记为用户已滚动
-      if (!isAtBottom) {
-        setUserScrolled(true);
-      } else {
-        // 如果回到底部，重新启用自动滚动
+      // 如果距底部很近且累计向上滚动量不大，认为仍在底部
+      if (diff < 20 && accumulatedUpDeltaRef.current < 20) {
         scrollTimeoutRef.current = setTimeout(() => {
           setUserScrolled(false);
+          // 重置累计量
+          accumulatedUpDeltaRef.current = 0;
         }, 1000);
+      } else {
+        // 真正认为用户向上滚动了
+        setUserScrolled(true);
       }
     };
     
@@ -301,7 +327,7 @@ export const MessageList = ({
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        {/* 添加自动滚动暂停指示器 - 输入框正上方 */}
+        {/* 添加AI Chat界面滚动到底部按钮 - 输入框正上方 */}
         {userScrolled && messages.length > 0 && sidebarOpen && (
           <div 
             className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
@@ -309,7 +335,10 @@ export const MessageList = ({
           >
             <button 
               className="btn btn-ghost btn-sm btn-circle bg-transparent backdrop-blur-sm pointer-events-auto shadow-md"
-              onClick={() => {
+              onClick={(e) => {
+                // 阻止事件冒泡和默认行为
+                e.stopPropagation();
+                e.preventDefault();
                 setUserScrolled(false);
                 setTimeout(scrollToBottom, 50);
               }}

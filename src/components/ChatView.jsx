@@ -1020,7 +1020,7 @@ export function ChatView({
         <div className="drag-subtext">支持图片、视频、音频和其他文件类型</div>
       </div>
 
-      {/* 添加滚动到底部按钮 - 放在消息容器外，固定位置 */}
+      {/* 添加ChatView界面滚动到底部按钮 - 放在消息容器外，固定位置 */}
       {userScrolled && messages.length > 0 && sidebarOpen && sidebarMode !== 'chat' && (
         <div 
           className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
