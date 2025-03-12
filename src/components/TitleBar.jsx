@@ -190,7 +190,8 @@ export default function TitleBar({
   currentConversation,
   systemPromptEnabled,
   setShowSettings,
-  selectedProvider
+  selectedProvider,
+  sidebarOpen
 }) {
   const [isNavigating, setIsNavigating] = useState(false); // 添加导航状态
   const [isImageBackground, setIsImageBackground] = useState(false); // 添加图片背景状态
@@ -489,6 +490,68 @@ export default function TitleBar({
             GoldieRillChat
           </span>
         </div>
+        
+        {/* 添加向左向右导航箭头按钮 - 仅在侧边栏关闭时显示 */}
+        {!sidebarOpen && (
+          <div className="flex items-center ml-2 gap-1">
+            <button 
+              className="btn btn-xs btn-ghost px-1"
+              onClick={() => onAction && onAction('switchTool', 'prev')}
+              style={{
+                transition: 'all 0.3s ease',
+                borderRadius: '3px',
+                height: '20px',
+                minHeight: '20px',
+                lineHeight: '1'
+              }}
+              title="Previous"
+              onMouseOver={(e) => {
+                e.currentTarget.style.color = 'rgb(255, 215, 0)';
+                e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+                e.currentTarget.style.textShadow = '0px 0px 3px rgba(0, 0, 0, 0.6)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.color = '';
+                e.currentTarget.style.borderColor = '';
+                e.currentTarget.style.backgroundColor = '';
+                e.currentTarget.style.textShadow = '';
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button 
+              className="btn btn-xs btn-ghost px-1"
+              onClick={() => onAction && onAction('switchTool', 'next')}
+              style={{
+                transition: 'all 0.3s ease',
+                borderRadius: '3px',
+                height: '20px',
+                minHeight: '20px',
+                lineHeight: '1'
+              }}
+              title="Next"
+              onMouseOver={(e) => {
+                e.currentTarget.style.color = 'rgb(255, 215, 0)';
+                e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+                e.currentTarget.style.textShadow = '0px 0px 3px rgba(0, 0, 0, 0.6)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.color = '';
+                e.currentTarget.style.borderColor = '';
+                e.currentTarget.style.backgroundColor = '';
+                e.currentTarget.style.textShadow = '';
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 中间区域：浏览器控制栏或聊天标题 */}
@@ -501,7 +564,8 @@ export default function TitleBar({
                 onClick={() => window.electron.browser.back()}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2" strokeLinecap="round" />
+                  <polyline points="10,7 5,12 10,17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
               </button>
               <button 
@@ -509,7 +573,8 @@ export default function TitleBar({
                 onClick={() => window.electron.browser.forward()}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2" strokeLinecap="round" />
+                  <polyline points="14,7 19,12 14,17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
               </button>
               <button 

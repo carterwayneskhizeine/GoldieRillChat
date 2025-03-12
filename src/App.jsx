@@ -1506,6 +1506,12 @@ export default function App() {
         systemPromptEnabled={false}
         setShowSettings={setShowSettings}
         selectedProvider={selectedProvider}
+        onAction={(action, ...args) => {
+          if (action === 'switchTool') {
+            switchTool(args[0]);
+          }
+        }}
+        sidebarOpen={sidebarOpen}
       />
       <ToastContainer />
       <div className="flex-1 flex overflow-hidden">
