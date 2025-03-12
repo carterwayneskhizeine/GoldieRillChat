@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getToolDisplayName, tools } from '../config/toolsConfig';
 import { BrowserTabs } from './BrowserTabs';
 import { ChatView } from './ChatView';
+import '../styles/sidebar-buttons.css';
 
 export default function Sidebar({
   sidebarOpen,
@@ -234,10 +235,46 @@ export default function Sidebar({
       <div className={`${sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]'} flex flex-col h-full overflow-x-hidden`}>
         <div className="p-2 flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
           <div className="join grid grid-cols-2 mb-2">
-            <button className="join-item btn btn-outline btn-sm" onClick={() => switchTool('prev')}>
+            <button 
+              className="join-item btn btn-outline btn-sm prev-next-btn" 
+              onClick={() => switchTool('prev')}
+              style={{
+                transition: 'all 0.3s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.color = 'rgb(255, 215, 0)';
+                e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+                e.currentTarget.style.textShadow = '0px 0px 3px rgba(0, 0, 0, 0.6)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.color = '';
+                e.currentTarget.style.borderColor = '';
+                e.currentTarget.style.backgroundColor = '';
+                e.currentTarget.style.textShadow = '';
+              }}
+            >
               Previous
             </button>
-            <button className="join-item btn btn-outline btn-sm" onClick={() => switchTool('next')}>
+            <button 
+              className="join-item btn btn-outline btn-sm prev-next-btn" 
+              onClick={() => switchTool('next')}
+              style={{
+                transition: 'all 0.3s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.color = 'rgb(255, 215, 0)';
+                e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+                e.currentTarget.style.textShadow = '0px 0px 3px rgba(0, 0, 0, 0.6)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.color = '';
+                e.currentTarget.style.borderColor = '';
+                e.currentTarget.style.backgroundColor = '';
+                e.currentTarget.style.textShadow = '';
+              }}
+            >
               Next
             </button>
           </div>
