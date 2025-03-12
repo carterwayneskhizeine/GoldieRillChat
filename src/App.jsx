@@ -1383,6 +1383,13 @@ export default function App() {
           setActiveTool(targetTool);
         }
       }
+
+      // 添加Ctrl+左右方向键切换工具功能
+      if (e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        const direction = e.key === 'ArrowLeft' ? 'prev' : 'next';
+        switchTool(direction);
+        console.log(`快捷键: Ctrl+${e.key === 'ArrowLeft' ? '←' : '→'} 切换到${direction === 'prev' ? '上' : '下'}一个工具`);
+      }
     };
 
     // 打印当前可用的工具列表，用于调试
@@ -1398,7 +1405,7 @@ export default function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [sidebarOpen, setActiveTool]); // 添加setActiveTool到依赖数组
+  }, [sidebarOpen, setActiveTool, switchTool]); // 添加switchTool到依赖数组
 
   return (
     <div className="h-screen flex flex-col bg-base-100">
