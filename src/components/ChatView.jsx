@@ -1621,7 +1621,7 @@ export function ChatView({
 
       {/* 输入区域 */}
       {!editingMessage && (
-        <div className={`absolute bottom-0 left-0 ${isCompact ? 'right-[20px] p-2 pointer-events-none bg-transparent' : 'right-[20px] p-4 bg-transparent'}`} style={{ 
+        <div className={`absolute bottom-0 left-0 right-0 ${isCompact ? 'p-2 pointer-events-none bg-transparent' : 'p-4 bg-transparent'}`} style={{ 
           bottom: isCompact ? '48px' : '0px'
         }}>
           <div className={`${isCompact ? 'max-w-[300px] mx-auto pointer-events-auto' : 'max-w-[770px] mx-auto'}`}>
