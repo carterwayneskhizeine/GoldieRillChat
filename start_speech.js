@@ -51,23 +51,23 @@ const startFlaskServer = () => {
     process.exit(1);
   }
   
-  // 检查端口5000是否被占用
+  // 检查端口2047是否被占用
   return new Promise((resolve, reject) => {
     const testConnection = http.request({
       host: '127.0.0.1',
-      port: 5000,
+      port: 2047,
       path: '/',
       method: 'GET',
       timeout: 1000
     }, () => {
-      console.error('端口5000已被占用，请确保没有其他程序使用该端口');
+      console.error('端口2047已被占用，请确保没有其他程序使用该端口');
       console.error('请关闭占用该端口的程序后重试');
-      reject(new Error('端口5000已被占用'));
+      reject(new Error('端口2047已被占用'));
     });
     
     testConnection.on('error', (err) => {
       // 如果连接失败（端口未被占用），则启动Flask服务器
-      console.log('端口5000可用，启动Flask服务器...');
+      console.log('端口2047可用，启动Flask服务器...');
       
       const flaskProcess = spawn('python', [serverPath], {
         stdio: 'inherit'
@@ -107,7 +107,7 @@ const startFlaskServer = () => {
       const checkInterval = setInterval(() => {
         const healthCheck = http.request({
           host: '127.0.0.1',
-          port: 5000,
+          port: 2047,
           path: '/api/speech/test',
           method: 'GET',
           timeout: 1000

@@ -476,7 +476,7 @@ export default function TitleBar({
       
       console.log('正在连接语音服务器...');
       
-      const response = await fetch('http://127.0.0.1:5000/api/speech/test', {
+      const response = await fetch('http://127.0.0.1:2047/api/speech/test', {
         signal: controller.signal,
         headers: {
           'Accept': 'application/json',

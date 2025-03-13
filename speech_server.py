@@ -74,7 +74,7 @@ if __name__ == '__main__':
     logger.info('正在启动语音识别服务器...')
     try:
         # 确保监听所有接口，而不仅是localhost
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+        app.run(host='0.0.0.0', port=2047, debug=False, threaded=True)
     except Exception as e:
         logger.error(f'启动服务器失败: {e}')
         sys.exit(1) 

@@ -34,7 +34,7 @@ const startFlaskServer = () => {
       
       const req = http.request({
         host: '127.0.0.1',
-        port: 5000,
+        port: 2047,
         path: '/api/speech/test',
         method: 'GET'
       }, (res) => {
