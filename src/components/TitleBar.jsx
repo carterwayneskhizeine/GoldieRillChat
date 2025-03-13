@@ -17,8 +17,8 @@ const updateRangeProgress = (rangeElement) => {
   const percentage = ((value - min) / (max - min)) * 100;
   rangeElement.style.setProperty('--range-shdw', `${percentage}%`);
   
-  // 设置黄金色的进度条颜色
-  rangeElement.style.background = `linear-gradient(to right, rgba(255, 215, 0, 0.6) 0%, rgba(255, 215, 0, 0.6) ${percentage}%, rgba(0, 0, 0, 0.3) ${percentage}%, rgba(0, 0, 0, 0.3) 100%)`;
+  // 设置黄金色的进度条颜色，增加透明度
+  rangeElement.style.background = `linear-gradient(to right, rgba(255, 215, 0, 0.35) 0%, rgba(255, 215, 0, 0.35) ${percentage}%, rgba(0, 0, 0, 0.15) ${percentage}%, rgba(0, 0, 0, 0.15) 100%)`;
 };
 
 // 添加简化的翻译按钮组件
@@ -789,7 +789,7 @@ export default function TitleBar({
                 </label>
                 <div tabIndex={0} className="dropdown-content z-[99] menu p-2 shadow bg-base-100 rounded-md w-[380px]" 
                   style={isImageBackground ? { 
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                    backgroundColor: 'rgba(0, 0, 0, 0.25)', 
                     backdropFilter: 'blur(10px)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     color: 'white',
@@ -833,8 +833,8 @@ export default function TitleBar({
                           position: 'relative', 
                           zIndex: 5,
                           "--range-shdw": `${((maxHistoryMessages - 0) / (21 - 0)) * 100}%`,
-                          // 自定义滑动条样式
-                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          // 自定义滑动条样式，增加透明度
+                          backgroundColor: 'rgba(0, 0, 0, 0.15)',
                           borderRadius: '4px',
                           height: '6px',
                           // 自定义滑动圆点
@@ -879,8 +879,8 @@ export default function TitleBar({
                           position: 'relative', 
                           zIndex: 5,
                           "--range-shdw": `${(safeTemperature / 2) * 100}%`,
-                          // 自定义滑动条样式
-                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          // 自定义滑动条样式，增加透明度
+                          backgroundColor: 'rgba(0, 0, 0, 0.15)',
                           borderRadius: '4px',
                           height: '6px',
                           // 自定义滑动圆点
@@ -925,8 +925,8 @@ export default function TitleBar({
                           position: 'relative', 
                           zIndex: 5,
                           "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`,
-                          // 自定义滑动条样式
-                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          // 自定义滑动条样式，增加透明度
+                          backgroundColor: 'rgba(0, 0, 0, 0.15)',
                           borderRadius: '4px',
                           height: '6px',
                           // 自定义滑动圆点
