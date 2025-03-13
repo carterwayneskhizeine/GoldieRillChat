@@ -591,7 +591,7 @@ export default function TitleBar({
             }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              {/* 音符样式图标：·IlI· */}
+              {/* 语音话筒音符样式图标：·IlI· */}
               <circle cx="4" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
               <line x1="8" y1="16" x2="8" y2="8" strokeWidth="2" strokeLinecap="round" />
               <line x1="12" y1="18" x2="12" y2="6" strokeWidth="3" strokeLinecap="round" />
@@ -981,10 +981,10 @@ export default function TitleBar({
       </div>
 
       {/* 右侧按钮组 */}
-      <div className="flex items-center space-x-2" style={{ WebkitAppRegion: 'no-drag' }}>
+      <div className="flex items-center space-x-2 mr-1" style={{ WebkitAppRegion: 'no-drag' }}>
         {/* 主题切换按钮 */}
         <button
-          className="btn btn-ghost btn-xs w-6 h-6 window-control-btn"
+          className="btn btn-ghost btn-xs"
           onClick={async () => {
             try {
               await toggleTheme(currentTheme, themes, setCurrentTheme);
@@ -993,33 +993,168 @@ export default function TitleBar({
             }
           }}
           title="切换主题"
+          style={{
+            position: 'relative',
+            width: '32px',
+            height: '32px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontSize: '18px',
+            fontWeight: '300',
+            transition: 'all 0.3s ease',
+            padding: '0',
+            minHeight: '32px',
+            cursor: 'pointer',
+            WebkitAppRegion: 'no-drag'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+            e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.3)';
+            e.currentTarget.style.color = 'white';
+            e.currentTarget.style.transform = 'rotate(180deg)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
+            e.currentTarget.style.transform = 'rotate(0deg)';
+          }}
         >
           ∞
         </button>
         
         {/* 最小化按钮 */}
         <button
-          className="btn btn-ghost btn-xs w-6 h-6 window-control-btn"
+          className="btn btn-ghost btn-xs"
           onClick={() => window.electron.window.minimize()}
+          title="最小化"
+          style={{
+            position: 'relative',
+            width: '32px',
+            height: '32px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontSize: '18px',
+            fontWeight: '300',
+            transition: 'all 0.3s ease',
+            padding: '0',
+            minHeight: '32px',
+            cursor: 'pointer',
+            WebkitAppRegion: 'no-drag'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+            e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.3)';
+            e.currentTarget.style.color = 'white';
+            e.currentTarget.style.transform = 'rotate(180deg)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
+            e.currentTarget.style.transform = 'rotate(0deg)';
+          }}
         >
           ─
         </button>
 
         {/* 最大化按钮 */}
         <button
-          className="btn btn-ghost btn-xs w-6 h-6 window-control-btn"
+          className="btn btn-ghost btn-xs"
           onClick={() => window.electron.window.maximize()}
+          title={isMaximized ? "还原" : "最大化"}
+          style={{
+            position: 'relative',
+            width: '32px',
+            height: '32px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontSize: '18px',
+            fontWeight: '300',
+            transition: 'all 0.3s ease',
+            padding: '0',
+            minHeight: '32px',
+            cursor: 'pointer',
+            WebkitAppRegion: 'no-drag'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+            e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.3)';
+            e.currentTarget.style.color = 'white';
+            e.currentTarget.style.transform = 'rotate(180deg)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
+            e.currentTarget.style.transform = 'rotate(0deg)';
+          }}
         >
           {isMaximized ? '❐' : '□'}
         </button>
 
-        {/* 关闭按钮 */}
+        {/* 关闭按钮 - 使用DaisyTextarea的完整样式和动画 */}
         <button
-          className="btn btn-ghost btn-xs w-6 h-6 window-control-btn window-close-btn"
+          className="btn btn-ghost btn-xs"
           onClick={() => window.electron.window.close()}
+          style={{
+            position: 'relative',
+            width: '32px',
+            height: '32px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontSize: '18px',
+            fontWeight: '300',
+            transition: 'all 0.3s ease',
+            padding: '0',
+            minHeight: '32px',
+            cursor: 'pointer',
+            WebkitAppRegion: 'no-drag'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+            e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.3)';
+            e.currentTarget.style.color = 'white';
+            e.currentTarget.style.transform = 'rotate(90deg)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
+            e.currentTarget.style.transform = 'rotate(0deg)';
+          }}
         >
-          ×
+          ✕
         </button>
+        
+        {/* 添加透明占位块，防止关闭按钮旋转时导致滚动条出现 */}
+        <div style={{
+          width: '8px',
+          height: '32px',
+          opacity: 0,
+          pointerEvents: 'none', // 确保不会捕获任何鼠标事件
+          WebkitAppRegion: 'drag' // 保持可拖拽
+        }}></div>
       </div>
     </div>
   )
