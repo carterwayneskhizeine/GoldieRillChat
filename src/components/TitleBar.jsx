@@ -457,9 +457,9 @@ export default function TitleBar({
   };
 
   return (
-    <div className="h-11 flex items-center bg-base-300 select-none app-drag-region">
+    <div className="h-11 flex items-center bg-base-300 select-none" style={{ WebkitAppRegion: 'drag' }}>
       {/* 应用图标和名称 */}
-      <div className="flex items-center px-3 gap-3 app-drag-region w-[260px]">
+      <div className="flex items-center px-3 gap-3 w-[260px]">
         <div className="app-logo-container" style={{
           position: 'relative',
           zIndex: 100,
@@ -475,13 +475,13 @@ export default function TitleBar({
           <img 
             src={iconPath} 
             alt="logo" 
-            className="w-5 h-5 app-drag-region" 
+            className="w-5 h-5" 
             style={{
               filter: isImageBackground ? 'drop-shadow(0 0 2px rgba(0, 0, 0, 0.8)) brightness(1.2)' : 'none',
             }}
           />
           <span 
-            className="text-sm font-semibold app-drag-region ml-2" 
+            className="text-sm font-semibold ml-2" 
             style={{
               color: isImageBackground ? 'white' : 'inherit',
               textShadow: isImageBackground ? '0px 0px 3px rgba(0, 0, 0, 0.8)' : 'none',
@@ -499,6 +499,7 @@ export default function TitleBar({
               className="btn btn-ghost px-1.5"
               onClick={() => onAction && onAction('switchTool', 'prev')}
               style={{
+                WebkitAppRegion: 'no-drag',
                 transition: 'all 0.3s ease',
                 borderRadius: '4px',
                 height: '26px',
@@ -527,6 +528,7 @@ export default function TitleBar({
               className="btn btn-ghost px-1.5"
               onClick={() => onAction && onAction('switchTool', 'next')}
               style={{
+                WebkitAppRegion: 'no-drag',
                 transition: 'all 0.3s ease',
                 borderRadius: '4px',
                 height: '26px',
@@ -563,11 +565,13 @@ export default function TitleBar({
               console.log('语音输入功能尚未实现');
             }}
             style={{
+              WebkitAppRegion: 'no-drag',
               transition: 'all 0.3s ease',
               borderRadius: '4px',
               height: '26px',
               minHeight: '26px',
-              lineHeight: '1'
+              lineHeight: '1',
+              zIndex: 5
             }}
             title="语音输入 (尚未实现)"
             onMouseOver={(e) => {
@@ -603,11 +607,13 @@ export default function TitleBar({
               TextareaState.toggleVisibility();
             }}
             style={{
+              WebkitAppRegion: 'no-drag',
               transition: 'all 0.3s ease',
               borderRadius: '4px',
               height: '26px',
               minHeight: '26px',
-              lineHeight: '1'
+              lineHeight: '1',
+              zIndex: 5
             }}
             title="Notes (Ctrl + X)"
             onMouseOver={(e) => {
@@ -634,9 +640,9 @@ export default function TitleBar({
       </div>
 
       {/* 中间区域：浏览器控制栏或聊天标题 */}
-      <div className="flex-1 flex justify-center items-center app-drag-region">
+      <div className="flex-1 flex justify-center items-center">
         {activeTool === 'browser' ? (
-          <div className="w-[700px] flex items-center gap-2 no-drag">
+          <div className="w-[700px] flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' }}>
             <div className="join h-8 flex items-center">
               <button 
                 className="join-item btn btn-ghost px-2 h-8 min-h-0 flex items-center justify-center"
@@ -725,75 +731,60 @@ export default function TitleBar({
             </div>
           </div>
         ) : activeTool === 'aichat' ? (
-          <div className="w-full flex items-center gap-3 no-drag app-drag-region" style={{ position: 'relative' }}>
-            {/* 左侧会话名称 - 绝对定位到中间 */}
-            <div className="app-drag-region" style={{ 
-              position: 'absolute', 
-              left: 0, 
-              right: 0, 
-              top: 0, 
-              bottom: 0, 
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 1
-            }}>
-              <h2 className="text-sm opacity-70 truncate max-w-[360px] app-drag-region">
+          <div className="w-full flex items-center">
+            {/* 中间会话名称区域 - 保持拖拽 */}
+            <div className="flex-1 h-full flex items-center justify-center">
+              <h2 className="text-sm opacity-70 truncate text-center" style={{ maxWidth: '500px' }}>
                 {currentConversation?.name || 'Current session'}
               </h2>
             </div>
 
-            {/* 空白占位符 - 确保flex布局正确 */}
-            <div className="flex-1"></div>
+            {/* 右侧控制区域 */}
+            <div className="flex-none flex items-center gap-4 mr-4" style={{ WebkitAppRegion: 'no-drag' }}>
+              {/* 中间右侧模型选择 */}
+              <div className="flex-none" style={{ width: '280px' }}>
+                <select 
+                  className="select select-bordered select-sm w-full"
+                  value={selectedModel || ''}
+                  onChange={(e) => {
+                    setSelectedModel && setSelectedModel(e.target.value);
+                    localStorage.setItem('aichat_model', e.target.value);
+                  }}
+                  style={{
+                    ...isImageBackground ? { 
+                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                      color: 'white',
+                      borderColor: 'rgba(255, 255, 255, 0.2)'
+                    } : {},
+                  }}
+                >
+                  {localAvailableModels.map(model => (
+                    <option 
+                      key={model} 
+                      value={model} 
+                      style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
+                    >
+                      {model}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* 中间右侧模型选择 - 放在上层 */}
-            <div className="flex-none ml-auto mr-4" style={{ width: '280px', position: 'relative', zIndex: 2 }}>
-              <select 
-                className="select select-bordered select-sm w-full"
-                value={selectedModel || ''}
-                onChange={(e) => {
-                  setSelectedModel && setSelectedModel(e.target.value);
-                  localStorage.setItem('aichat_model', e.target.value);
-                }}
-                style={isImageBackground ? { 
-                  position: 'relative', 
-                  zIndex: 10, 
+              {/* 参数控制下拉菜单 */}
+              <div className="dropdown dropdown-bottom dropdown-end">
+                <label tabIndex={0} className="btn btn-ghost px-2 h-8 min-h-0 flex items-center justify-center" style={isImageBackground ? { 
                   backgroundColor: 'rgba(0, 0, 0, 0.7)',
                   color: 'white',
                   borderColor: 'rgba(255, 255, 255, 0.2)'
-                } : {}}
-              >
-                {localAvailableModels.map(model => (
-                  <option 
-                    key={model} 
-                    value={model} 
-                    style={isImageBackground ? { backgroundColor: 'rgba(0, 0, 0, 0.9)', color: 'white' } : {}}
-                  >
-                    {model}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* 右侧参数控制 - 放在上层 */}
-            <div className="flex-none flex items-center gap-4" style={{ position: 'relative', zIndex: 2 }}>
-              {/* 参数控制下拉菜单 */}
-              <div className="dropdown dropdown-bottom dropdown-end">
-                <label tabIndex={0} className="btn btn-ghost btn-circle m-1" style={isImageBackground ? { 
-                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                  color: 'white',
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
-                  position: 'relative',
-                  zIndex: 10
                 } : {}}>
                   {/* T形SVG图标代表Tokens */}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2"/>
                     <line x1="7" y1="8" x2="17" y2="8" strokeWidth="2"/>
                     <line x1="12" y1="8" x2="12" y2="16" strokeWidth="2"/>
                   </svg>
                 </label>
-                <div tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-md w-[380px]" 
+                <div tabIndex={0} className="dropdown-content z-[99] menu p-2 shadow bg-base-100 rounded-md w-[380px]" 
                   style={isImageBackground ? { 
                     backgroundColor: 'rgba(0, 0, 0, 0.8)', 
                     backdropFilter: 'blur(10px)',
@@ -836,7 +827,7 @@ export default function TitleBar({
                         className="range range-sm range-primary w-full"
                         step="1"
                         style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
+                          ...isImageBackground ? { position: 'relative', zIndex: 5 } : {},
                           "--range-shdw": `${((maxHistoryMessages - 0) / (21 - 0)) * 100}%`
                         }}
                         onInput={(e) => updateRangeProgress(e.target)}
@@ -874,7 +865,7 @@ export default function TitleBar({
                         }}
                         className="range range-sm range-primary w-full"
                         style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
+                          ...isImageBackground ? { position: 'relative', zIndex: 5 } : {},
                           "--range-shdw": `${(safeTemperature / 2) * 100}%`
                         }}
                         onInput={(e) => updateRangeProgress(e.target)}
@@ -912,7 +903,7 @@ export default function TitleBar({
                         }}
                         className="range range-sm range-primary w-full"
                         style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
+                          ...isImageBackground ? { position: 'relative', zIndex: 5 } : {},
                           "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`
                         }}
                         onInput={(e) => updateRangeProgress(e.target)}
@@ -951,20 +942,10 @@ export default function TitleBar({
             </div>
           </div>
         ) : activeTool === 'chat' ? (
-          <div className="w-full flex items-center gap-3 no-drag app-drag-region" style={{ position: 'relative' }}>
-            {/* 左侧会话名称 - 绝对定位到中间 */}
-            <div className="app-drag-region" style={{ 
-              position: 'absolute', 
-              left: 0, 
-              right: 0, 
-              top: 0, 
-              bottom: 0, 
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 1
-            }}>
-              <h2 className="text-sm opacity-70 truncate max-w-[360px] app-drag-region">
+          <div className="w-full flex items-center">
+            {/* 中间会话名称区域 - 保持拖拽 */}
+            <div className="flex-1 h-full flex items-center justify-center">
+              <h2 className="text-sm opacity-70 truncate text-center" style={{ maxWidth: '500px' }}>
                 {currentConversation?.name || 'Current session'}
               </h2>
             </div>
@@ -973,7 +954,7 @@ export default function TitleBar({
       </div>
 
       {/* 右侧按钮组 */}
-      <div className="flex items-center space-x-2 no-drag">
+      <div className="flex items-center space-x-2" style={{ WebkitAppRegion: 'no-drag' }}>
         {/* 主题切换按钮 */}
         <button
           className="btn btn-ghost btn-xs w-6 h-6 window-control-btn"
