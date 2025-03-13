@@ -219,12 +219,11 @@
   
   /* 顶部组件和模型选择器样式 */
   .select, select, .select-bordered, 
-  .select-xs, .select option, 
-  .select-container, .select-wrapper {
+  .select-xs, .select-container, .select-wrapper {
     position: relative !important;
     z-index: 10 !important; /* 更高的z-index确保下拉菜单显示在最上层 */
     color: white !important;
-    background-color: rgba(0, 0, 0, 0.7) !important;
+    background-color: transparent !important; /* 修改为完全透明 */
     border-color: rgba(255, 255, 255, 0.2) !important;
   }
   
@@ -281,28 +280,28 @@
   }
   
   .scrollbar-thin::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2) !important;
+    background: rgba(0, 0, 0, 0.1) !important; /* 减少透明度从0.2到0.1 */
     border-radius: 4px;
     position: relative;
     z-index: 5 !important;
   }
   
   .scrollbar-thumb-base-content::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.4) !important;
+    background-color: rgba(255, 255, 255, 0.2) !important; /* 减少透明度从0.4到0.2 */
     border-radius: 4px;
     position: relative;
     z-index: 5 !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05); /* 减少边框透明度 */
   }
   
   .scrollbar-thumb-opacity-20::-webkit-scrollbar-thumb {
-    opacity: 0.4;
+    opacity: 0.2; /* 减少透明度从0.4到0.2 */
     position: relative;
     z-index: 5 !important;
   }
   
   .hover\:scrollbar-thumb-opacity-50:hover::-webkit-scrollbar-thumb {
-    opacity: 0.6;
+    opacity: 0.4; /* 减少透明度从0.6到0.4 */
     position: relative;
     z-index: 5 !important;
   }
@@ -388,18 +387,16 @@
   }
 
   [data-theme="bg-theme"] *::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2) !important;
-    border-radius: 4px !important;
+    background: rgba(0, 0, 0, 0.1) !important; /* 更透明的背景 */
   }
 
   [data-theme="bg-theme"] *::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.4) !important;
-    border-radius: 4px !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background-color: rgba(255, 255, 255, 0.2) !important; /* 更透明的滑块 */
+    border: 1px solid rgba(255, 255, 255, 0.05) !important; /* 更微妙的边框 */
   }
 
   [data-theme="bg-theme"] *::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.6) !important;
+    background-color: rgba(255, 255, 255, 0.3) !important; /* 悬停时稍微不透明一点 */
   }
 
   /* 折叠按钮样式修复 - 更高优先级 */
@@ -566,6 +563,26 @@
     border-color: rgba(255, 215, 0, 0.4) !important;
     background-color: rgba(255, 215, 0, 0.2) !important;
     text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  /* 专门为侧边栏添加更透明的滚动条样式 */
+  [data-theme="bg-theme"] .sidebar .scrollbar-thin::-webkit-scrollbar-track,
+  [data-theme="bg-theme"] .sidebar-content .scrollbar-thin::-webkit-scrollbar-track,
+  [data-theme="bg-theme"] .sidebar *::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05) !important; /* 非常透明的轨道 */
+  }
+  
+  [data-theme="bg-theme"] .sidebar .scrollbar-thin::-webkit-scrollbar-thumb,
+  [data-theme="bg-theme"] .sidebar-content .scrollbar-thin::-webkit-scrollbar-thumb,
+  [data-theme="bg-theme"] .sidebar *::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15) !important; /* 更透明的滑块 */
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  }
+  
+  [data-theme="bg-theme"] .sidebar .scrollbar-thin::-webkit-scrollbar-thumb:hover,
+  [data-theme="bg-theme"] .sidebar-content .scrollbar-thin::-webkit-scrollbar-thumb:hover,
+  [data-theme="bg-theme"] .sidebar *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.25) !important; /* 悬停时稍微不透明一点 */
   }
 }
 

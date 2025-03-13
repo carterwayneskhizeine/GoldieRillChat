@@ -472,7 +472,7 @@ const DaisyTextarea = ({
             onClick={handleClose}
             title="关闭"
           >
-            ×
+            ✕
           </button>
         </div>
         
@@ -490,13 +490,13 @@ const DaisyTextarea = ({
             className="daisy-btn" 
             onClick={handleSave}
           >
-            SAVE
+            S A V E
           </button>
           <button 
             className="daisy-btn" 
             onClick={clearNoteFile}
           >
-            CLEAR
+            C L E A R
           </button>
         </div>
         
