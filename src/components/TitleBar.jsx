@@ -519,7 +519,15 @@ export default function TitleBar({
     }
   };
 
-  // 开始录音功能的基本框架
+  // 添加需要的状态变量
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [recordedText, setRecordedText] = useState('');
+  const audioContext = useRef(null);
+  const mediaStream = useRef(null);
+  const mediaRecorder = useRef(null);
+  const pollingInterval = useRef(null);
+
+  // 开始录音功能
   const startRecording = async () => {
     try {
       // 首先测试服务器连接
@@ -528,14 +536,156 @@ export default function TitleBar({
         return;
       }
       
-      // 设置录音状态
-      setIsRecording(true);
-      
-      // 显示开始录音通知
-      showNotification('语音识别已开始（模拟）...', 'success');
-      
-      // 这里将在后续阶段实现实际的录音功能
-      console.log('开始录音...');
+      // 请求麦克风权限
+      try {
+        console.log('请求麦克风权限...');
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            sampleRate: 44100,  // 使用标准采样率
+            channelCount: 1,    // 单声道
+            echoCancellation: true,
+            noiseSuppression: true
+          } 
+        });
+        
+        console.log('获得麦克风权限成功');
+        mediaStream.current = stream;
+        
+        // 创建音频上下文
+        console.log('创建音频上下文...');
+        audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
+        console.log(`创建音频上下文成功，采样率: ${audioContext.current.sampleRate}Hz`);
+        
+        // 生成会话ID
+        const sessionId = Date.now().toString();
+        setCurrentSessionId(sessionId);
+        
+        console.log(`开始识别会话 ID: ${sessionId}`);
+        
+        // 调用后端API启动识别会话
+        const startResponse = await fetch('http://127.0.0.1:2047/api/speech/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId })
+        });
+        
+        if (!startResponse.ok) {
+          throw new Error(`启动识别会话失败: ${startResponse.status} ${startResponse.statusText}`);
+        }
+        
+        const startData = await startResponse.json();
+        if (startData.status !== 'success') {
+          throw new Error(startData.message || '启动语音识别失败');
+        }
+        
+        console.log('识别会话已启动');
+        
+        // 创建MediaRecorder - 使用更兼容的配置
+        try {
+          // 尝试使用audio/webm编码（最广泛支持）
+          mediaRecorder.current = new MediaRecorder(stream, {
+            mimeType: 'audio/webm',
+            audioBitsPerSecond: 128000
+          });
+          console.log('使用audio/webm格式录制');
+        } catch (e) {
+          // 退回到默认格式
+          console.log('不支持audio/webm，使用默认格式录制');
+          mediaRecorder.current = new MediaRecorder(stream);
+        }
+        
+        // 处理录音数据 - 完全重写这部分以确保正确处理
+        mediaRecorder.current.ondataavailable = async (event) => {
+          if (event.data.size > 0) {
+            try {
+              console.log(`接收到音频数据: ${event.data.size}字节, 类型: ${event.data.type}`);
+              
+              // 将音频数据转换为ArrayBuffer
+              const arrayBuffer = await event.data.arrayBuffer();
+              console.log(`转换为ArrayBuffer: ${arrayBuffer.byteLength}字节`);
+              
+              // 创建音频上下文进行解码
+              const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+              console.log('开始解码音频数据...');
+              const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+              console.log(`解码完成，时长: ${audioBuffer.duration}秒, 采样率: ${audioBuffer.sampleRate}Hz, 通道数: ${audioBuffer.numberOfChannels}`);
+              
+              // 创建离线上下文进行16kHz重采样
+              const offlineCtx = new OfflineAudioContext(
+                1, // 单声道
+                Math.ceil(audioBuffer.duration * 16000), // 输出采样率16kHz的总样本数
+                16000 // 目标采样率16kHz
+              );
+              
+              // 创建音频源并连接
+              const source = offlineCtx.createBufferSource();
+              source.buffer = audioBuffer;
+              source.connect(offlineCtx.destination);
+              
+              // 开始渲染
+              source.start(0);
+              console.log('开始离线渲染重采样...');
+              const renderedBuffer = await offlineCtx.startRendering();
+              console.log(`重采样完成，新采样率: ${renderedBuffer.sampleRate}Hz`);
+              
+              // 获取单声道PCM数据并转换为16位整数
+              const floatSamples = renderedBuffer.getChannelData(0);
+              const pcmBuffer = new Int16Array(floatSamples.length);
+              
+              // 浮点转换为16位整数 (-1.0,1.0) -> (-32768,32767)
+              let audioDataSize = 0; // 统计实际有声音的样本数
+              for (let i = 0; i < floatSamples.length; i++) {
+                const s = Math.max(-1, Math.min(1, floatSamples[i]));
+                pcmBuffer[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                if (Math.abs(s) > 0.01) audioDataSize++; // 检测非静音样本
+              }
+              
+              console.log(`转换为16位PCM完成，样本数: ${pcmBuffer.length}, 非静音样本: ${audioDataSize}`);
+              
+              // 检查是否有足够的非静音样本
+              if (audioDataSize < 100) {
+                console.log('样本中没有足够的有效音频数据，跳过发送');
+                return;
+              }
+              
+              // 发送到后端API
+              console.log(`发送PCM数据到后端，大小: ${pcmBuffer.byteLength}字节`);
+              const response = await fetch('http://127.0.0.1:2047/api/speech/audio', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/octet-stream'
+                },
+                body: pcmBuffer.buffer
+              });
+              
+              if (!response.ok) {
+                console.error(`发送音频数据失败: ${response.status} ${response.statusText}`);
+              } else {
+                console.log('音频数据发送成功');
+              }
+            } catch (error) {
+              console.error('处理音频数据失败:', error);
+            }
+          }
+        };
+        
+        // 开始录音 - 减少时间间隔以获取更多样本
+        mediaRecorder.current.start(100); // 每100ms发送一次数据
+        setIsRecording(true);
+        
+        // 开始轮询获取识别结果
+        pollingInterval.current = setInterval(fetchTranscriptionResults, 300);
+        
+        // 重置识别文字
+        setRecordedText('');
+        
+        // 显示开始录音通知
+        showNotification('语音识别已开始，请说话...', 'success');
+      } catch (error) {
+        showNotification(`无法访问麦克风: ${error.message}`, 'error');
+        console.error('无法访问麦克风:', error);
+        return;
+      }
     } catch (error) {
       console.error('启动语音识别失败:', error);
       showNotification(`启动语音识别失败: ${error.message}`, 'error');
@@ -543,23 +693,164 @@ export default function TitleBar({
     }
   };
   
-  // 停止录音功能的基本框架
+  // 停止录音功能
   const stopRecording = async () => {
     try {
-      // 重置录音状态
+      console.log('开始停止录音过程...');
+      
+      // 停止轮询
+      if (pollingInterval.current) {
+        console.log('清除结果轮询间隔');
+        clearInterval(pollingInterval.current);
+        pollingInterval.current = null;
+      }
+      
+      // 停止MediaRecorder
+      if (mediaRecorder.current) {
+        try {
+          console.log(`停止mediaRecorder，当前状态: ${mediaRecorder.current.state}`);
+          if (mediaRecorder.current.state === 'recording') {
+            mediaRecorder.current.stop();
+            console.log('MediaRecorder已停止');
+          } else if (mediaRecorder.current.state === 'paused') {
+            mediaRecorder.current.resume();
+            mediaRecorder.current.stop();
+            console.log('MediaRecorder已恢复并停止');
+          }
+        } catch (err) {
+          console.error('停止MediaRecorder失败:', err);
+        }
+        mediaRecorder.current = null;
+      }
+      
+      // 关闭并释放媒体流
+      if (mediaStream.current) {
+        try {
+          console.log('停止并释放所有媒体轨道');
+          const tracks = mediaStream.current.getTracks();
+          tracks.forEach(track => {
+            console.log(`停止轨道: ${track.kind}, 已启用: ${track.enabled}, 活动: ${track.readyState}`);
+            track.stop();
+          });
+          console.log(`已停止并释放${tracks.length}个媒体轨道`);
+          mediaStream.current = null;
+        } catch (err) {
+          console.error('释放媒体流失败:', err);
+        }
+      }
+      
+      // 关闭音频上下文
+      if (audioContext.current && audioContext.current.state !== 'closed') {
+        try {
+          console.log(`关闭音频上下文，当前状态: ${audioContext.current.state}`);
+          await audioContext.current.close();
+          console.log('音频上下文已关闭');
+        } catch (err) {
+          console.error('关闭音频上下文失败:', err);
+        }
+        audioContext.current = null;
+      }
+      
+      // 确保在设置isRecording=false之前调用stop API,这样前一个请求结束后才会再次开始尝试停止录音
+      if (isRecording && currentSessionId) {
+        try {
+          console.log(`调用后端API停止识别会话: ${currentSessionId}`);
+          const response = await fetch('http://127.0.0.1:2047/api/speech/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: currentSessionId })
+          });
+          
+          const data = await response.json();
+          console.log('后端响应停止请求:', data);
+          
+          if (!response.ok) {
+            console.warn(`停止识别会话API错误: ${response.status} ${response.statusText}`);
+            console.warn('错误详情:', data);
+          }
+        } catch (error) {
+          console.error('停止识别会话API调用失败:', error);
+        }
+      } else {
+        console.log('当前没有录音会话，无需调用停止API');
+      }
+      
+      // 最后设置状态
       setIsRecording(false);
       
       // 显示停止录音通知
-      showNotification('语音识别已停止（模拟）', 'info');
+      showNotification('语音识别已停止', 'info');
       
-      // 这里将在后续阶段实现实际的停止录音功能
-      console.log('停止录音...');
+      // 如果有识别结果，显示最终文本
+      if (recordedText) {
+        showNotification(`识别结果: ${recordedText}`, 'success');
+      }
+      
+      console.log('录音停止过程完成');
     } catch (error) {
       console.error('停止语音识别失败:', error);
       showNotification(`停止语音识别失败: ${error.message}`, 'error');
+      // 强制重置状态
       setIsRecording(false);
     }
   };
+  
+  // 获取识别结果
+  const fetchTranscriptionResults = async () => {
+    if (!isRecording || !currentSessionId) return;
+    
+    try {
+      const response = await fetch('http://127.0.0.1:2047/api/speech/results');
+      const data = await response.json();
+      
+      if (data.status === 'success' && data.results && data.results.length > 0) {
+        // 处理识别结果
+        data.results.forEach(result => {
+          if (result.type === 'text') {
+            console.log('语音识别结果:', result.text);
+            // 更新识别文本
+            setRecordedText(result.text);
+            
+            // 在界面上显示实时识别结果
+            if (window.message) {
+              window.message.info({
+                content: result.text,
+                duration: 1.5,
+                key: 'speech-recognition'
+              });
+            }
+          } else if (result.type === 'error') {
+            console.error('语音识别错误:', result.message);
+            showNotification(`语音识别错误: ${result.message}`, 'error');
+          } else if (result.type === 'complete') {
+            console.log('语音识别完成');
+          }
+        });
+      }
+    } catch (error) {
+      console.error('获取识别结果失败:', error);
+    }
+  };
+  
+  // 添加清理函数
+  useEffect(() => {
+    return () => {
+      // 组件卸载时停止录音
+      if (isRecording) {
+        stopRecording();
+      }
+      
+      // 清理轮询
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
+      
+      // 释放媒体流
+      if (mediaStream.current) {
+        mediaStream.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [isRecording]);
 
   return (
     <div className="h-11 flex items-center bg-base-300 select-none" style={{ WebkitAppRegion: 'drag' }}>

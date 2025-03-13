@@ -68,6 +68,23 @@ function setupApiKey() {
       return;
     }
     
+    // 尝试从配置文件中读取API Key
+    const configPath = path.join(__dirname, '.env.local');
+    if (fs.existsSync(configPath)) {
+      try {
+        const content = fs.readFileSync(configPath, 'utf8');
+        const match = content.match(/DASHSCOPE_API_KEY=(.+)/);
+        if (match && match[1]) {
+          process.env.DASHSCOPE_API_KEY = match[1].trim();
+          console.log('已从配置文件中加载DASHSCOPE_API_KEY');
+          resolve();
+          return;
+        }
+      } catch (error) {
+        console.error('读取配置文件失败:', error.message);
+      }
+    }
+    
     // 提示用户输入API Key
     rl.question('请输入您的DashScope API Key（将用于语音识别功能）: ', (apiKey) => {
       if (!apiKey.trim()) {
@@ -76,15 +93,32 @@ function setupApiKey() {
         return;
       }
       
+      const trimmedApiKey = apiKey.trim();
+      
+      // 设置当前进程的环境变量
+      process.env.DASHSCOPE_API_KEY = trimmedApiKey;
+      
+      // 保存到配置文件中，以便下次使用
+      try {
+        fs.writeFileSync(configPath, `DASHSCOPE_API_KEY=${trimmedApiKey}\n`, 'utf8');
+        console.log('已将API Key保存到.env.local文件中');
+      } catch (error) {
+        console.error('保存API Key到配置文件失败:', error.message);
+      }
+      
       // 更新speech_server.py文件中的API Key
       const serverPath = path.join(__dirname, 'speech_server.py');
       
       if (fs.existsSync(serverPath)) {
-        let content = fs.readFileSync(serverPath, 'utf8');
-        content = content.replace(/<your-dashscope-api-key>/, apiKey.trim());
-        fs.writeFileSync(serverPath, content, 'utf8');
-        
-        console.log('已更新API Key');
+        try {
+          let content = fs.readFileSync(serverPath, 'utf8');
+          content = content.replace(/<your-dashscope-api-key>/, trimmedApiKey);
+          fs.writeFileSync(serverPath, content, 'utf8');
+          
+          console.log('已更新API Key到speech_server.py');
+        } catch (error) {
+          console.error('更新speech_server.py中的API Key失败:', error.message);
+        }
       }
       
       resolve();
