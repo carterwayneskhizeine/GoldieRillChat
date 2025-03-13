@@ -554,6 +554,42 @@ export default function TitleBar({
           </div>
         )}
         
+        {/* 添加话筒按钮 - 用于实时语音输入（未来功能） */}
+        <div className="flex items-center ml-2 gap-1">
+          <button 
+            className="btn btn-xs btn-ghost px-1"
+            onClick={() => {
+              // 未来实现语音输入功能
+              console.log('语音输入功能尚未实现');
+            }}
+            style={{
+              transition: 'all 0.3s ease',
+              borderRadius: '3px',
+              height: '20px',
+              minHeight: '20px',
+              lineHeight: '1'
+            }}
+            title="语音输入 (尚未实现)"
+            onMouseOver={(e) => {
+              e.currentTarget.style.color = 'rgb(255, 215, 0)';
+              e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+              e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+              e.currentTarget.style.textShadow = '0px 0px 3px rgba(0, 0, 0, 0.6)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.color = '';
+              e.currentTarget.style.borderColor = '';
+              e.currentTarget.style.backgroundColor = '';
+              e.currentTarget.style.textShadow = '';
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18.5V21M16 8v4c0 2.21-1.79 4-4 4s-4-1.79-4-4V8c0-2.21 1.79-4 4-4s4 1.79 4 4z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12c0 2.76 2.24 5 5 5s5-2.24 5-5" />
+            </svg>
+          </button>
+        </div>
+
         {/* 便签按钮 - 切换DaisyTextarea的可见性（无论侧边栏状态如何都显示） */}
         <div className="flex items-center ml-2 gap-1">
           <button 
