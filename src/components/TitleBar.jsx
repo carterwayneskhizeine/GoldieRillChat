@@ -16,6 +16,9 @@ const updateRangeProgress = (rangeElement) => {
   const value = parseFloat(rangeElement.value) || min;
   const percentage = ((value - min) / (max - min)) * 100;
   rangeElement.style.setProperty('--range-shdw', `${percentage}%`);
+  
+  // 设置黄金色的进度条颜色
+  rangeElement.style.background = `linear-gradient(to right, rgba(255, 215, 0, 0.6) 0%, rgba(255, 215, 0, 0.6) ${percentage}%, rgba(0, 0, 0, 0.3) ${percentage}%, rgba(0, 0, 0, 0.3) 100%)`;
 };
 
 // 添加简化的翻译按钮组件
@@ -824,11 +827,19 @@ export default function TitleBar({
                           // 更新滑动条进度效果
                           updateRangeProgress(e.target);
                         }}
-                        className="range range-sm range-primary w-full"
+                        className="range range-xs w-full"
                         step="1"
                         style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 5 } : {},
-                          "--range-shdw": `${((maxHistoryMessages - 0) / (21 - 0)) * 100}%`
+                          position: 'relative', 
+                          zIndex: 5,
+                          "--range-shdw": `${((maxHistoryMessages - 0) / (21 - 0)) * 100}%`,
+                          // 自定义滑动条样式
+                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          borderRadius: '4px',
+                          height: '6px',
+                          // 自定义滑动圆点
+                          '--range-thumb-bg': 'rgb(255, 215, 0)',
+                          '--range-thumb-shadow': '0 0 8px rgba(255, 215, 0, 0.5)'
                         }}
                         onInput={(e) => updateRangeProgress(e.target)}
                       />
@@ -863,10 +874,18 @@ export default function TitleBar({
                           localStorage.setItem('aichat_temperature', e.target.value);
                           updateRangeProgress(e.target);
                         }}
-                        className="range range-sm range-primary w-full"
+                        className="range range-xs w-full"
                         style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 5 } : {},
-                          "--range-shdw": `${(safeTemperature / 2) * 100}%`
+                          position: 'relative', 
+                          zIndex: 5,
+                          "--range-shdw": `${(safeTemperature / 2) * 100}%`,
+                          // 自定义滑动条样式
+                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          borderRadius: '4px',
+                          height: '6px',
+                          // 自定义滑动圆点
+                          '--range-thumb-bg': 'rgb(255, 215, 0)',
+                          '--range-thumb-shadow': '0 0 8px rgba(255, 215, 0, 0.5)'
                         }}
                         onInput={(e) => updateRangeProgress(e.target)}
                       />
@@ -901,10 +920,18 @@ export default function TitleBar({
                           localStorage.setItem('aichat_max_tokens', value.toString());
                           updateRangeProgress(e.target);
                         }}
-                        className="range range-sm range-primary w-full"
+                        className="range range-xs w-full"
                         style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 5 } : {},
-                          "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`
+                          position: 'relative', 
+                          zIndex: 5,
+                          "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`,
+                          // 自定义滑动条样式
+                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          borderRadius: '4px',
+                          height: '6px',
+                          // 自定义滑动圆点
+                          '--range-thumb-bg': 'rgb(255, 215, 0)',
+                          '--range-thumb-shadow': '0 0 8px rgba(255, 215, 0, 0.5)'
                         }}
                         onInput={(e) => updateRangeProgress(e.target)}
                       />
@@ -932,7 +959,7 @@ export default function TitleBar({
                             borderColor: 'rgba(255, 255, 255, 0.2)'
                           } : {}}
                         >
-                          {safeMaxTokens === 999999 ? "设为默认值" : "设为无限制"}
+                          {safeMaxTokens === 999999 ? "default" : "unlimited"}
                         </button>
                       </div>
                     </div>
