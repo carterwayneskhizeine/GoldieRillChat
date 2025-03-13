@@ -17,7 +17,10 @@
             "electron:build": "npm run prepare-resources && vite build && electron-builder",
             "electron:build:portable": "npm run prepare-resources && vite build && electron-builder --win portable",
             "electron:preview": "vite preview",
-            "prepare-resources": "node scripts/prepare-resources.js"
+            "prepare-resources": "node scripts/prepare-resources.js",
+            "start:speech": "node start_speech.js",
+            "speech:setup": "node check_dependencies.js",
+            "test:flask": "node test_flask_server.js"
       },
       "build": {
             "appId": "com.goldie.chat",

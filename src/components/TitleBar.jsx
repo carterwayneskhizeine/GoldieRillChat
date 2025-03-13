@@ -21,95 +21,95 @@ const updateRangeProgress = (rangeElement) => {
   rangeElement.style.background = `linear-gradient(to right, rgba(255, 215, 0, 0.35) 0%, rgba(255, 215, 0, 0.35) ${percentage}%, rgba(0, 0, 0, 0.15) ${percentage}%, rgba(0, 0, 0, 0.15) 100%)`;
 };
 
+// 通知显示函数 - 移动到外部成为独立函数
+const showNotification = (message, type = 'info') => {
+  console.log(`[${type}] ${message}`);
+  
+  // 先删除可能存在的旧容器
+  const existingContainer = document.getElementById('title-bar-notifications');
+  if (existingContainer) {
+    document.body.removeChild(existingContainer);
+  }
+  
+  // 创建新的通知容器
+  const notificationContainer = document.createElement('div');
+  notificationContainer.id = 'title-bar-notifications';
+  Object.assign(notificationContainer.style, {
+    position: 'fixed',
+    top: '60px',
+    left: '20px', // 确保显示在左侧
+    zIndex: '9999',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    maxWidth: '180px', // 设置最大宽度
+    transition: 'all 0.3s ease-in-out'
+  });
+  
+  // 创建Alert元素
+  const alertElement = document.createElement('div');
+  
+  // 使用DaisyUI的alert样式类
+  alertElement.className = `alert ${
+    type === 'error' ? 'alert-error' : 
+    type === 'success' ? 'alert-success' : 
+    'alert-info'
+  } shadow-lg`;
+  
+  // 设置Alert元素样式
+  Object.assign(alertElement.style, {
+    width: '180px', // 固定宽度
+    opacity: '0',
+    transition: 'opacity 0.3s ease-in-out',
+    padding: '0.75rem',
+    borderRadius: '0.5rem'
+  });
+  
+  // 根据不同类型设置不同的图标
+  let iconSvg = '';
+  if (type === 'error') {
+    iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+  } else if (type === 'success') {
+    iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+  } else {
+    iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+  }
+  
+  // 设置Alert内容
+  alertElement.innerHTML = `
+    <div class="flex items-center">
+      ${iconSvg}
+      <span class="ml-2">${message}</span>
+    </div>
+  `;
+  
+  // 添加到容器并附加到文档
+  notificationContainer.appendChild(alertElement);
+  document.body.appendChild(notificationContainer);
+  
+  // 强制重排以确保动画效果
+  void alertElement.offsetWidth;
+  
+  // 淡入效果
+  setTimeout(() => {
+    alertElement.style.opacity = '1';
+  }, 10);
+  
+  // 定时移除通知
+  setTimeout(() => {
+    alertElement.style.opacity = '0';
+    
+    setTimeout(() => {
+      if (document.body.contains(notificationContainer)) {
+        document.body.removeChild(notificationContainer);
+      }
+    }, 300);
+  }, 3000);
+};
+
 // 添加简化的翻译按钮组件
 const TranslateButton = ({ currentUrl, activeTabId }) => {
   const [isTranslating, setIsTranslating] = useState(false);
-  
-  // 完全重写的通知函数
-  const showNotification = (message, type = 'info') => {
-    console.log(`[${type}] ${message}`);
-    
-    // 先删除可能存在的旧容器
-    const existingContainer = document.getElementById('title-bar-notifications');
-    if (existingContainer) {
-      document.body.removeChild(existingContainer);
-    }
-    
-    // 创建新的通知容器
-    const notificationContainer = document.createElement('div');
-    notificationContainer.id = 'title-bar-notifications';
-    Object.assign(notificationContainer.style, {
-      position: 'fixed',
-      top: '60px',
-      left: '20px', // 确保显示在左侧
-      zIndex: '9999',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-      maxWidth: '180px', // 设置最大宽度
-      transition: 'all 0.3s ease-in-out'
-    });
-    
-    // 创建Alert元素
-    const alertElement = document.createElement('div');
-    
-    // 使用DaisyUI的alert样式类
-    alertElement.className = `alert ${
-      type === 'error' ? 'alert-error' : 
-      type === 'success' ? 'alert-success' : 
-      'alert-info'
-    } shadow-lg`;
-    
-    // 设置Alert元素样式
-    Object.assign(alertElement.style, {
-      width: '180px', // 固定宽度
-      opacity: '0',
-      transition: 'opacity 0.3s ease-in-out',
-      padding: '0.75rem',
-      borderRadius: '0.5rem'
-    });
-    
-    // 根据不同类型设置不同的图标
-    let iconSvg = '';
-    if (type === 'error') {
-      iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
-    } else if (type === 'success') {
-      iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
-    } else {
-      iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
-    }
-    
-    // 设置Alert内容
-    alertElement.innerHTML = `
-      <div class="flex items-center">
-        ${iconSvg}
-        <span class="ml-2">${message}</span>
-      </div>
-    `;
-    
-    // 添加到容器并附加到文档
-    notificationContainer.appendChild(alertElement);
-    document.body.appendChild(notificationContainer);
-    
-    // 强制重排以确保动画效果
-    void alertElement.offsetWidth;
-    
-    // 淡入效果
-    setTimeout(() => {
-      alertElement.style.opacity = '1';
-    }, 10);
-    
-    // 定时移除通知
-    setTimeout(() => {
-      alertElement.style.opacity = '0';
-      
-      setTimeout(() => {
-        if (document.body.contains(notificationContainer)) {
-          document.body.removeChild(notificationContainer);
-        }
-      }, 300);
-    }, 3000);
-  };
   
   const handleTranslate = async () => {
     try {
@@ -206,6 +206,10 @@ export default function TitleBar({
   const [isMaximized, setIsMaximized] = useState(false);
   const initializedRef = useRef(false);
   const lastProviderRef = useRef(null);
+  
+  // 添加语音识别相关状态
+  const [isRecording, setIsRecording] = useState(false);
+  const [isCheckingServer, setIsCheckingServer] = useState(false);
   
   // 添加maxHistoryMessages状态
   const [maxHistoryMessages, setMaxHistoryMessages] = useState(() => {
@@ -459,6 +463,104 @@ export default function TitleBar({
     }
   };
 
+  // 测试Flask连接
+  const testFlaskConnection = async () => {
+    if (isCheckingServer) return;
+    
+    setIsCheckingServer(true);
+    
+    try {
+      // 添加超时控制
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      console.log('正在连接语音服务器...');
+      
+      const response = await fetch('http://127.0.0.1:5000/api/speech/test', {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`服务器响应错误: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        showNotification('语音服务器连接成功', 'success');
+        setIsCheckingServer(false);
+        return true;
+      } else {
+        showNotification(`语音服务器响应异常: ${data.message || '未知错误'}`, 'error');
+        setIsCheckingServer(false);
+        return false;
+      }
+    } catch (error) {
+      console.error('连接Flask服务器失败:', error);
+      
+      // 区分不同类型的错误
+      if (error.name === 'AbortError') {
+        showNotification('连接语音服务器超时，请确保服务器已启动', 'error');
+      } else if (error.message.includes('Failed to fetch')) {
+        showNotification('无法连接到语音服务器，请确保服务器已启动', 'error');
+      } else {
+        showNotification(`连接语音服务器失败: ${error.message}`, 'error');
+      }
+      
+      setIsCheckingServer(false);
+      setIsRecording(false);
+      return false;
+    }
+  };
+
+  // 开始录音功能的基本框架
+  const startRecording = async () => {
+    try {
+      // 首先测试服务器连接
+      const serverOk = await testFlaskConnection();
+      if (!serverOk) {
+        return;
+      }
+      
+      // 设置录音状态
+      setIsRecording(true);
+      
+      // 显示开始录音通知
+      showNotification('语音识别已开始（模拟）...', 'success');
+      
+      // 这里将在后续阶段实现实际的录音功能
+      console.log('开始录音...');
+    } catch (error) {
+      console.error('启动语音识别失败:', error);
+      showNotification(`启动语音识别失败: ${error.message}`, 'error');
+      setIsRecording(false);
+    }
+  };
+  
+  // 停止录音功能的基本框架
+  const stopRecording = async () => {
+    try {
+      // 重置录音状态
+      setIsRecording(false);
+      
+      // 显示停止录音通知
+      showNotification('语音识别已停止（模拟）', 'info');
+      
+      // 这里将在后续阶段实现实际的停止录音功能
+      console.log('停止录音...');
+    } catch (error) {
+      console.error('停止语音识别失败:', error);
+      showNotification(`停止语音识别失败: ${error.message}`, 'error');
+      setIsRecording(false);
+    }
+  };
+
   return (
     <div className="h-11 flex items-center bg-base-300 select-none" style={{ WebkitAppRegion: 'drag' }}>
       {/* 应用图标和名称 */}
@@ -559,13 +661,16 @@ export default function TitleBar({
           </div>
         )}
         
-        {/* 添加话筒按钮 - 用于实时语音输入（未来功能） */}
+        {/* 添加话筒按钮 - 用于实时语音输入 */}
         <div className="flex items-center ml-3 gap-2">
           <button 
-            className="btn btn-ghost px-1.5"
+            className={`btn btn-ghost px-1.5 ${isRecording ? 'btn-error' : ''}`}
             onClick={() => {
-              // 未来实现语音输入功能
-              console.log('语音输入功能尚未实现');
+              if (isRecording) {
+                stopRecording();
+              } else {
+                startRecording();
+              }
             }}
             style={{
               WebkitAppRegion: 'no-drag',
@@ -576,7 +681,7 @@ export default function TitleBar({
               lineHeight: '1',
               zIndex: 5
             }}
-            title="语音输入 (尚未实现)"
+            title={isRecording ? "停止语音输入" : "开始语音输入"}
             onMouseOver={(e) => {
               e.currentTarget.style.color = 'rgb(255, 215, 0)';
               e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
@@ -590,14 +695,26 @@ export default function TitleBar({
               e.currentTarget.style.textShadow = '';
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              {/* 语音话筒音符样式图标：·IlI· */}
-              <circle cx="4" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
-              <line x1="8" y1="16" x2="8" y2="8" strokeWidth="2" strokeLinecap="round" />
-              <line x1="12" y1="18" x2="12" y2="6" strokeWidth="3" strokeLinecap="round" />
-              <line x1="16" y1="16" x2="16" y2="8" strokeWidth="2" strokeLinecap="round" />
-              <circle cx="20" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
-            </svg>
+            {isRecording ? (
+              <span className="relative">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="4" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
+                  <line x1="8" y1="16" x2="8" y2="8" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="12" y1="18" x2="12" y2="6" strokeWidth="3" strokeLinecap="round" />
+                  <line x1="16" y1="16" x2="16" y2="8" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="20" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
+                </svg>
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500"></span>
+              </span>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="4" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
+                <line x1="8" y1="16" x2="8" y2="8" strokeWidth="2" strokeLinecap="round" />
+                <line x1="12" y1="18" x2="12" y2="6" strokeWidth="3" strokeLinecap="round" />
+                <line x1="16" y1="16" x2="16" y2="8" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="20" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
+              </svg>
+            )}
           </button>
         </div>
 

@@ -1,0 +1,4 @@
+flask==2.2.3
+flask-cors==3.0.10
+dashscope==1.22.2
+PyAudio==0.2.14 
