@@ -457,17 +457,17 @@ export default function TitleBar({
   };
 
   return (
-    <div className="h-7 flex items-center bg-base-300 select-none app-drag-region">
+    <div className="h-11 flex items-center bg-base-300 select-none app-drag-region">
       {/* 应用图标和名称 */}
-      <div className="flex items-center px-2 gap-2 app-drag-region w-[200px]">
+      <div className="flex items-center px-3 gap-3 app-drag-region w-[260px]">
         <div className="app-logo-container" style={{
           position: 'relative',
           zIndex: 100,
           display: 'flex',
           alignItems: 'center',
-          padding: isImageBackground ? '3px 8px' : '2px',
-          margin: isImageBackground ? '2px 0' : '0',
-          borderRadius: '4px',
+          padding: isImageBackground ? '4px 10px' : '3px',
+          margin: isImageBackground ? '3px 0' : '0',
+          borderRadius: '6px',
           backdropFilter: isImageBackground ? 'blur(4px)' : 'none',
           WebkitBackdropFilter: isImageBackground ? 'blur(4px)' : 'none',
           border: isImageBackground ? '1px solid rgba(255, 255, 255, 0.15)' : 'none',
@@ -475,13 +475,13 @@ export default function TitleBar({
           <img 
             src={iconPath} 
             alt="logo" 
-            className="w-3.5 h-3.5 app-drag-region" 
+            className="w-5 h-5 app-drag-region" 
             style={{
               filter: isImageBackground ? 'drop-shadow(0 0 2px rgba(0, 0, 0, 0.8)) brightness(1.2)' : 'none',
             }}
           />
           <span 
-            className="text-xs font-semibold app-drag-region ml-2" 
+            className="text-sm font-semibold app-drag-region ml-2" 
             style={{
               color: isImageBackground ? 'white' : 'inherit',
               textShadow: isImageBackground ? '0px 0px 3px rgba(0, 0, 0, 0.8)' : 'none',
@@ -494,15 +494,15 @@ export default function TitleBar({
         
         {/* 添加向左向右导航箭头按钮 - 仅在侧边栏关闭时显示 */}
         {!sidebarOpen && (
-          <div className="flex items-center ml-2 gap-1">
+          <div className="flex items-center ml-3 gap-2">
             <button 
-              className="btn btn-xs btn-ghost px-1"
+              className="btn btn-ghost px-1.5"
               onClick={() => onAction && onAction('switchTool', 'prev')}
               style={{
                 transition: 'all 0.3s ease',
-                borderRadius: '3px',
-                height: '20px',
-                minHeight: '20px',
+                borderRadius: '4px',
+                height: '26px',
+                minHeight: '26px',
                 lineHeight: '1'
               }}
               title="Previous"
@@ -519,18 +519,18 @@ export default function TitleBar({
                 e.currentTarget.style.textShadow = '';
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <button 
-              className="btn btn-xs btn-ghost px-1"
+              className="btn btn-ghost px-1.5"
               onClick={() => onAction && onAction('switchTool', 'next')}
               style={{
                 transition: 'all 0.3s ease',
-                borderRadius: '3px',
-                height: '20px',
-                minHeight: '20px',
+                borderRadius: '4px',
+                height: '26px',
+                minHeight: '26px',
                 lineHeight: '1'
               }}
               title="Next"
@@ -547,7 +547,7 @@ export default function TitleBar({
                 e.currentTarget.style.textShadow = '';
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -555,18 +555,18 @@ export default function TitleBar({
         )}
         
         {/* 添加话筒按钮 - 用于实时语音输入（未来功能） */}
-        <div className="flex items-center ml-2 gap-1">
+        <div className="flex items-center ml-3 gap-2">
           <button 
-            className="btn btn-xs btn-ghost px-1"
+            className="btn btn-ghost px-1.5"
             onClick={() => {
               // 未来实现语音输入功能
               console.log('语音输入功能尚未实现');
             }}
             style={{
               transition: 'all 0.3s ease',
-              borderRadius: '3px',
-              height: '20px',
-              minHeight: '20px',
+              borderRadius: '4px',
+              height: '26px',
+              minHeight: '26px',
               lineHeight: '1'
             }}
             title="语音输入 (尚未实现)"
@@ -583,26 +583,30 @@ export default function TitleBar({
               e.currentTarget.style.textShadow = '';
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18.5V21M16 8v4c0 2.21-1.79 4-4 4s-4-1.79-4-4V8c0-2.21 1.79-4 4-4s4 1.79 4 4z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12c0 2.76 2.24 5 5 5s5-2.24 5-5" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              {/* 音符样式图标：·IlI· */}
+              <circle cx="4" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
+              <line x1="8" y1="16" x2="8" y2="8" strokeWidth="2" strokeLinecap="round" />
+              <line x1="12" y1="18" x2="12" y2="6" strokeWidth="3" strokeLinecap="round" />
+              <line x1="16" y1="16" x2="16" y2="8" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="20" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
             </svg>
           </button>
         </div>
 
         {/* 便签按钮 - 切换DaisyTextarea的可见性（无论侧边栏状态如何都显示） */}
-        <div className="flex items-center ml-2 gap-1">
+        <div className="flex items-center ml-3 gap-2">
           <button 
-            className="btn btn-xs btn-ghost px-1"
+            className="btn btn-ghost px-1.5"
             onClick={() => {
               // 直接调用已导入的TextareaState
               TextareaState.toggleVisibility();
             }}
             style={{
               transition: 'all 0.3s ease',
-              borderRadius: '3px',
-              height: '20px',
-              minHeight: '20px',
+              borderRadius: '4px',
+              height: '26px',
+              minHeight: '26px',
               lineHeight: '1'
             }}
             title="Notes (Ctrl + X)"
@@ -619,7 +623,7 @@ export default function TitleBar({
               e.currentTarget.style.textShadow = '';
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2" />
               <line x1="7" y1="8" x2="17" y2="8" strokeWidth="2" />
               <line x1="7" y1="12" x2="17" y2="12" strokeWidth="2" />
@@ -632,37 +636,37 @@ export default function TitleBar({
       {/* 中间区域：浏览器控制栏或聊天标题 */}
       <div className="flex-1 flex justify-center items-center app-drag-region">
         {activeTool === 'browser' ? (
-          <div className="w-[600px] flex items-center gap-1 no-drag">
-            <div className="join h-5 flex items-center">
+          <div className="w-[700px] flex items-center gap-2 no-drag">
+            <div className="join h-8 flex items-center">
               <button 
-                className="join-item btn btn-xs btn-ghost px-1.5 h-5 min-h-0 flex items-center justify-center"
+                className="join-item btn btn-ghost px-2 h-8 min-h-0 flex items-center justify-center"
                 onClick={() => window.electron.browser.back()}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2" strokeLinecap="round" />
                   <polyline points="10,7 5,12 10,17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
               </button>
               <button 
-                className="join-item btn btn-xs btn-ghost px-1.5 h-5 min-h-0 flex items-center justify-center"
+                className="join-item btn btn-ghost px-2 h-8 min-h-0 flex items-center justify-center"
                 onClick={() => window.electron.browser.forward()}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2" strokeLinecap="round" />
                   <polyline points="14,7 19,12 14,17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
               </button>
               <button 
-                className="join-item btn btn-xs btn-ghost px-1.5 h-5 min-h-0 flex items-center justify-center"
+                className="join-item btn btn-ghost px-2 h-8 min-h-0 flex items-center justify-center"
                 onClick={() => window.electron.browser.refresh()}
               >
                 {isLoading ? (
-                  <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 )}
@@ -673,7 +677,7 @@ export default function TitleBar({
             </div>
             <input
               type="text"
-              className="input input-xs input-bordered flex-1 h-5 min-h-[20px] px-2 text-xs"
+              className="input input-bordered flex-1 h-8 min-h-[28px] px-3 text-sm"
               value={currentUrl}
               onChange={(e) => setCurrentUrl(e.target.value)}
               onKeyDown={(e) => {
@@ -686,14 +690,14 @@ export default function TitleBar({
             />
             
             {/* 书签按钮区域 */}
-            <div className="join h-5 flex items-center ml-1">
+            <div className="join h-8 flex items-center ml-2">
               {/* 添加书签按钮 */}
               <button
-                className="join-item btn btn-xs btn-ghost px-1.5 h-5 min-h-0 flex items-center justify-center"
+                className="join-item btn btn-ghost px-2 h-8 min-h-0 flex items-center justify-center"
                 onClick={onAddBookmark}
                 title="添加当前页面到书签"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path 
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
@@ -705,11 +709,11 @@ export default function TitleBar({
               
               {/* 显示书签面板按钮 */}
               <button
-                className={`join-item btn btn-xs ${showBookmarksPanel ? 'btn-primary' : 'btn-ghost'} px-1.5 h-5 min-h-0 flex items-center justify-center`}
+                className={`join-item btn ${showBookmarksPanel ? 'btn-primary' : 'btn-ghost'} px-2 h-8 min-h-0 flex items-center justify-center`}
                 onClick={onToggleBookmarksPanel}
                 title="显示书签"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path 
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
@@ -721,18 +725,31 @@ export default function TitleBar({
             </div>
           </div>
         ) : activeTool === 'aichat' ? (
-          <div className="w-full flex items-center gap-3 no-drag app-drag-region">
-            {/* 左侧会话名称 */}
-            <div className="flex-1 flex justify-start items-center ml-2 min-w-0 app-drag-region">
-              <h2 className="text-xs opacity-70 truncate max-w-[200px] app-drag-region" style={{ marginLeft: '60px' }}>
+          <div className="w-full flex items-center gap-3 no-drag app-drag-region" style={{ position: 'relative' }}>
+            {/* 左侧会话名称 - 绝对定位到中间 */}
+            <div className="app-drag-region" style={{ 
+              position: 'absolute', 
+              left: 0, 
+              right: 0, 
+              top: 0, 
+              bottom: 0, 
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1
+            }}>
+              <h2 className="text-sm opacity-70 truncate max-w-[360px] app-drag-region">
                 {currentConversation?.name || 'Current session'}
               </h2>
             </div>
 
-            {/* 中间右侧模型选择 */}
-            <div className="flex-none ml-auto mr-4" style={{ width: '220px' }}>
+            {/* 空白占位符 - 确保flex布局正确 */}
+            <div className="flex-1"></div>
+
+            {/* 中间右侧模型选择 - 放在上层 */}
+            <div className="flex-none ml-auto mr-4" style={{ width: '280px', position: 'relative', zIndex: 2 }}>
               <select 
-                className="select select-bordered select-xs w-full"
+                className="select select-bordered select-sm w-full"
                 value={selectedModel || ''}
                 onChange={(e) => {
                   setSelectedModel && setSelectedModel(e.target.value);
@@ -758,11 +775,11 @@ export default function TitleBar({
               </select>
             </div>
 
-            {/* 右侧参数控制 */}
-            <div className="flex-none flex items-center gap-4">
+            {/* 右侧参数控制 - 放在上层 */}
+            <div className="flex-none flex items-center gap-4" style={{ position: 'relative', zIndex: 2 }}>
               {/* 参数控制下拉菜单 */}
               <div className="dropdown dropdown-bottom dropdown-end">
-                <label tabIndex={0} className="btn btn-ghost btn-xs btn-circle m-1" style={isImageBackground ? { 
+                <label tabIndex={0} className="btn btn-ghost btn-circle m-1" style={isImageBackground ? { 
                   backgroundColor: 'rgba(0, 0, 0, 0.7)',
                   color: 'white',
                   borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -770,13 +787,13 @@ export default function TitleBar({
                   zIndex: 10
                 } : {}}>
                   {/* T形SVG图标代表Tokens */}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2"/>
                     <line x1="7" y1="8" x2="17" y2="8" strokeWidth="2"/>
                     <line x1="12" y1="8" x2="12" y2="16" strokeWidth="2"/>
                   </svg>
                 </label>
-                <div tabIndex={0} className="dropdown-content z-[1] menu p-1 shadow bg-base-100 rounded-md w-[350px]" 
+                <div tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-md w-[380px]" 
                   style={isImageBackground ? { 
                     backgroundColor: 'rgba(0, 0, 0, 0.8)', 
                     backdropFilter: 'blur(10px)',
@@ -787,21 +804,21 @@ export default function TitleBar({
                     right: 0
                   }}
                 >
-                  <div className="p-1">
+                  <div className="p-2">
                     {/* 消息历史记录数量控制 */}
-                    <div className="flex flex-col gap-0.5 mb-2">
+                    <div className="flex flex-col gap-1 mb-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium" style={isImageBackground ? { 
+                        <span className="text-sm font-medium" style={isImageBackground ? { 
                           color: 'white', 
                           textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
                         } : {}}>Number of message:</span>
-                        <span className="text-xs min-w-[35px] text-right" 
+                        <span className="text-sm min-w-[40px] text-right" 
                           style={isImageBackground ? { 
                             color: 'white', 
                             textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
                             backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                            padding: '1px 4px',
-                            borderRadius: '2px'
+                            padding: '2px 6px',
+                            borderRadius: '3px'
                           } : {}}
                         >{maxHistoryMessages === 21 ? '全部' : maxHistoryMessages}</span>
                       </div>
@@ -816,7 +833,7 @@ export default function TitleBar({
                           // 更新滑动条进度效果
                           updateRangeProgress(e.target);
                         }}
-                        className="range range-xs range-primary w-full"
+                        className="range range-sm range-primary w-full"
                         step="1"
                         style={{
                           ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
@@ -829,17 +846,17 @@ export default function TitleBar({
                     {/* Temperature 控制 */}
                     <div className="flex flex-col gap-0.5 mb-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium" style={isImageBackground ? { 
+                        <span className="text-sm font-medium" style={isImageBackground ? { 
                           color: 'white', 
                           textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
                         } : {}}>Temperature:</span>
-                        <span className="text-xs min-w-[35px] text-right" 
+                        <span className="text-sm min-w-[40px] text-right" 
                           style={isImageBackground ? { 
                             color: 'white', 
                             textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
                             backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                            padding: '1px 4px',
-                            borderRadius: '2px'
+                            padding: '2px 6px',
+                            borderRadius: '3px'
                           } : {}}
                         >{safeTemperature.toFixed(1)}</span>
                       </div>
@@ -855,7 +872,7 @@ export default function TitleBar({
                           localStorage.setItem('aichat_temperature', e.target.value);
                           updateRangeProgress(e.target);
                         }}
-                        className="range range-xs range-primary w-full"
+                        className="range range-sm range-primary w-full"
                         style={{
                           ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
                           "--range-shdw": `${(safeTemperature / 2) * 100}%`
@@ -867,17 +884,17 @@ export default function TitleBar({
                     {/* Max Tokens 控制 */}
                     <div className="flex flex-col gap-0.5">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium" style={isImageBackground ? { 
+                        <span className="text-sm font-medium" style={isImageBackground ? { 
                           color: 'white', 
                           textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)'
                         } : {}}>Max Tokens:</span>
-                        <span className="text-xs min-w-[35px] text-right" 
+                        <span className="text-sm min-w-[40px] text-right" 
                           style={isImageBackground ? { 
                             color: 'white', 
                             textShadow: '0px 0px 3px rgba(0, 0, 0, 0.8)',
                             backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                            padding: '1px 4px',
-                            borderRadius: '2px'
+                            padding: '2px 6px',
+                            borderRadius: '3px'
                           } : {}}
                         >{safeMaxTokens === 999999 ? '∞' : safeMaxTokens}</span>
                       </div>
@@ -893,7 +910,7 @@ export default function TitleBar({
                           localStorage.setItem('aichat_max_tokens', value.toString());
                           updateRangeProgress(e.target);
                         }}
-                        className="range range-xs range-primary w-full"
+                        className="range range-sm range-primary w-full"
                         style={{
                           ...isImageBackground ? { position: 'relative', zIndex: 10 } : {},
                           "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`
@@ -902,7 +919,7 @@ export default function TitleBar({
                       />
                       <div className="flex justify-end mt-0.5">
                         <button
-                          className="btn btn-xs btn-ghost"
+                          className="btn btn-ghost"
                           onClick={() => {
                             const value = safeMaxTokens === 999999 ? 4096 : 999999;
                             setMaxTokens && setMaxTokens(value);
@@ -934,10 +951,20 @@ export default function TitleBar({
             </div>
           </div>
         ) : activeTool === 'chat' ? (
-          <div className="w-full flex items-center gap-3 no-drag app-drag-region">
-            {/* 只显示左侧会话名称 */}
-            <div className="flex-1 flex justify-start items-center ml-2 min-w-0 app-drag-region">
-              <h2 className="text-xs opacity-70 truncate max-w-[200px] app-drag-region" style={{ marginLeft: '60px' }}>
+          <div className="w-full flex items-center gap-3 no-drag app-drag-region" style={{ position: 'relative' }}>
+            {/* 左侧会话名称 - 绝对定位到中间 */}
+            <div className="app-drag-region" style={{ 
+              position: 'absolute', 
+              left: 0, 
+              right: 0, 
+              top: 0, 
+              bottom: 0, 
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1
+            }}>
+              <h2 className="text-sm opacity-70 truncate max-w-[360px] app-drag-region">
                 {currentConversation?.name || 'Current session'}
               </h2>
             </div>
