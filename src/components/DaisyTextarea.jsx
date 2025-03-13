@@ -4,6 +4,7 @@ import '../styles/daisytextarea.css';
 // 创建一个全局状态管理对象
 const TextareaState = {
   isVisible: false,
+  position: { top: 50 }, // 初始垂直位置为50%（中间位置）
   toggleVisibility: () => {
     TextareaState.isVisible = !TextareaState.isVisible;
     // 触发自定义事件通知组件更新
@@ -36,7 +37,17 @@ const DaisyTextarea = ({
   const [statusMessage, setStatusMessage] = useState('准备就绪');
   const [currentFilePath, setCurrentFilePath] = useState('');
   const [isEditingNumber, setIsEditingNumber] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState(TextareaState.position);
   const noteInputRef = useRef(null);
+  const containerRef = useRef(null);
+  const dragStartRef = useRef(null);
+  const positionRef = useRef(position);
+  
+  // 更新位置引用，确保事件处理程序可以访问最新值
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
   
   // 构建Note存储键名
   const buildNoteKey = (number) => {
@@ -171,15 +182,84 @@ const DaisyTextarea = ({
     e.stopPropagation();
   };
 
+  // 拖拽开始处理
+  const handleDragStart = (e) => {
+    if (e.target.closest('.note-number-display, .note-number-input-field, .daisy-close-btn')) {
+      return; // 避免在点击笔记编号或关闭按钮时开始拖拽
+    }
+    
+    setIsDragging(true);
+    dragStartRef.current = {
+      y: e.clientY,
+      top: positionRef.current.top
+    };
+    
+    // 防止拖拽过程中选中文本
+    e.preventDefault();
+  };
+  
+  // 拖拽中处理
+  const handleDrag = (e) => {
+    if (!isDragging || !dragStartRef.current) return;
+    
+    // 计算垂直方向上的移动距离
+    const deltaY = e.clientY - dragStartRef.current.y;
+    
+    // 计算新的垂直位置 (以百分比表示)
+    let newTop = dragStartRef.current.top + deltaY / window.innerHeight * 100;
+    
+    // 限制垂直移动范围，确保不超出屏幕的80%范围
+    // 限制在10%到90%之间（使用应用程序的中间80%范围）
+    newTop = Math.max(22, Math.min(80, newTop));
+    
+    // 更新位置 (只更新top值，保持left不变)
+    setPosition({ top: newTop });
+    
+    // 更新全局状态
+    TextareaState.position = { top: newTop };
+  };
+  
+  // 拖拽结束处理
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    dragStartRef.current = null;
+  };
+  
+  // 添加全局鼠标事件监听
+  useEffect(() => {
+    const handleMouseMove = (e) => handleDrag(e);
+    const handleMouseUp = () => handleDragEnd();
+    
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
   if (!isVisible) return null;
 
+  // 自定义样式，用于控制垂直位置
+  const overlayStyle = {
+    top: `${position.top}%`,
+    transform: 'translateY(-50%)'
+  };
+
   return (
-    <div className="daisy-textarea-overlay">
+    <div className="daisy-textarea-overlay" style={overlayStyle}>
       <div 
+        ref={containerRef}
         className="daisy-textarea-container"
         onClick={handleContainerClick}
       >
-        <div className="daisy-textarea-header">
+        <div 
+          className={`daisy-textarea-header ${isDragging ? 'dragging' : ''}`}
+          onMouseDown={handleDragStart}
+        >
           <div className="daisy-textarea-title">
             Sticky Note
             {isEditingNumber ? (

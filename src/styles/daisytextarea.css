@@ -1,9 +1,7 @@
 /* DaisyUI Textarea styles */
 .daisy-textarea-overlay {
   position: fixed;
-  top: 50%;
   left: 5px; /* 距离左边5px */
-  transform: translateY(-50%);
   z-index: 99999;
   pointer-events: none; /* 避免阻止背景交互 */
 }
@@ -44,6 +42,15 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
+  cursor: grab; /* 显示可拖拽的光标 */
+  user-select: none; /* 防止文本选择 */
+}
+
+/* 拖拽中的标题栏样式 */
+.daisy-textarea-header.dragging {
+  cursor: grabbing; /* 显示正在拖拽的光标 */
+  background-color: rgba(0, 0, 0, 0.8); /* 稍微暗一点的背景 */
+  border-bottom-color: rgba(255, 215, 0, 0.3); /* 拖拽时边框颜色变为金色 */
 }
 
 .daisy-textarea-title {
