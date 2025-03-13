@@ -666,7 +666,32 @@ html [data-theme="bg-theme"].image-background-mode .btn-primary {
   font-weight: 600 !important;
 }
 
-/* 侧边栏折叠按钮样式 - 确保在所有主题下可见 */
+/* 统一所有主题的侧边栏折叠按钮样式 */
+
+
+/* 侧边栏折叠按钮悬停状态 - 适用于所有主题 */
+html .h-full.w-\[10px\].cursor-pointer:hover,
+[data-theme] .h-full.w-\[10px\].cursor-pointer:hover {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  border-right: 1px solid rgba(255, 215, 0, 0.3) !important;
+}
+
+/* 侧边栏折叠按钮中的箭头符号 - 适用于所有主题 */
+html .h-full.w-\[10px\].cursor-pointer .text-base-content,
+[data-theme] .h-full.w-\[10px\].cursor-pointer .text-base-content {
+  color: white !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+  text-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2) !important;
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+  margin: 0 !important;
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+/* 旧的主题特定样式保留但不再使用 */
 .sidebar-toggle {
   color: white !important;
   text-shadow: 0px 0px 6px rgba(0, 0, 0, 0.9) !important;
@@ -678,7 +703,6 @@ html [data-theme="bg-theme"].image-background-mode .btn-primary {
   transition: all 0.3s ease !important;
 }
 
-/* 侧边栏折叠按钮悬停效果 */
 .sidebar-toggle:hover {
   color: rgb(255, 215, 0) !important; /* 金色 */
   background-color: rgba(0, 0, 0, 0.5) !important;
@@ -687,14 +711,12 @@ html [data-theme="bg-theme"].image-background-mode .btn-primary {
   text-shadow: 0px 0px 8px rgba(255, 215, 0, 0.5) !important;
 }
 
-
 [data-theme="bg-theme"] .h-full.w-\[10px\].cursor-pointer:hover,
 html[data-theme="bg-theme"] .h-full.w-\[10px\].cursor-pointer:hover {
   background-color: rgba(0, 0, 0, 0.4) !important;
   border-right: 1px solid rgba(255, 215, 0, 0.3) !important;
 }
 
-/* 侧边栏折叠按钮中的箭头符号 */
 [data-theme="bg-theme"] .h-full.w-\[10px\].cursor-pointer .text-base-content,
 html[data-theme="bg-theme"] .h-full.w-\[10px\].cursor-pointer .text-base-content {
   color: white !important;
@@ -709,7 +731,6 @@ html[data-theme="bg-theme"] .h-full.w-\[10px\].cursor-pointer .text-base-content
   z-index: 100 !important;
 }
 
-/* 确保bg-theme模式下侧边栏折叠按钮可见 */
 [data-theme="bg-theme"] .sidebar-toggle,
 html[data-theme="bg-theme"] .sidebar-toggle,
 body[data-theme="bg-theme"] .sidebar-toggle {
