@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { toggleTheme, themes } from '../components/themeHandlers'
 import { openUrl, openUrlDirectly } from '../utils/browserUtils'
 import { TextareaState } from '../components/DaisyTextarea'
+// 导入自定义滑动条样式
+import '../styles/custom-sliders.css'
+// 导入滑动条处理函数
+import { handleHorizontalSliderMouseDown, updateSliderTrack, normalizeSliderValue } from '../utils/sliderHandlers'
 // 移除 react-hot-toast 导入
 // import { toast } from 'react-hot-toast'
 
@@ -213,10 +217,25 @@ export default function TitleBar({
   const safeMaxTokens = maxTokens || parseInt(localStorage.getItem('aichat_max_tokens') || '4096');
   const safeTemperature = temperature !== undefined ? temperature : parseFloat(localStorage.getItem('aichat_temperature') || '0.7');
   
+  // 初始化CSS变量，用于自定义滑动条轨道
+  useEffect(() => {
+    // 消息历史初始化
+    const messagePercentage = ((maxHistoryMessages - 0) / (21 - 0)) * 100;
+    document.documentElement.style.setProperty('--message-width', `${messagePercentage}%`);
+    
+    // 温度初始化
+    const temperaturePercentage = (safeTemperature / 2) * 100;
+    document.documentElement.style.setProperty('--temperature-width', `${temperaturePercentage}%`);
+    
+    // Token初始化
+    const tokensPercentage = ((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100;
+    document.documentElement.style.setProperty('--tokens-width', `${tokensPercentage}%`);
+  }, [maxHistoryMessages, safeTemperature, safeMaxTokens]);
+  
   // 在组件挂载后和参数变化时更新滑动条
   useEffect(() => {
     const updateAllRanges = () => {
-      document.querySelectorAll('.range.range-xs').forEach(rangeElement => {
+      document.querySelectorAll('.range.range-xs, .range.range-sm').forEach(rangeElement => {
         updateRangeProgress(rangeElement);
       });
     };
@@ -431,7 +450,35 @@ export default function TitleBar({
     openUrl(googleTranslateUrl, true, true);
   };
 
-  // 处理maxHistoryMessages变更
+  // 回调：更新历史消息数量
+  const handleMessageSliderChange = (value) => {
+    const normalizedValue = normalizeSliderValue(value, 0, 21, 0);
+    setMaxHistoryMessages(normalizedValue);
+    localStorage.setItem('aichat_max_history_messages', normalizedValue.toString());
+  };
+  
+  // 回调：更新温度
+  const handleTemperatureSliderChange = (value) => {
+    const normalizedValue = normalizeSliderValue(value, 0, 2, 1);
+    setTemperature && setTemperature(normalizedValue);
+    localStorage.setItem('aichat_temperature', normalizedValue.toString());
+  };
+  
+  // 回调：更新最大令牌数
+  const handleTokensSliderChange = (value) => {
+    // 特殊处理999999（无限制）值
+    if (value === 999999) {
+      setMaxTokens && setMaxTokens(999999);
+      localStorage.setItem('aichat_max_tokens', '999999');
+      return;
+    }
+    
+    const normalizedValue = normalizeSliderValue(value, 1024, 8192, 0);
+    setMaxTokens && setMaxTokens(normalizedValue);
+    localStorage.setItem('aichat_max_tokens', normalizedValue.toString());
+  };
+  
+  // 更新最大历史记录消息数量
   const handleMaxHistoryMessagesChange = (value) => {
     const numValue = parseInt(value);
     setMaxHistoryMessages(numValue);
@@ -813,25 +860,47 @@ export default function TitleBar({
                           } : {}}
                         >{maxHistoryMessages === 21 ? '全部' : maxHistoryMessages}</span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="21"
-                        value={maxHistoryMessages}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          handleMaxHistoryMessagesChange(value);
-                          // 更新滑动条进度效果
-                          updateRangeProgress(e.target);
-                        }}
-                        className="range range-sm range-primary w-full"
-                        step="1"
-                        style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 5 } : {},
-                          "--range-shdw": `${((maxHistoryMessages - 0) / (21 - 0)) * 100}%`
-                        }}
-                        onInput={(e) => updateRangeProgress(e.target)}
-                      />
+                      
+                      {/* 自定义滑动条 */}
+                      <div className="horizontal-slider-group">
+                        <div className="horizontal-slider message-slider">
+                          <div className="horizontal-slider-progress"></div>
+                          <div 
+                            className="horizontal-slider-thumb"
+                            style={{ left: `${(maxHistoryMessages / 21) * 100}%` }}
+                            title={`消息历史数量: ${maxHistoryMessages === 21 ? '全部' : maxHistoryMessages}`}
+                            onMouseDown={(e) => handleHorizontalSliderMouseDown(
+                              e, 
+                              setMaxHistoryMessages, 
+                              0, 
+                              21, 
+                              '--message-width',
+                              handleMessageSliderChange
+                            )}
+                          />
+                          <div className="message-slider-min">0</div>
+                          <div className="message-slider-max">21</div>
+                          
+                          {/* 隐藏的原生滑动条，保留原有功能 */}
+                          <input
+                            type="range"
+                            min="0"
+                            max="21"
+                            value={maxHistoryMessages}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              handleMessageSliderChange(value);
+                              // 更新滑动条进度效果
+                              updateRangeProgress(e.target);
+                              // 更新CSS变量
+                              const percentage = (e.target.value / 21) * 100;
+                              document.documentElement.style.setProperty('--message-width', `${percentage}%`);
+                            }}
+                            className="hidden-slider"
+                            step="1"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* Temperature 控制 */}
@@ -851,25 +920,46 @@ export default function TitleBar({
                           } : {}}
                         >{safeTemperature.toFixed(1)}</span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="2"
-                        step="0.1"
-                        value={safeTemperature}
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value);
-                          setTemperature && setTemperature(value);
-                          localStorage.setItem('aichat_temperature', e.target.value);
-                          updateRangeProgress(e.target);
-                        }}
-                        className="range range-sm range-primary w-full"
-                        style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 5 } : {},
-                          "--range-shdw": `${(safeTemperature / 2) * 100}%`
-                        }}
-                        onInput={(e) => updateRangeProgress(e.target)}
-                      />
+                      
+                      {/* 自定义温度滑动条 */}
+                      <div className="horizontal-slider-group">
+                        <div className="horizontal-slider temperature-slider">
+                          <div className="horizontal-slider-progress"></div>
+                          <div 
+                            className="horizontal-slider-thumb"
+                            style={{ left: `${(safeTemperature / 2) * 100}%` }}
+                            title={`温度: ${safeTemperature.toFixed(1)}`}
+                            onMouseDown={(e) => handleHorizontalSliderMouseDown(
+                              e, 
+                              setTemperature, 
+                              0, 
+                              2, 
+                              '--temperature-width',
+                              handleTemperatureSliderChange
+                            )}
+                          />
+                          <div className="temperature-slider-min">0.0</div>
+                          <div className="temperature-slider-max">2.0</div>
+                          
+                          {/* 隐藏的原生滑动条，保留原有功能 */}
+                          <input
+                            type="range"
+                            min="0"
+                            max="2"
+                            step="0.1"
+                            value={safeTemperature}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value);
+                              handleTemperatureSliderChange(value);
+                              updateRangeProgress(e.target);
+                              // 更新CSS变量
+                              const percentage = (value / 2) * 100;
+                              document.documentElement.style.setProperty('--temperature-width', `${percentage}%`);
+                            }}
+                            className="hidden-slider"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* Max Tokens 控制 */}
@@ -889,40 +979,84 @@ export default function TitleBar({
                           } : {}}
                         >{safeMaxTokens === 999999 ? '∞' : safeMaxTokens}</span>
                       </div>
-                      <input
-                        type="range"
-                        min="1024"
-                        max="8192"
-                        step="128"
-                        value={safeMaxTokens > 8192 ? 8192 : safeMaxTokens}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          setMaxTokens && setMaxTokens(value);
-                          localStorage.setItem('aichat_max_tokens', value.toString());
-                          updateRangeProgress(e.target);
-                        }}
-                        className="range range-sm range-primary w-full"
-                        style={{
-                          ...isImageBackground ? { position: 'relative', zIndex: 5 } : {},
-                          "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`
-                        }}
-                        onInput={(e) => updateRangeProgress(e.target)}
-                      />
+                      
+                      {/* 自定义Max Tokens滑动条 */}
+                      <div className="horizontal-slider-group">
+                        <div className="horizontal-slider tokens-slider">
+                          <div 
+                            className="horizontal-slider-progress" 
+                            style={{ 
+                              width: safeMaxTokens === 999999 ? '100%' : 'var(--tokens-width, 0%)' 
+                            }}
+                          ></div>
+                          <div 
+                            className="horizontal-slider-thumb"
+                            style={{ 
+                              left: safeMaxTokens === 999999 
+                                ? '100%' // 无限制状态下，滑块显示在最右侧
+                                : `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%` 
+                            }}
+                            title={`最大Tokens: ${safeMaxTokens === 999999 ? '∞' : safeMaxTokens}`}
+                            onMouseDown={(e) => handleHorizontalSliderMouseDown(
+                              e, 
+                              setMaxTokens, 
+                              1024, 
+                              8192, 
+                              '--tokens-width',
+                              handleTokensSliderChange
+                            )}
+                          />
+                          <div className="tokens-slider-min">1K</div>
+                          <div className="tokens-slider-max">8K</div>
+                          
+                          {/* 隐藏的原生滑动条，保留原有功能 */}
+                          <input
+                            type="range"
+                            min="1024"
+                            max="8192"
+                            step="128"
+                            value={safeMaxTokens > 8192 ? 8192 : safeMaxTokens}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+                              handleTokensSliderChange(value);
+                              updateRangeProgress(e.target);
+                              // 更新CSS变量
+                              const percentage = ((value - 1024) / (8192 - 1024)) * 100;
+                              document.documentElement.style.setProperty('--tokens-width', `${percentage}%`);
+                            }}
+                            className="hidden-slider"
+                          />
+                        </div>
+                      </div>
+
                       <div className="flex justify-end mt-0.5">
                         <button
                           className="btn btn-ghost"
                           onClick={() => {
                             const value = safeMaxTokens === 999999 ? 4096 : 999999;
+                            // 直接设置值，不经过normalizeSliderValue
                             setMaxTokens && setMaxTokens(value);
                             localStorage.setItem('aichat_max_tokens', value.toString());
                             
-                            // 手动更新滑动条样式
-                            const rangeElement = document.querySelector('.dropdown-content input[type="range"][min="1024"]');
-                            if (rangeElement) {
-                              // 更新滑动条的值
-                              rangeElement.value = Math.min(value, 8192);
-                              // 更新滑动条的进度效果
-                              updateRangeProgress(rangeElement);
+                            // 只有当值为4096时才更新滑动条位置
+                            if (value === 4096) {
+                              // 手动更新滑动条样式
+                              const rangeElement = document.querySelector('.dropdown-content input[type="range"][min="1024"]');
+                              if (rangeElement) {
+                                // 更新滑动条的值
+                                rangeElement.value = value;
+                                // 更新滑动条的进度效果
+                                updateRangeProgress(rangeElement);
+                                // 更新CSS变量
+                                const percentage = ((value - 1024) / (8192 - 1024)) * 100;
+                                document.documentElement.style.setProperty('--tokens-width', `${percentage}%`);
+                              }
+                              
+                              // 更新滑块位置
+                              const thumbElement = document.querySelector('.tokens-slider .horizontal-slider-thumb');
+                              if (thumbElement) {
+                                thumbElement.style.left = `${((value - 1024) / (8192 - 1024)) * 100}%`;
+                              }
                             }
                           }}
                           title={safeMaxTokens === 999999 ? "点击设置为默认值" : "点击设置为无限制"}

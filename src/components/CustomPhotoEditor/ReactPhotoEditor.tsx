@@ -646,7 +646,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                             }
                           }
                         }}>
-                          Resolution Presets
+                          Res
                         </button>
                         {/* 分辨率预设下拉内容 */}
                         <div 
@@ -680,7 +680,7 @@ export const ReactPhotoEditor: React.FC<ReactPhotoEditorProps> = ({
                             }
                           }
                         }}>
-                          Aspect Ratio
+                          AR
                     </button>
                         {/* 宽高比下拉内容 */}
                         <div 

@@ -1,0 +1,208 @@
+/* 自定义滑动条样式 - 类似于灰度滑块的横版样式 */
+
+/* 滑动条容器样式 */
+.horizontal-slider-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 10px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 10px;
+  border: 1px solid rgba(60, 60, 60, 0.3);
+}
+
+/* 滑块组样式 */
+.horizontal-slider-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+/* 滑块轨道样式 */
+.horizontal-slider {
+  height: 4px;
+  background-color: rgba(51, 51, 51, 0.8);
+  border-radius: 2px;
+  position: relative;
+  margin: 15px 0;
+}
+
+/* 滑块拇指(thumb)样式 */
+.horizontal-slider-thumb {
+  width: 16px;
+  height: 16px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: -6px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  transition: transform 0.1s ease;
+}
+
+.horizontal-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+  background-color: rgba(255, 215, 0, 0.9);
+}
+
+.horizontal-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+/* 滑块轨道填充色 */
+.horizontal-slider-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background-color: rgba(255, 215, 0, 0.7); /* 金色轨道 */
+  border-radius: 2px;
+  z-index: 1;
+}
+
+/* 各种滑块的填充颜色 */
+.message-slider .horizontal-slider-progress {
+  width: calc(var(--message-width, 0%));
+  background-color: rgba(64, 196, 255, 0.7); /* 蓝色轨道 */
+}
+
+.temperature-slider .horizontal-slider-progress {
+  width: calc(var(--temperature-width, 0%));
+  background-color: rgba(255, 159, 64, 0.7); /* 橙色轨道 */
+}
+
+.tokens-slider .horizontal-slider-progress {
+  width: calc(var(--tokens-width, 0%));
+  background-color: rgba(121, 255, 97, 0.7); /* 绿色轨道 */
+}
+
+/* 增加轨道上的刻度标记 */
+.message-slider-min {
+  position: absolute;
+  left: 0;
+  bottom: -15px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.message-slider-max {
+  position: absolute;
+  right: 0;
+  bottom: -15px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.temperature-slider-min {
+  position: absolute;
+  left: 0;
+  bottom: -15px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.temperature-slider-max {
+  position: absolute;
+  right: 0;
+  bottom: -15px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tokens-slider-min {
+  position: absolute;
+  left: 0;
+  bottom: -15px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tokens-slider-max {
+  position: absolute;
+  right: 0;
+  bottom: -15px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* 滑块值显示 */
+.horizontal-slider-value {
+  position: absolute;
+  right: 0;
+  top: -25px;
+  color: #ffffff;
+  font-size: 12px;
+  white-space: nowrap;
+  font-weight: 500;
+  background-color: rgba(255, 215, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 3px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* 滑块标签 */
+.horizontal-slider-label {
+  color: #ffffff;
+  font-size: 14px;
+  margin-bottom: 5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 兼容原生input range样式 */
+.hidden-slider {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* 确保所有主题下滑块样式一致 */
+[data-theme] .horizontal-slider-container,
+[data-theme] .horizontal-slider-group,
+[data-theme] .horizontal-slider,
+[data-theme] .horizontal-slider-thumb,
+[data-theme] .horizontal-slider-value,
+[data-theme] .horizontal-slider-label {
+  box-sizing: border-box;
+}
+
+/* 为主题背景模式添加特殊样式 */
+[data-theme="bg-theme"] .horizontal-slider-container {
+  background-color: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="bg-theme"] .horizontal-slider-value,
+[data-theme="bg-theme"] .horizontal-slider-label {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* 滑块thumb悬停时匹配对应的颜色 */
+.message-slider .horizontal-slider-thumb:hover {
+  box-shadow: 0 0 8px rgba(64, 196, 255, 0.7);
+  background-color: rgba(64, 196, 255, 0.9);
+}
+
+.temperature-slider .horizontal-slider-thumb:hover {
+  box-shadow: 0 0 8px rgba(255, 159, 64, 0.7);
+  background-color: rgba(255, 159, 64, 0.9);
+}
+
+.tokens-slider .horizontal-slider-thumb:hover {
+  box-shadow: 0 0 8px rgba(121, 255, 97, 0.7);
+  background-color: rgba(121, 255, 97, 0.9);
+} 
