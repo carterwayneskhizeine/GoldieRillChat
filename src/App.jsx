@@ -73,6 +73,7 @@ import ThreeJSShaders from './components/ThreeJSShaders'
 import { openUrl, switchToBrowserEvent } from './utils/browserUtils'
 import './styles/settings-modal.css'
 import './styles/audio-player.css'
+import DaisyTextarea, { TextareaState } from './components/DaisyTextarea'
 
 // 模拟引入书签Store
 const useBookmarkStore = {
@@ -172,6 +173,10 @@ export default function App() {
   // 书签状态
   const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
+  
+  // 添加文本编辑器状态
+  const [textareaContent, setTextareaContent] = useState('');
+  const [textareaDefaultValue, setTextareaDefaultValue] = useState('');
   
   // 在useEffect中添加电子书签store的连接
   useEffect(() => {
@@ -1867,6 +1872,16 @@ export default function App() {
           <div className="modal-backdrop" onClick={() => setDeletingConversation(null)}></div>
         </div>
       )}
+
+      {/* 全局文本编辑器 - 使用 Ctrl+X 控制显示/隐藏 */}
+      <DaisyTextarea
+        defaultValue={textareaDefaultValue}
+        onChange={setTextareaContent}
+        onSave={(content) => {
+          setTextareaContent(content);
+          console.log('保存文本内容:', content);
+        }}
+      />
     </div>
   )
 }

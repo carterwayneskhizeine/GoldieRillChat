@@ -6,7 +6,7 @@
 /* 设置面板主容器 */
 .settings-panel,
 .settings-panel-container {
-  background-color: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.9) !important;
   color: white !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(3px) !important;
@@ -496,7 +496,7 @@
 /* 图片背景模式兼容 */
 .bg-theme .settings-panel,
 .bg-theme .settings-panel-container {
-  background-color: rgba(0, 0, 0, 0.85) !important;
+  background-color: rgba(0, 0, 0, 0.95) !important;
   backdrop-filter: blur(8px) !important;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7) !important;
 }
