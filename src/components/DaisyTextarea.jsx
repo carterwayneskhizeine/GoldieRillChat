@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/daisytextarea.css';
 
-// 创建一个全局状态管理对象
+// 创建一个全局状态管理对象，并扩展它以支持多界面位置跟踪
 const TextareaState = {
   isVisible: false,
-  position: { top: 50 }, // 初始垂直位置为50%（中间位置）
+  position: { top: 50, left: 5 }, // 初始位置：垂直居中，左侧5px
+  size: { width: 200, height: 300 }, // 初始尺寸
+  // 共享位置的界面
+  sharedPositionTools: ['aichat', 'chat', 'threejs-shaders', 'monaco', 'embedding'],
+  // 当前活动工具
+  currentTool: localStorage.getItem('active_tool') || 'aichat',
+  // 切换可见性
   toggleVisibility: () => {
     TextareaState.isVisible = !TextareaState.isVisible;
     // 触发自定义事件通知组件更新
@@ -23,6 +29,26 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// 监听工具切换事件
+window.addEventListener('tool-changed', (e) => {
+  if (e.detail && e.detail.tool) {
+    TextareaState.currentTool = e.detail.tool;
+    
+    // 如果切换到Browser，则重置位置和尺寸到默认值
+    if (TextareaState.currentTool === 'browser') {
+      TextareaState.position = { top: 50, left: 5 };
+      TextareaState.size = { width: 200, height: 300 };
+      // 通知组件更新位置和尺寸
+      window.dispatchEvent(new CustomEvent('textarea-position-change', {
+        detail: { 
+          position: TextareaState.position,
+          size: TextareaState.size
+        }
+      }));
+    }
+  }
+});
+
 const DaisyTextarea = ({ 
   defaultValue = '',
   onChange,
@@ -38,16 +64,24 @@ const DaisyTextarea = ({
   const [currentFilePath, setCurrentFilePath] = useState('');
   const [isEditingNumber, setIsEditingNumber] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [position, setPosition] = useState(TextareaState.position);
+  const [size, setSize] = useState(TextareaState.size);
   const noteInputRef = useRef(null);
   const containerRef = useRef(null);
   const dragStartRef = useRef(null);
+  const resizeStartRef = useRef(null);
   const positionRef = useRef(position);
+  const sizeRef = useRef(size);
   
-  // 更新位置引用，确保事件处理程序可以访问最新值
+  // 更新位置和尺寸引用，确保事件处理程序可以访问最新值
   useEffect(() => {
     positionRef.current = position;
   }, [position]);
+  
+  useEffect(() => {
+    sizeRef.current = size;
+  }, [size]);
   
   // 构建Note存储键名
   const buildNoteKey = (number) => {
@@ -111,6 +145,45 @@ const DaisyTextarea = ({
     
     return () => {
       window.removeEventListener('textarea-visibility-change', handleVisibilityChange);
+    };
+  }, []);
+  
+  // 监听全局位置状态变化
+  useEffect(() => {
+    const handlePositionChange = (e) => {
+      if (e.detail && e.detail.position) {
+        setPosition(e.detail.position);
+      }
+      if (e.detail && e.detail.size) {
+        setSize(e.detail.size);
+      }
+    };
+    
+    window.addEventListener('textarea-position-change', handlePositionChange);
+    
+    return () => {
+      window.removeEventListener('textarea-position-change', handlePositionChange);
+    };
+  }, []);
+
+  // 监听工具切换
+  useEffect(() => {
+    const handleToolChange = (e) => {
+      if (e.detail && e.detail.tool) {
+        const newTool = e.detail.tool;
+        
+        // 如果切换到Browser，重置位置和尺寸
+        if (newTool === 'browser') {
+          setPosition({ top: 50, left: 5 });
+          setSize({ width: 200, height: 300 });
+        }
+      }
+    };
+    
+    window.addEventListener('tool-changed', handleToolChange);
+    
+    return () => {
+      window.removeEventListener('tool-changed', handleToolChange);
     };
   }, []);
 
@@ -190,7 +263,9 @@ const DaisyTextarea = ({
     
     setIsDragging(true);
     dragStartRef.current = {
+      x: e.clientX, // 记录初始水平位置
       y: e.clientY,
+      left: positionRef.current.left || 5, // 如果没有left值，默认为5px
       top: positionRef.current.top
     };
     
@@ -202,21 +277,41 @@ const DaisyTextarea = ({
   const handleDrag = (e) => {
     if (!isDragging || !dragStartRef.current) return;
     
-    // 计算垂直方向上的移动距离
+    // 计算水平和垂直方向上的移动距离
+    const deltaX = e.clientX - dragStartRef.current.x;
     const deltaY = e.clientY - dragStartRef.current.y;
     
-    // 计算新的垂直位置 (以百分比表示)
+    // 垂直方向使用百分比
     let newTop = dragStartRef.current.top + deltaY / window.innerHeight * 100;
+    // 限制垂直移动范围在20%到80%之间
+    newTop = Math.max(22, Math.min(81, newTop));
     
-    // 限制垂直移动范围，确保不超出屏幕的80%范围
-    // 限制在10%到90%之间（使用应用程序的中间80%范围）
-    newTop = Math.max(22, Math.min(80, newTop));
+    // 水平方向使用像素
+    let newLeft = dragStartRef.current.left;
     
-    // 更新位置 (只更新top值，保持left不变)
-    setPosition({ top: newTop });
+    // 只有在非Browser界面中才允许左右移动
+    if (TextareaState.currentTool !== 'browser') {
+      newLeft = dragStartRef.current.left + deltaX;
+      
+      // 限制水平移动范围
+      const minLeftPixels = Math.round(window.innerWidth * 0.00); // 屏幕宽度的7%
+      const maxLeftPixels = Math.round(window.innerWidth * 1.00); // 屏幕宽度的93%
+      newLeft = Math.max(minLeftPixels, Math.min(maxLeftPixels - 200, newLeft)); // 减去组件宽度200px
+    }
+    
+    // 更新位置，包括水平和垂直位置
+    setPosition({ top: newTop, left: newLeft });
     
     // 更新全局状态
-    TextareaState.position = { top: newTop };
+    TextareaState.position = { top: newTop, left: newLeft };
+    
+    // 在共享位置的工具间同步位置
+    if (TextareaState.sharedPositionTools.includes(TextareaState.currentTool)) {
+      // 可以触发自定义事件，通知其他组件实例更新位置
+      window.dispatchEvent(new CustomEvent('textarea-position-change', {
+        detail: { position: { top: newTop, left: newLeft } }
+      }));
+    }
   };
   
   // 拖拽结束处理
@@ -225,12 +320,88 @@ const DaisyTextarea = ({
     dragStartRef.current = null;
   };
   
+  // 缩放开始处理
+  const handleResizeStart = (e) => {
+    // 在Browser界面不允许缩放
+    if (TextareaState.currentTool === 'browser') {
+      return;
+    }
+    
+    setIsResizing(true);
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: sizeRef.current.width,
+      height: sizeRef.current.height
+    };
+    
+    // 防止拖拽过程中选中文本
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  
+  // 缩放中处理
+  const handleResize = (e) => {
+    if (!isResizing || !resizeStartRef.current) return;
+    
+    // 计算宽度和高度的变化量
+    const deltaX = e.clientX - resizeStartRef.current.x;
+    const deltaY = e.clientY - resizeStartRef.current.y;
+    
+    // 计算新的宽度和高度
+    let newWidth = resizeStartRef.current.width + deltaX;
+    let newHeight = resizeStartRef.current.height + deltaY;
+    
+    // 限制最小尺寸
+    newWidth = Math.max(150, newWidth);
+    newHeight = Math.max(200, newHeight);
+    
+    // 限制最大尺寸
+    newWidth = Math.min(500, newWidth);
+    newHeight = Math.min(600, newHeight);
+    
+    // 更新尺寸
+    setSize({ width: newWidth, height: newHeight });
+    
+    // 更新全局状态
+    TextareaState.size = { width: newWidth, height: newHeight };
+    
+    // 在共享位置的工具间同步尺寸
+    if (TextareaState.sharedPositionTools.includes(TextareaState.currentTool)) {
+      window.dispatchEvent(new CustomEvent('textarea-position-change', {
+        detail: { 
+          position: TextareaState.position,
+          size: { width: newWidth, height: newHeight }
+        }
+      }));
+    }
+  };
+  
+  // 缩放结束处理
+  const handleResizeEnd = () => {
+    setIsResizing(false);
+    resizeStartRef.current = null;
+  };
+  
   // 添加全局鼠标事件监听
   useEffect(() => {
-    const handleMouseMove = (e) => handleDrag(e);
-    const handleMouseUp = () => handleDragEnd();
+    const handleMouseMove = (e) => {
+      if (isDragging) {
+        handleDrag(e);
+      } else if (isResizing) {
+        handleResize(e);
+      }
+    };
     
-    if (isDragging) {
+    const handleMouseUp = () => {
+      if (isDragging) {
+        handleDragEnd();
+      } else if (isResizing) {
+        handleResizeEnd();
+      }
+    };
+    
+    if (isDragging || isResizing) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     }
@@ -239,15 +410,25 @@ const DaisyTextarea = ({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging]);
+  }, [isDragging, isResizing]);
 
   if (!isVisible) return null;
 
-  // 自定义样式，用于控制垂直位置
+  // 自定义样式，用于控制位置和尺寸
   const overlayStyle = {
     top: `${position.top}%`,
+    left: `${position.left}px`,
     transform: 'translateY(-50%)'
   };
+  
+  // 容器样式，用于控制尺寸
+  const containerStyle = {
+    width: `${size.width}px`,
+    height: `${size.height}px`
+  };
+  
+  // 是否在Browser界面
+  const isInBrowser = TextareaState.currentTool === 'browser';
 
   return (
     <div className="daisy-textarea-overlay" style={overlayStyle}>
@@ -255,6 +436,7 @@ const DaisyTextarea = ({
         ref={containerRef}
         className="daisy-textarea-container"
         onClick={handleContainerClick}
+        style={containerStyle}
       >
         <div 
           className={`daisy-textarea-header ${isDragging ? 'dragging' : ''}`}
@@ -323,6 +505,14 @@ const DaisyTextarea = ({
             {statusMessage} {isModified ? '(有未保存的更改)' : ''}
           </div>
         </div>
+        
+        {/* 缩放手柄，仅在非Browser界面显示 */}
+        {!isInBrowser && (
+          <div 
+            className={`daisy-textarea-resize-handle ${isResizing ? 'resizing' : ''}`}
+            onMouseDown={handleResizeStart}
+          ></div>
+        )}
       </div>
     </div>
   );

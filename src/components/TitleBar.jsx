@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { toggleTheme, themes } from '../components/themeHandlers'
 import { openUrl, openUrlDirectly } from '../utils/browserUtils'
+import { TextareaState } from '../components/DaisyTextarea'
 // 移除 react-hot-toast 导入
 // import { toast } from 'react-hot-toast'
 
@@ -552,6 +553,44 @@ export default function TitleBar({
             </button>
           </div>
         )}
+        
+        {/* 便签按钮 - 切换DaisyTextarea的可见性（无论侧边栏状态如何都显示） */}
+        <div className="flex items-center ml-2 gap-1">
+          <button 
+            className="btn btn-xs btn-ghost px-1"
+            onClick={() => {
+              // 直接调用已导入的TextareaState
+              TextareaState.toggleVisibility();
+            }}
+            style={{
+              transition: 'all 0.3s ease',
+              borderRadius: '3px',
+              height: '20px',
+              minHeight: '20px',
+              lineHeight: '1'
+            }}
+            title="Notes (Ctrl + X)"
+            onMouseOver={(e) => {
+              e.currentTarget.style.color = 'rgb(255, 215, 0)';
+              e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+              e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
+              e.currentTarget.style.textShadow = '0px 0px 3px rgba(0, 0, 0, 0.6)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.color = '';
+              e.currentTarget.style.borderColor = '';
+              e.currentTarget.style.backgroundColor = '';
+              e.currentTarget.style.textShadow = '';
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2" />
+              <line x1="7" y1="8" x2="17" y2="8" strokeWidth="2" />
+              <line x1="7" y1="12" x2="17" y2="12" strokeWidth="2" />
+              <line x1="7" y1="16" x2="12" y2="16" strokeWidth="2" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* 中间区域：浏览器控制栏或聊天标题 */}
@@ -694,12 +733,11 @@ export default function TitleBar({
                   position: 'relative',
                   zIndex: 10
                 } : {}}>
-                  {/* 扁平化SVG图标 */}
+                  {/* T形SVG图标代表Tokens */}
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2"/>
-                    <line x1="8" y1="12" x2="16" y2="12" strokeWidth="2"/>
-                    <line x1="8" y1="8" x2="16" y2="8" strokeWidth="2"/>
-                    <line x1="8" y1="16" x2="16" y2="16" strokeWidth="2"/>
+                    <line x1="7" y1="8" x2="17" y2="8" strokeWidth="2"/>
+                    <line x1="12" y1="8" x2="12" y2="16" strokeWidth="2"/>
                   </svg>
                 </label>
                 <div tabIndex={0} className="dropdown-content z-[1] menu p-1 shadow bg-base-100 rounded-md w-[350px]" 

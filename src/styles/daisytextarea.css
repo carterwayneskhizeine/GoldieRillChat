@@ -1,7 +1,7 @@
 /* DaisyUI Textarea styles */
 .daisy-textarea-overlay {
   position: fixed;
-  left: 5px; /* 距离左边5px */
+  /* 移除固定的left值，由JS动态控制 */
   z-index: 99999;
   pointer-events: none; /* 避免阻止背景交互 */
 }
@@ -9,8 +9,7 @@
 .daisy-textarea-container {
   display: flex;
   flex-direction: column;
-  width: 200px; /* 宽度设置为200px */
-  height: 300px;
+  /* 宽度和高度由JS控制 */
   font-family: var(--font-sans);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 215, 0, 0.3);
@@ -112,7 +111,7 @@
 /* 按钮样式 */
 .daisy-btn {
   padding: 4px 12px;
-  background-color: rgba(60, 60, 60, 0.7);
+  background-color: rgba(0, 0, 0, 0.7); /* 黑色背景 */
   color: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
@@ -122,7 +121,7 @@
 }
 
 .daisy-btn:hover:not(:disabled) {
-  background-color: rgba(255, 215, 0, 0.5); /* 所有按钮悬停时都使用金色效果 */
+  background-color: rgba(255, 215, 0, 0.5); /* 悬停时显示金色效果 */
   border-color: rgba(255, 215, 0, 0.6);
   color: white;
   text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.5);
@@ -148,6 +147,29 @@
   padding: 5px 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* 缩放手柄 */
+.daisy-textarea-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  background: rgba(255, 215, 0, 0.3);
+  cursor: nwse-resize; /* 右下角拖拽指针 */
+  border-radius: 0 0 8px 0;
+  border-top: 1px solid rgba(255, 215, 0, 0.5);
+  border-left: 1px solid rgba(255, 215, 0, 0.5);
+  transition: background-color 0.2s;
+}
+
+.daisy-textarea-resize-handle:hover {
+  background: rgba(255, 215, 0, 0.5);
+}
+
+.daisy-textarea-resize-handle.resizing {
+  background: rgba(255, 215, 0, 0.7);
 }
 
 /* Note编号显示和输入 */
