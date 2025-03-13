@@ -14,6 +14,9 @@ GoldieRillChat 是一款高级人工智能对话平台，集成多项前沿技�
 - **视觉渲染引擎**：支持自定义主题系统，ThreeJS着色器背景渲染技术
 - **多模态处理能力**：系统提示词、输入框中英互译、AI图像生成、图片编辑器
 - **开发者工具集**：内置Monaco编辑器、浏览器环境、书签管理系统、Pyodide Python运行时（支持requests库实现API调用）
+- **跨界面工具集成**：
+  - **全局便签系统**：支持跨界面的Sticky Note功能，可存储和管理多达10个独立便签
+  - **内嵌式聊天**：在ThreeJS Shaders、Browser、Monaco Editor、Embedding等工具页面可通过侧边栏"Open Chat"按钮显示Chat界面，实现无缝交互
 
 ### 交互模式
 
@@ -38,6 +41,19 @@ GoldieRillChat 是一款高级人工智能对话平台，集成多项前沿技�
 - 在图片文件消息的按钮下点击**BG**设置图片为背景
 - 在视频消息下点击**MBG**设置视频为背景
 - ThreeJS Shaders 的 AI 提问模板在[这里](ThreeJS_Shaders示列.txt)
+
+### 跨界面工具
+
+- **全局便签（Sticky Note）**：
+  - 通过`Ctrl+X`或标题栏便签图标快速访问
+  - 支持10个不同编号的便签，内容自动保存到localStorage
+  - 可自由拖动位置和调整大小，适应不同工作场景
+
+- **内嵌式聊天**：
+  - 在ThreeJS Shaders、Browser、Monaco Editor、Embedding等工具页面
+  - 点击侧边栏的"Open Chat"按钮可以打开Chat界面
+  - 无需切换工具即可发送、编辑消息和切换对话
+  - 适合在使用各工具的同时参考或记录相关聊天内容
 
 ### AI功能
 
@@ -74,6 +90,16 @@ GoldieRillChat 是一款高级人工智能对话平台，集成多项前沿技�
 - `Ctrl+4`: Chat
 - `Ctrl+5`: Monaco Editor
 - `Ctrl+6`: Embedding
+
+### Sticky Note (便签)
+- `Ctrl+X`: 显示/隐藏全局便签
+- 也可通过标题栏上的便签图标按钮切换显示状态
+- 支持10个不同的便签（编号1-10），点击编号可以切换
+- 便签内容自动保存至localStorage
+- 便签可拖动位置和调整大小
+- 支持按钮操作：
+  - `SAVE`: 手动保存当前便签内容
+  - `CLEAR`: 清空当前便签内容
 
 ### 侧边栏和对话导航
 - `Ctrl + G`: 切换侧边栏显示/隐藏
