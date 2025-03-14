@@ -8,6 +8,11 @@ import { TextareaState } from '../components/DaisyTextarea'
 // 导入语音识别模块
 import { useSpeechRecognition, showNotification } from '../modules/SpeechRecognition'
 
+// 添加语音识别文字滚动的样式
+const speechRecognitionStyles = `
+// 删除所有动画和容器样式
+`;
+
 // 导入翻译服务
 // import { translateText, getGoogleTranslateConfig } from '../services/webTranslationService'
 
@@ -480,6 +485,27 @@ export default function TitleBar({
     };
   }, [handleVoiceShortcut]);
 
+  // 添加样式到文档
+  useEffect(() => {
+    // 创建样式元素
+    const styleElement = document.createElement('style');
+    styleElement.textContent = speechRecognitionStyles;
+    styleElement.id = 'speech-recognition-styles';
+    
+    // 只有在没有相同ID的样式元素时才添加
+    if (!document.getElementById('speech-recognition-styles')) {
+      document.head.appendChild(styleElement);
+    }
+    
+    // 组件卸载时清理
+    return () => {
+      const existingStyle = document.getElementById('speech-recognition-styles');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
+
   return (
     <div className="h-11 flex items-center bg-base-300 select-none" style={{ WebkitAppRegion: 'drag' }}>
       {/* 应用图标和名称 */}
@@ -631,16 +657,6 @@ export default function TitleBar({
             </svg>
             )}
           </button>
-          {/* 录音状态提示 */}
-          {isRecording && (
-            <span 
-              className="text-xs font-medium text-error animate-pulse"
-              style={{ WebkitAppRegion: 'no-drag' }}
-            >
-              正在录音...
-              {recordedText && <span className="ml-1 opacity-80">{recordedText}</span>}
-            </span>
-          )}
         </div>
 
         {/* 便签按钮 - 切换DaisyTextarea的可见性（无论侧边栏状态如何都显示） */}
@@ -779,9 +795,17 @@ export default function TitleBar({
           <div className="w-full flex items-center">
             {/* 中间会话名称区域 - 保持拖拽 */}
             <div className="flex-1 h-full flex items-center justify-center">
-              <h2 className="text-sm opacity-70 truncate text-center" style={{ maxWidth: '500px' }}>
-                {currentConversation?.name || 'Current session'}
-              </h2>
+              {isRecording && recordedText ? (
+                <div>
+                  <h2 className="text-sm text-center">
+                    🎙️ {recordedText}
+                  </h2>
+                </div>
+              ) : (
+                <h2 className="text-sm opacity-70 truncate text-center" style={{ maxWidth: '500px' }}>
+                  {currentConversation?.name || 'Current session'}
+                </h2>
+              )}
             </div>
 
             {/* 右侧控制区域 */}
@@ -1014,9 +1038,17 @@ export default function TitleBar({
           <div className="w-full flex items-center">
             {/* 中间会话名称区域 - 保持拖拽 */}
             <div className="flex-1 h-full flex items-center justify-center">
-              <h2 className="text-sm opacity-70 truncate text-center" style={{ maxWidth: '500px' }}>
-                {currentConversation?.name || 'Current session'}
-              </h2>
+              {isRecording && recordedText ? (
+                <div>
+                  <h2 className="text-sm text-center">
+                    🎙️ {recordedText}
+                  </h2>
+                </div>
+              ) : (
+                <h2 className="text-sm opacity-70 truncate text-center" style={{ maxWidth: '500px' }}>
+                  {currentConversation?.name || 'Current session'}
+                </h2>
+              )}
             </div>
           </div>
         ) : null}
