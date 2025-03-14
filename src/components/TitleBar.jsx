@@ -797,12 +797,20 @@ export default function TitleBar({
             <div className="flex-1 h-full flex items-center justify-center">
               {isRecording && recordedText ? (
                 <div>
-                  <h2 className="text-sm text-center">
+                  <h2 className="text-sm text-center font-medium" style={{
+                    color: "#ffffff",
+                    textShadow: "0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)",
+                    fontSize: "0.95rem"
+                  }}>
                     🎙️ {recordedText}
                   </h2>
                 </div>
               ) : (
-                <h2 className="text-sm opacity-70 truncate text-center" style={{ maxWidth: '500px' }}>
+                <h2 className="text-sm text-center font-medium" style={{
+                  color: '#ffffff',
+                  textShadow: '0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)',
+                  fontSize: '0.95rem'
+                }}>
                   {currentConversation?.name || 'Current session'}
                 </h2>
               )}
@@ -1040,12 +1048,20 @@ export default function TitleBar({
             <div className="flex-1 h-full flex items-center justify-center">
               {isRecording && recordedText ? (
                 <div>
-                  <h2 className="text-sm text-center">
+                    <h2 className="text-sm text-center font-medium" style={{
+                      color: "#ffffff",
+                      textShadow: "0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)",
+                      fontSize: "0.95rem"
+                    }}>
                     🎙️ {recordedText}
                   </h2>
                 </div>
               ) : (
-                <h2 className="text-sm opacity-70 truncate text-center" style={{ maxWidth: '500px' }}>
+                <h2 className="text-sm text-center font-medium" style={{
+                  color: '#ffffff',
+                  textShadow: '0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)',
+                  fontSize: '0.95rem'
+                }}>
                   {currentConversation?.name || 'Current session'}
                 </h2>
               )}

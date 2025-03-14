@@ -328,14 +328,17 @@ export const insertTextToActiveElement = (text, isEnd) => {
  * @returns {Object} 语音识别状态和方法
  */
 export const useSpeechRecognition = (options = {}) => {
-  // 默认选项
+  // 默认配置
   const defaultOptions = {
-    timeout: 60000, // 默认超时时间为60秒
-    pollingInterval: 1000, // 默认轮询间隔为1秒
+    apiBaseUrl: '/api',  // API基础URL
+    autoStart: false,    // 是否自动开始录音
+    timeout: 60000,      // 录音超时时间（毫秒）
+    silenceTimeout: 5000, // 静音检测超时时间（毫秒）
+    pollingInterval: 1000, // 轮询间隔（毫秒）
   };
   
   // 合并选项
-  const { timeout, pollingInterval } = { ...defaultOptions, ...options };
+  const { timeout, pollingInterval, silenceTimeout } = { ...defaultOptions, ...options };
   
   // 状态
   const [isRecording, setIsRecording] = useState(false);
@@ -347,6 +350,9 @@ export const useSpeechRecognition = (options = {}) => {
   const recordingTimeoutIdRef = useRef(null);
   const temporarySentenceRef = useRef('');
   const currentSessionIdRef = useRef('');
+  
+  // 静音检测计时器
+  const silenceTimerRef = useRef(null);
   
   /**
    * 生成唯一的会话ID
@@ -468,6 +474,9 @@ export const useSpeechRecognition = (options = {}) => {
    * @param {Object} result - 结果对象
    */
   const handleTextResult = (result) => {
+    // 重置静音计时器 - 每次收到结果都说明正在说话
+    resetSilenceTimer();
+    
     // 检查结果是否包含必要字段
     if (!result.text) {
       console.log('结果缺少文本字段:', result);
@@ -512,6 +521,27 @@ export const useSpeechRecognition = (options = {}) => {
         console.error('复制到剪贴板失败:', e);
         showNotification(`识别结果: ${text}`, 'info');
       }
+    }
+  };
+  
+  /**
+   * 重置静音计时器
+   */
+  const resetSilenceTimer = () => {
+    // 清除现有计时器
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    
+    // 如果正在录音，设置新的静音计时器
+    if (isRecording) {
+      console.log(`设置${silenceTimeout/1000}秒静音自动停止计时器`);
+      silenceTimerRef.current = setTimeout(() => {
+        console.log(`检测到${silenceTimeout/1000}秒无语音，自动停止录音`);
+        showNotification(`检测到${silenceTimeout/1000}秒无语音，自动停止录音`, 'info');
+        stopRecording();
+      }, silenceTimeout);
     }
   };
   
@@ -830,6 +860,34 @@ export const useSpeechRecognition = (options = {}) => {
       }
     };
   }, [isRecording]);
+  
+  // 清理函数 - 将在组件卸载时执行
+  useEffect(() => {
+    return () => {
+      console.log('清理语音识别资源');
+      if (isRecording) {
+        stopRecording(false);
+      }
+      
+      // 清理所有计时器和间隔
+      if (pollingIntervalIdRef.current) {
+        clearInterval(pollingIntervalIdRef.current);
+        pollingIntervalIdRef.current = null;
+      }
+      
+      if (recordingTimeoutIdRef.current) {
+        clearTimeout(recordingTimeoutIdRef.current);
+        recordingTimeoutIdRef.current = null;
+      }
+      
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+      
+      setIsRecording(false);
+    };
+  }, []);
   
   // 返回语音识别状态和方法
   return {

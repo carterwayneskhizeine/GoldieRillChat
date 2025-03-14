@@ -4,13 +4,15 @@
 
 ## 功能特点
 
-- 实时语音识别
+- 实时语音识别与文本转换
+- 标题栏实时显示识别的文本（白色高亮显示）
 - 自动插入文本到活跃输入框
 - 支持键盘快捷键(Ctrl+Shift+M)
-- 语音输入状态管理
-- 超时自动停止
-- 结果轮询机制
-- 优雅的错误处理和通知
+- 智能的输入焦点检测和处理
+- 自动超时停止（默认60秒）
+- 多级错误处理与用户友好的通知系统
+- 无输入框时自动复制到剪贴板功能
+- 针对React组件优化的DOM操作
 
 ## 使用方法
 
@@ -46,14 +48,14 @@ function MyComponent() {
     };
   }, [handleVoiceShortcut]);
 
-  // 渲染UI
+  // 渲染UI，可以选择在标题栏中显示识别文本
   return (
     <div>
       <button onClick={isRecording ? stopRecording : startRecording}>
         {isRecording ? '停止录音' : '开始录音'}
       </button>
       
-      {isRecording && <span>正在录音... {recordedText}</span>}
+      {/* 语音识别文本会自动显示在标题栏中，无需额外显示 */}
     </div>
   );
 }
@@ -121,10 +123,21 @@ showNotification('提示信息', 'info');
 
 此模块需要以下后端API支持:
 
-- `/api/speech/get_results?id={sessionId}`: 获取识别结果
-- `/api/speech/start_recording?id={sessionId}`: 开始录音
-- `/api/speech/stop_recording?id={sessionId}`: 停止录音
+- `/api/speech/test`: 测试语音识别服务连接
+- `/api/speech/results?session_id={sessionId}`: 获取识别结果
+- `/api/speech/start`: 开始录音，POST请求，body中包含`session_id`
+- `/api/speech/stop`: 停止录音，POST请求，body中包含`session_id`
 
-## 兼容性
+## 标题栏显示
 
-模块需要运行在支持Web Speech API或设备麦克风访问的现代浏览器中。 
+当语音识别激活时，识别的文本会自动显示在应用标题栏中：
+
+- 文本以白色高亮显示，确保在各种背景下都清晰可见
+- 识别过程中会实时更新显示的文本
+- 无需开发者额外添加代码，只需使用`useSpeechRecognition`钩子
+
+## 兼容性和依赖
+
+- 需要连接到本地语音识别服务器（默认端口2047）
+- 支持主流现代浏览器
+- 优化了React应用中的使用体验 
