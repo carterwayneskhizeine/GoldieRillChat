@@ -1070,6 +1070,45 @@ export default function TitleBar({
               )}
             </div>
           </div>
+        ) : activeTool === 'monaco' ? (
+          <div className="w-full flex items-center">
+            {/* Monaco编辑器标题区域 */}
+            <div className="flex-1 h-full flex items-center justify-center">
+              {isRecording && recordedText ? (
+                <div>
+                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
+                    🎙️ {recordedText}
+                  </h2>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : activeTool === 'threejs-shaders' ? (
+          <div className="w-full flex items-center">
+            {/* ThreeJS Shaders标题区域 */}
+            <div className="flex-1 h-full flex items-center justify-center">
+              {isRecording && recordedText ? (
+                <div>
+                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
+                    🎙️ {recordedText}
+                  </h2>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : activeTool === 'embedding' ? (
+          <div className="w-full flex items-center">
+            {/* Embedding标题区域 */}
+            <div className="flex-1 h-full flex items-center justify-center">
+              {isRecording && recordedText ? (
+                <div>
+                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
+                    🎙️ {recordedText}
+                  </h2>
+                </div>
+              ) : null}
+            </div>
+          </div>
         ) : null}
       </div>
 
