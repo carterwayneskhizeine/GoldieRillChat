@@ -506,6 +506,25 @@ export default function TitleBar({
     };
   }, []);
 
+  // 在组件内添加一个获取标题样式的函数
+  const getTitleStyle = (isImage) => {
+    return {
+      color: '#ffffff', // 统一使用纯白色
+      textShadow: currentTheme === 'bg-theme' 
+        ? '0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)' // 使用与其他主题相同的阴影
+        : '0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)',
+      fontSize: '0.95rem',
+      fontWeight: 'medium',
+      display: 'inline-block', // 确保不会因为其他布局原因被隐藏
+      padding: '2px 6px',
+      borderRadius: '4px',
+      backgroundColor: currentTheme === 'bg-theme' ? 'rgba(0, 0, 0, 0.3)' : 'transparent', // bg-theme模式下添加深色背景增强对比度
+      opacity: 1,
+      position: 'relative', // 提高层级位置
+      zIndex: 5
+    };
+  };
+
   return (
     <div className="h-11 flex items-center bg-base-300 select-none" style={{ WebkitAppRegion: 'drag' }}>
       {/* 应用图标和名称 */}
@@ -797,20 +816,12 @@ export default function TitleBar({
             <div className="flex-1 h-full flex items-center justify-center">
               {isRecording && recordedText ? (
                 <div>
-                  <h2 className="text-sm text-center font-medium" style={{
-                    color: "#ffffff",
-                    textShadow: "0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)",
-                    fontSize: "0.95rem"
-                  }}>
+                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
                     🎙️ {recordedText}
                   </h2>
                 </div>
               ) : (
-                <h2 className="text-sm text-center font-medium" style={{
-                  color: '#ffffff',
-                  textShadow: '0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)',
-                  fontSize: '0.95rem'
-                }}>
+                <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
                   {currentConversation?.name || 'Current session'}
                 </h2>
               )}
@@ -1048,20 +1059,12 @@ export default function TitleBar({
             <div className="flex-1 h-full flex items-center justify-center">
               {isRecording && recordedText ? (
                 <div>
-                    <h2 className="text-sm text-center font-medium" style={{
-                      color: "#ffffff",
-                      textShadow: "0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)",
-                      fontSize: "0.95rem"
-                    }}>
+                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
                     🎙️ {recordedText}
                   </h2>
                 </div>
               ) : (
-                <h2 className="text-sm text-center font-medium" style={{
-                  color: '#ffffff',
-                  textShadow: '0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)',
-                  fontSize: '0.95rem'
-                }}>
+                <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
                   {currentConversation?.name || 'Current session'}
                 </h2>
               )}
