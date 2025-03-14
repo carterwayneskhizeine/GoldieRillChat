@@ -128,6 +128,8 @@ export default function TitleBar({
   const [isMaximized, setIsMaximized] = useState(false);
   const initializedRef = useRef(false);
   const lastProviderRef = useRef(null);
+  // 添加下拉菜单状态
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   // 使用自定义语音识别Hook替代原来的状态和函数
   const [isCheckingServer, setIsCheckingServer] = useState(false);
@@ -169,6 +171,15 @@ export default function TitleBar({
   }, [safeMaxTokens, safeTemperature, maxHistoryMessages]);
 
   useEffect(() => {
+    // 添加点击外部关闭下拉菜单的处理
+    const handleClickOutside = (event) => {
+      if (isDropdownOpen && !event.target.closest('.dropdown')) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    
     // 初始化窗口状态
     window.electron.window.isMaximized().then(setIsMaximized)
 
@@ -219,8 +230,9 @@ export default function TitleBar({
       unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('backgroundModeChange', handleBackgroundModeChange);
+      document.removeEventListener('click', handleClickOutside);
     }
-  }, [])
+  }, [isDropdownOpen])
 
   // 使用useMemo代替useState+useEffect来计算可用模型列表
   const localAvailableModels = useMemo(() => {
@@ -509,7 +521,7 @@ export default function TitleBar({
   // 在组件内添加一个获取标题样式的函数
   const getTitleStyle = (isImage) => {
     return {
-      color: '#ffffff', // 统一使用纯白色
+      color: '#bababa', // 统一使用纯白色
       textShadow: currentTheme === 'bg-theme' 
         ? '0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)' // 使用与其他主题相同的阴影
         : '0px 0px 3px rgba(0, 0, 0, 0.7), 0px 0px 5px rgba(255, 215, 0, 0.5)',
@@ -860,11 +872,16 @@ export default function TitleBar({
 
               {/* 参数控制下拉菜单 */}
               <div className="dropdown dropdown-bottom dropdown-end">
-                <label tabIndex={0} className="btn btn-ghost px-2 h-8 min-h-0 flex items-center justify-center" style={isImageBackground ? { 
-                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                  color: 'white',
-                  borderColor: 'rgba(255, 255, 255, 0.2)'
-                } : {}}>
+                <label 
+                  tabIndex={0} 
+                  className="btn btn-ghost px-2 h-8 min-h-0 flex items-center justify-center" 
+                  style={isImageBackground ? { 
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    color: 'white',
+                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                  } : {}}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
                   {/* T形SVG图标代表Tokens */}
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2"/>
@@ -872,6 +889,7 @@ export default function TitleBar({
                     <line x1="12" y1="8" x2="12" y2="16" strokeWidth="2"/>
                   </svg>
                 </label>
+                {isDropdownOpen && (
                 <div tabIndex={0} className="dropdown-content z-[99] menu p-2 shadow bg-base-100 rounded-md w-[380px]" 
                   style={isImageBackground ? { 
                     backgroundColor: 'rgba(0, 0, 0, 0.25)', 
@@ -882,6 +900,7 @@ export default function TitleBar({
                   } : {
                     right: 0
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-2">
                     {/* 消息历史记录数量控制 */}
@@ -1050,6 +1069,7 @@ export default function TitleBar({
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             </div>
           </div>
