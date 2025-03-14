@@ -1050,14 +1050,20 @@ export function ChatView({
       </div>
 
       {/* 添加ChatView界面滚动到底部按钮 - 放在消息容器外，固定位置 */}
-      {userScrolled && messages.length > 0 && sidebarOpen && sidebarMode !== 'chat' && (
+      {userScrolled && messages.length > 0 && sidebarMode !== 'chat' && (
         <div 
           className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
-          style={{ bottom: '140px', right: '-106px' }} // 使用px单位精确控制距底部的距离
+          style={{ 
+            bottom: '140px', 
+            right: sidebarOpen ? '-106px' : '0px'
+          }} // 根据侧边栏状态调整位置
         >
           <button 
             className="btn btn-ghost btn-sm btn-circle bg-transparent backdrop-blur-sm pointer-events-auto shadow-md"
-            onClick={() => {
+            onClick={(e) => {
+              // 阻止事件冒泡和默认行为
+              e.stopPropagation();
+              e.preventDefault();
               setUserScrolled(false);
               setTimeout(scrollToBottom, 50);
             }}

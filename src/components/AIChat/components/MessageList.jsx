@@ -359,10 +359,13 @@ export const MessageList = ({
         onMouseLeave={handleMouseLeave}
       >
         {/* 添加AI Chat界面滚动到底部按钮 - 输入框正上方 */}
-        {userScrolled && messages.length > 0 && sidebarOpen && (
+        {userScrolled && messages.length > 0 && (
           <div 
             className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
-            style={{ bottom: '140px', right: '-106px' }} // 使用px单位精确控制距底部的距离
+            style={{ 
+              bottom: '140px', 
+              right: sidebarOpen ? '-106px' : '0px'
+            }} // 根据侧边栏状态调整位置
           >
             <button 
               className="btn btn-ghost btn-sm btn-circle bg-transparent backdrop-blur-sm pointer-events-auto shadow-md"
