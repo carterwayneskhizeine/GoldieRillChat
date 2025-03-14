@@ -640,9 +640,14 @@ export default function TitleBar({
       return;
     }
     
+    console.log(`使用会话ID [${sessionId}] 获取识别结果`);
+    
     try {
+      // 使用AbortController实现超时控制
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+      
+      console.log(`发送获取结果请求: http://127.0.0.1:2047/api/speech/results?session_id=${sessionId}`);
       
       const response = await fetch(`http://127.0.0.1:2047/api/speech/results?session_id=${sessionId}`, {
         method: 'GET',
@@ -653,51 +658,104 @@ export default function TitleBar({
         signal: controller.signal
       });
       
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId); // 清除超时
       
       if (!response.ok) {
         throw new Error(`API返回错误: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('获取到的语音识别API响应:', data);
       
       if (data.status === 'success' && data.results && data.results.length > 0) {
+        console.log(`收到 ${data.results.length} 条识别结果`);
+        
+        // 创建一个临时变量存储未完成的句子
+        let tempRecognizedText = '';
+        
+        // 处理所有结果
         for (const result of data.results) {
+          // 打印结果的完整内容以便调试
+          console.log('原始结果对象:', JSON.stringify(result));
+          
           const resultType = result.type || '';
           const resultText = result.text || '';
           const isEnd = result.is_end || false;
           
-          if (resultType === 'text' && resultText) {
-            // 更新状态
-            setRecordedText(resultText);
-            
-            if (isEnd) {
-              // 句子结束，插入最终文本
-              const inserted = insertTextToActiveElement(resultText, true);
-              if (inserted) {
-                setRecordedText('');
-                showNotification(`已将文本"${resultText}"插入到输入框`, 'success');
-              } else {
-                try {
-                  await navigator.clipboard.writeText(resultText);
-                  showNotification(`无法插入文本，但已复制到剪贴板: "${resultText}"`, 'info');
-                } catch (clipboardError) {
-                  showNotification(`识别成功但无法插入或复制: "${resultText}"`, 'warning');
+          // 记录识别的文本和是否结束
+          console.log(`识别结果: "${resultText}", 类型: ${resultType}, 是否句末: ${isEnd}`);
+          
+          // 只处理文本类型的结果
+          if (resultType === 'text') {
+            // 保存临时文本
+            if (resultText) {
+              tempRecognizedText = resultText;
+              
+              // 只在句子结束时插入文本
+              if (isEnd) {
+                console.log(`句子已结束，准备插入最终文本: "${tempRecognizedText}"`);
+                
+                // 尝试插入文本到活跃元素
+                const inserted = insertTextToActiveElement(tempRecognizedText, true);
+                
+                // 如果插入成功，清空已记录的文本
+                if (inserted) {
+                  setRecordedText('');
+                  console.log('文本插入成功，已清空已记录文本');
+                  showNotification(`已将文本"${tempRecognizedText}"插入到输入框`, 'success');
+                } else {
+                  console.log('插入文本失败，尝试备用方法');
+                  
+                  // 备用方法：尝试复制到剪贴板
+                  try {
+                    await navigator.clipboard.writeText(tempRecognizedText);
+                    showNotification(`无法插入文本，但已复制到剪贴板: "${tempRecognizedText}"`, 'info');
+                  } catch (clipboardError) {
+                    console.error('复制到剪贴板失败:', clipboardError);
+                    showNotification(`识别成功但无法插入或复制: "${tempRecognizedText}"`, 'warning');
+                  }
                 }
+              } else {
+                // 对于未完成的句子，只显示在状态中
+                console.log(`句子未结束，更新状态显示: "${tempRecognizedText}"`);
+                setRecordedText(tempRecognizedText);
               }
-            } else {
-              // 句子未结束，实时更新输入框
-              insertTextToActiveElement(resultText, false);
             }
+          } else if (resultType === 'complete') {
+            console.log('收到完成事件，识别会话已结束');
           } else if (resultType === 'error') {
+            console.error('收到错误事件:', result.message);
             showNotification(`语音识别错误: ${result.message}`, 'error');
+          } else {
+            // 尝试处理可能缺少type字段的结果
+            if (resultText) {
+              console.log(`处理未标明类型的结果: "${resultText}"`);
+              tempRecognizedText = resultText;
+              
+              if (isEnd) {
+                const inserted = insertTextToActiveElement(tempRecognizedText, true);
+                if (inserted) {
+                  setRecordedText('');
+                  showNotification(`已将文本"${tempRecognizedText}"插入到输入框`, 'success');
+                }
+              } else {
+                setRecordedText(tempRecognizedText);
+              }
+            }
           }
         }
       } else if (data.status === 'error') {
+        console.error('语音识别错误:', data.message);
         showNotification(`语音识别错误: ${data.message}`, 'error');
+      } else {
+        console.log('未收到识别结果');
       }
     } catch (error) {
-      if (error.name !== 'AbortError') {
+      // 忽略AbortError，这只是超时
+      if (error.name === 'AbortError') {
+        console.log('获取识别结果超时');
+      } else {
+        console.error('获取识别结果错误:', error);
         showNotification(`获取识别结果错误: ${error.message}`, 'error');
       }
     }
@@ -783,10 +841,15 @@ export default function TitleBar({
   const insertTextToActiveElement = (text, isEnd) => {
     try {
       if (!text || text.trim() === '') {
+        console.log('文本为空，不需要插入');
         return false;
       }
       
+      console.log(`准备插入最终文本: "${text}", 是否句末: ${isEnd}`);
+      
+      // 获取当前活跃的元素
       let activeElement = document.activeElement;
+      console.log(`当前活跃元素: ${activeElement?.tagName || '无'}, ID: ${activeElement?.id || '无'}, 类: ${activeElement?.className || '无'}`);
       
       // 检查活跃元素是否是文本输入框
       if (activeElement && 
@@ -794,30 +857,67 @@ export default function TitleBar({
            (activeElement.tagName === 'INPUT' && 
             (activeElement.type === 'text' || activeElement.type === 'search')))) {
         
-        // 如果是句子结束，添加空格；如果是中间结果，不添加空格
+        console.log('找到有效的活跃输入框元素');
+        
+        // 获取当前选中的文本范围
+        const startPos = activeElement.selectionStart || 0;
+        const endPos = activeElement.selectionEnd || 0;
+        
+        // 当前输入框的值
+        const currentValue = activeElement.value || '';
+        console.log(`当前值长度: ${currentValue.length}, 选中范围: ${startPos}-${endPos}`);
+        
+        // 如果是句子结束，添加空格
         const newText = isEnd ? text + ' ' : text;
         
-        // 直接设置新值，实时更新时会覆盖原有内容
-        activeElement.value = newText;
+        // 构建新的文本值（替换选中的文本或在光标位置插入）
+        // 如果有选中文本则替换，否则在光标位置插入
+        const newValue = endPos > startPos 
+          ? currentValue.substring(0, startPos) + newText + currentValue.substring(endPos)
+          : currentValue.substring(0, startPos) + newText + currentValue.substring(startPos);
         
-        // 将光标移动到末尾
-        const newCursorPos = newText.length;
+        console.log(`组装新值，长度: ${newValue.length}`);
+        
+        // 记住原始值用于调试
+        const originalValue = activeElement.value;
+        
+        // 更新输入框的值
+        activeElement.value = newValue;
+        
+        // 打印值是否真的改变
+        console.log(`值是否改变: ${originalValue !== activeElement.value}, 新值: "${activeElement.value}"`);
+        
+        // 更新光标位置
+        const newCursorPos = startPos + newText.length;
         activeElement.setSelectionRange(newCursorPos, newCursorPos);
         
-        // 触发必要的事件
-        activeElement.dispatchEvent(new Event('input', { bubbles: true }));
-        activeElement.dispatchEvent(new Event('change', { bubbles: true }));
+        console.log('准备派发事件...');
         
-        // React特定更新
+        // 创建并触发input事件（对所有类型的输入框）
+        const inputEvent = new Event('input', { bubbles: true, composed: true });
+        activeElement.dispatchEvent(inputEvent);
+        console.log('已派发input事件');
+        
+        // 创建并触发change事件
+        const changeEvent = new Event('change', { bubbles: true, composed: true });
+        activeElement.dispatchEvent(changeEvent);
+        console.log('已派发change事件');
+        
+        // 尝试使用React的合成事件方法更新值
+        // 这对于有些React组件是必要的
         if (activeElement._valueTracker) {
+          console.log('检测到React的_valueTracker，应用React特定更新');
           activeElement._valueTracker.setValue('');
         }
         
-        // 特殊处理React组件
+        // 特殊处理ChatView.jsx和InputArea.jsx的输入框
         if (activeElement.classList.contains('aichat-input') || 
             activeElement.closest('.textarea-bordered') || 
             activeElement.id === 'chat-input') {
           
+          console.log('特殊处理特定组件的输入框');
+          
+          // 使用原生DOM属性设置器更新值
           try {
             const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
               activeElement.tagName === 'TEXTAREA' ? 
@@ -826,9 +926,11 @@ export default function TitleBar({
               "value"
             ).set;
             
-            nativeInputValueSetter.call(activeElement, newText);
+            // 使用原生setter更新值
+            nativeInputValueSetter.call(activeElement, newValue);
+            console.log('已使用原生setter更新值');
             
-            // 再次触发事件确保React更新
+            // 再次触发事件以确保React捕获了变化
             activeElement.dispatchEvent(new Event('input', { bubbles: true }));
             activeElement.dispatchEvent(new Event('change', { bubbles: true }));
           } catch (e) {
@@ -836,50 +938,131 @@ export default function TitleBar({
           }
         }
         
-        // 调用组件自身的事件处理器
+        // 尝试额外的React绑定更新方法
         if (typeof activeElement.onInput === 'function') {
+          console.log('调用元素自身的onInput方法');
           activeElement.onInput({ target: activeElement });
         }
+        
         if (typeof activeElement.onChange === 'function') {
+          console.log('调用元素自身的onChange方法');
           activeElement.onChange({ target: activeElement });
         }
         
+        // 再次验证值是否更新
+        console.log(`最终验证 - 值是否正确更新: "${activeElement.value}" === "${newValue}" ? ${activeElement.value === newValue}`);
+        
+        console.log('文本插入过程完成');
         return true;
       } else {
-        // 如果没有活跃的输入框，尝试查找并聚焦
+        // 如果没有活跃的文本输入框，尝试找到一个并聚焦到它
+        console.log('未找到活跃的文本输入框，尝试查找页面上的输入框');
+        
+        // 首先尝试找到常见的输入元素
         const inputs = [
           ...document.querySelectorAll('textarea'), 
           ...document.querySelectorAll('input[type="text"]'),
           ...document.querySelectorAll('.aichat-input'),
           ...document.querySelectorAll('.textarea-bordered'),
           document.getElementById('chat-input')
-        ].filter(Boolean);
+        ].filter(Boolean); // 过滤掉null和undefined
         
-        for (const input of inputs) {
-          const style = window.getComputedStyle(input);
-          if (style.display !== 'none' && style.visibility !== 'hidden' && input.offsetParent !== null) {
-            input.focus();
-            setTimeout(() => {
-              if (document.activeElement === input) {
-                insertTextToActiveElement(text, isEnd);
+        console.log(`找到${inputs.length}个潜在输入框元素`);
+        
+        if (inputs.length > 0) {
+          // 找到第一个可见的输入框
+          for (let i = 0; i < inputs.length; i++) {
+            const input = inputs[i];
+            const style = window.getComputedStyle(input);
+            
+            console.log(`检查输入框 #${i}: ${input.tagName}, ID: ${input.id || '无ID'}, display: ${style.display}, visibility: ${style.visibility}`);
+            
+            if (style.display !== 'none' && style.visibility !== 'hidden' && input.offsetParent !== null) {
+              console.log(`找到可见输入框: ${input.tagName}, ID: ${input.id || '无ID'}`);
+              
+              // 保存当前活跃元素
+              const previousActive = document.activeElement;
+              
+              // 聚焦到这个输入框
+              try {
+                console.log('尝试聚焦到输入框');
+                input.focus();
+                // 确保DOM更新完成
+                setTimeout(() => {
+                  // 验证聚焦是否成功
+                  if (document.activeElement === input) {
+                    console.log('聚焦成功，递归调用自己');
+                    // 递归调用自己，现在已经有活跃元素了
+                    insertTextToActiveElement(text, isEnd);
+                  } else {
+                    console.log(`聚焦失败: 当前活跃元素=${document.activeElement?.tagName || '无'}, 目标=${input.tagName}`);
+                  }
+                }, 50);
+                return true;
+              } catch (focusError) {
+                console.error('聚焦到输入框失败:', focusError);
+                // 尝试回到原来的活跃元素
+                if (previousActive) {
+                  previousActive.focus();
+                }
               }
-            }, 50);
-            return true;
+            }
+          }
+          
+          console.log('未找到可以聚焦的输入框，尝试强制插入到第一个输入框');
+          
+          // 如果没有可聚焦的输入框，尝试强制插入到第一个输入框
+          for (let i = 0; i < inputs.length; i++) {
+            const input = inputs[i];
+            // 只尝试文本框和文本区域
+            if (input.tagName === 'TEXTAREA' || (input.tagName === 'INPUT' && input.type === 'text')) {
+              console.log(`尝试强制插入到: ${input.tagName}, ID: ${input.id || '无ID'}`);
+              
+              try {
+                // 插入最终文本
+                const finalText = text + (isEnd ? ' ' : '');
+                const originalValue = input.value || '';
+                input.value = finalText;
+                
+                console.log(`强制插入 - 原值: "${originalValue}", 新值: "${input.value}"`);
+                
+                // 触发事件以通知React
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                // 特殊处理React组件
+                if (input._valueTracker) {
+                  input._valueTracker.setValue('');
+                  console.log('应用React特定更新到强制插入的输入框');
+                }
+                
+                showNotification(`已强制将文本"${text}"插入到输入框`, 'success');
+                return true;
+              } catch (err) {
+                console.error('强制插入失败:', err);
+              }
+              
+              break;
+            }
           }
         }
         
-        // 如果是句子结束且找不到输入框，复制到剪贴板
-        if (isEnd) {
-          try {
-            navigator.clipboard.writeText(text);
-            showNotification(`识别结果已复制到剪贴板: "${text}"`, 'info');
-          } catch (clipboardError) {
-            showNotification(`识别结果: ${text}`, 'info');
-          }
+        // 如果没有找到输入框，显示通知
+        console.log('未找到可用的输入框，将文本复制到剪贴板');
+        
+        // 尝试复制到剪贴板
+        try {
+          navigator.clipboard.writeText(text);
+          showNotification(`识别结果已复制到剪贴板: "${text}"`, 'info');
+          return false;
+        } catch (clipboardError) {
+          console.error('复制到剪贴板失败:', clipboardError);
+          showNotification(`识别结果: ${text}`, 'info');
+          return false;
         }
-        return false;
       }
     } catch (error) {
+      console.error('插入文本到活跃元素失败:', error);
       showNotification(`插入文本失败: ${error.message}`, 'error');
       return false;
     }
