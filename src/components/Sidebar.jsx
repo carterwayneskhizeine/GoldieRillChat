@@ -370,11 +370,11 @@ export default function Sidebar({
                   {conversations.map(conversation => (
                     <div
                       key={conversation.id}
-                      className={`btn btn-ghost justify-between 
+                      className={`btn btn-ghost justify-between mb-4
                         ${currentConversation?.id === conversation.id ? 'btn-active' : ''} 
                         ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}
                         ${isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? 'keyboard-selected-conversation' : ''}
-                        conversation-item-${conversation.id}`}
+                        conversation-item conversation-item-${conversation.id}`}
                       draggable={editingFolderName === null}
                       onDragStart={() => {
                         if (editingFolderName !== null) return;
@@ -461,9 +461,39 @@ export default function Sidebar({
                             </div>
                           </div>
                         ) : (
-                          <span className="truncate">{conversation.name}</span>
+                          <>
+                            <span className="truncate">{conversation.name}</span>
+                          </>
                         )}
                       </div>
+                      {!editingFolderName && (
+                        <div className="folder-actions absolute left-0 right-0 p-1 flex justify-center gap-2" style={{zIndex: 100, borderTop: '1px solid rgba(255, 215, 0, 0.1)'}}>
+                          <button 
+                            className="btn btn-xs flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConversationRename(conversation);
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Rename
+                          </button>
+                          <button 
+                            className="btn btn-xs btn-ghost flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConversationDelete(conversation);
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m5-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -535,11 +565,11 @@ export default function Sidebar({
                         {conversations.map(conversation => (
                           <div
                             key={conversation.id}
-                            className={`btn btn-ghost justify-between 
+                            className={`btn btn-ghost justify-between mb-4
                               ${currentConversation?.id === conversation.id ? 'btn-active' : ''} 
                               ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}
                               ${isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? 'keyboard-selected-conversation' : ''}
-                              conversation-item-${conversation.id}`}
+                              conversation-item conversation-item-${conversation.id}`}
                             draggable={editingFolderName === null}
                             onDragStart={() => {
                               if (editingFolderName !== null) return;
@@ -626,9 +656,39 @@ export default function Sidebar({
                                   </div>
                                 </div>
                               ) : (
-                                <span className="truncate">{conversation.name}</span>
+                                <>
+                                  <span className="truncate">{conversation.name}</span>
+                                </>
                               )}
                             </div>
+                            {!editingFolderName && (
+                              <div className="folder-actions absolute left-0 right-0 p-1 flex justify-center gap-2" style={{zIndex: 100, borderTop: '1px solid rgba(255, 215, 0, 0.1)'}}>
+                                <button 
+                                  className="btn btn-xs flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConversationRename(conversation);
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  Rename
+                                </button>
+                                <button 
+                                  className="btn btn-xs btn-ghost flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConversationDelete(conversation);
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m5-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
