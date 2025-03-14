@@ -861,12 +861,13 @@ export default function TitleBar({
           zIndex: 100,
           display: 'flex',
           alignItems: 'center',
-          padding: isImageBackground ? '4px 10px' : '3px',
+          padding: isImageBackground ? '4px 16px 4px 4px' : '3px',
           margin: isImageBackground ? '3px 0' : '0',
           borderRadius: '6px',
           backdropFilter: isImageBackground ? 'blur(4px)' : 'none',
           WebkitBackdropFilter: isImageBackground ? 'blur(4px)' : 'none',
           border: isImageBackground ? '1px solid rgba(255, 255, 255, 0.15)' : 'none',
+          transform: isImageBackground ? 'translateX(3px)' : 'none',
         }}>
           <img 
             src={iconPath} 
