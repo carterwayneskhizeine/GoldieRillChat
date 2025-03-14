@@ -7,6 +7,7 @@ import time
 import threading
 import queue
 import dashscope
+import pyaudio
 from dashscope.audio.asr import *
 
 # 配置日志
@@ -31,6 +32,16 @@ is_recording = False
 current_session_id = None
 processing_thread = None
 stop_thread = threading.Event()
+
+# 音频设置
+CHUNK = 3200       # 每次读取的帧数
+FORMAT = pyaudio.paInt16  # 16位整型
+CHANNELS = 1       # 单声道
+RATE = 16000      # 采样率
+
+# PyAudio实例和流
+audio = None
+stream = None
 
 # 初始化DashScope API密钥
 def init_dashscope_api_key():
@@ -135,35 +146,64 @@ class ParaformerCallback(RecognitionCallback):
         except Exception as e:
             logger.error(f'处理识别事件时出错: {e}', exc_info=True)
 
-# 音频处理线程函数
+# 音频处理线程函数 - 直接从麦克风读取数据
 def audio_processing():
-    global recognition, is_recording
+    global recognition, is_recording, audio, stream
     
     logger.info('音频处理线程已启动')
     
-    while not stop_thread.is_set():
-        if not is_recording:
-            time.sleep(0.1)
-            continue
-            
-        try:
-            if not audio_queue.empty() and is_recording:
-                audio_data = audio_queue.get(timeout=0.5)
-                logger.debug(f'从队列获取音频数据: {len(audio_data)}字节')
-                if recognition:
-                    logger.debug(f'发送音频数据到识别器: {len(audio_data)}字节')
-                    recognition.send_audio_frame(audio_data)
-                    logger.debug('已发送音频数据帧')
-                else:
-                    logger.warning('识别器对象为空，无法发送音频数据')
-        except queue.Empty:
-            continue
-        except Exception as e:
-            logger.error(f"音频处理错误: {e}", exc_info=True)
-            
-        time.sleep(0.01)
+    try:
+        # 创建PyAudio实例
+        audio = pyaudio.PyAudio()
+        
+        # 打开音频流
+        stream = audio.open(
+            format=FORMAT,
+            channels=CHANNELS,
+            rate=RATE,
+            input=True,
+            frames_per_buffer=CHUNK
+        )
+        
+        logger.info(f'已打开麦克风，采样率: {RATE}Hz, 单声道, 16位')
+        
+        # 主循环 - 从麦克风读取并发送数据
+        while not stop_thread.is_set():
+            if not is_recording:
+                time.sleep(0.1)
+                continue
+                
+            try:
+                if is_recording and recognition:
+                    # 直接从麦克风读取数据
+                    audio_data = stream.read(CHUNK, exception_on_overflow=False)
+                    
+                    if len(audio_data) > 0:
+                        logger.debug(f'从麦克风读取音频数据: {len(audio_data)}字节')
+                        
+                        # 直接发送给识别器
+                        recognition.send_audio_frame(audio_data)
+                        logger.debug('已发送音频数据帧')
+                    
+            except Exception as e:
+                logger.error(f"音频处理错误: {e}", exc_info=True)
+                
+            time.sleep(0.01)
     
-    logger.info('音频处理线程已停止')
+    except Exception as e:
+        logger.error(f"初始化音频设备失败: {e}", exc_info=True)
+    
+    finally:
+        # 清理资源
+        logger.info('关闭音频处理线程...')
+        if stream:
+            stream.stop_stream()
+            stream.close()
+        
+        if audio:
+            audio.terminate()
+            
+        logger.info('音频处理线程已停止')
 
 # 启动识别会话
 @app.route('/api/speech/start', methods=['POST'])
@@ -175,8 +215,6 @@ def start_recognition():
     
     try:
         # 清空队列
-        while not audio_queue.empty():
-            audio_queue.get()
         while not results_queue.empty():
             results_queue.get()
             
@@ -198,20 +236,22 @@ def start_recognition():
         recognition = Recognition(
             model='paraformer-realtime-v2',  # 推荐的实时识别模型
             format='pcm',  # 音频格式
-            sample_rate=16000,  # 采样率
-            semantic_punctuation_enabled=False,  # 关闭语义断句，降低延迟
+            sample_rate=RATE,  # 采样率
+            semantic_punctuation_enabled=True,  # 启用语义断句
             callback=callback
         )
         
         # 启动识别
         recognition.start()
-        is_recording = True
         
-        # 启动音频处理线程
+        # 启动音频处理线程 (如果尚未启动)
         if processing_thread is None or not processing_thread.is_alive():
             processing_thread = threading.Thread(target=audio_processing)
             processing_thread.daemon = True
             processing_thread.start()
+        
+        # 设置录音标志
+        is_recording = True
         
         logger.info(f'已启动语音识别会话: {session_id}')
         
@@ -221,7 +261,7 @@ def start_recognition():
             'session_id': session_id
         })
     except Exception as e:
-        logger.error(f'启动识别会话失败: {e}')
+        logger.error(f'启动识别会话失败: {e}', exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # 停止识别会话
@@ -238,13 +278,6 @@ def stop_recognition():
         
         # 先设置标志，防止再接收新的音频数据
         is_recording = False
-        
-        # 清空音频队列
-        while not audio_queue.empty():
-            try:
-                audio_queue.get_nowait()
-            except:
-                pass
         
         # 停止识别
         if recognition:
@@ -270,35 +303,30 @@ def stop_recognition():
         logger.error(f'停止识别会话失败: {e}', exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-# 接收音频数据
-@app.route('/api/speech/audio', methods=['POST'])
-def receive_audio():
-    if not is_recording:
-        return jsonify({'status': 'error', 'message': '没有正在进行的识别会话'}), 400
-    
-    try:
-        # 获取二进制音频数据
-        audio_data = request.data
-        if len(audio_data) > 0:
-            logger.debug(f'接收到音频数据: {len(audio_data)}字节，格式: {request.content_type}')
-            audio_queue.put(audio_data)
-            logger.debug(f'已将音频数据放入队列: {len(audio_data)}字节')
-            
-        return jsonify({'status': 'success'})
-    except Exception as e:
-        logger.error(f'接收音频数据失败: {e}', exc_info=True)
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
 # 获取识别结果
 @app.route('/api/speech/results', methods=['GET'])
 def get_results():
     results = []
     try:
+        # 获取请求中的会话ID
+        session_id = request.args.get('session_id', None)
+        
+        if session_id:
+            logger.debug(f'获取会话ID: {session_id} 的识别结果')
+        else:
+            logger.debug('未提供会话ID，返回所有结果')
+        
         # 获取所有可用的结果
         while not results_queue.empty():
-            results.append(results_queue.get(False))
+            result = results_queue.get(False)
+            # 如果提供了会话ID，只返回匹配的结果
+            if session_id is None or ('session_id' in result and result['session_id'] == session_id):
+                results.append(result)
+            else:
+                # 不匹配的结果放回队列
+                results_queue.put(result)
             
-        logger.debug(f'已返回识别结果: {len(results)}')
+        logger.debug(f'已返回识别结果: {len(results)} 条')
         return jsonify({'status': 'success', 'results': results})
     except Exception as e:
         logger.error(f'获取识别结果失败: {e}')
@@ -325,10 +353,15 @@ def home():
             '/api/speech/test',
             '/api/speech/start',
             '/api/speech/stop',
-            '/api/speech/audio',
             '/api/speech/results'
         ]
     })
+
+# 关闭时清理资源
+def cleanup():
+    global stop_thread
+    stop_thread.set()
+    logger.info("服务器关闭，清理资源...")
 
 if __name__ == '__main__':
     logger.info('正在启动语音识别服务器...')
@@ -337,4 +370,6 @@ if __name__ == '__main__':
         app.run(host='0.0.0.0', port=2047, debug=False, threaded=True)
     except Exception as e:
         logger.error(f'启动服务器失败: {e}')
+    finally:
+        cleanup()
         sys.exit(1) 
