@@ -596,22 +596,45 @@ export const AIChat = ({
   useEffect(() => {
     const handleSettingsChange = (event) => {
       if (event.detail && event.detail.key === 'aichat_max_history_messages') {
-        console.log('AIChat收到历史消息数量更新:', event.detail.newValue);
+        console.log('AIChat收到历史消息数量更新:', event.detail.newValue, '旧值:', event.detail.oldValue);
         // 强制组件刷新
         forceUpdate();
       }
     };
     
+    const handleStorageChange = (event) => {
+      if (event.key === 'aichat_max_history_messages') {
+        // 强制组件刷新
+        forceUpdate();
+      }
+    };
+    
+    // 监听自定义事件
     window.addEventListener('aichat-settings-change', handleSettingsChange);
+    // 同时监听storage事件作为备份
+    window.addEventListener('storage', handleStorageChange);
     
     return () => {
       window.removeEventListener('aichat-settings-change', handleSettingsChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
-  // 强制刷新函数
-  const [, updateState] = useState({});
-  const forceUpdate = useCallback(() => updateState({}), []);
+  // 强制刷新函数 - 使用更完整的方法确保组件重新渲染
+  const [forceUpdateCounter, setForceUpdateCounter] = useState(0);
+  const forceUpdate = useCallback(() => {
+    console.log('强制刷新AIChat组件');
+    setForceUpdateCounter(prev => prev + 1);
+    
+    // 确保所有消息处理器都重新创建
+    if (messageHandlers && messageHandlers.resetMessageHandlers) {
+      messageHandlers.resetMessageHandlers();
+    }
+    
+    if (inputHandlers && inputHandlers.resetInputHandlers) {
+      inputHandlers.resetInputHandlers();
+    }
+  }, [messageHandlers, inputHandlers]);
 
   // 监听工具切换，确保当离开AIChat界面时关闭设置弹窗
   useEffect(() => {

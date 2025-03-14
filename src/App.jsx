@@ -1873,7 +1873,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 全局文本编辑器 - 使用 Ctrl+X 控制显示/隐藏 */}
+      {/* 全局文本编辑器 - 使用 Ctrl+Q 控制显示/隐藏 */}
       <DaisyTextarea
         defaultValue={textareaDefaultValue}
         onChange={setTextareaContent}

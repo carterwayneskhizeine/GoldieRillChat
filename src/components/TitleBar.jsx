@@ -441,18 +441,42 @@ export default function TitleBar({
   // 处理maxHistoryMessages变更
   const handleMaxHistoryMessagesChange = (value) => {
     const numValue = parseInt(value);
+    
+    // 有效性检查
+    if (isNaN(numValue) || numValue < 0 || numValue > 21) {
+      return;
+    }
+    
+    // 更新状态
     setMaxHistoryMessages(numValue);
+    
+    // 先存储旧值以便在事件中使用
+    const oldValue = localStorage.getItem('aichat_max_history_messages');
+    
+    // 更新localStorage
     localStorage.setItem('aichat_max_history_messages', numValue.toString());
     
     // 触发自定义storage事件以通知其他组件设置已更改
-    const storageEvent = new CustomEvent('aichat-settings-change', {
-      detail: {
+    try {
+      const storageEvent = new CustomEvent('aichat-settings-change', {
+        detail: {
+          key: 'aichat_max_history_messages',
+          newValue: numValue.toString(),
+          oldValue: oldValue
+        }
+      });
+      window.dispatchEvent(storageEvent);
+      
+      // 额外触发原生storage事件作为备份方法
+      window.dispatchEvent(new StorageEvent('storage', {
         key: 'aichat_max_history_messages',
         newValue: numValue.toString(),
-        oldValue: localStorage.getItem('aichat_max_history_messages')
-      }
-    });
-    window.dispatchEvent(storageEvent);
+        oldValue: oldValue,
+        storageArea: localStorage
+      }));
+    } catch (error) {
+      console.error('触发事件失败:', error);
+    }
     
     // 显示提示消息
     if (window.message) {
@@ -460,6 +484,9 @@ export default function TitleBar({
         content: `历史消息数量已设置为${numValue === 21 ? '全部' : numValue}条`,
         duration: 2
       });
+    } else {
+      // 使用备用通知方法
+      showNotification(`历史消息数量已设置为${numValue === 21 ? '全部' : numValue}条`, 'success');
     }
   };
 
@@ -1299,7 +1326,7 @@ export default function TitleBar({
               lineHeight: '1',
               zIndex: 5
             }}
-            title="Notes (Ctrl + X)"
+            title="Notes (Ctrl + Q)"
             onMouseOver={(e) => {
               e.currentTarget.style.color = 'rgb(255, 215, 0)';
               e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';

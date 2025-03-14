@@ -22,8 +22,8 @@ const TextareaState = {
 
 // 添加全局快捷键处理
 document.addEventListener('keydown', (e) => {
-  // 检测 Ctrl+X 组合键
-  if (e.ctrlKey && e.key === 'x') {
+  // 检测 Ctrl+Q 组合键
+  if (e.ctrlKey && e.key === 'q') {
     e.preventDefault(); // 阻止默认行为
     TextareaState.toggleVisibility();
   }

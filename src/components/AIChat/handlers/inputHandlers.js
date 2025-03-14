@@ -52,7 +52,26 @@ export const createInputHandlers = ({
   
   // 读取历史消息数量设置
   const getMaxHistoryMessages = () => {
-    return parseInt(localStorage.getItem('aichat_max_history_messages')) || 5;
+    // 从localStorage获取值，如果没有则默认为5
+    const savedValue = parseInt(localStorage.getItem('aichat_max_history_messages'));
+    
+    // 检查是否是有效数字，否则返回默认值5
+    if (isNaN(savedValue)) {
+      console.warn('历史消息数量设置无效，使用默认值5');
+      return 5;
+    }
+    
+    // 确保在有效的范围内(0-21)
+    if (savedValue < 0) return 0;
+    if (savedValue > 21) return 21;
+    
+    return savedValue;
+  };
+
+  // 添加重置方法
+  inputHandlers.resetInputHandlers = () => {
+    // 刷新历史消息数量设置缓存
+    const currentMaxHistory = getMaxHistoryMessages();
   };
 
   // 处理发送消息
@@ -626,14 +645,20 @@ export const createInputHandlers = ({
       // 获取历史消息数量设置
       const maxHistoryMessages = getMaxHistoryMessages();
       
+      // 调试输出
+      console.log(`使用历史消息数量设置: ${maxHistoryMessages}，当前消息总数: ${messages.length}`);
+      
       // 获取历史消息
-      const recentMessages = messages
+      const recentMessages = maxHistoryMessages === 0 ? [] : messages
         .slice(maxHistoryMessages === 21 ? 0 : Math.max(0, messages.length - maxHistoryMessages))
         .filter(msg => msg.type === 'user' || msg.type === 'assistant')
         .map(msg => ({
           role: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content || ''
         }));
+      
+      // 调试输出
+      console.log(`过滤后历史消息数量: ${recentMessages.length}`);
 
       messagesHistory.push(...recentMessages);
 
@@ -841,6 +866,7 @@ export const createInputHandlers = ({
     handleSendMessage,
     handleKeyDown,
     handleFileSelect,
-    handleStop
+    handleStop,
+    resetInputHandlers: inputHandlers.resetInputHandlers
   };
 }; 

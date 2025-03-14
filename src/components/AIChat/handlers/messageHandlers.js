@@ -231,7 +231,26 @@ export const createMessageHandlers = ({
 
   // 读取历史消息数量设置
   const getMaxHistoryMessages = () => {
-    return parseInt(localStorage.getItem('aichat_max_history_messages')) || 5;
+    // 从localStorage获取值，如果没有则默认为5
+    const savedValue = parseInt(localStorage.getItem('aichat_max_history_messages'));
+    
+    // 检查是否是有效数字，否则返回默认值5
+    if (isNaN(savedValue)) {
+      console.warn('历史消息数量设置无效，使用默认值5');
+      return 5;
+    }
+    
+    // 确保在有效的范围内(0-21)
+    if (savedValue < 0) return 0;
+    if (savedValue > 21) return 21;
+    
+    return savedValue;
+  };
+
+  // 添加重置方法
+  const resetMessageHandlers = () => {
+    // 刷新历史消息数量设置缓存
+    const currentMaxHistory = getMaxHistoryMessages();
   };
 
   // 重试消息
@@ -645,6 +664,7 @@ export const createMessageHandlers = ({
     saveEdit,
     handleRetry,
     handleStop,
-    handleHistoryNavigation
+    handleHistoryNavigation,
+    resetMessageHandlers
   };
 }; 
