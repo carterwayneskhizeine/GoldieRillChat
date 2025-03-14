@@ -82,6 +82,9 @@ export default function Sidebar({
   const [openChatFolder, setOpenChatFolder] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isImageBackground, setIsImageBackground] = useState(false);
+  const [expandedFolderId, setExpandedFolderId] = useState(null);
+  const [autoHideTimer, setAutoHideTimer] = useState(null);
+  const [deletingFolder, setDeletingFolder] = useState(null);
 
   // 检测图片背景模式
   useEffect(() => {
@@ -145,6 +148,19 @@ export default function Sidebar({
     };
   }, []);
 
+  // 监听键盘导航选中事件
+  useEffect(() => {
+    if (isKeyboardNavigating && keyboardSelectedConversationId) {
+      // 键盘导航选中时，自动展开该文件夹
+      setExpandedFolderId(keyboardSelectedConversationId);
+      
+      // 清除之前的计时器
+      if (autoHideTimer) {
+        clearTimeout(autoHideTimer);
+      }
+    }
+  }, [isKeyboardNavigating, keyboardSelectedConversationId, autoHideTimer]);
+
   const handleSidebarModeToggleLocal = () => {
     if (sidebarMode === 'default') {
       if (activeTool === 'chat' || activeTool === 'aichat') {
@@ -182,6 +198,12 @@ export default function Sidebar({
   const handleConversationClick = (conversation) => {
     if (editingFolderName === conversation.id) return;
     
+    // 如果当前已展开此文件夹，则折叠它
+    if (expandedFolderId === conversation.id) {
+      setExpandedFolderId(null);
+      return;
+    }
+    
     // 点击时退出键盘导航模式
     if (isKeyboardNavigating) {
       // 这里只通过事件触发，使App.jsx中的状态更新
@@ -190,6 +212,21 @@ export default function Sidebar({
       }));
     }
     
+    // 展开按钮
+    setExpandedFolderId(conversation.id);
+    
+    // 清除之前的计时器
+    if (autoHideTimer) {
+      clearTimeout(autoHideTimer);
+    }
+    
+    // 设置新的3秒自动隐藏计时器
+    const timer = setTimeout(() => {
+      setExpandedFolderId(null);
+    }, 3000);
+    setAutoHideTimer(timer);
+    
+    // 加载对话
     loadConversation(conversation.id);
     setTimeout(() => {
       const messagesContainer = document.querySelector('.chat-view-messages');
@@ -229,6 +266,15 @@ export default function Sidebar({
       switchTool('threejs-shaders');
     }
   };
+
+  // 清理计时器
+  useEffect(() => {
+    return () => {
+      if (autoHideTimer) {
+        clearTimeout(autoHideTimer);
+      }
+    };
+  }, [autoHideTimer]);
 
   return (
     <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-y-auto overflow-x-hidden transition-all duration-300 flex flex-col`}>
@@ -374,6 +420,7 @@ export default function Sidebar({
                         ${currentConversation?.id === conversation.id ? 'btn-active' : ''} 
                         ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}
                         ${isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? 'keyboard-selected-conversation' : ''}
+                        ${expandedFolderId === conversation.id ? 'expanded' : ''}
                         conversation-item conversation-item-${conversation.id}`}
                       draggable={editingFolderName === null}
                       onDragStart={() => {
@@ -401,7 +448,7 @@ export default function Sidebar({
                           options: [
                             {
                               label: 'Delete',
-                              onClick: () => handleConversationDelete(conversation)
+                              onClick: () => setDeletingFolder(conversation)
                             },
                             {
                               label: 'Rename',
@@ -466,8 +513,12 @@ export default function Sidebar({
                           </>
                         )}
                       </div>
-                      {!editingFolderName && (
-                        <div className="folder-actions absolute left-0 right-0 p-1 flex justify-center gap-2" style={{zIndex: 100, borderTop: '1px solid rgba(255, 215, 0, 0.1)'}}>
+                      {!editingFolderName && expandedFolderId === conversation.id && (
+                        <div 
+                          className="folder-actions absolute left-0 right-0 p-1 flex justify-center gap-2" 
+                          style={{zIndex: 100, borderTop: '1px solid rgba(255, 215, 0, 0.1)'}}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button 
                             className="btn btn-xs flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
                             onClick={(e) => {
@@ -484,7 +535,7 @@ export default function Sidebar({
                             className="btn btn-xs btn-ghost flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleConversationDelete(conversation);
+                              setDeletingFolder(conversation);
                             }}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -498,6 +549,26 @@ export default function Sidebar({
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* 添加删除确认对话框 */}
+          {deletingFolder && (
+            <div className="modal modal-open flex items-center justify-center">
+              <div role="alert" className="alert w-[400px]">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info h-6 w-6 shrink-0">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>Delete this folder?</span>
+                <div>
+                  <button className="btn btn-sm" onClick={() => setDeletingFolder(null)}>No</button>
+                  <button className="btn btn-sm btn-primary ml-2" onClick={() => {
+                    handleConversationDelete(deletingFolder);
+                    setDeletingFolder(null);
+                  }}>Yes</button>
+                </div>
+              </div>
+              <div className="modal-backdrop" onClick={() => setDeletingFolder(null)}></div>
             </div>
           )}
 
@@ -569,6 +640,7 @@ export default function Sidebar({
                               ${currentConversation?.id === conversation.id ? 'btn-active' : ''} 
                               ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}
                               ${isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? 'keyboard-selected-conversation' : ''}
+                              ${expandedFolderId === conversation.id ? 'expanded' : ''}
                               conversation-item conversation-item-${conversation.id}`}
                             draggable={editingFolderName === null}
                             onDragStart={() => {
@@ -596,7 +668,7 @@ export default function Sidebar({
                                 options: [
                                   {
                                     label: 'Delete',
-                                    onClick: () => handleConversationDelete(conversation)
+                                    onClick: () => setDeletingFolder(conversation)
                                   },
                                   {
                                     label: 'Rename',
@@ -661,8 +733,12 @@ export default function Sidebar({
                                 </>
                               )}
                             </div>
-                            {!editingFolderName && (
-                              <div className="folder-actions absolute left-0 right-0 p-1 flex justify-center gap-2" style={{zIndex: 100, borderTop: '1px solid rgba(255, 215, 0, 0.1)'}}>
+                            {!editingFolderName && expandedFolderId === conversation.id && (
+                              <div 
+                                className="folder-actions absolute left-0 right-0 p-1 flex justify-center gap-2" 
+                                style={{zIndex: 100, borderTop: '1px solid rgba(255, 215, 0, 0.1)'}}
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <button 
                                   className="btn btn-xs flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
                                   onClick={(e) => {
@@ -679,7 +755,7 @@ export default function Sidebar({
                                   className="btn btn-xs btn-ghost flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleConversationDelete(conversation);
+                                    setDeletingFolder(conversation);
                                   }}
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

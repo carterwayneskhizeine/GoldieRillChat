@@ -97,33 +97,19 @@
   position: relative;
   margin-bottom: 8px !important; /* 默认紧凑间距 */
   z-index: 1;
-  transition: margin-bottom 0.5s ease; /* 添加过渡动画 */
+  cursor: pointer;
 }
 
-/* 悬停时增加间距 */
-.conversation-item:hover {
-  margin-bottom: 30px !important; /* 悬停时增加间距以显示按钮 */
+/* 展开文件夹时增加间距 */
+.conversation-item.expanded {
+  margin-bottom: 30px !important; /* 展开时增加间距以显示按钮 */
   transition: margin-bottom 0.3s ease;
-}
-
-/* 离开后延迟恢复 */
-.conversation-item:not(:hover) {
-  transition: margin-bottom 0.5s ease 3s; /* 3秒延迟后恢复 */
-}
-
-/* 键盘导航时保持间距 */
-.keyboard-selected-conversation {
-  margin-bottom: 30px !important;
-  transition: margin-bottom 0.3s ease 0s !important; /* 立即应用，没有延迟 */
 }
 
 .folder-actions {
   transition: all 0.3s ease;
-  visibility: hidden;
-  opacity: 0;
-  transform: translateY(-5px);
+  opacity: 1;
   z-index: 100 !important;
-  pointer-events: none; /* 默认不接收鼠标事件 */
   display: flex !important; /* 确保显示为flex */
   border-top: 1px solid rgba(255, 215, 0, 0.1);
   box-shadow: none;
@@ -132,26 +118,8 @@
   background: transparent !important; /* 确保背景透明 */
 }
 
-/* 确保按钮面板在悬停时立即显示 */
-.conversation-item:hover .folder-actions {
-  visibility: visible;
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto; /* 悬停时可接收鼠标事件 */
-  transition: all 0.3s ease 0s; /* 立即显示，没有延迟 */
-}
-
-/* 鼠标离开时延迟隐藏 */
-.conversation-item:not(:hover) .folder-actions {
-  transition: all 0.3s ease 3s; /* 3秒延迟后隐藏 */
-}
-
 /* 键盘导航选中时也显示操作按钮 */
 .keyboard-selected-conversation .folder-actions {
-  visibility: visible;
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
   transition: all 0.3s ease 0s !important; /* 立即应用，没有延迟 */
 }
 
