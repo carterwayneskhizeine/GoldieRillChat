@@ -85,6 +85,8 @@ export default function Sidebar({
   const [expandedFolderId, setExpandedFolderId] = useState(null);
   const [autoHideTimer, setAutoHideTimer] = useState(null);
   const [deletingFolder, setDeletingFolder] = useState(null);
+  const [lastClickTime, setLastClickTime] = useState(0);
+  const [lastClickId, setLastClickId] = useState(null);
 
   // 检测图片背景模式
   useEffect(() => {
@@ -198,42 +200,55 @@ export default function Sidebar({
   const handleConversationClick = (conversation) => {
     if (editingFolderName === conversation.id) return;
     
-    // 如果当前已展开此文件夹，则折叠它
-    if (expandedFolderId === conversation.id) {
-      setExpandedFolderId(null);
-      return;
-    }
+    const currentTime = new Date().getTime();
+    const timeDiff = currentTime - lastClickTime;
     
-    // 点击时退出键盘导航模式
-    if (isKeyboardNavigating) {
-      // 这里只通过事件触发，使App.jsx中的状态更新
-      window.dispatchEvent(new CustomEvent('exit-keyboard-nav', {
-        detail: { conversationId: conversation.id }
-      }));
-    }
-    
-    // 展开按钮
-    setExpandedFolderId(conversation.id);
-    
-    // 清除之前的计时器
-    if (autoHideTimer) {
-      clearTimeout(autoHideTimer);
-    }
-    
-    // 设置新的3秒自动隐藏计时器
-    const timer = setTimeout(() => {
-      setExpandedFolderId(null);
-    }, 3000);
-    setAutoHideTimer(timer);
-    
-    // 加载对话
-    loadConversation(conversation.id);
-    setTimeout(() => {
-      const messagesContainer = document.querySelector('.chat-view-messages');
-      if (messagesContainer) {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    // 检测是否是双击（小于300ms的两次点击）
+    if (timeDiff < 300 && lastClickId === conversation.id) {
+      // 双击操作 - 切换展开/折叠状态
+      if (expandedFolderId === conversation.id) {
+        setExpandedFolderId(null);
+      } else {
+        // 展开按钮
+        setExpandedFolderId(conversation.id);
+        
+        // 清除之前的计时器
+        if (autoHideTimer) {
+          clearTimeout(autoHideTimer);
+        }
+        
+        // 设置新的3秒自动隐藏计时器
+        const timer = setTimeout(() => {
+          setExpandedFolderId(null);
+        }, 3000);
+        setAutoHideTimer(timer);
       }
-    }, 100);
+      
+      // 重置点击状态
+      setLastClickTime(0);
+      setLastClickId(null);
+    } else {
+      // 单击操作 - 记录点击时间和ID，用于检测双击
+      setLastClickTime(currentTime);
+      setLastClickId(conversation.id);
+      
+      // 点击时退出键盘导航模式
+      if (isKeyboardNavigating) {
+        // 这里只通过事件触发，使App.jsx中的状态更新
+        window.dispatchEvent(new CustomEvent('exit-keyboard-nav', {
+          detail: { conversationId: conversation.id }
+        }));
+      }
+      
+      // 加载对话
+      loadConversation(conversation.id);
+      setTimeout(() => {
+        const messagesContainer = document.querySelector('.chat-view-messages');
+        if (messagesContainer) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }, 100);
+    }
   };
 
   const handleNoteClick = async (noteId) => {
