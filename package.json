@@ -133,6 +133,7 @@
             "replicate": "^1.0.1",
             "styled-components": "^6.1.15",
             "three": "^0.173.0",
+            "unist-util-visit": "^5.0.0",
             "uuid": "^11.1.0",
             "yet-another-react-lightbox": "^3.21.7"
       },

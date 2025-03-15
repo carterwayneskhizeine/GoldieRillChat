@@ -6,6 +6,7 @@ import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import { visit } from 'unist-util-visit';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { CheckIcon, CopyIcon, ImageIcon, Loader2Icon, XIcon, ArrowUpDown, Search, ChevronUp, ChevronDown, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
@@ -250,9 +251,12 @@ const formatTreeStructure = (text) => {
   return "```\n" + formattedLines.join('\n') + "\n```";
 };
 
-// 添加内容处理的缓存函数
+// 修改 useProcessedContent 函数
 const useProcessedContent = (content) => {
   return useMemo(() => {
+    // 不再在预处理阶段处理内联代码，而是依赖 rehype 插件
+    // 只进行其他必要的处理
+    
     // 匹配以数字和右括号开头的行，将其转换为标准的 Markdown 有序列表格式
     let processed = content.replace(/^(\d+)\)(.+)$/gm, '$1.$2');
 
@@ -260,240 +264,19 @@ const useProcessedContent = (content) => {
     processed = processed.replace(/^(#+\s*\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
     processed = processed.replace(/^(\d+\.\s+)`([^`]+)`(.*)$/gm, '$1$2$3');
 
-    // 处理行内代码块，将非代码块的反引号去掉，但保留特定关键词的代码风格
-    processed = processed.replace(/`([^`\n]+)`/g, (match, content) => {
-      // 特殊关键词，保持代码块格式
-      if (content === 'CODE' || content === 'code') {
-        return match;
-      }
-      
-      // 对于纯中文内容，去掉反引号
-      if (/^[\u4e00-\u9fa5]+$/.test(content)) {
-        return content;
-      }
-      
-      // 如果包含中文字符且不包含代码特征字符，去掉反引号
-      if (/[\u4e00-\u9fa5]/.test(content) && !/[{}[\]()=+*<>!|&;$]/.test(content)) {
-        return content;
-      }
-      
-      // 如果内容不包含代码特征，则去掉反引号
-      if (
-        /^[@a-zA-Z][\w\-\/.]*$/.test(content) ||
-        /^[\w\-\./\s]+$/.test(content)
-      ) {
-        return content;
-      }
-      // 如果包含代码关键字，保持代码块格式
-      if (content.includes('function') ||
-          content.includes('return') ||
-          content.includes('const') ||
-          content.includes('let') ||
-          content.includes('var') ||
-          content.includes('import') ||
-          content.includes('export') ||
-          content.includes('class') ||
-          content.includes('=>')) {
-        return match;
-      }
-      // 如果包含代码特征字符（除了 - . /），保持代码块格式
-      if (/[{}[\]()=+*<>!|&;$]/.test(content)) {
-        return match;
-      }
-      // 其他情况去掉反引号
-      return content;
-    });
-
-    // 保持缩进和换行
-    processed = processed.replace(/\n/g, '  \n');
+    // 保持缩进和换行，但不影响代码块
+    // 不再使用 processed = processed.replace(/\n/g, '  \n');
     processed = processed.replace(/^(#{1,6}\s.*)/gm, '\n$1\n');
     processed = processed.replace(/^([*-]|\d+\.)\s/gm, '\n$&');
     
-    // 添加对图片引用的处理，格式如[图片1]、[图片2]等
-    // 将简单的图片引用转换为Markdown图片语法
+    // 添加对图片引用的处理
     processed = processed.replace(/\[图片(\d+)\]/g, (match, num) => {
-      // 图片引用会在组件级别通过传入的images数组处理
       return `![图片${num}][图片引用${num}]`;
     });
 
     return processed;
   }, [content]);
 };
-
-// 将 markdownComponents 移到组件外部
-const createMarkdownComponents = (handleContextMenu, onLinkClick, images, setLightboxIndex, setOpenLightbox, imageReferences) => ({
-  // 链接渲染
-  a: ({node, children, href, className, ...props}) => {
-    // 处理脚注引用链接
-    if (className?.includes('footnote-ref')) {
-      return (
-        <a
-          href={href}
-          className="footnote-ref"
-          {...props}
-          data-selectable="true"
-          onClick={(e) => {
-            e.preventDefault();
-            // 平滑滚动到脚注位置
-            const id = href.substring(1); // 移除 # 符号
-            const element = document.getElementById(id);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }}
-        >
-          {children}
-        </a>
-      );
-    }
-
-    // 处理脚注返回链接
-    if (className?.includes('footnote-backref')) {
-      return (
-        <a
-          href={href}
-          className="footnote-backref"
-          {...props}
-          data-selectable="true"
-          onClick={(e) => {
-            e.preventDefault();
-            // 平滑滚动回引用位置
-            const id = href.substring(1); // 移除 # 符号
-            const element = document.getElementById(id);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }}
-        >
-          ↩ 返回
-        </a>
-      );
-    }
-
-    // 处理普通URL链接
-    if (typeof href === 'string') {
-      return (
-        <a
-          href={href}
-          className="text-primary hover:text-primary-focus"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onLinkClick(href);
-          }}
-          onContextMenu={handleContextMenu}
-          {...props}
-        >
-          {children}
-        </a>
-      );
-    }
-    
-    return <span>{children}</span>;
-  },
-  // 段落渲染
-  p: ({node, children, ...props}) => {
-    // 检查是否包含树形结构特殊字符
-    const containsTreeStructure = contentHasTreeStructure(children);
-    
-    if (containsTreeStructure) {
-      return (
-        <TreeView>
-          <p {...props} 
-            data-selectable="true" 
-            onContextMenu={handleContextMenu}
-          >
-            {children}
-          </p>
-        </TreeView>
-      );
-    }
-    
-    const styles = { 
-      userSelect: 'text',
-      whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word',
-      margin: '0.5em 0',
-    };
-    
-    // 检查是否有子元素需要特殊处理
-    const processedChildren = React.Children.map(children, child => {
-      // 如果子元素是一个带有classname的React元素
-      if (React.isValidElement(child) && 
-          child.props && 
-          child.props.className === 'inline-text-block') {
-        // 将其转换为行内元素，确保正确显示
-        return <span className="inline-text-in-paragraph">{child.props.children}</span>;
-      }
-      return child;
-    });
-    
-    return (
-      <p {...props} data-selectable="true" style={styles} onContextMenu={handleContextMenu}>
-        {processedChildren}
-      </p>
-    );
-  },
-  // 添加加粗文本渲染
-  strong: ({node, children, ...props}) => (
-    <strong {...props} style={{ fontWeight: 'bold', userSelect: 'text' }}>
-      {children}
-    </strong>
-  ),
-  // 修改列表项渲染
-  li: ({node, className, children, id, ...props}) => {
-    // 检查是否是脚注项
-    if (id?.startsWith('fn-')) {
-      return (
-        <li 
-          {...props}
-          id={id}
-          className={`footnote-item ${className || ''}`}
-          style={{
-            marginBottom: '0.5rem',
-            lineHeight: '1.6',
-            position: 'relative',
-            paddingLeft: '1.5rem'
-          }}
-          data-selectable="true"
-          onContextMenu={handleContextMenu}
-        >
-          {children}
-        </li>
-      );
-    }
-    
-    // 检查是否包含树形结构特殊字符
-    const containsTreeStructure = contentHasTreeStructure(children);
-    
-    if (containsTreeStructure) {
-      return (
-        <li {...props} 
-          className={className}
-          data-selectable="true" 
-          style={treeViewStyles.container}
-          onContextMenu={handleContextMenu}
-        >
-          {children}
-        </li>
-      );
-    }
-    
-    return (
-      <li {...props} 
-        className={className}
-        data-selectable="true" 
-        style={{ userSelect: 'text' }} 
-        onContextMenu={handleContextMenu}
-      >
-        {children}
-      </li>
-    );
-  },
-  // ... rest of the components ...
-});
 
 // 使用 React.memo 包装 MarkdownRenderer 组件
 export const MarkdownRenderer = React.memo(({
@@ -649,9 +432,39 @@ export const MarkdownRenderer = React.memo(({
     return references;
   }, [searchImages]);
 
-  // 使用 useMemo 缓存 rehypePlugins 配置
+  // 使用 useMemo 缓存 remarkPlugins 配置
+  const remarkPlugins = useMemo(() => [
+    remarkGfm,
+    [remarkMath, { singleDollar: true }],
+    remarkBreaks
+  ], []);
+
+  // 添加一个自定义 rehype 插件，用于处理内联代码
+  const rehypeInlineCodeAsText = useCallback(() => {
+    return (tree) => {
+      visit(tree, 'element', (node) => {
+        // 找到所有内联代码元素
+        if (node.tagName === 'code' && 
+            node.properties && 
+            !node.properties.className) {  // 内联代码没有 className
+          
+          // 将 code 元素替换为 span 元素
+          node.tagName = 'span';
+          
+          // 移除所有可能的代码样式
+          if (node.properties) {
+            delete node.properties.className;
+            node.properties.style = 'font-family: inherit; background: none; padding: 0; margin: 0; border: none; color: inherit;';
+          }
+        }
+      });
+    };
+  }, []);
+
+  // 修改 rehypePlugins 配置
   const rehypePlugins = useMemo(() => [
     rehypeRaw,
+    rehypeInlineCodeAsText,  // 添加自定义插件
     [rehypeSanitize, {
       attributes: {
         '*': ['className', 'style'],
@@ -673,26 +486,279 @@ export const MarkdownRenderer = React.memo(({
       maxExpand: 1000,
       minRuleThickness: 0.04
     }]
-  ], []);
+  ], [rehypeInlineCodeAsText]);
 
-  // 使用 useMemo 缓存 remarkPlugins 配置
-  const remarkPlugins = useMemo(() => [
-    remarkGfm,
-    [remarkMath, { singleDollar: true }],
-    remarkBreaks
-  ], []);
+  // 将 createMarkdownComponents 移到组件内部
+  const markdownComponents = useMemo(() => {
+    return {
+      // 链接渲染
+      a: ({node, children, href, className, ...props}) => {
+        // 处理脚注引用链接
+        if (className?.includes('footnote-ref')) {
+          return (
+            <a
+              href={href}
+              className="footnote-ref"
+              {...props}
+              data-selectable="true"
+              onClick={(e) => {
+                e.preventDefault();
+                // 平滑滚动到脚注位置
+                const id = href.substring(1); // 移除 # 符号
+                const element = document.getElementById(id);
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}
+            >
+              {children}
+            </a>
+          );
+        }
 
-  // 创建markdown组件集合
-  const markdownComponents = useMemo(() => 
-    createMarkdownComponents(
-      handleContextMenu, 
-      onLinkClick, 
-      imagesToShow, 
-      setLightboxIndex, 
-      setOpenLightbox,
-      imageReferences
-    ), 
-  [handleContextMenu, onLinkClick, imagesToShow, imageReferences]);
+        // 处理脚注返回链接
+        if (className?.includes('footnote-backref')) {
+          return (
+            <a
+              href={href}
+              className="footnote-backref"
+              {...props}
+              data-selectable="true"
+              onClick={(e) => {
+                e.preventDefault();
+                // 平滑滚动回引用位置
+                const id = href.substring(1); // 移除 # 符号
+                const element = document.getElementById(id);
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}
+            >
+              ↩ 返回
+            </a>
+          );
+        }
+
+        // 处理普通URL链接
+        if (typeof href === 'string') {
+          return (
+            <a
+              href={href}
+              className="text-primary hover:text-primary-focus"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onLinkClick(href);
+              }}
+              onContextMenu={handleContextMenu}
+              {...props}
+            >
+              {children}
+            </a>
+          );
+        }
+        
+        return <span>{children}</span>;
+      },
+      // 段落渲染
+      p: ({node, children, ...props}) => {
+        // 检查是否包含树形结构特殊字符
+        const containsTreeStructure = contentHasTreeStructure(children);
+        
+        if (containsTreeStructure) {
+          return (
+            <TreeView>
+              <p {...props} 
+                data-selectable="true" 
+                onContextMenu={handleContextMenu}
+              >
+                {children}
+              </p>
+            </TreeView>
+          );
+        }
+        
+        const styles = { 
+          userSelect: 'text',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          margin: '0.5em 0',
+        };
+        
+        // 检查是否有子元素需要特殊处理
+        const processedChildren = React.Children.map(children, child => {
+          // 如果子元素是一个带有classname的React元素
+          if (React.isValidElement(child) && 
+              child.props && 
+              child.props.className === 'inline-text-block') {
+            // 将其转换为行内元素，确保正确显示
+            return <span className="inline-text-in-paragraph">{child.props.children}</span>;
+          }
+          return child;
+        });
+        
+        return (
+          <p {...props} data-selectable="true" style={styles} onContextMenu={handleContextMenu}>
+            {processedChildren}
+          </p>
+        );
+      },
+      // 添加加粗文本渲染
+      strong: ({node, children, ...props}) => (
+        <strong {...props} style={{ fontWeight: 'bold', userSelect: 'text' }}>
+          {children}
+        </strong>
+      ),
+      // 修改列表项渲染
+      li: ({node, className, children, id, ...props}) => {
+        // 检查是否是脚注项
+        if (id?.startsWith('fn-')) {
+          return (
+            <li 
+              {...props}
+              id={id}
+              className={`footnote-item ${className || ''}`}
+              style={{
+                marginBottom: '0.5rem',
+                lineHeight: '1.6',
+                position: 'relative',
+                paddingLeft: '1.5rem'
+              }}
+              data-selectable="true"
+              onContextMenu={handleContextMenu}
+            >
+              {children}
+            </li>
+          );
+        }
+        
+        // 检查是否包含树形结构特殊字符
+        const containsTreeStructure = contentHasTreeStructure(children);
+        
+        if (containsTreeStructure) {
+          return (
+            <li {...props} 
+              className={className}
+              data-selectable="true" 
+              style={treeViewStyles.container}
+              onContextMenu={handleContextMenu}
+            >
+              {children}
+            </li>
+          );
+        }
+        
+        return (
+          <li {...props} 
+            className={className}
+            data-selectable="true" 
+            style={{ userSelect: 'text' }} 
+            onContextMenu={handleContextMenu}
+          >
+            {children}
+          </li>
+        );
+      },
+      // 代码块渲染
+      code: ({node, inline, className, children, ...props}) => {
+        const match = /language-(\w+)/.exec(className || '');
+        const [isCopied, setIsCopied] = useState(false);
+        
+        // 内联代码处理
+        if (inline) {
+          // 直接返回纯文本
+          return <span>{children}</span>;
+        }
+        
+        // 以下是代码块处理逻辑（三个反引号包围）- 保持不变
+        const codeContent = String(children).replace(/\n$/, '');
+        
+        // 检查是否包含树形结构，如果是，使用特殊的树形渲染
+        if (hasTreeStructure(codeContent)) {
+          return (
+            <TreeView>
+              <pre>
+                <code className="tree-structure-code">{codeContent}</code>
+              </pre>
+            </TreeView>
+          );
+        }
+        
+        // 特殊情况：单行中文内容或技术名称，作为文本渲染
+        if (!codeContent.includes('\n') && 
+            (
+              // 纯中文内容
+              /^[\u4e00-\u9fa5]+$/.test(codeContent) || 
+              // 包含中文的内容且不包含代码特征字符
+              (/[\u4e00-\u9fa5]/.test(codeContent) && !/[{}[\]()=+*<>!|&;$]/.test(codeContent)) ||
+              // 简单技术名称，如：axios, react 等（排除CODE/code特殊关键字）
+              (/^[@a-zA-Z][\w\-\/.]*$/.test(codeContent) && !['CODE', 'code'].includes(codeContent)) ||
+              // 简单词汇
+              /^[\w\-\./\s]+$/.test(codeContent)
+            )
+        ) {
+          return <span className="inline-text-block">{codeContent}</span>;
+        }
+
+        const language = match ? match[1].toLowerCase() : '';
+        const displayLanguage = languageNameMap[language] || language.toUpperCase() || 'TEXT';
+
+        const handleCopy = async () => {
+          const code = String(children).replace(/\n$/, '');
+          await navigator.clipboard.writeText(code);
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+        };
+
+        return (
+          <div className="code-block">
+            <div className="code-header">
+              <span className="language-label">{displayLanguage}</span>
+              <button
+                className="copy-button"
+                onClick={handleCopy}
+                aria-label={isCopied ? "已复制" : "复制代码"}
+              >
+                {isCopied ? (
+                  <>
+                    <CheckIcon className="icon" />
+                    已复制
+                  </>
+                ) : (
+                  <>
+                    <CopyIcon className="icon" />
+                    复制
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="code-content">
+              <pre style={{
+                margin: 0,
+                padding: '1rem',
+                whiteSpace: 'pre',
+                overflowX: 'auto',
+                backgroundColor: 'var(--b2)',
+                borderRadius: '0 0 0.5rem 0.5rem',
+                fontFamily: 'monospace',
+              }}>
+                <code className={className} style={{
+                  fontFamily: 'monospace',
+                  whiteSpace: 'pre',
+                  wordWrap: 'normal',
+                  wordBreak: 'normal',
+                }}>
+                  {String(children)}
+                </code>
+              </pre>
+            </div>
+          </div>
+        );
+      },
+    };
+  }, [handleContextMenu, onLinkClick, imagesToShow, setLightboxIndex, setOpenLightbox, imageReferences]);
 
   // 表格相关组件
   const TableWrapper = ({ children, ...props }) => {
@@ -905,190 +971,76 @@ export const MarkdownRenderer = React.memo(({
     >
       <style>
         {`
-          .markdown-content {
-            font-size: ${isCompact ? '0.9em' : '1em'};
-            line-height: 1.6;
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            -ms-user-select: text !important;
-            cursor: text;
+          /* 确保内联代码不应用任何代码样式 */
+          .markdown-content span {
+            font-family: inherit !important;
+            background-color: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            color: inherit !important;
+            font-size: inherit !important;
+            white-space: normal !important;
           }
-
-          .markdown-content * {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            -ms-user-select: text !important;
-          }
-
-          .markdown-content pre,
-          .markdown-content code {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            -ms-user-select: text !important;
-          }
-
-          .markdown-content p,
-          .markdown-content h1,
-          .markdown-content h2,
-          .markdown-content h3,
-          .markdown-content h4,
-          .markdown-content h5,
-          .markdown-content h6,
-          .markdown-content ul,
-          .markdown-content ol,
-          .markdown-content li,
-          .markdown-content blockquote,
-          .markdown-content table,
-          .markdown-content th,
-          .markdown-content td {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            -ms-user-select: text !important;
-          }
-
-          .markdown-content .prose {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            -ms-user-select: text !important;
-          }
-
-          .markdown-content .prose * {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            -ms-user-select: text !important;
-          }
-
-          .markdown-content h1,
-          .markdown-content h2,
-          .markdown-content h3,
-          .markdown-content h4,
-          .markdown-content h5,
-          .markdown-content h6 {
-            margin: 1.5em 0 1em;
-            line-height: 1.3;
-          }
-
-          .markdown-content h1:first-child,
-          .markdown-content h2:first-child,
-          .markdown-content h3:first-child {
-            margin-top: 0;
-          }
-
-          .markdown-content ul,
-          .markdown-content ol {
-            margin: 1em 0;
-            padding-left: 2em;
-          }
-
-          .markdown-content li {
-            margin: 0.5em 0;
-            padding-left: 0.5em;
-          }
-
-          .markdown-content ol {
-            list-style-type: decimal;
-          }
-
-          .markdown-content ul {
-            list-style-type: disc;
-          }
-
-          .markdown-content pre {
-            margin: 0;
-            padding: 0.1rem;
-            border-radius: 0.3rem;
-            background-color: transparent;
-            overflow-x: auto;
-          }
-
-          .markdown-content code {
-            font-family: 'Fira Code', monospace;
-            font-size: 0.9em;
-            line-height: 1.5;
-            padding: 0;
-            border-radius: 3px;
-            background-color: transparent;
-          }
-
-          .markdown-content blockquote {
-            margin: 1em 0;
-            padding: 0.5em 1em;
-            border-left: 4px solid var(--p);
-            background-color: var(--b2);
-            border-radius: 0 0.3rem 0.3rem 0;
-          }
-
-          .markdown-content img {
-            max-width: 100%;
-            margin: 1em 0;
-            border-radius: 0.3rem;
-          }
-
-          .markdown-content table {
-            margin: 1em 0;
-            border-collapse: collapse;
-            width: 100%;
-          }
-
-          .markdown-content th,
-          .markdown-content td {
-            padding: 0.5em;
-            border: 1px solid var(--b3);
-          }
-
-          .markdown-content th {
-            background-color: var(--b2);
-            font-weight: bold;
-          }
-
-          .markdown-content a {
-            color: var(--p);
-            text-decoration: none;
-          }
-
-          .markdown-content a:hover {
-            text-decoration: underline;
-          }
-
-          .markdown-content .inline-code {
-            background-color: var(--b2);
-            padding: 2px 4px;
-            margin: 0 2px;
-            border-radius: 4px;
-            border: 1px solid var(--b3);
-            white-space: nowrap;
-          }
-
+          
+          /* 确保代码块正确显示 */
           .markdown-content .code-block {
-            position: relative;
             margin: 1rem 0;
-            background-color: transparent;
             border-radius: 0.5rem;
             overflow: hidden;
+            background-color: var(--b2);
+            border: 1px solid var(--b3);
           }
-
+          
+          .markdown-content .code-content {
+            overflow-x: auto;
+            position: relative;
+          }
+          
+          .markdown-content pre {
+            margin: 0 !important;
+            padding: 1rem !important;
+            white-space: pre !important;
+            overflow-x: auto !important;
+            word-wrap: normal !important;
+            word-break: normal !important;
+          }
+          
+          .markdown-content code {
+            font-family: 'Fira Code', monospace !important;
+            white-space: pre !important;
+            word-wrap: normal !important;
+            word-break: normal !important;
+          }
+          
+          /* 修复行号和代码对齐 */
+          .markdown-content .linenumber {
+            display: inline-block !important;
+            min-width: 2.5em !important;
+            padding-right: 1em !important;
+            text-align: right !important;
+            user-select: none !important;
+          }
+          
+          /* 调整代码块标题栏样式 */
           .markdown-content .code-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-between; /* 左右两端对齐 */
             align-items: center;
             padding: 0.5rem 1rem;
             background-color: var(--b3);
             border-bottom: 1px solid var(--b4);
+            border-radius: 0.5rem 0.5rem 0 0;
           }
-
+          
           .markdown-content .language-label {
             font-size: 0.875rem;
             color: var(--bc);
             opacity: 0.7;
             font-family: 'Fira Code', monospace;
+            flex-grow: 1; /* 占据剩余空间 */
           }
-
+          
           .markdown-content .copy-button {
             display: inline-flex;
             align-items: center;
@@ -1101,541 +1053,7 @@ export const MarkdownRenderer = React.memo(({
             border-radius: 0.25rem;
             cursor: pointer;
             transition: all 0.2s ease;
-          }
-
-          .markdown-content .copy-button:hover {
-            background-color: var(--b3);
-            transform: translateY(-1px);
-          }
-
-          .markdown-content .copy-button:active {
-            transform: translateY(0);
-          }
-
-          .markdown-content .copy-button .icon {
-            width: 1rem;
-            height: 1rem;
-          }
-
-          .markdown-content .code-content {
-            margin: 0;
-            padding: 0;
-            background-color: transparent;
-          }
-
-          .markdown-content .code-content pre {
-            margin: 0 !important;
-            padding: 1rem !important;
-            background-color: transparent !important;
-          }
-
-          .markdown-content .math {
-            overflow-x: auto;
-            padding: 0.5rem 0;
-          }
-
-          .markdown-content .math-display {
-            display: block;
-            overflow-x: auto;
-            padding: 1.5rem 1rem;
-            text-align: center;
-            background: var(--b2);
-            border-radius: 0.5rem;
-            border: 1px solid var(--b3);
-            margin: 1.5rem 0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          }
-
-          .markdown-content .math-inline {
-            padding: 0.1rem 0.3rem;
-            display: inline-flex;
-            align-items: center;
-            background: var(--b2);
-            border-radius: 0.25rem;
-            border: 1px solid var(--b3);
-            margin: 0 0.2rem;
-          }
-
-          .markdown-content .katex-display {
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 0.5rem 0;
-            margin: 0.5rem 0;
-            -webkit-overflow-scrolling: touch;
-          }
-
-          .markdown-content .katex {
-            font-size: 1.1em;
-            font-family: 'KaTeX_Math', 'Times New Roman', serif;
-            line-height: 1.2;
-          }
-
-          .markdown-content .katex-display > .katex {
-            display: inline-block;
-            white-space: nowrap;
-            max-width: 100%;
-            overflow-x: auto;
-            text-align: initial;
-            padding: 0.5rem 0;
-          }
-
-          .markdown-content .katex-display::-webkit-scrollbar {
-            height: 4px;
-          }
-
-          .markdown-content .katex-display::-webkit-scrollbar-track {
-            background: var(--b2);
-            border-radius: 2px;
-          }
-
-          .markdown-content .katex-display::-webkit-scrollbar-thumb {
-            background: var(--b3);
-            border-radius: 2px;
-          }
-
-          .markdown-content .katex-display::-webkit-scrollbar-thumb:hover {
-            background: var(--b4);
-          }
-
-          .markdown-content .katex-error {
-            color: var(--error);
-            background: var(--error-content);
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-            margin: 0.5rem 0;
-            font-family: monospace;
-            white-space: pre-wrap;
-          }
-
-          .markdown-content .image-wrapper {
-            position: relative;
-            display: inline-block;
-            max-width: 100%;
-            margin: 1rem 0;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            background: var(--b2);
-            border: 1px solid var(--b3);
-            cursor: zoom-in;
-            transition: all 0.2s ease;
-          }
-
-          .markdown-content .image-wrapper:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          }
-
-          .markdown-content .image-loading {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: var(--b2);
-            z-index: 1;
-            gap: 0.5rem;
-            padding: 1rem;
-            border-radius: 0.5rem;
-          }
-
-          .markdown-content .image-loading .icon {
-            width: 24px;
-            height: 24px;
-            stroke: var(--p);
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-          }
-
-          .markdown-content .image-loading .text {
-            font-size: 0.875rem;
-            color: var(--bc);
-            opacity: 0.7;
-          }
-
-          @keyframes pulse {
-            0%, 100% {
-              opacity: 1;
-            }
-            50% {
-              opacity: 0.5;
-            }
-          }
-
-          .markdown-content .image-error {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100px;
-            padding: 1rem;
-            background: var(--b2);
-            border: 1px dashed var(--b3);
-            border-radius: 0.5rem;
-            color: var(--bc);
-          }
-
-          .markdown-content .image-error-icon {
-            margin-bottom: 0.5rem;
-            color: var(--error);
-          }
-
-          .markdown-content .image-error-text {
-            font-size: 0.875rem;
-            text-align: center;
-            max-width: 200px;
-          }
-
-          .markdown-content .image-error-retry {
-            margin-top: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.875rem;
-            color: var(--bc);
-            background: var(--b3);
-            border: none;
-            border-radius: 0.25rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-          }
-
-          .markdown-content .image-error-retry:hover {
-            background: var(--b4);
-          }
-
-          .table-container {
-            margin: 1rem 0;
-            background: var(--b1);
-            border-radius: 0.5rem;
-            border: 1px solid var(--b3);
-            overflow: hidden;
-          }
-
-          .table-toolbar {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            background: var(--b2);
-            border-bottom: 1px solid var(--b3);
-          }
-
-          .search-wrapper {
-            position: relative;
-            flex: 1;
-            max-width: 300px;
-          }
-
-          .search-icon {
-            position: absolute;
-            left: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--bc);
-            opacity: 0.5;
-          }
-
-          .search-input {
-            width: 100%;
-            padding: 0.5rem 0.75rem 0.5rem 2.25rem;
-            border: 1px solid var(--b3);
-            border-radius: 0.25rem;
-            background: var(--b1);
-            color: var(--bc);
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-          }
-
-          .search-input:focus {
-            outline: none;
-            border-color: var(--p);
-            box-shadow: 0 0 0 2px var(--p-focus);
-          }
-
-          .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-          }
-
-          .enhanced-table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-          }
-
-          .enhanced-table th {
-            background: var(--b2);
-            padding: 0.75rem 1rem;
-            font-weight: 600;
-            color: var(--bc);
-            border-bottom: 1px solid var(--b3);
-            white-space: nowrap;
-          }
-
-          .enhanced-table td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--b3);
-            transition: background-color 0.2s ease;
-          }
-
-          .enhanced-table tbody tr:hover {
-            background-color: var(--b2);
-          }
-
-          .sortable-header {
-            cursor: pointer;
-            user-select: none;
-            transition: background-color 0.2s ease;
-          }
-
-          .sortable-header:hover {
-            background-color: var(--b3);
-          }
-
-          .header-content {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-          }
-
-          .sort-indicator {
-            display: inline-flex;
-            align-items: center;
-            opacity: 0.5;
-            transition: opacity 0.2s ease;
-          }
-
-          .sorting .sort-indicator {
-            opacity: 1;
-            color: var(--p);
-          }
-
-          .no-results {
-            padding: 2rem;
-            text-align: center;
-            color: var(--bc);
-            font-size: 0.875rem;
-            opacity: 0.7;
-          }
-
-          @media (max-width: 640px) {
-            .enhanced-table {
-              font-size: 0.875rem;
-            }
-
-            .enhanced-table th,
-            .enhanced-table td {
-              padding: 0.5rem 0.75rem;
-            }
-
-            .table-toolbar {
-              flex-direction: column;
-              gap: 0.5rem;
-            }
-
-            .search-wrapper {
-              max-width: 100%;
-            }
-          }
-
-          /* 脚注样式 */
-          .markdown-content .footnotes {
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--b3);
-            font-size: 0.9em;
-          }
-
-          .markdown-content .footnotes ol {
-            padding-left: 1.5rem;
-          }
-
-          .markdown-content .footnote-ref {
-            font-size: 0.75em;
-            vertical-align: super;
-            line-height: 0;
-            background-color: var(--b2);
-            padding: 1px 4px;
-            border-radius: 4px;
-            color: var(--p);
-            font-weight: bold;
-            text-decoration: none;
-          }
-
-          .markdown-content .footnote-ref:hover {
-            text-decoration: underline;
-          }
-
-          .markdown-content .footnote-backref {
-            display: inline-block;
-            margin-left: 0.5rem;
-            font-weight: bold;
-            color: var(--p);
-            text-decoration: none;
-          }
-
-          .markdown-content .footnote-backref:hover {
-            text-decoration: underline;
-          }
-
-          .markdown-content .footnote-item {
-            margin-bottom: 0.5rem;
-            position: relative;
-            padding-left: 1.5rem;
-          }
-
-          .markdown-content .footnote-item p {
-            display: inline;
-            margin: 0;
-          }
-
-          .markdown-content a.footnote-backref {
-            font-size: 0.85em;
-          }
-
-          /* 图片包装器样式 */
-          .image-wrapper {
-            position: relative;
-            margin: 1rem 0;
-            display: inline-block;
-            max-width: 100%;
-          }
-
-          .image-loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            background-color: var(--b2);
-            border-radius: 0.5rem;
-            min-width: 200px;
-            min-height: 100px;
-          }
-
-          .image-loading .text {
-            margin-top: 0.5rem;
-            font-size: 0.875rem;
-            color: var(--bc);
-            opacity: 0.7;
-          }
-
-          .image-error {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            background-color: var(--b2);
-            border-radius: 0.5rem;
-            border: 1px dashed var(--error);
-            min-width: 200px;
-            min-height: 100px;
-          }
-
-          .image-error .text {
-            margin-top: 0.5rem;
-            font-size: 0.875rem;
-            color: var(--error);
-          }
-
-          /* 简单文本块样式 */
-          .simple-text-block {
-            font-family: inherit;
-            font-size: inherit;
-            line-height: 1.5;
-            margin: 0.5em 0;
-            color: inherit;
-            background: none;
-            border: none;
-            padding: 0;
-            white-space: normal;
-            word-break: break-word;
-          }
-
-          /* 行内文本块样式 */
-          .inline-text-block {
-            font-family: inherit;
-            font-size: inherit;
-            line-height: inherit;
-            color: inherit;
-            background: none;
-            border: none;
-            padding: 0;
-            margin: 0;
-            white-space: normal;
-            display: inline;
-          }
-
-          /* 保留代码样式的行内代码 */
-          .inline-code-preserved {
-            font-family: var(--font-mono);
-            font-size: 0.85em;
-            background-color: var(--b2);
-            color: var(--bc);
-            padding: 0.15em 0.3em;
-            border-radius: 0.2em;
-            display: inline;
-            white-space: break-spaces;
-          }
-
-          /* 段落内的行内文本 */
-          .inline-text-in-paragraph {
-            display: inline;
-            font-family: inherit;
-            font-size: inherit;
-            line-height: inherit;
-            color: inherit;
-            background: none;
-            border: none;
-            padding: 0;
-            margin: 0;
-          }
-
-          /* 保留代码样式的行内代码 */
-          .inline-code-preserved {
-            font-family: var(--font-mono);
-            font-size: 0.85em;
-            background-color: var(--b2);
-            color: var(--bc);
-            padding: 0.15em 0.3em;
-            border-radius: 0.2em;
-            display: inline;
-            white-space: break-spaces;
-          }
-
-          /* 树形结构代码样式 */
-          .tree-structure-code {
-            font-family: monospace, Consolas, "Courier New", Courier, monospace !important;
-            white-space: pre !important;
-            line-height: 1.5 !important;
-            tab-size: 4 !important;
-            hyphens: none !important;
-            background: transparent !important;
-            color: inherit !important;
-            text-align: left !important;
-            word-spacing: normal !important;
-            word-break: normal !important;
-            word-wrap: normal !important;
-            font-size: 0.9em !important;
-            display: block !important;
-          }
-
-          /* 段落内的行内文本 */
-          .inline-text-in-paragraph {
-            display: inline;
-            font-family: inherit;
-            font-size: inherit;
-            line-height: inherit;
-            color: inherit;
-            background: none;
-            border: none;
-            padding: 0;
-            margin: 0;
+            margin-left: auto; /* 确保靠右对齐 */
           }
         `}
       </style>
@@ -1643,582 +1061,7 @@ export const MarkdownRenderer = React.memo(({
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}
-        components={{
-          // 代码块渲染
-          code({node, inline, className, children, ...props}) {
-            const match = /language-(\w+)/.exec(className || '');
-            const [isCopied, setIsCopied] = useState(false);
-            
-            if (inline) {
-              const content = String(children).trim();
-              // 检查是否是带序号和反引号的标题格式
-              if (/^\d+\.\s+`.+`.*$/.test(content)) {
-                return <span>{content.replace(/`/g, '')}</span>;
-              }
-              
-              // 检查内容是否被单引号包围，如果是则使用普通文本样式
-              if (/^'[^']+'$/.test(content)) {
-                return <span>{content.substring(1, content.length - 1)}</span>;
-              }
-              
-              // 对于纯中文内容，始终使用普通文本样式
-              if (/^[\u4e00-\u9fa5]+$/.test(content)) {
-                return <span>{content}</span>;
-              }
-              
-              // 如果包含中文字符且不包含代码特征字符，使用普通文本样式
-              if (/[\u4e00-\u9fa5]/.test(content) && !/[{}[\]()=+*<>!|&;$]/.test(content)) {
-                return <span>{content}</span>;
-              }
-              
-              // 简单的技术名称、单词或缩写等
-              if (/^[@a-zA-Z][\w\-\/.]*$/.test(content) || /^[\w\-\./\s]+$/.test(content)) {
-                if (content === 'CODE' || content === 'code') {
-                  // 保留 CODE 的代码样式，但使用内联风格
-                  return <code className="inline-code-preserved" {...props}>{content}</code>;
-                }
-                return <span>{content}</span>;
-              }
-              
-              // 如果包含代码关键字，使用代码样式
-              if (content.includes('function') ||
-                  content.includes('return') ||
-                  content.includes('const') ||
-                  content.includes('let') ||
-                  content.includes('var') ||
-                  content.includes('import') ||
-                  content.includes('export') ||
-                  content.includes('class') ||
-                  content.includes('=>')) {
-                return (
-                  <code className="inline-code" {...props}>
-                    {content}
-                  </code>
-                );
-              }
-              // 如果包含代码特征字符（除了 - . /），保持代码块格式
-              if (/[{}[\]()=+*<>!|&;$]/.test(content)) {
-                return (
-                  <code className="inline-code" {...props}>
-                    {content}
-                  </code>
-                );
-              }
-              // 其他情况不使用代码样式
-              return <span>{content}</span>;
-            }
-
-            // 针对独立成行的代码块进行处理
-            const codeContent = String(children).replace(/\n$/, '');
-            
-            // 检查是否包含树形结构，如果是，使用特殊的树形渲染
-            if (hasTreeStructure(codeContent)) {
-              return (
-                <TreeView>
-                  <pre>
-                    <code className="tree-structure-code">{codeContent}</code>
-                  </pre>
-                </TreeView>
-              );
-            }
-            
-            // 特殊情况：单行中文内容或技术名称（如：`axios`、`欧卡`），作为文本渲染
-            if (!codeContent.includes('\n') && 
-                (
-                  // 纯中文内容
-                  /^[\u4e00-\u9fa5]+$/.test(codeContent) || 
-                  // 包含中文的内容且不包含代码特征字符
-                  (/[\u4e00-\u9fa5]/.test(codeContent) && !/[{}[\]()=+*<>!|&;$]/.test(codeContent)) ||
-                  // 简单技术名称，如：axios, react 等（排除CODE/code特殊关键字）
-                  (/^[@a-zA-Z][\w\-\/.]*$/.test(codeContent) && !['CODE', 'code'].includes(codeContent)) ||
-                  // 简单词汇
-                  /^[\w\-\./\s]+$/.test(codeContent)
-                )
-            ) {
-              return <span className="inline-text-block">{codeContent}</span>;
-            }
-
-            const language = match ? match[1].toLowerCase() : '';
-            const displayLanguage = languageNameMap[language] || language.toUpperCase() || 'TEXT';
-
-            const handleCopy = async () => {
-              const code = String(children).replace(/\n$/, '');
-              await navigator.clipboard.writeText(code);
-              setIsCopied(true);
-              setTimeout(() => setIsCopied(false), 2000);
-            };
-
-            return (
-              <div className="code-block">
-                <div className="code-header">
-                  <span className="language-label">{displayLanguage}</span>
-                  <button
-                    className="copy-button"
-                    onClick={handleCopy}
-                    aria-label={isCopied ? "已复制" : "复制代码"}
-                  >
-                    {isCopied ? (
-                      <>
-                        <CheckIcon className="icon" />
-                        已复制
-                      </>
-                    ) : (
-                      <>
-                        <CopyIcon className="icon" />
-                        复制
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="code-content">
-                  <SyntaxHighlighter
-                    language={language}
-                    style={{
-                      ...oneDark,
-                      'pre[class*="language-"]': {
-                        ...oneDark['pre[class*="language-"]'],
-                        background: 'transparent',
-                      },
-                      'code[class*="language-"]': {
-                        ...oneDark['code[class*="language-"]'],
-                        background: 'transparent',
-                      }
-                    }}
-                    showLineNumbers={true}
-                    wrapLines={true}
-                    customStyle={{
-                      margin: 0,
-                      background: 'transparent',
-                      padding: '1rem',
-                    }}
-                    lineNumberStyle={{
-                      minWidth: '2.5em',
-                      paddingRight: '1em',
-                      color: 'var(--bc)',
-                      opacity: 0.3,
-                    }}
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
-                </div>
-              </div>
-            );
-          },
-
-          // 段落渲染
-          p({node, children, ...props}) {
-            // 检查是否包含树形结构特殊字符
-            const containsTreeStructure = contentHasTreeStructure(children);
-            
-            if (containsTreeStructure) {
-              return (
-                <TreeView>
-                  <p {...props} 
-                    data-selectable="true" 
-                    onContextMenu={handleContextMenu}
-                  >
-                    {children}
-                  </p>
-                </TreeView>
-              );
-            }
-            
-            const styles = { 
-              userSelect: 'text',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              margin: '0.5em 0',
-            };
-            
-            // 检查是否有子元素需要特殊处理
-            const processedChildren = React.Children.map(children, child => {
-              // 如果子元素是一个带有classname的React元素
-              if (React.isValidElement(child) && 
-                  child.props && 
-                  child.props.className === 'inline-text-block') {
-                // 将其转换为行内元素，确保正确显示
-                return <span className="inline-text-in-paragraph">{child.props.children}</span>;
-              }
-              return child;
-            });
-            
-            return (
-              <p {...props} data-selectable="true" style={styles} onContextMenu={handleContextMenu}>
-                {processedChildren}
-              </p>
-            );
-          },
-
-          // 列表项渲染
-          li({node, className, children, id, ...props}) {
-            // 检查是否是脚注项
-            if (id?.startsWith('fn-')) {
-              return (
-                <li 
-                  {...props}
-                  id={id}
-                  className={`footnote-item ${className || ''}`}
-                  style={{
-                    marginBottom: '0.5rem',
-                    lineHeight: '1.6',
-                    position: 'relative',
-                    paddingLeft: '1.5rem'
-                  }}
-                  data-selectable="true"
-                  onContextMenu={handleContextMenu}
-                >
-                  {children}
-                </li>
-              );
-            }
-            
-            // 检查是否包含树形结构特殊字符
-            const containsTreeStructure = contentHasTreeStructure(children);
-            
-            if (containsTreeStructure) {
-              return (
-                <li {...props} 
-                  className={className}
-                  data-selectable="true" 
-                  style={treeViewStyles.container}
-                  onContextMenu={handleContextMenu}
-                >
-                  {children}
-                </li>
-              );
-            }
-            
-            return (
-              <li {...props} 
-                className={className}
-                data-selectable="true" 
-                style={{ userSelect: 'text' }} 
-                onContextMenu={handleContextMenu}
-              >
-                {children}
-              </li>
-            );
-          },
-
-          // 添加有序列表组件
-          ol: ({node, ...props}) => (
-            <ol className="list-decimal pl-6 my-4" {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-
-          // 添加无序列表组件
-          ul: ({node, children, ...props}) => {
-            const containsTreeStructure = contentHasTreeStructure(children);
-            
-            if (containsTreeStructure) {
-              return (
-                <TreeView>
-                  <ul className="tree-view-list" {...props} 
-                    data-selectable="true" 
-                    onContextMenu={handleContextMenu} 
-                  >
-                    {children}
-                  </ul>
-                </TreeView>
-              );
-            }
-            
-            return (
-              <ul className="list-disc pl-6 my-4" {...props} 
-                data-selectable="true" 
-                style={{ userSelect: 'text' }} 
-                onContextMenu={handleContextMenu} 
-              >
-                {children}
-              </ul>
-            );
-          },
-
-          // 标题渲染
-          h1: ({node, ...props}) => (
-            <h1 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h2: ({node, ...props}) => (
-            <h2 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h3: ({node, ...props}) => (
-            <h3 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h4: ({node, ...props}) => (
-            <h4 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h5: ({node, ...props}) => (
-            <h5 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          h6: ({node, ...props}) => (
-            <h6 {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-
-          // 其他内联元素
-          strong: ({node, ...props}) => (
-            <strong {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          em: ({node, ...props}) => (
-            <em {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          del: ({node, ...props}) => (
-            <del {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-          blockquote: ({node, ...props}) => (
-            <blockquote {...props} data-selectable="true" style={{ userSelect: 'text' }} onContextMenu={handleContextMenu} />
-          ),
-
-          // 表格相关组件
-          table: TableWrapper,
-          thead: ({node, children, ...props}) => (
-            <thead {...props}>{children}</thead>
-          ),
-          tbody: ({node, children, ...props}) => (
-            <tbody {...props}>{children}</tbody>
-          ),
-          tr: ({node, children, ...props}) => (
-            <tr {...props}>{children}</tr>
-          ),
-          th: ({node, children, ...props}) => (
-            <th {...props}>{children}</th>
-          ),
-          td: ({node, children, ...props}) => (
-            <td {...props}>{children}</td>
-          ),
-          img: ({node, src, alt, width, height, title, ...props}) => {
-            const [isLoading, setIsLoading] = useState(true);
-            const [error, setError] = useState(false);
-            
-            // 检查是否是图片引用
-            if (src && src.startsWith('![图片') && imageReferences) {
-              // 从alt中提取引用编号
-              const refMatch = alt && alt.match(/图片(\d+)/);
-              if (refMatch) {
-                const refKey = `图片引用${refMatch[1]}`;
-                const refSrc = imageReferences[refKey];
-                
-                if (refSrc) {
-                  // 将引用替换为实际URL
-                  src = refSrc;
-                }
-              }
-            }
-            
-            // 如果是本地文件路径，添加前缀
-            if (src && src.startsWith('local-file://')) {
-              return (
-                <div className="image-wrapper">
-                  {isLoading && !error && (
-                    <div className="image-loading">
-                      <div className="loading loading-spinner loading-sm"></div>
-                      <span className="text">加载图片中...</span>
-                    </div>
-                  )}
-                  <img
-                    src={src}
-                    alt={alt || ''}
-                    title={title || alt || ''}
-                    className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={(e) => {
-                      const index = imagesToShow.findIndex((img) => img.src === src);
-                      if (index !== -1) {
-                        setLightboxIndex(index);
-                        setOpenLightbox(true);
-                      }
-                    }}
-                    style={{ 
-                      maxHeight: '300px', 
-                      objectFit: 'contain',
-                      display: isLoading ? 'none' : 'block' 
-                    }}
-                    loading="lazy"
-                    onLoad={() => setIsLoading(false)}
-                    onError={(e) => {
-                      console.log("图片加载错误:", src);
-                      setIsLoading(false);
-                      setError(true);
-                    }}
-                    {...props}
-                  />
-                  {error && (
-                    <div className="image-error">
-                      <svg className="h-6 w-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text">图片加载失败</span>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            
-            // 处理 file:// 协议的链接
-            if (src && src.startsWith('file://')) {
-              // 规范化Windows文件路径
-              let normalizedPath = src.replace('file://', '');
-              
-              // 替换所有的反斜杠为正斜杠
-              normalizedPath = normalizedPath.replace(/\\/g, '/');
-              
-              // 确保路径格式正确
-              if (!normalizedPath.startsWith('/') && normalizedPath.includes(':')) {
-                // Windows路径 (C:/path)，添加额外的斜杠
-                normalizedPath = '/' + normalizedPath;
-              }
-              
-              // 将处理后的路径添加到local-file://协议
-              const localFileSrc = `local-file://${normalizedPath}`;
-              
-              return (
-                <div className="image-wrapper">
-                  {isLoading && !error && (
-                    <div className="image-loading">
-                      <div className="loading loading-spinner loading-sm"></div>
-                      <span className="text">加载图片中...</span>
-                    </div>
-                  )}
-                  <img
-                    src={localFileSrc}
-                    alt={alt || ''}
-                    title={title || alt || ''}
-                    className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={(e) => {
-                      // 添加到可查看的图片中
-                      if (imagesToShow.findIndex(img => img.src === localFileSrc) === -1) {
-                        const newImageIndex = imagesToShow.length;
-                        imagesToShow.push({ src: localFileSrc, title: title || alt || '' });
-                        setLightboxIndex(newImageIndex);
-                      } else {
-                        const index = imagesToShow.findIndex(img => img.src === localFileSrc);
-                        setLightboxIndex(index);
-                      }
-                      setOpenLightbox(true);
-                    }}
-                    style={{ 
-                      maxHeight: '300px', 
-                      objectFit: 'contain',
-                      display: isLoading ? 'none' : 'block' 
-                    }}
-                    loading="lazy"
-                    onLoad={() => setIsLoading(false)}
-                    onError={(e) => {
-                      console.log("图片加载错误:", src);
-                      setIsLoading(false);
-                      setError(true);
-                    }}
-                    {...props}
-                  />
-                  {error && (
-                    <div className="image-error">
-                      <svg className="h-6 w-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text">图片加载失败</span>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            
-            // 外部图片URL
-            return (
-              <div className="image-wrapper">
-                {isLoading && !error && (
-                  <div className="image-loading">
-                    <div className="loading loading-spinner loading-sm"></div>
-                    <span className="text">加载图片中...</span>
-                  </div>
-                )}
-                <img
-                  src={src}
-                  alt={alt || ''}
-                  title={title || alt || ''}
-                  className="max-w-full rounded-lg"
-                  style={{ 
-                    maxHeight: '300px', 
-                    objectFit: 'contain',
-                    display: isLoading ? 'none' : 'block' 
-                  }}
-                  loading="lazy"
-                  onLoad={() => setIsLoading(false)}
-                  onError={(e) => {
-                    setIsLoading(false);
-                    setError(true);
-                    e.target.onerror = null;
-                    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgMTNoLTJWN2gydjZabTAgNGgtMnYtMmgydjJabTktNVYxOEE1IDUgMCAwIDEgMTcgMjJINy4zM0ExMC42MSAxMC42MSAwIDAgMSAyIDEzLjQzQzIgOC4wNSA2LjA0IDQgMTAuNCA0YzIuMjUgMCA0LjI1Ljg2IDUuNiAyLjJMMTUuNTMgNUgyMXYzaC0zLjUzYTguNDYgOC40NiAwIDAgMSAtMi4zLTJBNi41MyA2LjUzIDAgMCAwIDEwLjRBNi41IDYuNSAwIDAgMCA0IDEzLjU5QzcuMDMgMTMuNjggOS43NiAxNiAxMCAxOWE4LjM4IDguMzggMCAwIDAgNC40LTMuMjNBNyA3IDAgMCAxIDIxIDEyWiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+';
-                    e.target.style.padding = '30px';
-                    e.target.style.backgroundColor = 'rgba(0,0,0,0.1)';
-                  }}
-                  {...props}
-                />
-                {error && (
-                  <div className="image-error">
-                    <svg className="h-6 w-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text">图片加载失败</span>
-                  </div>
-                )}
-              </div>
-            );
-          },
-          // 添加脚注参考的自定义组件
-          sup: ({node, children, ...props}) => {
-            // 检查是否是脚注的引用
-            const isFootnoteRef = node?.children?.[0]?.tagName === 'a' && 
-                                 node?.children?.[0]?.properties?.className?.includes('footnote-ref');
-            
-            if (isFootnoteRef) {
-              return (
-                <sup 
-                  {...props} 
-                  className="footnote-ref"
-                  style={{
-                    fontSize: '0.75em',
-                    lineHeight: '0',
-                    position: 'relative',
-                    top: '-0.5em',
-                    fontWeight: 'bold',
-                    color: 'var(--p)',
-                    cursor: 'pointer',
-                    marginLeft: '2px',
-                    marginRight: '2px',
-                    textDecoration: 'none',
-                    background: 'var(--b2)',
-                    padding: '1px 4px',
-                    borderRadius: '4px',
-                  }}
-                  data-selectable="true"
-                  onContextMenu={handleContextMenu}
-                >
-                  {children}
-                </sup>
-              );
-            }
-            
-            return (
-              <sup {...props} data-selectable="true" onContextMenu={handleContextMenu}>
-                {children}
-              </sup>
-            );
-          },
-          // 添加脚注定义列表的自定义组件
-          section: ({node, className, children, ...props}) => {
-            // 检查是否是脚注部分
-            if (className?.includes('footnotes')) {
-              return (
-                <section {...props} className={className} data-selectable="true" onContextMenu={handleContextMenu}>
-                  {children}
-                </section>
-              );
-            }
-            
-            return (
-              <section {...props} className={className} data-selectable="true" onContextMenu={handleContextMenu}>
-                {children}
-              </section>
-            );
-          },
-        }}
+        components={markdownComponents}
       >
         {processedContent}
       </ReactMarkdown>

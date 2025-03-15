@@ -248,4 +248,21 @@
   .markdown-table-wrapper:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
+}
+
+/* 确保内联文本不应用代码样式 */
+.markdown-content span {
+  font-family: inherit;
+  background-color: transparent;
+  padding: 0;
+  border: none;
+  color: inherit;
+}
+
+.inline-text-block {
+  font-family: inherit;
+  background-color: transparent;
+  padding: 0;
+  border: none;
+  color: inherit;
 } 
