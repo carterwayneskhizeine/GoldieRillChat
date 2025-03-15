@@ -613,6 +613,13 @@ export const MarkdownRenderer = React.memo(({
 
   // 使用 useCallback 优化上下文菜单处理
   const handleContextMenu = useCallback((e) => {
+    // 在bg-theme模式下，允许默认右键菜单显示
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    if (currentTheme === 'bg-theme') {
+      return; // 不阻止默认行为，允许原生右键菜单显示
+    }
+    
+    // 其他主题下继续使用自定义右键菜单
     e.preventDefault();
     e.stopPropagation();
     

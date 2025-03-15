@@ -1133,29 +1133,134 @@ function createWindow() {
 
     // 添加右键菜单处理
     view.webContents.on('context-menu', (event, params) => {
-      const menu = Menu.buildFromTemplate([
-        {
-          label: 'Copy',
-          accelerator: 'CmdOrCtrl+C',
-          enabled: params.isEditable || params.selectionText.length > 0,
+      const menuTemplate = [];
+      
+      // 为params添加webContents引用，以便在菜单操作中使用
+      params.webContents = view.webContents;
+
+      // 添加字典拼写建议（如果有）
+      if (params.dictionarySuggestions && params.dictionarySuggestions.length > 0) {
+        params.dictionarySuggestions.forEach(suggestion => {
+          menuTemplate.push({
+            label: suggestion,
+            click: () => {
+              // 替换错误拼写的单词
+              if (params.misspelledWord && params.webContents) {
+                params.webContents.replaceMisspelling(suggestion);
+              }
+            }
+          });
+        });
+        menuTemplate.push({ type: 'separator' });
+      }
+
+      // 文本相关菜单项
+      if (params.selectionText) {
+        menuTemplate.push(
+          {
+            label: '复制',
+            accelerator: 'CmdOrCtrl+C',
+            click: () => {
+              clipboard.writeText(params.selectionText);
+            }
+          },
+          {
+            label: '剪切',
+            accelerator: 'CmdOrCtrl+X',
+            enabled: params.isEditable,
+            click: () => {
+              if (params.webContents) params.webContents.cut();
+            }
+          },
+          {
+            label: `使用谷歌搜索 "${params.selectionText.substring(0, 20)}${params.selectionText.length > 20 ? '...' : ''}"`,
+            click: () => {
+              const url = `https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`;
+              shell.openExternal(url);
+            }
+          },
+          { type: 'separator' }
+        );
+      }
+
+      // 粘贴选项（仅在可编辑元素上）
+      if (params.isEditable) {
+        menuTemplate.push({
+          label: '粘贴',
+          accelerator: 'CmdOrCtrl+V',
           click: () => {
-            if (params.isEditable) {
-              view.webContents.copy()
-            } else if (params.selectionText) {
-              clipboard.writeText(params.selectionText)
+            if (params.webContents) params.webContents.paste();
+          }
+        });
+      }
+
+      // 图片相关菜单项
+      if (params.mediaType === 'image') {
+        menuTemplate.push(
+          { type: 'separator' },
+          {
+            label: '复制图片',
+            click: () => {
+              if (params.webContents) params.webContents.copyImageAt(params.x, params.y);
+            }
+          },
+          {
+            label: '复制图片地址',
+            click: () => {
+              if (params.srcURL) clipboard.writeText(params.srcURL);
             }
           }
-        },
+        );
+      }
+
+      // 链接相关菜单项
+      if (params.linkURL) {
+        menuTemplate.push(
+          { type: 'separator' },
+          {
+            label: '复制链接地址',
+            click: () => {
+              clipboard.writeText(params.linkURL);
+            }
+          },
+          {
+            label: '在外部浏览器中打开链接',
+            click: () => {
+              shell.openExternal(params.linkURL);
+            }
+          }
+        );
+      }
+
+      // 全选选项
+      menuTemplate.push(
+        { type: 'separator' },
         {
-          label: 'Paste',
-          accelerator: 'CmdOrCtrl+V',
-          enabled: params.isEditable,
+          label: '全选',
+          accelerator: 'CmdOrCtrl+A',
           click: () => {
-            view.webContents.paste()
+            if (params.webContents) params.webContents.selectAll();
           }
         }
-      ])
-      menu.popup()
+      );
+
+      // 仅在开发模式下显示检查元素
+      if (process.env.NODE_ENV === 'development') {
+        menuTemplate.push(
+          { type: 'separator' },
+          {
+            label: '检查元素',
+            click: () => {
+              if (params.webContents) {
+                params.webContents.inspectElement(params.x, params.y);
+              }
+            }
+          }
+        );
+      }
+
+      const menu = Menu.buildFromTemplate(menuTemplate);
+      menu.popup();
     })
 
     return id
@@ -1398,6 +1503,138 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
+
+  // 添加主窗口的右键菜单处理
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    const menuTemplate = [];
+    
+    // 为params添加webContents引用，以便在菜单项点击时使用
+    params.webContents = mainWindow.webContents;
+
+    // 添加字典拼写建议（如果有）
+    if (params.dictionarySuggestions && params.dictionarySuggestions.length > 0) {
+      params.dictionarySuggestions.forEach(suggestion => {
+        menuTemplate.push({
+          label: suggestion,
+          click: () => {
+            // 替换错误拼写的单词
+            if (params.misspelledWord && params.webContents) {
+              params.webContents.replaceMisspelling(suggestion);
+            }
+          }
+        });
+      });
+      menuTemplate.push({ type: 'separator' });
+    }
+
+    // 文本相关菜单项
+    if (params.selectionText) {
+      menuTemplate.push(
+        {
+          label: '复制',
+          accelerator: 'CmdOrCtrl+C',
+          click: () => {
+            clipboard.writeText(params.selectionText);
+          }
+        },
+        {
+          label: '剪切',
+          accelerator: 'CmdOrCtrl+X',
+          enabled: params.isEditable,
+          click: () => {
+            if (params.webContents) params.webContents.cut();
+          }
+        },
+        {
+          label: `使用谷歌搜索 "${params.selectionText.substring(0, 20)}${params.selectionText.length > 20 ? '...' : ''}"`,
+          click: () => {
+            const url = `https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`;
+            shell.openExternal(url);
+          }
+        },
+        { type: 'separator' }
+      );
+    }
+
+    // 粘贴选项（仅在可编辑元素上）
+    if (params.isEditable) {
+      menuTemplate.push({
+        label: '粘贴',
+        accelerator: 'CmdOrCtrl+V',
+        click: () => {
+          if (params.webContents) params.webContents.paste();
+        }
+      });
+    }
+
+    // 图片相关菜单项
+    if (params.mediaType === 'image') {
+      menuTemplate.push(
+        { type: 'separator' },
+        {
+          label: '复制图片',
+          click: () => {
+            if (params.webContents) params.webContents.copyImageAt(params.x, params.y);
+          }
+        },
+        {
+          label: '复制图片地址',
+          click: () => {
+            if (params.srcURL) clipboard.writeText(params.srcURL);
+          }
+        }
+      );
+    }
+
+    // 链接相关菜单项
+    if (params.linkURL) {
+      menuTemplate.push(
+        { type: 'separator' },
+        {
+          label: '复制链接地址',
+          click: () => {
+            clipboard.writeText(params.linkURL);
+          }
+        },
+        {
+          label: '在外部浏览器中打开链接',
+          click: () => {
+            shell.openExternal(params.linkURL);
+          }
+        }
+      );
+    }
+
+    // 全选选项
+    menuTemplate.push(
+      { type: 'separator' },
+      {
+        label: '全选',
+        accelerator: 'CmdOrCtrl+A',
+        click: () => {
+          if (params.webContents) params.webContents.selectAll();
+        }
+      }
+    );
+
+    // 仅在开发模式下显示检查元素
+    if (process.env.NODE_ENV === 'development') {
+      menuTemplate.push(
+        { type: 'separator' },
+        {
+          label: '检查元素',
+          click: () => {
+            if (params.webContents) {
+              params.webContents.inspectElement(params.x, params.y);
+            }
+          }
+        }
+      );
+    }
+
+    const menu = Menu.buildFromTemplate(menuTemplate);
+    menu.popup();
+  });
 
   // Open the DevTools in development.
   if (process.env.NODE_ENV === 'development') {
