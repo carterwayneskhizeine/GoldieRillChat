@@ -1657,7 +1657,7 @@ export function ChatView({
       {/* 输入区域 */}
       {!editingMessage && (
         <div className={`absolute bottom-0 left-0 right-0 ${isCompact ? 'p-2 pointer-events-none bg-transparent' : 'p-4 bg-transparent'}`} style={{ 
-          bottom: isCompact ? '48px' : '0px'
+          bottom: isCompact ? '63px' : '0px'
         }}>
           <div className={`${isCompact ? 'max-w-[300px] mx-auto pointer-events-auto' : 'max-w-[770px] mx-auto'}`}>
             {selectedFiles.length > 0 && (

@@ -319,7 +319,8 @@ export const createInputHandlers = ({
 
 **Seed：** ${result.seed}
 
-![${prompt}](local-file://${result.localPath})`;
+<!-- 隐藏图片链接但仍然显示图片 -->
+<div style="display:none">![Generated Image](local-file://${result.localPath})</div>`;
         const updatedAiMessage = {
           ...aiMessage,
           content: finalContent,

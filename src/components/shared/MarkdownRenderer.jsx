@@ -724,12 +724,12 @@ export const MarkdownRenderer = React.memo(({
                 {isCopied ? (
                   <>
                     <CheckIcon className="icon" />
-                    已复制
+                    <span>Copied</span>
                   </>
                 ) : (
                   <>
                     <CopyIcon className="icon" />
-                    复制
+                    <span>Copy</span>
                   </>
                 )}
               </button>
@@ -1044,8 +1044,10 @@ export const MarkdownRenderer = React.memo(({
           .markdown-content .copy-button {
             display: inline-flex;
             align-items: center;
+            justify-content: center; /* 确保内容居中 */
             gap: 0.5rem;
             padding: 0.25rem 0.75rem;
+            min-width: 80px; /* 设置最小宽度 */
             font-size: 0.875rem;
             color: var(--bc);
             background-color: var(--b2);
@@ -1054,6 +1056,14 @@ export const MarkdownRenderer = React.memo(({
             cursor: pointer;
             transition: all 0.2s ease;
             margin-left: auto; /* 确保靠右对齐 */
+            overflow: visible; /* 确保内容不会被截断 */
+            white-space: nowrap; /* 防止文本换行 */
+          }
+          
+          .markdown-content .copy-button .icon {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0; /* 防止图标缩小 */
           }
         `}
       </style>
