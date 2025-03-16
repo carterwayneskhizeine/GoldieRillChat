@@ -332,9 +332,10 @@ export const useSpeechRecognition = (options = {}) => {
   const defaultOptions = {
     apiBaseUrl: '/api',  // API基础URL
     autoStart: false,    // 是否自动开始录音
-    timeout: 60000,      // 录音超时时间（毫秒）
-    silenceTimeout: 5000, // 静音检测超时时间（毫秒）
+    timeout: 30000,      // 录音总超时时间（毫秒）
+    silenceTimeout: 5000, // 静音检测超时时间（增加到5秒）
     pollingInterval: 1000, // 轮询间隔（毫秒）
+    initialBufferTime: 3000, // 初始缓冲时间（3秒）
   };
   
   // 合并选项
@@ -350,9 +351,10 @@ export const useSpeechRecognition = (options = {}) => {
   const recordingTimeoutIdRef = useRef(null);
   const temporarySentenceRef = useRef('');
   const currentSessionIdRef = useRef('');
+  const isStoppingRef = useRef(false); // 添加一个引用来跟踪录音是否正在停止中
   
-  // 静音检测计时器
-  const silenceTimerRef = useRef(null);
+  // 静音检测计数
+  const silenceCountRef = useRef(0);
   
   /**
    * 生成唯一的会话ID
@@ -427,12 +429,17 @@ export const useSpeechRecognition = (options = {}) => {
       // 检查是否有结果并且是数组
       if (!data.results || !Array.isArray(data.results)) {
         console.log('未收到有效的识别结果');
+        // 如果没有结果，则视为静音
+        checkSilence();
         return;
       }
       
       // 处理结果
       if (data.results.length > 0) {
         console.log(`收到 ${data.results.length} 条识别结果`);
+        
+        // 记录是否有新的文本结果
+        let hasNewTextResult = false;
         
         // 遍历处理每一个结果
         for (const result of data.results) {
@@ -451,6 +458,9 @@ export const useSpeechRecognition = (options = {}) => {
               is_end: result.is_end || false
             };
             
+            // 标记有新的文本结果
+            hasNewTextResult = true;
+            
             // 调用文本处理函数
             handleTextResult(textResult);
           } else if (result.type === 'complete') {
@@ -462,6 +472,17 @@ export const useSpeechRecognition = (options = {}) => {
             console.log('收到未知类型的结果:', result);
           }
         }
+        
+        // 只有当没有新的文本结果时，才考虑增加静音检测计数
+        if (!hasNewTextResult) {
+          // 如果没有识别到任何有效的新文本，则增加静音计数
+          console.log('未检测到新的语音输入，静音计数增加');
+          checkSilence();
+        }
+      } else {
+        // 如果结果为空数组，也视为静音
+        console.log('结果为空数组，静音计数增加');
+        checkSilence();
       }
     } catch (error) {
       console.error('获取语音识别结果失败:', error);
@@ -470,13 +491,61 @@ export const useSpeechRecognition = (options = {}) => {
   };
   
   /**
+   * 检查静音状态并增加计数
+   */
+  const checkSilence = () => {
+    // 如果已经在停止过程中，跳过静音检测
+    if (isStoppingRef.current) {
+      console.log('录音已经在停止过程中，跳过静音检测');
+      return;
+    }
+    
+    // 检查是否在初始缓冲期
+    const now = Date.now();
+    const sessionStartTime = currentSessionIdRef.current.split('_')[1];
+    if (now - parseInt(sessionStartTime) < defaultOptions.initialBufferTime) {
+      console.log('在初始缓冲期内，跳过静音检测');
+      return;
+    }
+
+    // 增加静音计数
+    silenceCountRef.current += 1;
+    console.log(`静音检测计数: ${silenceCountRef.current}`);
+    
+    // 说话后停顿的情况：如果已经有文本内容，并且连续多次轮询没有新内容，则考虑停止录音
+    if (recordedText && recordedText.trim() !== '') {
+      // 检查文本是否已经包含完整的句子
+      const hasCompleteSentence = /[。？！.?!]$/.test(recordedText.trim());
+      
+      // 如果已经是完整句子，且经过了至少2秒的静音，才停止
+      if (hasCompleteSentence && silenceCountRef.current >= 2 && !isStoppingRef.current) {
+        console.log(`检测到完整句子和足够的静音时间，停止录音: "${recordedText}"`);
+        showNotification(`已完成句子识别，停止录音`, 'success');
+        stopRecording();
+        return;
+      }
+      
+      // 如果达到较高的静音阈值（5秒），则停止
+      if (silenceCountRef.current >= 5 && !isStoppingRef.current) {
+        console.log(`检测到较长语音停顿，自动停止录音`);
+        showNotification(`检测到语音停顿，自动停止录音`, 'info');
+        stopRecording();
+      }
+    } else {
+      // 如果还没有任何文本，则需要更长的等待时间（8秒）
+      if (silenceCountRef.current >= 8 && !isStoppingRef.current) {
+        console.log(`未检测到语音输入，自动停止录音`);
+        showNotification(`未检测到语音输入，请重新开始`, 'info');
+        stopRecording();
+      }
+    }
+  };
+  
+  /**
    * 处理文本类型的结果
    * @param {Object} result - 结果对象
    */
   const handleTextResult = (result) => {
-    // 重置静音计时器 - 每次收到结果都说明正在说话
-    resetSilenceTimer();
-    
     // 检查结果是否包含必要字段
     if (!result.text) {
       console.log('结果缺少文本字段:', result);
@@ -488,60 +557,57 @@ export const useSpeechRecognition = (options = {}) => {
     
     console.log(`处理文本结果: "${text}", 句末: ${isEnd}`);
     
-    // 如果是临时结果（非句末），仅存储但不插入
-    if (!isEnd) {
+    // 如果是最终结果（句末），检查是否是完整句子
+    if (isEnd) {
+      // 检查是否是完整句子（以句号、问号或感叹号结束）
+      const hasCompleteSentence = /[。？！.?!]$/.test(text.trim());
+      
+      console.log(`最终结果，清空临时句子，是否完整句子：${hasCompleteSentence}`);
+      temporarySentenceRef.current = '';
+      
+      // 更新状态
+      setRecordedText(text);
+      
+      // 尝试插入文本
+      const insertSuccess = insertTextToActiveElement(text, isEnd);
+      
+      // 如果插入失败且文本不为空，显示通知
+      if (!insertSuccess && text.trim() !== '') {
+        console.log(`插入文本失败，尝试复制到剪贴板: "${text}"`);
+        
+        try {
+          // 尝试复制到剪贴板
+          navigator.clipboard.writeText(text).then(() => {
+            showNotification(`已复制识别文本: "${text}"`, 'info');
+          });
+        } catch (e) {
+          console.error('复制到剪贴板失败:', e);
+          showNotification(`识别结果: ${text}`, 'info');
+        }
+      }
+      
+      // 如果识别到完整句子并且录音仍在进行，立即停止录音
+      if (hasCompleteSentence && isRecording && !isStoppingRef.current) {
+        console.log(`检测到完整句子，立即停止录音: "${text}"`);
+        showNotification(`已完成句子识别，停止录音`, 'success');
+        stopRecording();
+        return;
+      }
+      
+      // 重置静音计数
+      silenceCountRef.current = 0;
+      console.log('检测到语音输入，重置静音计数');
+    } else {
+      // 如果是临时结果（非句末），仅存储但不插入
       console.log(`临时结果，存储: "${text}"`);
       temporarySentenceRef.current = text;
       
       // 只更新状态，不插入
       setRecordedText(text);
-      return;
-    }
-    
-    // 如果是句末，清空临时句子引用
-    console.log(`最终结果，清空临时句子`);
-    temporarySentenceRef.current = '';
-    
-    // 更新状态
-    setRecordedText(text);
-    
-    // 尝试插入文本
-    const insertSuccess = insertTextToActiveElement(text, isEnd);
-    
-    // 如果插入失败且文本不为空，显示通知
-    if (!insertSuccess && text.trim() !== '') {
-      console.log(`插入文本失败，尝试复制到剪贴板: "${text}"`);
       
-      try {
-        // 尝试复制到剪贴板
-        navigator.clipboard.writeText(text).then(() => {
-          showNotification(`已复制识别文本: "${text}"`, 'info');
-        });
-      } catch (e) {
-        console.error('复制到剪贴板失败:', e);
-        showNotification(`识别结果: ${text}`, 'info');
-      }
-    }
-  };
-  
-  /**
-   * 重置静音计时器
-   */
-  const resetSilenceTimer = () => {
-    // 清除现有计时器
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-    
-    // 如果正在录音，设置新的静音计时器
-    if (isRecording) {
-      console.log(`设置${silenceTimeout/1000}秒静音自动停止计时器`);
-      silenceTimerRef.current = setTimeout(() => {
-        console.log(`检测到${silenceTimeout/1000}秒无语音，自动停止录音`);
-        showNotification(`检测到${silenceTimeout/1000}秒无语音，自动停止录音`, 'info');
-        stopRecording();
-      }, silenceTimeout);
+      // 重置静音计数
+      silenceCountRef.current = 0;
+      console.log('检测到语音输入，重置静音计数');
     }
   };
   
@@ -652,6 +718,9 @@ export const useSpeechRecognition = (options = {}) => {
       setRecordedText('');
       temporarySentenceRef.current = '';
       
+      // 重置静音计数
+      silenceCountRef.current = 0;
+      
       // 重要：确保状态更新完成后再进行其他操作
       setTimeout(async () => {
         try {
@@ -732,6 +801,15 @@ export const useSpeechRecognition = (options = {}) => {
    * 停止录音
    */
   const stopRecording = async () => {
+    // 如果已经在停止过程中，直接返回
+    if (isStoppingRef.current) {
+      console.log('录音已经在停止过程中，忽略重复调用');
+      return;
+    }
+    
+    // 标记正在停止中
+    isStoppingRef.current = true;
+    
     // 保存当前会话ID
     const sessionId = currentSessionIdRef.current;
     
@@ -768,7 +846,11 @@ export const useSpeechRecognition = (options = {}) => {
           console.error(`停止录音API返回错误状态: ${response.status} ${response.statusText}`);
           const text = await response.text(); // 尝试获取响应文本以便调试
           console.error(`响应内容: ${text.substring(0, 150)}...`);
-          showNotification(`停止录音失败：服务器返回错误 ${response.status}`, 'error');
+          
+          // 400错误通常表示会话已经停止，不需要向用户显示此错误
+          if (response.status !== 400) {
+            showNotification(`停止录音失败：服务器返回错误 ${response.status}`, 'error');
+          }
           return;
         }
         
@@ -780,7 +862,6 @@ export const useSpeechRecognition = (options = {}) => {
           console.error(`解析JSON响应失败:`, parseError);
           const text = await response.text();
           console.error(`非JSON响应内容: ${text.substring(0, 150)}...`);
-          showNotification('停止录音失败：无法解析服务器响应', 'error');
           return;
         }
         
@@ -789,7 +870,6 @@ export const useSpeechRecognition = (options = {}) => {
         // 检查API返回状态
         if (data.status !== 'success') {
           console.error('停止录音时出错:', data.message || '未知错误');
-          showNotification(`停止录音失败: ${data.message || '服务器返回错误'}`, 'error');
           return;
         }
         
@@ -804,7 +884,10 @@ export const useSpeechRecognition = (options = {}) => {
         showNotification('语音识别已结束', 'success');
       } catch (error) {
         console.error('停止录音请求失败:', error);
-        showNotification(`停止录音请求失败: ${error.message}`, 'error');
+        // 只有在真正的错误时才显示通知
+        if (error.name !== 'AbortError') {
+          showNotification(`停止录音请求失败: ${error.message}`, 'error');
+        }
       }
     } else {
       console.log('没有有效的会话ID，跳过停止录音API调用');
@@ -813,6 +896,11 @@ export const useSpeechRecognition = (options = {}) => {
     // 重置状态
     setIsRecording(false);
     currentSessionIdRef.current = '';
+    
+    // 重置停止标志
+    setTimeout(() => {
+      isStoppingRef.current = false;
+    }, 500);
   };
   
   /**
@@ -820,8 +908,8 @@ export const useSpeechRecognition = (options = {}) => {
    * @param {KeyboardEvent} e - 键盘事件
    */
   const handleVoiceShortcut = (e) => {
-    // 检查是否按下Ctrl+Shift+M
-    if (e.ctrlKey && e.shiftKey && e.key === 'M') {
+    // 检查是否按下Ctrl+R
+    if (e.ctrlKey && e.key === 'r') {
       e.preventDefault(); // 阻止默认行为
       
       console.log(`语音快捷键触发，当前录音状态: ${isRecording ? '录音中' : '未录音'}`);
@@ -878,11 +966,6 @@ export const useSpeechRecognition = (options = {}) => {
       if (recordingTimeoutIdRef.current) {
         clearTimeout(recordingTimeoutIdRef.current);
         recordingTimeoutIdRef.current = null;
-      }
-      
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = null;
       }
       
       setIsRecording(false);

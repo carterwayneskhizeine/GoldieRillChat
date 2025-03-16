@@ -685,22 +685,6 @@ export const MarkdownRenderer = React.memo(({
             </TreeView>
           );
         }
-        
-        // 特殊情况：单行中文内容或技术名称，作为文本渲染
-        if (!codeContent.includes('\n') && 
-            (
-              // 纯中文内容
-              /^[\u4e00-\u9fa5]+$/.test(codeContent) || 
-              // 包含中文的内容且不包含代码特征字符
-              (/[\u4e00-\u9fa5]/.test(codeContent) && !/[{}[\]()=+*<>!|&;$]/.test(codeContent)) ||
-              // 简单技术名称，如：axios, react 等（排除CODE/code特殊关键字）
-              (/^[@a-zA-Z][\w\-\/.]*$/.test(codeContent) && !['CODE', 'code'].includes(codeContent)) ||
-              // 简单词汇
-              /^[\w\-\./\s]+$/.test(codeContent)
-            )
-        ) {
-          return <span className="inline-text-block">{codeContent}</span>;
-        }
 
         const language = match ? match[1].toLowerCase() : '';
         const displayLanguage = languageNameMap[language] || language.toUpperCase() || 'TEXT';
