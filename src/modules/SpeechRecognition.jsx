@@ -663,7 +663,7 @@ export const useSpeechRecognition = (options = {}) => {
       
       if (!response.ok) {
         console.error(`服务器状态检查失败: ${response.status} ${response.statusText}`);
-        showNotification('语音识别服务不可用', 'error');
+        showNotification('语音识别服务不可用 - 请先启动语音服务', 'error');
         return false;
       }
       
@@ -685,11 +685,18 @@ export const useSpeechRecognition = (options = {}) => {
       }
     } catch (error) {
       console.error('检查服务器状态失败:', error);
+      
+      // 针对打包版本提供更详细的错误信息
+      let errorMessage = '';
       if (error.name === 'AbortError') {
-        showNotification('语音识别服务连接超时', 'error');
+        errorMessage = '语音识别服务连接超时';
+      } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+        errorMessage = '语音识别服务未运行 - 请先启动speech_server.py';
       } else {
-        showNotification(`语音识别服务不可用: ${error.message}`, 'error');
+        errorMessage = `语音识别服务不可用: ${error.message}`;
       }
+      
+      showNotification(errorMessage, 'error');
       return false;
     }
   };
