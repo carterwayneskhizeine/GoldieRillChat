@@ -486,17 +486,6 @@ export default function TitleBar({
     return values / length;
   };
 
-  // 添加语音识别快捷键监听器
-  useEffect(() => {
-    console.log('设置语音识别快捷键监听器');
-    document.addEventListener('keydown', handleVoiceShortcut);
-    
-    return () => {
-      console.log('清理语音识别快捷键监听器');
-      document.removeEventListener('keydown', handleVoiceShortcut);
-    };
-  }, [handleVoiceShortcut]);
-
   // 添加样式到文档
   useEffect(() => {
     // 创建样式元素

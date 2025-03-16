@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import TitleBar from './components/TitleBar'
 import ThreeBackground from './components/ThreeBackground'
 import Embedding from './components/Embedding'
+import LivePortrait from './components/LivePortrait'
 import { 
   updateMessage,
   sendMessage as sendMessageOp,
@@ -1748,6 +1749,13 @@ export default function App() {
               setSelectedProvider={setSelectedProvider}
               isCompact={isCompact}
               sidebarOpen={sidebarOpen}
+            />
+          </div>
+
+          {/* LivePortrait content */}
+          <div style={{ display: activeTool === 'liveportrait' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
+            <LivePortrait 
+              storagePath={storagePath}
             />
           </div>
 

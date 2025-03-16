@@ -12,11 +12,23 @@ export function ToastContainer() {
   useEffect(() => {
     // 订阅toastManager发出的消息
     const unsubscribe = toastManager.subscribe(newToast => {
-      // 为每个Toast生成一个唯一ID
-      const id = Date.now().toString();
+      // 使用传入的ID或生成一个唯一ID
+      const id = newToast.id || Date.now().toString();
       
-      // 添加新的Toast到状态
-      setToasts(prevToasts => [...prevToasts, { ...newToast, id }]);
+      // 添加新的Toast到状态，避免重复ID
+      setToasts(prevToasts => {
+        // 检查ID是否已存在
+        const existingToastIndex = prevToasts.findIndex(toast => toast.id === id);
+        if (existingToastIndex >= 0) {
+          // 如果ID已存在，替换原有的toast
+          const updatedToasts = [...prevToasts];
+          updatedToasts[existingToastIndex] = { ...newToast, id };
+          return updatedToasts;
+        } else {
+          // 如果ID不存在，添加新toast
+          return [...prevToasts, { ...newToast, id }];
+        }
+      });
       
       // 设置自动移除计时器
       setTimeout(() => {

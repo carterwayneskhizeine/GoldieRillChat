@@ -52,14 +52,16 @@ const toastManager = {
         message: message.message || '',
         type: message.type || type,
         duration: message.duration || duration,
-        title: message.title || ''
+        title: message.title || '',
+        id: message.id || Date.now().toString()
       });
     } else {
       // 如果是字符串，使用传入的参数
       this.notify({
         message,
         type,
-        duration
+        duration,
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 9)
       });
     }
   },

@@ -36,6 +36,56 @@ contextBridge.exposeInMainWorld('electron', {
   downloadSearchImages: (imageUrls, folderPath) => 
     ipcRenderer.invoke('download-search-images', imageUrls, folderPath),
   
+  // 添加阿里云百炼API通信接口
+  ipcRenderer: {
+    // 通用IPC事件处理器
+    on: (channel, listener) => {
+      const allowedChannels = [
+        'dashscope-detect-response',
+        'dashscope-synthesis-response',
+        'dashscope-task-status',
+        'dashscope-videoretalk-response'
+      ];
+      
+      if (allowedChannels.includes(channel)) {
+        ipcRenderer.on(channel, (event, ...args) => listener(event, ...args));
+        return () => ipcRenderer.removeListener(channel, listener);
+      } else {
+        console.warn(`尝试监听未授权的频道: ${channel}`);
+        return () => {};
+      }
+    },
+    send: (channel, ...args) => {
+      // 安全检查频道名称
+      const allowedChannels = [
+        'dashscope-detect', 
+        'dashscope-synthesis', 
+        'dashscope-poll-task',
+        'dashscope-videoretalk'
+      ];
+      
+      if (allowedChannels.includes(channel)) {
+        ipcRenderer.send(channel, ...args);
+      } else {
+        console.warn(`尝试向未授权的频道发送消息: ${channel}`);
+      }
+    },
+    removeAllListeners: (channel) => {
+      const allowedChannels = [
+        'dashscope-detect-response',
+        'dashscope-synthesis-response',
+        'dashscope-task-status',
+        'dashscope-videoretalk-response'
+      ];
+      
+      if (allowedChannels.includes(channel)) {
+        ipcRenderer.removeAllListeners(channel);
+      } else {
+        console.warn(`尝试移除未授权频道的监听器: ${channel}`);
+      }
+    }
+  },
+  
   // 添加书签文件相关处理函数
   selectBookmarkFile: () => ipcRenderer.invoke('select-bookmark-file'),
   readFile: async (filePath) => {

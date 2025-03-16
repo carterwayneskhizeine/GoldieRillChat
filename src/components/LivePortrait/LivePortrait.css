@@ -1,0 +1,374 @@
+.liveportrait-container {
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  color: white;
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  margin: 0 auto;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.3);
+  scroll-behavior: smooth;
+}
+
+.liveportrait-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.liveportrait-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.liveportrait-container::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.liveportrait-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.liveportrait-container h2 {
+  margin-bottom: 20px;
+  text-align: center;
+  color: #f0f0f0;
+  position: sticky;
+  top: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 10px 0;
+  z-index: 1;
+}
+
+.api-key-section {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.api-key-section label {
+  min-width: 120px;
+}
+
+.api-key-section input {
+  flex-grow: 1;
+  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: white;
+}
+
+.advanced-toggle {
+  margin: 15px 0;
+  text-align: center;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.advanced-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.advanced-settings {
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.image-preview {
+  margin: 20px 0;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 8px;
+  min-height: 50px;
+}
+
+.image-preview img {
+  max-height: 200px;
+  object-fit: contain;
+}
+
+.status-section {
+  margin-bottom: 20px;
+  padding: 12px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.status-section p {
+  margin: 6px 0;
+}
+
+.actions-section {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.actions-section button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  background: #4a90e2;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.actions-section button:hover:not(:disabled) {
+  background: #3a7cd0;
+}
+
+.actions-section button:disabled {
+  background: #2c3e50;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.actions-section button.loading {
+  background: #2c3e50;
+  position: relative;
+}
+
+.actions-section button.loading:after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  margin-top: -10px;
+  margin-left: -10px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+.video-result {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  text-align: center;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  backdrop-filter: blur(5px);
+}
+
+.video-result h3 {
+  margin-bottom: 15px;
+  color: #4a90e2;
+}
+
+.video-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.download-link {
+  padding: 8px 15px;
+  background-color: #4a90e2;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.download-link:hover {
+  background-color: #3a7cd0;
+}
+
+.bg-button {
+  padding: 8px 15px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.bg-button:hover {
+  background-color: #388E3C;
+}
+
+.note-section {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: rgba(255, 255, 0, 0.1);
+  border-left: 3px solid rgba(255, 255, 0, 0.5);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.note-section .note {
+  margin: 5px 0;
+}
+
+.note-section a {
+  color: #66c2ff;
+  text-decoration: none;
+}
+
+.note-section a:hover {
+  text-decoration: underline;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.url-input-section {
+  margin: 15px 0;
+}
+
+.url-item {
+  margin-bottom: 15px;
+}
+
+.url-item input {
+  width: 100%;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: white;
+}
+
+.url-item label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #e0e0e0;
+}
+
+/* 模式切换按钮样式 */
+.mode-switch {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: sticky;
+  top: 50px; /* 标题高度之后 */
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 10px 0;
+  z-index: 1;
+}
+
+.mode-button {
+  padding: 8px 16px;
+  margin: 0 10px;
+  border: 1px solid #ccc;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #e0e0e0;
+}
+
+.mode-button.active {
+  background-color: #4a90e2;
+  color: white;
+  border-color: #3a7fcf;
+}
+
+.mode-description {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #bbb;
+}
+
+/* 预览区域样式 */
+.preview-item {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.checkbox-section {
+  margin: 10px 0;
+  color: #e0e0e0;
+}
+
+.checkbox-section input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.warning {
+  color: #ff9800;
+  font-weight: bold;
+  background-color: rgba(255, 152, 0, 0.1);
+  padding: 5px;
+  border-radius: 3px;
+  margin: 10px 0;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .liveportrait-container {
+    max-height: 80vh;
+    -webkit-overflow-scrolling: touch; /* 平滑滚动在iOS上 */
+    padding: 15px 10px; /* 减小内边距在移动设备上 */
+  }
+  
+  .liveportrait-container::-webkit-scrollbar {
+    width: 5px; /* 在移动设备上使用更细的滚动条 */
+  }
+  
+  .mode-switch {
+    flex-direction: column;
+    align-items: center;
+    top: 45px;
+    padding: 5px 0;
+  }
+  
+  .mode-button {
+    margin: 5px 0;
+    width: 80%;
+  }
+
+  /* 确保按钮在移动设备上足够大，易于点击 */
+  .actions-section button {
+    min-height: 44px;
+    padding: 12px 15px;
+  }
+  
+  .api-key-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .api-key-section label {
+    margin-bottom: 5px;
+  }
+  
+  /* 调整粘性定位在移动设备上的表现 */
+  .liveportrait-container h2 {
+    padding: 8px 0;
+  }
+  
+  .video-result {
+    position: relative; /* 移动端不使用粘性定位，避免遮挡其他内容 */
+  }
+}
+
+/* 添加一些顺滑的滚动效果 */
+.liveportrait-container {
+  scroll-behavior: smooth;
+} 

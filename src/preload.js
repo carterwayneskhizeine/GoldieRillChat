@@ -136,10 +136,53 @@ const electronAPI = {
     basename: (p) => path.basename(p)
   },
 
-  // ... 其他现有的 API 函数 ...
+  // IPC通信
+  ipcRenderer: {
+    // 发送消息到主进程
+    send: (channel, data) => {
+      ipcRenderer.send(channel, data);
+    },
+    
+    // 监听从主进程发送的消息
+    on: (channel, callback) => {
+      ipcRenderer.on(channel, (event, ...args) => callback(event, ...args));
+    },
+    
+    // 移除特定通道的所有监听器
+    removeAllListeners: (channel) => {
+      ipcRenderer.removeAllListeners(channel);
+    },
+    
+    // 监听一次性消息
+    once: (channel, callback) => {
+      ipcRenderer.once(channel, (event, ...args) => callback(event, ...args));
+    }
+  }
 };
 
 // 将 API 暴露给渲染进程
 contextBridge.exposeInMainWorld('electron', electronAPI);
+
+// 处理来自渲染进程的请求，通过IPC发送到主进程
+ipcRenderer.on('dashscope-detect', (event, data) => {
+  // 转发到主进程
+  ipcRenderer.send('dashscope-detect', data);
+});
+
+ipcRenderer.on('dashscope-synthesis', (event, data) => {
+  // 转发到主进程
+  ipcRenderer.send('dashscope-synthesis', data);
+});
+
+ipcRenderer.on('dashscope-poll-task', (event, data) => {
+  // 转发到主进程
+  ipcRenderer.send('dashscope-poll-task', data);
+});
+
+// 添加VideoRetalk相关IPC处理
+ipcRenderer.on('dashscope-videoretalk', (event, data) => {
+  // 转发到主进程
+  ipcRenderer.send('dashscope-videoretalk', data);
+});
 
 // ... existing code ... 

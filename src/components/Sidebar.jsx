@@ -1007,6 +1007,52 @@ export default function Sidebar({
               </div>
             </div>
           )}
+
+          {activeTool === 'liveportrait' && (
+            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                {sidebarMode === 'chat' && (
+                  <ChatView
+                    messages={messages}
+                    currentConversation={currentConversation}
+                    editingMessage={editingMessage}
+                    setEditingMessage={setEditingMessage}
+                    messageInput={messageInput}
+                    setMessageInput={setMessageInput}
+                    selectedFiles={selectedFiles}
+                    setSelectedFiles={setSelectedFiles}
+                    sendMessage={sendMessage}
+                    deleteMessage={confirmDeleteMessage}
+                    updateMessage={updateMessageInApp}
+                    moveMessage={moveMessageInApp}
+                    enterEditMode={enterEditMode}
+                    exitEditMode={exitEditMode}
+                    collapsedMessages={collapsedMessages}
+                    setCollapsedMessages={setCollapsedMessages}
+                    isCompact={true}
+                    handleImageClick={handleImageClick}
+                    fileInputRef={fileInputRef}
+                    editingFileName={editingFileName}
+                    setEditingFileName={setEditingFileName}
+                    fileNameInput={fileNameInput}
+                    setFileNameInput={setFileNameInput}
+                    renameMessageFile={renameMessageFile}
+                    openFileLocation={openFileLocation}
+                    copyMessageContent={copyMessageContent}
+                    deletingMessageId={deletingMessageId}
+                    setDeletingMessageId={setDeletingMessageId}
+                    cancelDeleteMessage={cancelDeleteMessage}
+                    confirmDeleteMessage={confirmDeleteMessage}
+                    scrollToMessage={scrollToMessage}
+                    window={window}
+                    sendToMonaco={sendToMonaco}
+                    sendToEditor={sendToEditor}
+                    sidebarMode={sidebarMode}
+                  />
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className={`p-2 border-t border-base-content/10`}>
