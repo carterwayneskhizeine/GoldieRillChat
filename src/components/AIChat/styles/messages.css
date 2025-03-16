@@ -238,30 +238,31 @@
   }
 }
 
-/* 打字机效果 */
-.typing-effect {
-  font-family: monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
+/* 打字机效果容器样式 */
+.typing-effect-container {
+  position: relative;
+  width: 100%;
+}
+
+/* 区分生成中和完成后的样式 */
+.response-content .typing-effect {
+  font-size: 1rem;
   line-height: 1.2;
   color: var(--bc);
-  position: relative;
 }
 
-.typing-effect::after {
-  content: '▋';
-  display: inline-block;
-  animation: cursor-blink 0.8s step-end infinite;
-  margin-left: 2px;
-  color: var(--bc);
+.response-content .react-markdown {
+  animation: fadeIn 0.3s ease-out;
 }
 
-@keyframes cursor-blink {
-  from, to {
+@keyframes fadeIn {
+  from {
     opacity: 0;
+    transform: translateY(5px);
   }
-  50% {
+  to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -298,37 +299,6 @@
   margin-bottom: 0.75rem;
   color: var(--bc);
   opacity: 0.7;
-}
-
-@keyframes cursor-blink {
-  from, to {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-/* 区分生成中和完成后的样式 */
-.response-content .typing-effect {
-  font-size: 1rem;
-  line-height: 1.2;
-  color: var(--bc);
-}
-
-.response-content .react-markdown {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* 折叠按钮样式 */
@@ -503,4 +473,34 @@
 
 #ai-chat-messages-main.scrollbar-expanded {
   scrollbar-width: auto;
+}
+
+/* 推理过程的Markdown渲染容器 */
+.reasoning-markdown-container {
+  position: relative;
+  width: 100%;
+  font-family: monospace;
+  font-size: 0.9em;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 确保推理过程中的Markdown样式与主消息一致 */
+.reasoning-bubble .markdown-content {
+  font-family: monospace;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.reasoning-bubble .markdown-content pre {
+  margin: 0.3rem 0;
+  border-radius: 0.3rem;
+  background-color: var(--b1);
+}
+
+.reasoning-bubble .markdown-content code {
+  font-family: monospace;
+  font-size: 0.9em;
+  line-height: 1.4;
 } 

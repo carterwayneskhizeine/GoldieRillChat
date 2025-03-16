@@ -11,6 +11,7 @@ import { CODE_THEME_LIGHT, CODE_THEME_DARK, MESSAGE_STATES } from '../constants'
 import TextareaAutosize from 'react-textarea-autosize';
 import { ThumbUpIcon, ThumbDownIcon } from '../../shared/icons';
 import '../../../styles/message-editor.css'; // 导入消息编辑器样式
+import eventBus from '../../../components/ThreeBackground/utils/eventBus'; // 修正eventBus导入路径
 
 const SearchSources = ({ sources, openInBrowserTab }) => {
   const [showSources, setShowSources] = useState(false);
@@ -141,8 +142,30 @@ export const MessageItem = ({
   const [processedSearchImages, setProcessedSearchImages] = useState([]);
   const [copiedMessageId, setCopiedMessageId] = useState(null);
   
+  // 添加背景状态跟踪
+  const [currentBackground, setCurrentBackground] = useState(null);
+  const [currentVideoBackground, setCurrentVideoBackground] = useState(null);
+  
   // 获取消息内容的样式
   const contentStyle = getMessageContentStyle(isCollapsed);
+  
+  // 添加eventBus监听
+  useEffect(() => {
+    // 监听背景变化
+    const handleBackgroundChange = (data) => {
+      if (data.isVideo) {
+        setCurrentVideoBackground(data.path);
+      } else {
+        setCurrentBackground(data.path);
+      }
+    };
+    
+    eventBus.on('backgroundChange', handleBackgroundChange);
+    
+    return () => {
+      eventBus.off('backgroundChange', handleBackgroundChange);
+    };
+  }, []);
   
   // 检测并处理消息中的file://链接
   useEffect(() => {
@@ -679,7 +702,24 @@ export const MessageItem = ({
                               WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)'
                             } : {}}
                           >
-                            {message.reasoning_content}
+                            {message.reasoning_content && message.generating ? (
+                              <div className="reasoning-markdown-container">
+                                <MarkdownRenderer
+                                  content={message.reasoning_content || ''}
+                                  isCompact={true}
+                                  onCopyCode={(code) => {
+                                    console.log('Code copied:', code);
+                                    if (window.electron) {
+                                      window.electron.copyToClipboard(code);
+                                    } else {
+                                      navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
+                                    }
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              message.reasoning_content
+                            )}
                           </div>
                           <div className="flex justify-center mt-2">
                             <button 
@@ -858,8 +898,35 @@ export const MessageItem = ({
                       ) : (
                         <div className={message.type === 'assistant' && message.reasoning_content ? 'mt-4' : ''}>
                           {message.generating ? (
-                            <div className="typing-effect">
-                              {message.content}
+                            <div className="typing-effect-container">
+                              <MarkdownRenderer
+                                content={message.content || ''}
+                                isCompact={false}
+                                searchImages={processedSearchImages || (message.searchImages ? message.searchImages.map(img => {
+                                  // 处理本地图片路径
+                                  if ((img.url && img.url.startsWith('file://')) || (img.src && img.src.startsWith('file://'))) {
+                                    return {
+                                      ...img,
+                                      src: (img.src || img.url).replace('file://', 'local-file://'),
+                                      isLocal: true
+                                    };
+                                  }
+                                  return img;
+                                }) : [])}
+                                onCopyCode={(code) => {
+                                  console.log('Code copied:', code);
+                                  if (window.electron) {
+                                    window.electron.copyToClipboard(code);
+                                  } else {
+                                    navigator.clipboard.writeText(code).catch(err => console.error('复制失败:', err));
+                                  }
+                                }}
+                                onLinkClick={(href) => {
+                                  if (href.startsWith('http://') || href.startsWith('https://')) {
+                                    openInBrowserTab(href);
+                                  }
+                                }}
+                              />
                             </div>
                           ) : (
                             <>
@@ -944,6 +1011,60 @@ export const MessageItem = ({
                   </button>
                 )}
               </>
+            )}
+            {/* 添加BG按钮 - 只在图片消息下显示 */}
+            {message.files?.some(file => file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) && (
+              <button
+                className={`btn btn-xs ${
+                  currentBackground === message.files.find(file => 
+                    file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                  )?.path 
+                    ? 'btn-primary' 
+                    : 'btn-ghost'
+                }`}
+                onClick={() => {
+                  console.log('BG按钮点击，消息ID:', message.id);
+                  // 获取第一个图片文件
+                  const imageFile = message.files.find(file => 
+                    file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                  );
+                  
+                  if (imageFile) {
+                    // 使用 eventBus 切换背景
+                    eventBus.toggleBackground(imageFile.path);
+                  }
+                }}
+                title="设置/取消背景图片"
+              >
+                BG
+              </button>
+            )}
+            {/* 添加MBG按钮 - 只在视频消息下显示 */}
+            {message.files?.some(file => file.name && file.name.match(/\.mp4$/i)) && (
+              <button
+                className={`btn btn-xs ${
+                  currentVideoBackground === message.files.find(file => 
+                    file.name && file.name.match(/\.mp4$/i)
+                  )?.path 
+                    ? 'btn-primary' 
+                    : 'btn-ghost'
+                }`}
+                onClick={() => {
+                  console.log('MBG按钮点击，消息ID:', message.id);
+                  // 获取第一个视频文件
+                  const videoFile = message.files.find(file => 
+                    file.name && file.name.match(/\.mp4$/i)
+                  );
+                  
+                  if (videoFile) {
+                    // 使用 eventBus 切换视频背景
+                    eventBus.toggleBackground(videoFile.path, true);
+                  }
+                }}
+                title="设置/取消视频背景"
+              >
+                MBG
+              </button>
             )}
             {/* 添加文件按钮 */}
             {message.files?.length > 0 && (
