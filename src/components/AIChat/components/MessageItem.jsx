@@ -153,11 +153,7 @@ export const MessageItem = ({
   const [isTtsPlaying, setIsTtsPlaying] = useState(false);
   const [ttsSessionId, setTtsSessionId] = useState(null);
   const [audioElement, setAudioElement] = useState(null);
-  const [selectedVoice, setSelectedVoice] = useState('longxiaochun');
-  const [showVoiceSelector, setShowVoiceSelector] = useState(false);
-  const [availableVoices, setAvailableVoices] = useState([]);
   const [isPlayingLocked, setIsPlayingLocked] = useState(false); // 添加播放锁定状态
-  const voiceSelectorRef = useRef(null);
   const ttsIntervalRef = useRef(null);
   const audioQueueRef = useRef([]); // 添加音频队列引用
   const currentPlayingAudioRef = useRef(null); // 添加当前播放音频引用
@@ -186,23 +182,6 @@ export const MessageItem = ({
     return () => {
       eventBus.off('backgroundChange', handleBackgroundChange);
     };
-  }, []);
-  
-  // 加载可用的TTS音色
-  useEffect(() => {
-    const fetchVoices = async () => {
-      try {
-        const response = await fetch(`${TTS_SERVER_URL}/api/tts/voices`);
-        const data = await response.json();
-        if (data.status === 'success' && data.voices) {
-          setAvailableVoices(data.voices);
-        }
-      } catch (error) {
-        console.error('获取TTS音色失败:', error);
-      }
-    };
-    
-    fetchVoices();
   }, []);
   
   // 清理TTS相关资源
@@ -240,20 +219,6 @@ export const MessageItem = ({
       }
     };
   }, [ttsSessionId]);
-  
-  // 处理点击外部关闭音色选择器
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (voiceSelectorRef.current && !voiceSelectorRef.current.contains(event.target)) {
-        setShowVoiceSelector(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
   
   // 检测并处理消息中的file://链接
   useEffect(() => {
@@ -702,7 +667,7 @@ export const MessageItem = ({
     return null;
   };
 
-  // 监听消息生成，实现流式TTS播报
+  // 监听消息生成，实现流式TTS播放
   useEffect(() => {
     // 只处理正在生成的AI助手消息
     if (message.type === 'assistant' && message.generating && isStreamTtsEnabled) {
@@ -761,7 +726,7 @@ export const MessageItem = ({
     return () => {};
   }, [message.content, message.generating, isStreamTtsEnabled]);
   
-  // 实现流式TTS播报
+  // 实现流式TTS播放
   const streamTtsPlayback = async (text) => {
     if (!text || text.trim() === '') return;
     
@@ -990,7 +955,20 @@ export const MessageItem = ({
   
   // 创建TTS会话
   const createTtsSession = async () => {
-    console.log('开始创建TTS会话，选择的音色:', selectedVoice);
+    // 检查是否使用自定义Voice ID
+    let ttsVoice;
+    if (localStorage.getItem('aichat_use_custom_voice') === 'true') {
+      // 使用自定义Voice ID
+      const customVoiceId = localStorage.getItem('aichat_custom_voice_id');
+      ttsVoice = customVoiceId && customVoiceId.trim() !== '' ? 
+                 customVoiceId : 
+                 (localStorage.getItem('aichat_tts_voice') || 'longxiaochun');
+    } else {
+      // 使用预设音色
+      ttsVoice = localStorage.getItem('aichat_tts_voice') || 'longxiaochun';
+    }
+    
+    console.log('开始创建TTS会话，选择的音色:', ttsVoice);
     
     try {
       // 发起新的TTS会话
@@ -1000,7 +978,7 @@ export const MessageItem = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          voice: selectedVoice,
+          voice: ttsVoice,
           format: 'pcm'  // 使用pcm格式，而不是mp3
         }),
       });
@@ -1254,7 +1232,7 @@ export const MessageItem = ({
     // 设置定时获取音频数据
     let hasReceivedAudio = false;
     let pollCount = 0;
-    const MAX_POLLS = 60; // 最多轮询30秒（60次，每次500ms）
+    const MAX_POLLS = 15; // 最多轮询7.5秒（15次，每次500ms）
     
     ttsIntervalRef.current = setInterval(async () => {
       try {
@@ -1358,12 +1336,6 @@ export const MessageItem = ({
     }
   };
   
-  // 处理音色选择
-  const handleVoiceSelect = (voiceId) => {
-    setSelectedVoice(voiceId);
-    setShowVoiceSelector(false);
-  };
-
   // 播放音频函数 - 处理队列
   const playNextAudio = () => {
     // 如果有正在播放的音频，先停止
@@ -1884,9 +1856,10 @@ export const MessageItem = ({
                 {message.type === 'assistant' && !message.files?.length && (
                   <div className="relative inline-block">
                     <button
-                      className={`btn btn-xs ${isTtsPlaying ? 'btn-primary' : 'btn-ghost'}`}
+                      className="btn btn-ghost btn-xs"
                       onClick={handleTtsPlayback}
-                      title={isTtsPlaying ? "停止语音播放" : message.generating ? "实时语音播报" : "播放语音"}
+                      title={isTtsPlaying ? '停止语音播放' : '朗读文本'}
+                      disabled={isPlayingLocked}
                     >
                       {isTtsPlaying ? (
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1899,42 +1872,6 @@ export const MessageItem = ({
                         </svg>
                       )}
                     </button>
-                    
-                    {/* 音色选择按钮 */}
-                    <button
-                      className="btn btn-ghost btn-xs ml-1"
-                      onClick={() => setShowVoiceSelector(!showVoiceSelector)}
-                      title="选择语音音色"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    
-                    {/* 音色选择菜单 */}
-                    {showVoiceSelector && (
-                      <div
-                        ref={voiceSelectorRef}
-                        className="absolute mt-1 bg-base-100 rounded-lg shadow-lg border border-base-300 p-2 z-50"
-                        style={{ minWidth: '200px', right: 0 }}
-                      >
-                        <div className="font-bold text-sm mb-2">选择音色</div>
-                        <div className="max-h-60 overflow-y-auto">
-                          {availableVoices.map((voice) => (
-                            <div
-                              key={voice.id}
-                              className={`p-2 hover:bg-base-200 cursor-pointer rounded ${
-                                voice.id === selectedVoice ? 'bg-primary bg-opacity-20' : ''
-                              }`}
-                              onClick={() => handleVoiceSelect(voice.id)}
-                            >
-                              <div className="text-sm font-medium">{voice.name}</div>
-                              <div className="text-xs text-base-content/70">{voice.language}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </>

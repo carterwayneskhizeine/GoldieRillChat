@@ -34,11 +34,49 @@ export const SettingsModal = ({
   deleteTemplate,
   resetTemplates
 }) => {
+  const [, setForceUpdateState] = useState({});
+  const forceUpdate = () => setForceUpdateState({});
+  
   // 确保 selectedProvider 是有效的
   const currentProvider = MODEL_PROVIDERS[selectedProvider] || MODEL_PROVIDERS.openai;
 
   // 添加 tabs 状态
   const [activeTab, setActiveTab] = useState('provider');
+  
+  // 添加语音合成相关状态
+  const [selectedTtsVoice, setSelectedTtsVoice] = useState(() => {
+    return localStorage.getItem('aichat_tts_voice') || 'longxiaochun';
+  });
+  
+  // 预设音色列表
+  const TTS_VOICES = [
+    { id: "longwan", name: "龙婉", language: "中文普通话" },
+    { id: "longcheng", name: "龙橙", language: "中文普通话" },
+    { id: "longhua", name: "龙华", language: "中文普通话" },
+    { id: "longxiaochun", name: "龙小淳", language: "中文+英文" },
+    { id: "longxiaoxia", name: "龙小夏", language: "中文" },
+    { id: "longxiaocheng", name: "龙小诚", language: "中文+英文" },
+    { id: "longxiaobai", name: "龙小白", language: "中文" },
+    { id: "longlaotie", name: "龙老铁", language: "中文东北口音" },
+    { id: "longshu", name: "龙书", language: "中文" },
+    { id: "longshuo", name: "龙硕", language: "中文" },
+    { id: "longjing", name: "龙婧", language: "中文" },
+    { id: "longmiao", name: "龙妙", language: "中文" },
+    { id: "longyue", name: "龙悦", language: "中文" },
+    { id: "longyuan", name: "龙媛", language: "中文" },
+    { id: "longfei", name: "龙飞", language: "中文" },
+    { id: "longjielidou", name: "龙杰力豆", language: "中文+英文" },
+    { id: "longtong", name: "龙彤", language: "中文" },
+    { id: "longxiang", name: "龙祥", language: "中文" },
+    { id: "loongstella", name: "Stella", language: "中文+英文" },
+    { id: "loongbella", name: "Bella", language: "中文" }
+  ];
+  
+  // 处理TTS音色变更
+  const handleTtsVoiceChange = (voiceId) => {
+    setSelectedTtsVoice(voiceId);
+    localStorage.setItem('aichat_tts_voice', voiceId);
+  };
   
   // 添加翻译 API 设置相关状态
   const [translationApiKey, setTranslationApiKey] = useState(() => {
@@ -650,6 +688,14 @@ export const SettingsModal = ({
     localStorage.setItem('aichat_tavily_days', value.toString());
   };
 
+  // 添加自定义Voice ID的状态
+  const [customVoiceId, setCustomVoiceId] = useState(() => 
+    localStorage.getItem('aichat_custom_voice_id') || ''
+  );
+  const [useCustomVoice, setUseCustomVoice] = useState(() => 
+    localStorage.getItem('aichat_use_custom_voice') === 'true'
+  );
+
   return (
     <div className="fixed inset-0 settings-modal-backdrop flex items-center justify-center z-50">
       <div className="settings-panel rounded-lg w-[650px] max-h-[80vh] overflow-y-auto">
@@ -692,6 +738,12 @@ export const SettingsModal = ({
               onClick={() => setActiveTab('search')}
             >
               Search
+            </a>
+            <a 
+              className={`tab ${activeTab === 'interactive' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('interactive')}
+            >
+              Interactive
             </a>
           </div>
           
@@ -1746,6 +1798,69 @@ export const SettingsModal = ({
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Tab 5: 交互设置 */}
+          <div className={activeTab === 'interactive' ? '' : 'hidden'}>
+            <div className="space-y-4 p-4">
+              <h3 className="text-xl font-bold">语音合成设置</h3>
+              
+              {/* 音色选择 */}
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-medium">TTS音色</span>
+                  <span className="label-text-alt opacity-60">选择语音合成音色</span>
+                </label>
+                <select 
+                  className="select select-bordered w-full" 
+                  value={selectedTtsVoice}
+                  onChange={(e) => handleTtsVoiceChange(e.target.value)}
+                >
+                  {TTS_VOICES.map(voice => (
+                    <option key={voice.id} value={voice.id}>
+                      {voice.name} ({voice.language})
+                    </option>
+                  ))}
+                </select>
+                <label className="label">
+                  <span className="label-text-alt opacity-60">选择语音合成使用的音色，适用于消息播放和流式TTS</span>
+                </label>
+              </div>
+              
+              {/* 添加自定义Voice ID设置 */}
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-medium">自定义Voice ID</span>
+                  <span className="label-text-alt opacity-60">自定义语音合成音色ID</span>
+                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <input 
+                    type="checkbox" 
+                    className="toggle toggle-primary" 
+                    checked={useCustomVoice}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setUseCustomVoice(checked);
+                      localStorage.setItem('aichat_use_custom_voice', checked ? 'true' : 'false');
+                    }}
+                  />
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="例如: cosyvoice-goldie02-21b5100d79a34f9c9a1f3798ac75ad3a" 
+                  className="input input-bordered w-full" 
+                  value={customVoiceId}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setCustomVoiceId(value);
+                    localStorage.setItem('aichat_custom_voice_id', value);
+                  }}
+                />
+                <label className="label">
+                  <span className="label-text-alt">勾选后将使用此ID，而非下拉菜单中的音色</span>
+                </label>
               </div>
             </div>
           </div>
