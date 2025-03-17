@@ -42,11 +42,6 @@ stop_thread = threading.Event()
 tts_sessions = {}  # 存储会话ID -> TTS合成器的映射
 tts_callbacks = {}  # 存储会话ID -> 回调对象的映射
 
-# 默认音频输出目录
-TTS_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'audio_output')
-if not os.path.exists(TTS_OUTPUT_DIR):
-    os.makedirs(TTS_OUTPUT_DIR)
-
 # 音频设置
 CHUNK = 3200       # 每次读取的帧数
 FORMAT = pyaudio.paInt16  # 16位整型
@@ -119,30 +114,6 @@ def get_user_storage_path():
     logger.info(f'使用默认存储路径: {TTS_OUTPUT_DIR}')
     return TTS_OUTPUT_DIR
 
-# 清理旧的音频文件
-def cleanup_audio_files():
-    """清理旧的音频文件"""
-    try:
-        # 获取存储目录
-        audio_dir = get_user_storage_path()
-        # 查找所有mp3和wav文件
-        audio_files = glob.glob(os.path.join(audio_dir, '*.mp3')) + glob.glob(os.path.join(audio_dir, '*.wav'))
-        
-        # 删除文件
-        for file_path in audio_files:
-            try:
-                os.remove(file_path)
-                logger.info(f'已删除旧音频文件: {file_path}')
-            except Exception as e:
-                logger.error(f'删除文件 {file_path} 失败: {e}')
-        
-        logger.info(f'共清理 {len(audio_files)} 个音频文件')
-    except Exception as e:
-        logger.error(f'清理音频文件失败: {e}')
-
-# 启动时清理旧的音频文件
-cleanup_audio_files()
-
 # 语音识别回调类
 class ParaformerCallback(RecognitionCallback):
     def __init__(self, session_id):
@@ -210,11 +181,20 @@ class ParaformerCallback(RecognitionCallback):
 # 添加TTS回调类
 class TtsCallback(ResultCallback):
     def __init__(self, session_id):
+        super().__init__()  # 调用父类初始化
         self.session_id = session_id
-        self.audio_frames = []
+        self._player = None
+        self._stream = None
+        self.is_ready = False
+        self.is_initialized = False
+        self.voice = 'longxiaochun'  # 默认音色
+        # 不在构造函数中初始化音频设备，避免冲突
         
     def on_open(self):
         logger.info(f'TTS会话已打开: {self.session_id}')
+        # WebSocket连接已建立
+        self.is_initialized = True
+        logger.info(f'TTS WebSocket连接已建立: {self.session_id}')
         
     def on_complete(self):
         logger.info(f'TTS会话已完成: {self.session_id}')
@@ -224,13 +204,56 @@ class TtsCallback(ResultCallback):
         
     def on_close(self):
         logger.info(f'TTS会话已关闭: {self.session_id}')
+        # 关闭音频流和播放器
+        if self._stream:
+            try:
+                self._stream.stop_stream()
+                self._stream.close()
+                self._stream = None
+                logger.info(f'已关闭音频流: {self.session_id}')
+            except Exception as e:
+                logger.error(f'关闭音频流时出错: {e}')
+        
+        if self._player:
+            try:
+                self._player.terminate()
+                self._player = None
+                logger.info(f'已终止音频播放器: {self.session_id}')
+            except Exception as e:
+                logger.error(f'终止音频播放器时出错: {e}')
+        
+        self.is_ready = False
+        self.is_initialized = False
         
     def on_event(self, event):
         logger.debug(f'收到TTS事件: {event}')
         
     def on_data(self, data: bytes):
+        # 延迟初始化音频设备，直到收到第一个音频数据
+        if not self._player or not self._stream:
+            try:
+                logger.info(f'收到音频数据，初始化播放设备: {self.session_id}')
+                self._player = pyaudio.PyAudio()
+                self._stream = self._player.open(
+                    format=pyaudio.paInt16,
+                    channels=1,
+                    rate=22050,
+                    output=True
+                )
+                self.is_ready = True
+                logger.info(f'音频设备初始化成功: {self.session_id}')
+            except Exception as e:
+                logger.error(f'初始化音频播放器失败: {e}')
+                return
+        
+        # 播放音频数据
         logger.debug(f'收到音频数据: {len(data)} 字节')
-        self.audio_frames.append(data)
+        if self._stream and self.is_ready:
+            try:
+                self._stream.write(data)
+                logger.debug(f'已播放 {len(data)} 字节音频')
+            except Exception as e:
+                logger.error(f'播放音频数据时出错: {e}')
 
 # 音频处理线程函数 - 直接从麦克风读取数据
 def audio_processing():
@@ -424,7 +447,6 @@ def start_tts():
     try:
         data = request.get_json(silent=True) or {}
         voice = data.get('voice', 'longxiaochun')  # 默认音色
-        format_str = data.get('format', 'pcm')  # 默认格式
         
         # 生成会话ID
         session_id = str(uuid.uuid4())
@@ -434,36 +456,36 @@ def start_tts():
         
         # 创建回调实例
         callback = TtsCallback(session_id)
+        # 保存音色信息便于会话重建
+        callback.voice = voice
         
-        # 根据format_str选择合适的枚举值
-        if format_str == 'mp3':
-            audio_format = AudioFormat.MP3_22050HZ_MONO_256KBPS
-        elif format_str == 'wav':
-            audio_format = AudioFormat.WAV_22050HZ_MONO_16BIT
-        else:  # 默认为PCM格式
-            audio_format = AudioFormat.PCM_22050HZ_MONO_16BIT
-            
-        logger.info(f'创建TTS合成器: 音色={voice}, 格式={format_str}, 实际格式枚举={audio_format}')
+        logger.info(f'创建TTS合成器: 音色={voice}')
         
         # 创建TTS合成器
-        synthesizer = SpeechSynthesizer(
-            model="cosyvoice-v1",
-            voice=voice,
-            format=audio_format,
-            callback=callback
-        )
-        
-        # 存储会话
-        tts_sessions[session_id] = synthesizer
-        tts_callbacks[session_id] = callback
-        
-        logger.info(f'已创建TTS会话: {session_id}, 音色: {voice}')
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'TTS会话已创建',
-            'session_id': session_id
-        })
+        try:
+            synthesizer = SpeechSynthesizer(
+                model="cosyvoice-v1",
+                voice=voice,
+                format=AudioFormat.PCM_22050HZ_MONO_16BIT,
+                callback=callback
+            )
+            
+            # 存储会话
+            tts_sessions[session_id] = synthesizer
+            tts_callbacks[session_id] = callback
+            
+            # 不等待WebSocket连接建立，立即返回
+            # 我们在合成时会处理连接状态
+            logger.info(f'已创建TTS会话: {session_id}, 音色: {voice}')
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'TTS会话已创建',
+                'session_id': session_id
+            })
+        except Exception as inner_e:
+            logger.error(f'创建TTS合成器时出错: {inner_e}', exc_info=True)
+            return jsonify({'status': 'error', 'message': f'创建合成器失败: {str(inner_e)}'}), 500
     except Exception as e:
         logger.error(f'创建TTS会话失败: {e}', exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -480,131 +502,104 @@ def synthesize_text():
             return jsonify({'status': 'error', 'message': '会话ID不能为空'}), 400
             
         if session_id not in tts_sessions:
-            return jsonify({'status': 'error', 'message': '会话不存在'}), 404
+            logger.warning(f'尝试在不存在的会话 {session_id} 上合成文本')
+            return jsonify({'status': 'error', 'message': '会话不存在或已关闭'}), 404
             
         if not text and not is_complete:
             return jsonify({'status': 'error', 'message': '文本不能为空'}), 400
         
         synthesizer = tts_sessions[session_id]
+        callback = tts_callbacks.get(session_id)
         
-        if text:
-            # 发送文本进行合成
-            logger.info(f'发送文本到TTS: {text[:30]}{"..." if len(text) > 30 else ""}')
-            synthesizer.streaming_call(text)
+        # 记录会话状态以进行调试
+        logger.debug(f'合成前会话状态: 会话ID={session_id}, 合成器存在={synthesizer is not None}, 回调存在={callback is not None}, WebSocket连接状态={callback.is_initialized if callback else "无回调"}')
         
-        if is_complete:
-            # 完成流式合成
-            logger.info(f'完成TTS会话: {session_id}')
-            synthesizer.streaming_complete()
+        # 简化的连接检查 - 等待短暂时间让WebSocket连接建立
+        time.sleep(0.1)
+        
+        try:
+            if text:
+                # 发送文本进行合成
+                logger.info(f'发送文本到TTS: {text[:30]}{"..." if len(text) > 30 else ""}')
+                synthesizer.streaming_call(text)
+                logger.debug(f'已调用streaming_call, 文本长度: {len(text)}')
             
-        return jsonify({
-            'status': 'success',
-            'message': '已发送文本进行合成' if text else '已完成合成'
-        })
+            if is_complete:
+                # 完成流式合成
+                logger.info(f'完成TTS会话: {session_id}')
+                synthesizer.streaming_complete()
+                logger.debug('已调用streaming_complete')
+                
+            return jsonify({
+                'status': 'success',
+                'message': '已发送文本进行合成并直接播放' if text else '已完成合成'
+            })
+        except Exception as inner_e:
+            logger.error(f'合成过程中出错: {inner_e}', exc_info=True)
+            
+            # 检查是否是WebSocket尚未准备好的错误
+            if 'speech synthesizer has not been started' in str(inner_e):
+                logger.warning('检测到WebSocket尚未启动的错误，尝试重建会话')
+                
+                # 尝试重新创建会话
+                try:
+                    logger.info(f'尝试重新创建TTS会话: {session_id}')
+                    
+                    # 获取会话参数 - 尝试从原有回调中获取音色
+                    voice = 'longxiaochun'  # 默认音色
+                    if session_id in tts_callbacks and hasattr(tts_callbacks[session_id], 'voice'):
+                        voice = tts_callbacks[session_id].voice
+                    
+                    # 先清理可能的旧会话
+                    if session_id in tts_callbacks:
+                        old_callback = tts_callbacks[session_id]
+                        if hasattr(old_callback, 'on_close'):
+                            try:
+                                old_callback.on_close()
+                            except:
+                                pass
+                    
+                    # 创建新的回调实例
+                    new_callback = TtsCallback(session_id)
+                    new_callback.voice = voice
+                    
+                    # 创建新的合成器
+                    new_synthesizer = SpeechSynthesizer(
+                        model="cosyvoice-v1",
+                        voice=voice,
+                        format=AudioFormat.PCM_22050HZ_MONO_16BIT,
+                        callback=new_callback
+                    )
+                    
+                    # 等待WebSocket连接建立
+                    logger.info(f'等待新的WebSocket连接建立: {session_id}')
+                    time.sleep(0.5)
+                    
+                    # 保存新的会话
+                    tts_sessions[session_id] = new_synthesizer
+                    tts_callbacks[session_id] = new_callback
+                    
+                    # 直接尝试发送文本，不检查WebSocket状态
+                    if text:
+                        logger.info(f'重新发送文本到TTS: {text[:30]}{"..." if len(text) > 30 else ""}')
+                        new_synthesizer.streaming_call(text)
+                    
+                    if is_complete:
+                        logger.info(f'重新完成TTS会话: {session_id}')
+                        new_synthesizer.streaming_complete()
+                    
+                    return jsonify({
+                        'status': 'success',
+                        'message': '会话已重建并发送文本进行合成'
+                    })
+                except Exception as retry_e:
+                    logger.error(f'重建会话失败: {retry_e}', exc_info=True)
+                    return jsonify({'status': 'error', 'message': f'合成失败且重建会话失败: {str(retry_e)}'}), 500
+            else:
+                return jsonify({'status': 'error', 'message': f'合成失败: {str(inner_e)}'}), 500
     except Exception as e:
         logger.error(f'合成文本失败: {e}', exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/tts/audio/<session_id>', methods=['GET'])
-def get_tts_audio(session_id):
-    try:
-        if session_id not in tts_callbacks:
-            return jsonify({'status': 'error', 'message': '会话不存在'}), 404
-            
-        callback = tts_callbacks[session_id]
-        
-        # 检查是否有新的音频帧
-        if not callback.audio_frames:
-            return jsonify({'status': 'success', 'message': '暂无音频数据'})
-        
-        # 获取并清空音频帧
-        audio_data = b''.join(callback.audio_frames)
-        callback.audio_frames = []
-        
-        # 获取用户选择的存储目录
-        audio_dir = get_user_storage_path()
-        
-        # 保存为WAV格式以便浏览器直接播放
-        # 添加WAV头部
-        wav_header = generate_wav_header(len(audio_data), 22050, 1, 16)
-        wav_data = wav_header + audio_data
-        
-        # 保存音频文件
-        filename = f"{session_id}_{int(time.time())}.wav"
-        output_path = os.path.join(audio_dir, filename)
-        
-        with open(output_path, 'wb') as f:
-            f.write(wav_data)
-        
-        logger.info(f'已保存音频文件: {output_path}')
-        
-        # 返回相对URL路径
-        relative_path = f"/audio_output/{filename}"
-        
-        return jsonify({
-            'status': 'success',
-            'message': '获取音频成功',
-            'file_path': output_path,
-            'file_url': relative_path
-        })
-    except Exception as e:
-        logger.error(f'获取音频失败: {e}', exc_info=True)
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-# 添加额外的接口，提供音频文件
-@app.route('/audio_output/<filename>', methods=['GET'])
-def serve_audio_file(filename):
-    try:
-        audio_dir = get_user_storage_path()
-        file_path = os.path.join(audio_dir, filename)
-        
-        if not os.path.exists(file_path):
-            return jsonify({'status': 'error', 'message': '文件不存在'}), 404
-            
-        # 发送文件
-        return send_file(file_path, mimetype='audio/wav')
-    except Exception as e:
-        logger.error(f'提供音频文件失败: {e}', exc_info=True)
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-# 创建WAV头部函数
-def generate_wav_header(data_length, sample_rate=22050, num_channels=1, bits_per_sample=16):
-    """
-    生成WAV头部
-    
-    参数:
-        data_length: PCM数据长度（字节）
-        sample_rate: 采样率，默认22050Hz
-        num_channels: 通道数，默认1（单声道）
-        bits_per_sample: 每样本位数，默认16位
-    
-    返回:
-        wav_header: WAV头部字节
-    """
-    byte_rate = sample_rate * num_channels * bits_per_sample // 8
-    block_align = num_channels * bits_per_sample // 8
-    
-    header = bytearray()
-    # RIFF头
-    header.extend(b'RIFF')
-    header.extend((data_length + 36).to_bytes(4, 'little'))  # 文件大小（数据大小+36）
-    header.extend(b'WAVE')
-    
-    # fmt子块
-    header.extend(b'fmt ')
-    header.extend((16).to_bytes(4, 'little'))  # fmt块大小
-    header.extend((1).to_bytes(2, 'little'))  # 音频格式，1表示PCM
-    header.extend(num_channels.to_bytes(2, 'little'))  # 通道数
-    header.extend(sample_rate.to_bytes(4, 'little'))  # 采样率
-    header.extend(byte_rate.to_bytes(4, 'little'))  # 字节率
-    header.extend(block_align.to_bytes(2, 'little'))  # 块对齐
-    header.extend(bits_per_sample.to_bytes(2, 'little'))  # 每样本位数
-    
-    # data子块
-    header.extend(b'data')
-    header.extend(data_length.to_bytes(4, 'little'))  # 数据大小
-    
-    return header
 
 @app.route('/api/tts/stop', methods=['POST'])
 def stop_tts():
@@ -613,21 +608,76 @@ def stop_tts():
         session_id = data.get('session_id')
         
         if not session_id:
+            logger.warning('停止TTS请求没有提供会话ID')
             return jsonify({'status': 'error', 'message': '会话ID不能为空'}), 400
             
-        if session_id in tts_sessions:
-            # 清理会话
-            del tts_sessions[session_id]
-            
+        logger.info(f'准备停止TTS会话: {session_id}')
+        success = False
+        
+        # 关闭回调中的音频流
         if session_id in tts_callbacks:
-            # 清理回调
-            del tts_callbacks[session_id]
+            callback = tts_callbacks[session_id]
+            logger.info(f'找到会话 {session_id} 的回调对象')
             
-        logger.info(f'已停止并清理TTS会话: {session_id}')
+            if hasattr(callback, '_stream') and callback._stream:
+                try:
+                    callback._stream.stop_stream()
+                    callback._stream.close()
+                    logger.info(f'已关闭音频流: {session_id}')
+                    success = True
+                except Exception as e:
+                    logger.error(f'关闭音频流时出错: {e}')
+                    
+            if hasattr(callback, '_player') and callback._player:
+                try:
+                    callback._player.terminate()
+                    logger.info(f'已终止音频播放器: {session_id}')
+                    success = True
+                except Exception as e:
+                    logger.error(f'终止音频播放器时出错: {e}')
+        else:
+            logger.warning(f'未找到会话 {session_id} 的回调对象')
+            
+        # 关闭合成器会话
+        if session_id in tts_sessions:
+            try:
+                synthesizer = tts_sessions[session_id]
+                logger.info(f'找到会话 {session_id} 的合成器对象')
+                
+                # 尝试结束流式合成
+                try:
+                    synthesizer.streaming_complete()
+                    logger.info(f'已完成会话 {session_id} 的流式合成')
+                    success = True
+                except Exception as e:
+                    logger.error(f'完成流式合成时出错: {e}')
+                
+                # 删除会话
+                del tts_sessions[session_id]
+                logger.info(f'已删除合成器会话: {session_id}')
+                success = True
+            except Exception as e:
+                logger.error(f'关闭合成器会话时出错: {e}')
+        else:
+            logger.warning(f'未找到会话 {session_id} 的合成器对象')
+            
+        # 清理回调对象
+        if session_id in tts_callbacks:
+            try:
+                del tts_callbacks[session_id]
+                logger.info(f'已删除回调对象: {session_id}')
+                success = True
+            except Exception as e:
+                logger.error(f'删除回调对象时出错: {e}')
+                
+        # 额外检查会话资源是否已被清理
+        is_session_cleared = session_id not in tts_sessions and session_id not in tts_callbacks
+        
+        logger.info(f'TTS会话 {session_id} 清理操作完成，结果: 成功={success}, 资源已清理={is_session_cleared}')
         
         return jsonify({
-            'status': 'success',
-            'message': 'TTS会话已停止'
+            'status': 'success' if success or is_session_cleared else 'warning',
+            'message': '已停止并清理TTS会话' if success else '会话可能不存在，但已尝试清理'
         })
     except Exception as e:
         logger.error(f'停止TTS会话失败: {e}', exc_info=True)
@@ -677,7 +727,6 @@ def home():
             '/api/speech/results',
             '/api/tts/start',
             '/api/tts/synthesize',
-            '/api/tts/audio',
             '/api/tts/stop',
             '/api/tts/voices'
         ]
