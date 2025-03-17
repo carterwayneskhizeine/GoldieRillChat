@@ -1838,7 +1838,7 @@ export const SettingsModal = ({
                 <div className="flex gap-2 items-center">
                   <input 
                     type="text" 
-                    placeholder="例如: cosyvoice-goldie02-21b5100d79a34f9c9a1f3798ac75ad3a" 
+                    placeholder="例如: cosyvoice-goldie03-a24341348c6a4f54a830e789b4030d2b" 
                     className="input input-bordered flex-grow" 
                     value={customVoiceId}
                     onChange={(e) => {
