@@ -1810,7 +1810,7 @@ export const SettingsModal = ({
               {/* 音色选择 */}
               <div className="form-control w-full">
                 <label className="label">
-                  <span className="label-text font-medium">TTS音色</span>
+                  <span className="label-text font-medium">TTS 音色</span>
                   <span className="label-text-alt opacity-60">选择语音合成音色</span>
                 </label>
                 <select 
@@ -1832,10 +1832,21 @@ export const SettingsModal = ({
               {/* 添加自定义Voice ID设置 */}
               <div className="form-control w-full">
                 <label className="label">
-                  <span className="label-text font-medium">自定义Voice ID</span>
+                  <span className="label-text font-medium">自定义 Voice ID</span>
                   <span className="label-text-alt opacity-60">自定义语音合成音色ID</span>
                 </label>
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex gap-2 items-center">
+                  <input 
+                    type="text" 
+                    placeholder="例如: cosyvoice-goldie02-21b5100d79a34f9c9a1f3798ac75ad3a" 
+                    className="input input-bordered flex-grow" 
+                    value={customVoiceId}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCustomVoiceId(value);
+                      localStorage.setItem('aichat_custom_voice_id', value);
+                    }}
+                  />
                   <input 
                     type="checkbox" 
                     className="toggle toggle-primary" 
@@ -1847,17 +1858,6 @@ export const SettingsModal = ({
                     }}
                   />
                 </div>
-                <input 
-                  type="text" 
-                  placeholder="例如: cosyvoice-goldie02-21b5100d79a34f9c9a1f3798ac75ad3a" 
-                  className="input input-bordered w-full" 
-                  value={customVoiceId}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setCustomVoiceId(value);
-                    localStorage.setItem('aichat_custom_voice_id', value);
-                  }}
-                />
                 <label className="label">
                   <span className="label-text-alt">勾选后将使用此ID，而非下拉菜单中的音色</span>
                 </label>
