@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response, send_file
 from flask_cors import CORS
 import os
 import sys
@@ -9,6 +9,11 @@ import queue
 import dashscope
 import pyaudio
 from dashscope.audio.asr import *
+from dashscope.audio.tts_v2 import SpeechSynthesizer, AudioFormat, ResultCallback
+import uuid
+import json
+import io
+import glob
 
 # 配置日志
 logging.basicConfig(
@@ -32,6 +37,15 @@ is_recording = False
 current_session_id = None
 processing_thread = None
 stop_thread = threading.Event()
+
+# 添加TTS相关的全局变量
+tts_sessions = {}  # 存储会话ID -> TTS合成器的映射
+tts_callbacks = {}  # 存储会话ID -> 回调对象的映射
+
+# 默认音频输出目录
+TTS_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'audio_output')
+if not os.path.exists(TTS_OUTPUT_DIR):
+    os.makedirs(TTS_OUTPUT_DIR)
 
 # 音频设置
 CHUNK = 3200       # 每次读取的帧数
@@ -81,6 +95,53 @@ def init_dashscope_api_key():
     dashscope.api_key = '<your-dashscope-api-key>'
     logger.warning('使用默认API密钥，请替换为您自己的API密钥')
     return False
+
+# 获取用户选择的存储目录
+def get_user_storage_path():
+    """获取用户在设置中选择的存储路径"""
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), 'user_config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                if 'storagePath' in config and config['storagePath']:
+                    # 确保路径存在
+                    storage_path = config['storagePath']
+                    audio_path = os.path.join(storage_path, 'audio_output')
+                    if not os.path.exists(audio_path):
+                        os.makedirs(audio_path)
+                    logger.info(f'使用用户存储路径: {audio_path}')
+                    return audio_path
+    except Exception as e:
+        logger.error(f'获取用户存储路径失败: {e}')
+    
+    # 如果没有用户设置的路径或出错，返回默认路径
+    logger.info(f'使用默认存储路径: {TTS_OUTPUT_DIR}')
+    return TTS_OUTPUT_DIR
+
+# 清理旧的音频文件
+def cleanup_audio_files():
+    """清理旧的音频文件"""
+    try:
+        # 获取存储目录
+        audio_dir = get_user_storage_path()
+        # 查找所有mp3和wav文件
+        audio_files = glob.glob(os.path.join(audio_dir, '*.mp3')) + glob.glob(os.path.join(audio_dir, '*.wav'))
+        
+        # 删除文件
+        for file_path in audio_files:
+            try:
+                os.remove(file_path)
+                logger.info(f'已删除旧音频文件: {file_path}')
+            except Exception as e:
+                logger.error(f'删除文件 {file_path} 失败: {e}')
+        
+        logger.info(f'共清理 {len(audio_files)} 个音频文件')
+    except Exception as e:
+        logger.error(f'清理音频文件失败: {e}')
+
+# 启动时清理旧的音频文件
+cleanup_audio_files()
 
 # 语音识别回调类
 class ParaformerCallback(RecognitionCallback):
@@ -145,6 +206,31 @@ class ParaformerCallback(RecognitionCallback):
                 logger.warning(f'识别事件中没有文本内容: {sentence}')
         except Exception as e:
             logger.error(f'处理识别事件时出错: {e}', exc_info=True)
+
+# 添加TTS回调类
+class TtsCallback(ResultCallback):
+    def __init__(self, session_id):
+        self.session_id = session_id
+        self.audio_frames = []
+        
+    def on_open(self):
+        logger.info(f'TTS会话已打开: {self.session_id}')
+        
+    def on_complete(self):
+        logger.info(f'TTS会话已完成: {self.session_id}')
+        
+    def on_error(self, error):
+        logger.error(f'TTS错误: {error}')
+        
+    def on_close(self):
+        logger.info(f'TTS会话已关闭: {self.session_id}')
+        
+    def on_event(self, event):
+        logger.debug(f'收到TTS事件: {event}')
+        
+    def on_data(self, data: bytes):
+        logger.debug(f'收到音频数据: {len(data)} 字节')
+        self.audio_frames.append(data)
 
 # 音频处理线程函数 - 直接从麦克风读取数据
 def audio_processing():
@@ -332,6 +418,241 @@ def get_results():
         logger.error(f'获取识别结果失败: {e}')
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+# 添加TTS相关的API端点
+@app.route('/api/tts/start', methods=['POST'])
+def start_tts():
+    try:
+        data = request.get_json(silent=True) or {}
+        voice = data.get('voice', 'longxiaochun')  # 默认音色
+        format_str = data.get('format', 'pcm')  # 默认格式
+        
+        # 生成会话ID
+        session_id = str(uuid.uuid4())
+        
+        # 初始化DashScope API密钥
+        init_dashscope_api_key()
+        
+        # 创建回调实例
+        callback = TtsCallback(session_id)
+        
+        # 根据format_str选择合适的枚举值
+        if format_str == 'mp3':
+            audio_format = AudioFormat.MP3_22050HZ_MONO_256KBPS
+        elif format_str == 'wav':
+            audio_format = AudioFormat.WAV_22050HZ_MONO_16BIT
+        else:  # 默认为PCM格式
+            audio_format = AudioFormat.PCM_22050HZ_MONO_16BIT
+            
+        logger.info(f'创建TTS合成器: 音色={voice}, 格式={format_str}, 实际格式枚举={audio_format}')
+        
+        # 创建TTS合成器
+        synthesizer = SpeechSynthesizer(
+            model="cosyvoice-v1",
+            voice=voice,
+            format=audio_format,
+            callback=callback
+        )
+        
+        # 存储会话
+        tts_sessions[session_id] = synthesizer
+        tts_callbacks[session_id] = callback
+        
+        logger.info(f'已创建TTS会话: {session_id}, 音色: {voice}')
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'TTS会话已创建',
+            'session_id': session_id
+        })
+    except Exception as e:
+        logger.error(f'创建TTS会话失败: {e}', exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/tts/synthesize', methods=['POST'])
+def synthesize_text():
+    try:
+        data = request.get_json(silent=True) or {}
+        session_id = data.get('session_id')
+        text = data.get('text', '')
+        is_complete = data.get('is_complete', False)
+        
+        if not session_id:
+            return jsonify({'status': 'error', 'message': '会话ID不能为空'}), 400
+            
+        if session_id not in tts_sessions:
+            return jsonify({'status': 'error', 'message': '会话不存在'}), 404
+            
+        if not text and not is_complete:
+            return jsonify({'status': 'error', 'message': '文本不能为空'}), 400
+        
+        synthesizer = tts_sessions[session_id]
+        
+        if text:
+            # 发送文本进行合成
+            logger.info(f'发送文本到TTS: {text[:30]}{"..." if len(text) > 30 else ""}')
+            synthesizer.streaming_call(text)
+        
+        if is_complete:
+            # 完成流式合成
+            logger.info(f'完成TTS会话: {session_id}')
+            synthesizer.streaming_complete()
+            
+        return jsonify({
+            'status': 'success',
+            'message': '已发送文本进行合成' if text else '已完成合成'
+        })
+    except Exception as e:
+        logger.error(f'合成文本失败: {e}', exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/tts/audio/<session_id>', methods=['GET'])
+def get_tts_audio(session_id):
+    try:
+        if session_id not in tts_callbacks:
+            return jsonify({'status': 'error', 'message': '会话不存在'}), 404
+            
+        callback = tts_callbacks[session_id]
+        
+        # 检查是否有新的音频帧
+        if not callback.audio_frames:
+            return jsonify({'status': 'success', 'message': '暂无音频数据'})
+        
+        # 获取并清空音频帧
+        audio_data = b''.join(callback.audio_frames)
+        callback.audio_frames = []
+        
+        # 获取用户选择的存储目录
+        audio_dir = get_user_storage_path()
+        
+        # 保存为WAV格式以便浏览器直接播放
+        # 添加WAV头部
+        wav_header = generate_wav_header(len(audio_data), 22050, 1, 16)
+        wav_data = wav_header + audio_data
+        
+        # 保存音频文件
+        filename = f"{session_id}_{int(time.time())}.wav"
+        output_path = os.path.join(audio_dir, filename)
+        
+        with open(output_path, 'wb') as f:
+            f.write(wav_data)
+        
+        logger.info(f'已保存音频文件: {output_path}')
+        
+        # 返回相对URL路径
+        relative_path = f"/audio_output/{filename}"
+        
+        return jsonify({
+            'status': 'success',
+            'message': '获取音频成功',
+            'file_path': output_path,
+            'file_url': relative_path
+        })
+    except Exception as e:
+        logger.error(f'获取音频失败: {e}', exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# 添加额外的接口，提供音频文件
+@app.route('/audio_output/<filename>', methods=['GET'])
+def serve_audio_file(filename):
+    try:
+        audio_dir = get_user_storage_path()
+        file_path = os.path.join(audio_dir, filename)
+        
+        if not os.path.exists(file_path):
+            return jsonify({'status': 'error', 'message': '文件不存在'}), 404
+            
+        # 发送文件
+        return send_file(file_path, mimetype='audio/wav')
+    except Exception as e:
+        logger.error(f'提供音频文件失败: {e}', exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# 创建WAV头部函数
+def generate_wav_header(data_length, sample_rate=22050, num_channels=1, bits_per_sample=16):
+    """
+    生成WAV头部
+    
+    参数:
+        data_length: PCM数据长度（字节）
+        sample_rate: 采样率，默认22050Hz
+        num_channels: 通道数，默认1（单声道）
+        bits_per_sample: 每样本位数，默认16位
+    
+    返回:
+        wav_header: WAV头部字节
+    """
+    byte_rate = sample_rate * num_channels * bits_per_sample // 8
+    block_align = num_channels * bits_per_sample // 8
+    
+    header = bytearray()
+    # RIFF头
+    header.extend(b'RIFF')
+    header.extend((data_length + 36).to_bytes(4, 'little'))  # 文件大小（数据大小+36）
+    header.extend(b'WAVE')
+    
+    # fmt子块
+    header.extend(b'fmt ')
+    header.extend((16).to_bytes(4, 'little'))  # fmt块大小
+    header.extend((1).to_bytes(2, 'little'))  # 音频格式，1表示PCM
+    header.extend(num_channels.to_bytes(2, 'little'))  # 通道数
+    header.extend(sample_rate.to_bytes(4, 'little'))  # 采样率
+    header.extend(byte_rate.to_bytes(4, 'little'))  # 字节率
+    header.extend(block_align.to_bytes(2, 'little'))  # 块对齐
+    header.extend(bits_per_sample.to_bytes(2, 'little'))  # 每样本位数
+    
+    # data子块
+    header.extend(b'data')
+    header.extend(data_length.to_bytes(4, 'little'))  # 数据大小
+    
+    return header
+
+@app.route('/api/tts/stop', methods=['POST'])
+def stop_tts():
+    try:
+        data = request.get_json(silent=True) or {}
+        session_id = data.get('session_id')
+        
+        if not session_id:
+            return jsonify({'status': 'error', 'message': '会话ID不能为空'}), 400
+            
+        if session_id in tts_sessions:
+            # 清理会话
+            del tts_sessions[session_id]
+            
+        if session_id in tts_callbacks:
+            # 清理回调
+            del tts_callbacks[session_id]
+            
+        logger.info(f'已停止并清理TTS会话: {session_id}')
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'TTS会话已停止'
+        })
+    except Exception as e:
+        logger.error(f'停止TTS会话失败: {e}', exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# 获取TTS可用音色列表
+@app.route('/api/tts/voices', methods=['GET'])
+def get_voices():
+    voices = [
+        {"id": "longxiaochun", "name": "龙小春", "language": "zh-CN"},
+        {"id": "cixingnansheng", "name": "磁性男声", "language": "zh-CN"},
+        {"id": "qingjingnansheng", "name": "清晰男声", "language": "zh-CN"},
+        {"id": "duchangnansheng", "name": "度畅男声", "language": "zh-CN"},
+        {"id": "duyinansheng", "name": "度逸男声", "language": "zh-CN"},
+        {"id": "shangwunansheng", "name": "商务男声", "language": "zh-CN"},
+        {"id": "yuanchennvsheng", "name": "圆臣女声", "language": "zh-CN"},
+        {"id": "xinxinnvsheng", "name": "心心女声", "language": "zh-CN"},
+        {"id": "zhitongnvsheng", "name": "知桐女声", "language": "zh-CN"}
+    ]
+    
+    return jsonify({
+        'status': 'success',
+        'voices': voices
+    })
+
 # 测试端点
 @app.route('/api/speech/test', methods=['GET'])
 def test_endpoint():
@@ -353,7 +674,12 @@ def home():
             '/api/speech/test',
             '/api/speech/start',
             '/api/speech/stop',
-            '/api/speech/results'
+            '/api/speech/results',
+            '/api/tts/start',
+            '/api/tts/synthesize',
+            '/api/tts/audio',
+            '/api/tts/stop',
+            '/api/tts/voices'
         ]
     })
 

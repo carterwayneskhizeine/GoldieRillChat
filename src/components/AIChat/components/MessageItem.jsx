@@ -13,6 +13,9 @@ import { ThumbUpIcon, ThumbDownIcon } from '../../shared/icons';
 import '../../../styles/message-editor.css'; // 导入消息编辑器样式
 import eventBus from '../../../components/ThreeBackground/utils/eventBus'; // 修正eventBus导入路径
 
+// 添加TTS相关常量
+const TTS_SERVER_URL = 'http://127.0.0.1:2047';
+
 const SearchSources = ({ sources, openInBrowserTab }) => {
   const [showSources, setShowSources] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -146,6 +149,24 @@ export const MessageItem = ({
   const [currentBackground, setCurrentBackground] = useState(null);
   const [currentVideoBackground, setCurrentVideoBackground] = useState(null);
   
+  // 添加TTS播放相关状态
+  const [isTtsPlaying, setIsTtsPlaying] = useState(false);
+  const [ttsSessionId, setTtsSessionId] = useState(null);
+  const [audioElement, setAudioElement] = useState(null);
+  const [selectedVoice, setSelectedVoice] = useState('longxiaochun');
+  const [showVoiceSelector, setShowVoiceSelector] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [isPlayingLocked, setIsPlayingLocked] = useState(false); // 添加播放锁定状态
+  const voiceSelectorRef = useRef(null);
+  const ttsIntervalRef = useRef(null);
+  const audioQueueRef = useRef([]); // 添加音频队列引用
+  const currentPlayingAudioRef = useRef(null); // 添加当前播放音频引用
+  
+  // 添加TTS流式播放相关状态
+  const [lastPlayedText, setLastPlayedText] = useState('');
+  const [isStreamTtsEnabled, setIsStreamTtsEnabled] = useState(false);
+  const lastContentRef = useRef('');
+  
   // 获取消息内容的样式
   const contentStyle = getMessageContentStyle(isCollapsed);
   
@@ -164,6 +185,73 @@ export const MessageItem = ({
     
     return () => {
       eventBus.off('backgroundChange', handleBackgroundChange);
+    };
+  }, []);
+  
+  // 加载可用的TTS音色
+  useEffect(() => {
+    const fetchVoices = async () => {
+      try {
+        const response = await fetch(`${TTS_SERVER_URL}/api/tts/voices`);
+        const data = await response.json();
+        if (data.status === 'success' && data.voices) {
+          setAvailableVoices(data.voices);
+        }
+      } catch (error) {
+        console.error('获取TTS音色失败:', error);
+      }
+    };
+    
+    fetchVoices();
+  }, []);
+  
+  // 清理TTS相关资源
+  useEffect(() => {
+    // 组件卸载时清理资源
+    return () => {
+      // 停止定时器
+      if (ttsIntervalRef.current) {
+        clearInterval(ttsIntervalRef.current);
+        ttsIntervalRef.current = null;
+      }
+      
+      // 清空音频队列
+      audioQueueRef.current = [];
+      
+      // 停止当前播放的音频
+      if (currentPlayingAudioRef.current) {
+        currentPlayingAudioRef.current.pause();
+        currentPlayingAudioRef.current.onended = null;
+        currentPlayingAudioRef.current.onerror = null;
+        currentPlayingAudioRef.current = null;
+      }
+      
+      // 如果有正在进行的TTS会话，尝试停止它
+      if (ttsSessionId) {
+        fetch(`${TTS_SERVER_URL}/api/tts/stop`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: ttsSessionId
+          }),
+        }).catch(err => console.error('停止TTS会话失败:', err));
+      }
+    };
+  }, [ttsSessionId]);
+  
+  // 处理点击外部关闭音色选择器
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (voiceSelectorRef.current && !voiceSelectorRef.current.contains(event.target)) {
+        setShowVoiceSelector(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
   
@@ -614,6 +702,787 @@ export const MessageItem = ({
     return null;
   };
 
+  // 监听消息生成，实现流式TTS播报
+  useEffect(() => {
+    // 只处理正在生成的AI助手消息
+    if (message.type === 'assistant' && message.generating && isStreamTtsEnabled) {
+      // 获取新增内容
+      const currentContent = message.content || '';
+      const lastContent = lastContentRef.current || '';
+      
+      // 如果内容有更新，发送新内容进行TTS合成
+      if (currentContent.length > lastContent.length) {
+        const newContent = currentContent.substring(lastContent.length);
+        console.log('检测到新内容:', newContent);
+        
+        // 更新上次播放的文本
+        lastContentRef.current = currentContent;
+        
+        // 检查是否是完整的句子
+        const isCompleteSentence = /[。！？\.!?]$/.test(newContent);
+        
+        // 积累足够长的文本或遇到句子结束符号时进行播报
+        if (newContent.length >= 10 || isCompleteSentence) {
+          // 返回清理函数，确保资源在组件更新前被清理
+          const cleanup = streamTtsPlayback(newContent);
+          if (cleanup && typeof cleanup === 'function') {
+            return cleanup;
+          }
+        }
+      }
+    }
+    
+    // 如果消息停止生成但流式TTS开启中，确保最后的内容也能播放
+    if (message.type === 'assistant' && !message.generating && isStreamTtsEnabled) {
+      const currentContent = message.content || '';
+      const lastContent = lastContentRef.current || '';
+      
+      if (currentContent.length > lastContent.length) {
+        const newContent = currentContent.substring(lastContent.length);
+        const cleanup = streamTtsPlayback(newContent);
+        lastContentRef.current = currentContent;
+        
+        // 返回清理函数，确保资源在组件更新前被清理
+        if (cleanup && typeof cleanup === 'function') {
+          const originalCleanup = cleanup;
+          return () => {
+            originalCleanup();
+            // 消息生成结束，关闭流式TTS
+            setIsStreamTtsEnabled(false);
+          };
+        }
+      }
+      
+      // 消息生成结束，关闭流式TTS
+      setIsStreamTtsEnabled(false);
+    }
+    
+    // 提供空的清理函数以避免react hooks警告
+    return () => {};
+  }, [message.content, message.generating, isStreamTtsEnabled]);
+  
+  // 实现流式TTS播报
+  const streamTtsPlayback = async (text) => {
+    if (!text || text.trim() === '') return;
+    
+    try {
+      let sessionId = ttsSessionId;
+      
+      // 如果没有会话ID，创建新会话
+      if (!sessionId) {
+        // 设置状态
+        setIsTtsPlaying(true);
+        setIsPlayingLocked(true); // 设置播放锁定状态
+        
+        // 创建新会话
+        const newSessionId = await createTtsSession();
+        if (!newSessionId) {
+          // 如果创建会话失败，直接返回
+          setIsStreamTtsEnabled(false);
+          setIsTtsPlaying(false);
+          setIsPlayingLocked(false);
+          return;
+        }
+        
+        // 立即更新本地变量，避免异步状态更新的问题
+        sessionId = newSessionId;
+        
+        // 同时更新状态
+        setTtsSessionId(newSessionId);
+        
+        // 确保会话ID被正确设置
+        console.log('创建新TTS会话:', newSessionId);
+      }
+      
+      try {
+        // 确保使用正确的会话ID（本地变量，而不是状态）
+        if (!sessionId) {
+          console.error('无法获取有效的会话ID，取消合成请求');
+          setIsPlayingLocked(false);
+          return;
+        }
+        
+        // 发送文本进行合成
+        const synthesizeResponse = await fetch(`${TTS_SERVER_URL}/api/tts/synthesize`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: sessionId, // 使用本地变量
+            text: text,
+            is_complete: false
+          }),
+        });
+        
+        // 检查响应是否成功
+        if (!synthesizeResponse.ok) {
+          const errorText = await synthesizeResponse.text().catch(() => '未知错误');
+          console.error(`TTS合成错误 (${synthesizeResponse.status}): ${errorText}`);
+          
+          // 如果是会话未启动错误，尝试重新创建会话
+          if (errorText.includes('not been started') || errorText.includes('会话不存在')) {
+            console.log('TTS会话不存在，尝试重新创建...');
+            await stopTtsPlayback(); // 先清理现有资源
+            
+            // 重新创建会话
+            const newSessionId = await createTtsSession();
+            if (newSessionId) {
+              // 更新本地变量和状态
+              sessionId = newSessionId;
+              setTtsSessionId(newSessionId);
+              console.log('已重新创建TTS会话:', newSessionId);
+              
+              // 再次尝试发送合成请求
+              const retryResponse = await fetch(`${TTS_SERVER_URL}/api/tts/synthesize`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  session_id: newSessionId,
+                  text: text,
+                  is_complete: false
+                }),
+              });
+              
+              if (!retryResponse.ok) {
+                const retryErrorText = await retryResponse.text().catch(() => '未知错误');
+                console.error(`重试TTS合成错误 (${retryResponse.status}): ${retryErrorText}`);
+                setIsPlayingLocked(false);
+                return;
+              }
+            } else {
+              console.error('重新创建TTS会话失败');
+              setIsPlayingLocked(false);
+              return;
+            }
+          } else {
+            // 其他错误则直接返回
+            setIsPlayingLocked(false);
+            return;
+          }
+        }
+        
+        // 获取音频 - 设置一个仅执行一次的超时
+        let audioCheckTimeout = setTimeout(async () => {
+          try {
+            // 再次检查会话ID是否有效
+            if (!sessionId) {
+              console.log('没有有效的会话ID，取消获取音频');
+              setIsPlayingLocked(false);
+              return;
+            }
+            
+            const audioResponse = await fetch(`${TTS_SERVER_URL}/api/tts/audio/${sessionId}`);
+            
+            // 检查Response的内容类型
+            const contentType = audioResponse.headers.get('content-type');
+            
+            // 如果是JSON响应，处理状态信息
+            if (contentType && contentType.includes('application/json')) {
+              const jsonData = await audioResponse.json();
+              if (jsonData.status === 'success' && jsonData.message === '暂无音频数据') {
+                // 没有新的音频数据，不再继续轮询
+                console.log('暂无音频数据，结束检查');
+                return;
+              }
+              
+              // 如果成功获取到音频文件路径
+              if (jsonData.status === 'success' && jsonData.file_url) {
+                // 创建音频URL
+                const serverUrl = new URL(TTS_SERVER_URL);
+                const audioUrl = `${serverUrl.origin}${jsonData.file_url}`;
+                console.log('流式TTS获取到音频:', audioUrl);
+                
+                // 添加到播放队列
+                addToAudioQueue(audioUrl);
+              }
+            }
+          } catch (error) {
+            console.error('获取流式TTS音频失败:', error);
+            setIsPlayingLocked(false);
+          }
+        }, 500);
+        
+        // 确保超时会被清理
+        return () => {
+          if (audioCheckTimeout) {
+            clearTimeout(audioCheckTimeout);
+            audioCheckTimeout = null;
+          }
+        };
+      } catch (error) {
+        console.error('合成请求发送失败:', error);
+        setIsPlayingLocked(false);
+      }
+    } catch (error) {
+      console.error('流式TTS播放失败:', error);
+      setIsTtsPlaying(false);
+      setIsStreamTtsEnabled(false);
+      setIsPlayingLocked(false);
+    }
+  };
+  
+  // 停止TTS播放
+  const stopTtsPlayback = async () => {
+    try {
+      // 先获取当前会话ID，避免状态更新导致的不一致
+      const currentSessionId = ttsSessionId;
+      
+      // 停止任何现有的定时器
+      if (ttsIntervalRef.current) {
+        clearInterval(ttsIntervalRef.current);
+        ttsIntervalRef.current = null;
+      }
+      
+      // 清空音频队列
+      audioQueueRef.current = [];
+      
+      // 停止当前播放的音频
+      if (currentPlayingAudioRef.current) {
+        currentPlayingAudioRef.current.pause();
+        currentPlayingAudioRef.current.onended = null;
+        currentPlayingAudioRef.current.onerror = null;
+        currentPlayingAudioRef.current = null;
+      }
+      
+      // 如果有会话ID，则通知服务器停止TTS
+      if (currentSessionId) {
+        try {
+          console.log('停止TTS会话:', currentSessionId);
+          const response = await fetch(`${TTS_SERVER_URL}/api/tts/stop`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              session_id: currentSessionId
+            }),
+          });
+          
+          // 检查响应
+          if (response.ok) {
+            console.log('TTS会话已停止');
+          } else {
+            const errorText = await response.text().catch(() => '未知错误');
+            console.error(`停止TTS会话失败 (${response.status}): ${errorText}`);
+          }
+        } catch (error) {
+          console.error('停止TTS会话请求失败:', error);
+        }
+      } else {
+        console.log('没有活跃的TTS会话需要停止');
+      }
+      
+      // 重置状态
+      setIsTtsPlaying(false);
+      setTtsSessionId(null);
+      setIsPlayingLocked(false);
+    } catch (error) {
+      console.error('停止TTS播放失败:', error);
+      // 即使出错也重置状态
+      setIsTtsPlaying(false);
+      setTtsSessionId(null);
+      setIsPlayingLocked(false);
+    }
+  };
+  
+  // 创建TTS会话
+  const createTtsSession = async () => {
+    console.log('开始创建TTS会话，选择的音色:', selectedVoice);
+    
+    try {
+      // 发起新的TTS会话
+      const startResponse = await fetch(`${TTS_SERVER_URL}/api/tts/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          voice: selectedVoice,
+          format: 'pcm'  // 使用pcm格式，而不是mp3
+        }),
+      });
+      
+      // 检查HTTP错误
+      if (!startResponse.ok) {
+        const errorText = await startResponse.text().catch(() => '未知错误');
+        console.error(`TTS服务器错误 (${startResponse.status}): ${errorText}`);
+        throw new Error(`服务器返回 ${startResponse.status} 错误: ${errorText}`);
+      }
+      
+      const startData = await startResponse.json();
+      if (startData.status !== 'success') {
+        throw new Error(startData.message || '启动TTS会话失败');
+      }
+      
+      // 返回会话ID，但不立即设置状态
+      // 调用者应该保存会话ID到本地变量并手动设置状态
+      console.log('TTS会话创建成功:', startData.session_id);
+      return startData.session_id;
+    } catch (error) {
+      console.error('创建TTS会话失败:', error);
+      
+      // 清理任何现有的状态
+      setIsTtsPlaying(false);
+      setIsPlayingLocked(false);
+      
+      // 显示一个简短的错误提示
+      if (window.electron && window.electron.showNotification) {
+        window.electron.showNotification('语音合成错误', error.message || '无法启动语音合成');
+      } else {
+        alert(`语音合成错误: ${error.message || '无法启动语音合成'}`);
+      }
+      return null;
+    }
+  };
+  
+  // 启用流式TTS
+  const enableStreamTts = async () => {
+    try {
+      // 重置状态
+      lastContentRef.current = '';
+      setLastPlayedText('');
+      
+      // 停止任何现有的播放
+      await stopTtsPlayback();
+      
+      // 开启流式TTS状态
+      setIsStreamTtsEnabled(true);
+      setIsTtsPlaying(true);
+      setIsPlayingLocked(true);
+      
+      // 创建新会话
+      console.log('开始创建流式TTS会话');
+      const sessionId = await createTtsSession();
+      if (!sessionId) {
+        console.error('无法创建TTS会话，禁用流式TTS');
+        setIsStreamTtsEnabled(false);
+        setIsTtsPlaying(false);
+        setIsPlayingLocked(false);
+        return false;
+      }
+      
+      // 立即设置会话ID
+      setTtsSessionId(sessionId);
+      console.log('成功创建流式TTS会话:', sessionId);
+      
+      // 向服务器发送初始化请求
+      try {
+        const initResponse = await fetch(`${TTS_SERVER_URL}/api/tts/synthesize`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: sessionId,
+            text: ' ', // 发送一个空格作为初始文本，确保会话被正确初始化
+            is_complete: false
+          }),
+        });
+        
+        if (!initResponse.ok) {
+          const errorText = await initResponse.text().catch(() => '未知错误');
+          console.error(`流式TTS初始化错误 (${initResponse.status}): ${errorText}`);
+          
+          // 如果初始化失败，禁用流式TTS
+          await stopTtsPlayback();
+          setIsStreamTtsEnabled(false);
+          return false;
+        }
+        
+        console.log('流式TTS初始化成功');
+        return true;
+      } catch (error) {
+        console.error('流式TTS初始化请求失败:', error);
+        await stopTtsPlayback();
+        setIsStreamTtsEnabled(false);
+        return false;
+      }
+    } catch (error) {
+      console.error('启用流式TTS失败:', error);
+      setIsStreamTtsEnabled(false);
+      setIsTtsPlaying(false);
+      setIsPlayingLocked(false);
+      return false;
+    }
+  };
+
+  // 关闭流式TTS
+  const disableStreamTts = async () => {
+    console.log('正在关闭流式TTS...');
+    setIsStreamTtsEnabled(false);
+    
+    // 重置流式TTS的记忆状态
+    lastContentRef.current = '';
+    setLastPlayedText('');
+    
+    // 停止TTS会话和清理资源
+    await stopTtsPlayback();
+    console.log('流式TTS已关闭');
+  };
+  
+  // 添加TTS播放功能
+  const startTtsPlayback = async (text) => {
+    if (!text || text.trim() === '') return;
+    
+    try {
+      // 设置播放状态
+      setIsTtsPlaying(true);
+      setIsPlayingLocked(true);
+      
+      // 清空音频队列
+      audioQueueRef.current = [];
+      
+      // 停止当前播放的音频
+      if (currentPlayingAudioRef.current) {
+        currentPlayingAudioRef.current.pause();
+        currentPlayingAudioRef.current.onended = null;
+        currentPlayingAudioRef.current.onerror = null;
+        currentPlayingAudioRef.current = null;
+      }
+      
+      // 清除现有的定时器
+      if (ttsIntervalRef.current) {
+        clearInterval(ttsIntervalRef.current);
+        ttsIntervalRef.current = null;
+      }
+      
+      // 创建新的TTS会话
+      const sessionId = await createTtsSession();
+      if (!sessionId) {
+        // 如果创建会话失败，重置状态
+        setIsTtsPlaying(false);
+        setIsPlayingLocked(false);
+        return;
+      }
+      
+      // 设置会话ID - 使用本地变量，避免状态更新的异步问题
+      setTtsSessionId(sessionId);
+      
+      // 发送文本进行合成
+      try {
+        const synthesizeResponse = await fetch(`${TTS_SERVER_URL}/api/tts/synthesize`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: sessionId, // 使用本地变量而不是状态
+            text: text,
+            is_complete: true
+          }),
+        });
+        
+        if (!synthesizeResponse.ok) {
+          const errorText = await synthesizeResponse.text().catch(() => '未知错误');
+          console.error(`TTS合成错误 (${synthesizeResponse.status}): ${errorText}`);
+          
+          // 如果是会话错误，尝试重新创建
+          if (errorText.includes('not been started') || errorText.includes('会话不存在')) {
+            console.log('TTS会话不存在，尝试重新创建...');
+            await stopTtsPlayback(); // 先清理现有资源
+            
+            // 重新创建会话
+            const newSessionId = await createTtsSession();
+            if (newSessionId) {
+              setTtsSessionId(newSessionId);
+              
+              // 再次尝试发送合成请求
+              const retryResponse = await fetch(`${TTS_SERVER_URL}/api/tts/synthesize`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  session_id: newSessionId,
+                  text: text,
+                  is_complete: true
+                }),
+              });
+              
+              if (!retryResponse.ok) {
+                const retryErrorText = await retryResponse.text().catch(() => '未知错误');
+                console.error(`重试TTS合成错误 (${retryResponse.status}): ${retryErrorText}`);
+                setIsTtsPlaying(false);
+                setIsPlayingLocked(false);
+                return;
+              }
+              
+              // 使用新的会话ID设置轮询
+              startPollingAudio(newSessionId);
+              return;
+            }
+          }
+          
+          // 其他错误则重置状态
+          setIsTtsPlaying(false);
+          setIsPlayingLocked(false);
+          return;
+        }
+        
+        const synthesizeData = await synthesizeResponse.json();
+        if (synthesizeData.status !== 'success') {
+          throw new Error(synthesizeData.message || '合成文本失败');
+        }
+        
+        // 开始轮询音频
+        startPollingAudio(sessionId);
+      } catch (error) {
+        console.error('合成请求发送失败:', error);
+        setIsTtsPlaying(false);
+        setIsPlayingLocked(false);
+        return;
+      }
+    } catch (error) {
+      console.error('TTS播放失败:', error);
+      setIsTtsPlaying(false);
+      setIsPlayingLocked(false);
+    }
+  };
+  
+  // 轮询音频数据的函数
+  const startPollingAudio = (sessionId) => {
+    if (!sessionId) {
+      console.error('无法开始轮询：会话ID为空');
+      setIsTtsPlaying(false);
+      setIsPlayingLocked(false);
+      return;
+    }
+    
+    // 设置定时获取音频数据
+    let hasReceivedAudio = false;
+    let pollCount = 0;
+    const MAX_POLLS = 60; // 最多轮询30秒（60次，每次500ms）
+    
+    ttsIntervalRef.current = setInterval(async () => {
+      try {
+        // 检查会话ID是否有效
+        if (!sessionId) {
+          console.log('TTS会话ID无效，停止轮询');
+          clearInterval(ttsIntervalRef.current);
+          ttsIntervalRef.current = null;
+          if (!hasReceivedAudio) {
+            setIsTtsPlaying(false);
+            setIsPlayingLocked(false);
+          }
+          return;
+        }
+        
+        // 增加轮询计数
+        pollCount++;
+        
+        // 如果超过最大轮询次数，停止轮询
+        if (pollCount >= MAX_POLLS) {
+          console.log('超过最大轮询次数，停止轮询');
+          clearInterval(ttsIntervalRef.current);
+          ttsIntervalRef.current = null;
+          if (!hasReceivedAudio) {
+            setIsTtsPlaying(false);
+            setIsPlayingLocked(false);
+          }
+          return;
+        }
+        
+        const audioResponse = await fetch(`${TTS_SERVER_URL}/api/tts/audio/${sessionId}`);
+        
+        // 检查Response的内容类型
+        const contentType = audioResponse.headers.get('content-type');
+        
+        // 如果是JSON响应，处理状态信息
+        if (contentType && contentType.includes('application/json')) {
+          const jsonData = await audioResponse.json();
+          
+          // 处理已完成状态 - 服务端已完成所有合成
+          if (jsonData.status === 'success' && jsonData.message === '合成已完成' && hasReceivedAudio) {
+            console.log('TTS合成已完成，停止轮询');
+            clearInterval(ttsIntervalRef.current);
+            ttsIntervalRef.current = null;
+            return;
+          }
+          
+          if (jsonData.status === 'success' && jsonData.message === '暂无音频数据') {
+            // 没有新的音频数据，继续等待
+            console.log(`轮询 ${pollCount}/${MAX_POLLS}: 暂无音频数据`);
+            return;
+          }
+          
+          // 如果成功获取到音频文件路径
+          if (jsonData.status === 'success' && jsonData.file_url) {
+            hasReceivedAudio = true;
+            
+            // 创建音频URL
+            const serverUrl = new URL(TTS_SERVER_URL);
+            const audioUrl = `${serverUrl.origin}${jsonData.file_url}`;
+            console.log('获取到音频文件:', audioUrl);
+            
+            // 添加到播放队列
+            addToAudioQueue(audioUrl);
+          }
+        }
+      } catch (error) {
+        console.error('获取TTS音频失败:', error);
+        // 错误计数，连续错误超过3次则停止轮询
+        pollCount += 3;
+      }
+    }, 500);
+  };
+  
+  // 处理TTS播放按钮点击
+  const handleTtsPlayback = async () => {
+    if (isTtsPlaying) {
+      // 如果当前正在播放，则停止
+      await stopTtsPlayback();
+      
+      // 如果流式TTS正在运行，也停止它
+      if (isStreamTtsEnabled) {
+        setIsStreamTtsEnabled(false);
+      }
+    } else {
+      // 如果消息正在生成中，使用流式TTS
+      if (message.generating) {
+        // 尝试启用流式TTS
+        const success = await enableStreamTts();
+        if (!success) {
+          console.error('启用流式TTS失败');
+          // 可以显示一个简短的错误提示
+          if (window.electron && window.electron.showNotification) {
+            window.electron.showNotification('语音合成错误', '无法启动流式语音合成');
+          }
+        }
+      } else {
+        // 否则使用普通TTS播放
+        startTtsPlayback(message.content);
+      }
+    }
+  };
+  
+  // 处理音色选择
+  const handleVoiceSelect = (voiceId) => {
+    setSelectedVoice(voiceId);
+    setShowVoiceSelector(false);
+  };
+
+  // 播放音频函数 - 处理队列
+  const playNextAudio = () => {
+    // 如果有正在播放的音频，先停止
+    if (currentPlayingAudioRef.current) {
+      currentPlayingAudioRef.current.pause();
+      currentPlayingAudioRef.current.onended = null;
+      currentPlayingAudioRef.current.onerror = null;
+      currentPlayingAudioRef.current = null;
+    }
+    
+    // 如果队列为空，重置状态
+    if (!audioQueueRef.current || audioQueueRef.current.length === 0) {
+      console.log('音频队列为空，停止播放');
+      setIsTtsPlaying(false);
+      setIsPlayingLocked(false);
+      return;
+    }
+    
+    // 从队列中取出下一个音频URL
+    const nextAudioUrl = audioQueueRef.current.shift();
+    if (!nextAudioUrl) {
+      console.log('从队列中取出的音频URL为空');
+      setIsTtsPlaying(false);
+      setIsPlayingLocked(false);
+      return;
+    }
+    
+    console.log('开始播放音频:', nextAudioUrl);
+    const audio = new Audio(nextAudioUrl);
+    
+    // 设置音频结束事件
+    audio.onended = () => {
+      console.log('音频播放完成，检查队列中是否有下一段');
+      
+      // 检查是否还有音频在队列中
+      if (audioQueueRef.current && audioQueueRef.current.length > 0) {
+        // 继续播放下一个
+        console.log(`队列中还有 ${audioQueueRef.current.length} 段音频待播放`);
+        playNextAudio();
+      } else {
+        // 队列为空，重置状态
+        console.log('音频播放队列已清空，重置播放状态');
+        setIsTtsPlaying(false);
+        setIsPlayingLocked(false);
+        
+        // 解除引用
+        currentPlayingAudioRef.current = null;
+      }
+    };
+    
+    // 设置错误处理
+    audio.onerror = (error) => {
+      console.error('音频播放错误:', error);
+      
+      // 将错误信息记录到控制台以便调试
+      console.error(`音频URL: ${nextAudioUrl}, 错误代码: ${audio.error ? audio.error.code : '未知'}`);
+      
+      // 出错时也尝试播放下一个
+      playNextAudio();
+    };
+    
+    // 添加调试代码以检测音频播放时可能的问题
+    audio.onloadstart = () => console.log('音频开始加载');
+    audio.oncanplay = () => console.log('音频可以播放');
+    audio.onwaiting = () => console.log('音频等待加载更多数据');
+    
+    // 开始播放
+    const playPromise = audio.play();
+    if (playPromise) {
+      playPromise.catch(err => {
+        console.error('无法播放音频:', err);
+        // 尝试使用更大的延迟重试
+        setTimeout(() => {
+          // 如果队列中还有音频，继续播放
+          playNextAudio();
+        }, 300);
+      });
+    }
+    
+    // 保存当前播放的音频引用
+    currentPlayingAudioRef.current = audio;
+    setAudioElement(audio);
+  };
+  
+  // 添加到音频播放队列
+  const addToAudioQueue = (audioUrl) => {
+    if (!audioUrl) {
+      console.error('尝试添加空URL到音频队列');
+      return;
+    }
+    
+    console.log(`添加音频到队列: ${audioUrl}`);
+    
+    // 检查URL格式是否正确
+    try {
+      new URL(audioUrl);
+    } catch (e) {
+      console.error('无效的音频URL:', audioUrl, e);
+      return;
+    }
+    
+    // 先检查是否队列已经被初始化
+    if (!audioQueueRef.current) {
+      audioQueueRef.current = [];
+    }
+    
+    // 添加到队列
+    audioQueueRef.current.push(audioUrl);
+    console.log(`添加后队列长度: ${audioQueueRef.current.length}`);
+    
+    // 如果没有正在播放的音频，开始播放
+    if (!currentPlayingAudioRef.current) {
+      console.log('当前没有正在播放的音频，立即开始播放');
+      playNextAudio();
+    } else {
+      console.log('已有音频在播放，新添加的音频将加入队列');
+    }
+  };
+
   return (
     <>
       <div
@@ -1009,6 +1878,64 @@ export const MessageItem = ({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
+                )}
+                
+                {/* 添加TTS播放按钮 - 根据消息状态决定显示哪种按钮 */}
+                {message.type === 'assistant' && !message.files?.length && (
+                  <div className="relative inline-block">
+                    <button
+                      className={`btn btn-xs ${isTtsPlaying ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={handleTtsPlayback}
+                      title={isTtsPlaying ? "停止语音播放" : message.generating ? "实时语音播报" : "播放语音"}
+                    >
+                      {isTtsPlaying ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.414a5 5 0 001.414 1.414m0 0l4.243 4.242-1.415 1.415L4 16.657v-2.829l5.414-5.414 4.242 4.242-1.414 1.415L7.414 9.242" />
+                        </svg>
+                      )}
+                    </button>
+                    
+                    {/* 音色选择按钮 */}
+                    <button
+                      className="btn btn-ghost btn-xs ml-1"
+                      onClick={() => setShowVoiceSelector(!showVoiceSelector)}
+                      title="选择语音音色"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    
+                    {/* 音色选择菜单 */}
+                    {showVoiceSelector && (
+                      <div
+                        ref={voiceSelectorRef}
+                        className="absolute mt-1 bg-base-100 rounded-lg shadow-lg border border-base-300 p-2 z-50"
+                        style={{ minWidth: '200px', right: 0 }}
+                      >
+                        <div className="font-bold text-sm mb-2">选择音色</div>
+                        <div className="max-h-60 overflow-y-auto">
+                          {availableVoices.map((voice) => (
+                            <div
+                              key={voice.id}
+                              className={`p-2 hover:bg-base-200 cursor-pointer rounded ${
+                                voice.id === selectedVoice ? 'bg-primary bg-opacity-20' : ''
+                              }`}
+                              onClick={() => handleVoiceSelect(voice.id)}
+                            >
+                              <div className="text-sm font-medium">{voice.name}</div>
+                              <div className="text-xs text-base-content/70">{voice.language}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}

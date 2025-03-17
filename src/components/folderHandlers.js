@@ -17,6 +17,37 @@ export const handleSelectFolder = async (setStoragePath, currentConversation, me
       setStoragePath(result)
       localStorage.setItem('storagePath', result)
       
+      // 更新user_config.json文件以便语音服务使用这个路径
+      try {
+        // 读取配置文件
+        const configPath = 'user_config.json'
+        let config = {}
+        
+        try {
+          // 尝试读取现有配置
+          const configContent = await window.electron.readFile(configPath)
+          if (configContent) {
+            config = JSON.parse(configContent)
+          }
+        } catch (readError) {
+          console.log('配置文件不存在或读取错误，将创建新的配置文件')
+        }
+        
+        // 更新存储路径
+        config.storagePath = result
+        
+        // 写入配置文件
+        await window.electron.writeFile(
+          configPath,
+          JSON.stringify(config, null, 2)
+        )
+        
+        console.log('已更新语音配置文件中的存储路径')
+      } catch (configError) {
+        console.error('更新配置文件失败:', configError)
+        toastManager.warning('存储路径已更改，但未能更新语音配置')
+      }
+      
       // 清空本地存储中的旧对话列表
       localStorage.setItem('aichat_conversations', JSON.stringify([]))
       
