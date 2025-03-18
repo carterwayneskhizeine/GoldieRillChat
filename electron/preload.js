@@ -44,7 +44,8 @@ contextBridge.exposeInMainWorld('electron', {
         'dashscope-detect-response',
         'dashscope-synthesis-response',
         'dashscope-task-status',
-        'dashscope-videoretalk-response'
+        'dashscope-videoretalk-response',
+        'show-link-dialog'
       ];
       
       if (allowedChannels.includes(channel)) {
@@ -475,6 +476,9 @@ contextBridge.exposeInMainWorld('electron', {
   
   // 添加获取文件状态的方法
   getFileStats: (filePath) => ipcRenderer.invoke('get-file-stats', filePath),
+
+  // 添加谷歌搜索方法
+  googleSearch: (searchText) => ipcRenderer.invoke('google-search', searchText),
 })
 
 // 添加视频生成相关的 API

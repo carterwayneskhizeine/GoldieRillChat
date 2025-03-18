@@ -1519,6 +1519,23 @@ export default function App() {
     };
   }, []);
 
+  // 在useEffect中添加事件监听
+  useEffect(() => {
+    // 监听show-link-dialog事件
+    const handleShowLinkDialog = (event, url) => {
+      openUrl(url, true); // 使用browserUtils.js中的openUrl函数
+    };
+    
+    let cleanupFunction = () => {};
+    if (window.electron?.ipcRenderer) {
+      cleanupFunction = window.electron.ipcRenderer.on('show-link-dialog', handleShowLinkDialog);
+    }
+    
+    return () => {
+      cleanupFunction(); // 调用返回的清理函数
+    };
+  }, []);
+
   return (
     <div className="h-screen flex flex-col bg-base-100">
       <ThreeBackground />

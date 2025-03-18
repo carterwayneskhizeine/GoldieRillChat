@@ -1201,8 +1201,11 @@ function createWindow() {
           {
             label: `使用谷歌搜索 "${params.selectionText.substring(0, 20)}${params.selectionText.length > 20 ? '...' : ''}"`,
             click: () => {
-              const url = `https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`;
-              shell.openExternal(url);
+              const searchText = params.selectionText;
+              const url = `https://www.google.com/search?q=${encodeURIComponent(searchText)}`;
+              
+              // 直接在Browser视图中加载URL，不显示对话框
+              view.webContents.loadURL(url);
             }
           },
           { type: 'separator' }
@@ -1247,6 +1250,18 @@ function createWindow() {
             label: '复制链接地址',
             click: () => {
               clipboard.writeText(params.linkURL);
+            }
+          },
+          {
+            label: '在当前标签页中打开链接',
+            click: () => {
+              view.webContents.loadURL(params.linkURL);
+            }
+          },
+          {
+            label: '在新标签页中打开链接',
+            click: () => {
+              createNewTab(params.linkURL);
             }
           },
           {
@@ -1574,8 +1589,9 @@ function createWindow() {
         {
           label: `使用谷歌搜索 "${params.selectionText.substring(0, 20)}${params.selectionText.length > 20 ? '...' : ''}"`,
           click: () => {
-            const url = `https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`;
-            shell.openExternal(url);
+            const searchText = params.selectionText;
+            // 在主窗口中，仍然显示对话框让用户选择
+            mainWindow.webContents.send('show-link-dialog', `https://www.google.com/search?q=${encodeURIComponent(searchText)}`);
           }
         },
         { type: 'separator' }
@@ -3472,3 +3488,10 @@ async function proxyDashscopeVideoRetalk(apiKey, videoUrl, audioUrl, refImageUrl
     };
   }
 }
+
+// 添加谷歌搜索IPC处理器
+ipcMain.handle('google-search', async (event, searchText) => {
+  const url = `https://www.google.com/search?q=${encodeURIComponent(searchText)}`;
+  // 通知渲染进程显示对话框
+  mainWindow.webContents.send('show-link-dialog', url);
+});
