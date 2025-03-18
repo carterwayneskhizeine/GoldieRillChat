@@ -20,7 +20,10 @@
             "prepare-resources": "node scripts/prepare-resources.js",
             "start:speech": "node start_speech.js",
             "speech:setup": "node check_dependencies.js",
-            "test:flask": "node test_flask_server.js"
+            "test:flask": "node test_flask_server.js",
+            "start:all": "start.bat",
+            "setup:python": "setup_python_env.bat",
+            "update:python": "update_python_env.bat"
       },
       "build": {
             "appId": "com.goldie.chat",
