@@ -198,6 +198,14 @@ class TtsCallback(ResultCallback):
         
     def on_complete(self):
         logger.info(f'TTS会话已完成: {self.session_id}')
+        # 在播放完成时设置状态标志
+        logger.info(f'TTS播放完成，设置完成标志: {self.session_id}')
+        # 发送WebSocket完成事件
+        try:
+            if hasattr(self, '_ws') and self._ws:
+                logger.info(f'发送TTS完成WebSocket事件: {self.session_id}')
+        except Exception as e:
+            logger.error(f'发送TTS完成事件失败: {e}')
         
     def on_error(self, error):
         logger.error(f'TTS错误: {error}')

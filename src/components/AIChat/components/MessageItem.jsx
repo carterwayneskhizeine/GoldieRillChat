@@ -9,7 +9,7 @@ import { openUrl } from '../../../utils/browserUtils';
 import { ExclamationIcon } from '../../shared/ExclamationIcon';
 import { CODE_THEME_LIGHT, CODE_THEME_DARK, MESSAGE_STATES } from '../constants';
 import TextareaAutosize from 'react-textarea-autosize';
-import { ThumbUpIcon, ThumbDownIcon } from '../../shared/icons';
+import { ThumbUpIcon, ThumbDownIcon, StopIcon, SpeakerWaveIcon } from '../../shared/icons';
 import '../../../styles/message-editor.css'; // 导入消息编辑器样式
 import eventBus from '../../../components/ThreeBackground/utils/eventBus'; // 修正eventBus导入路径
 
@@ -168,6 +168,8 @@ export const MessageItem = ({
   const currentPlayingAudioRef = useRef(null); // 添加当前播放音频引用
   const editorRef = useRef(null);
   const lastContentRef = useRef('');
+  const ttsTimeoutRef = useRef(null); // 添加TTS播放计时器引用
+  const lastTtsActionTimeRef = useRef(null); // 添加TTS操作时间引用
 
   // 获取消息内容的样式
   const contentStyle = getMessageContentStyle(isCollapsed);
@@ -708,6 +710,54 @@ export const MessageItem = ({
         let success = false;
         let lastError = null;
         
+        // 设置自动检测播放完成的逻辑 - 在文本发送前预先设置
+        // 计算预计的播放时间
+        const estimatedDuration = (text.length / 150) * 60 * 1000; // 毫秒
+        const minDuration = 5000; // 最少等待5秒
+        const maxDuration = 30000; // 最多等待30秒
+        const waitTime = Math.min(Math.max(estimatedDuration, minDuration), maxDuration);
+        
+        console.log(`预计流式播放时间: ${waitTime/1000}秒，设置自动重置计时器...`);
+        
+        // 清除之前的计时器
+        if (ttsTimeoutRef.current) {
+          clearTimeout(ttsTimeoutRef.current);
+          ttsTimeoutRef.current = null;
+        }
+        
+        // 设置新的计时器在预计时间后自动重置状态
+        ttsTimeoutRef.current = setTimeout(() => {
+          console.log('流式TTS播放计时器触发，重置播放状态');
+          
+          // 使用函数式更新确保状态正确更新
+          setIsTtsPlaying(false);
+          setIsPlayingLocked(false);
+          console.log('流式TTS播放已完成，已重置按钮状态');
+          
+          // 在下一个事件循环中再次确认状态已重置（双重保障）
+          setTimeout(() => {
+            setIsTtsPlaying(false);
+            setIsPlayingLocked(false);
+            console.log('二次确认：确保流式TTS按钮状态已重置');
+          }, 100);
+          
+          // 可选：清理会话资源，但不设置isStreamTtsEnabled为false,
+          // 因为这可能是用户希望继续监听的
+          fetch(`${TTS_SERVER_URL}/api/tts/stop`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              session_id: sessionId
+            }),
+          }).catch(e => console.error('清理流式TTS会话资源失败:', e));
+          
+          // 重置会话ID
+          setTtsSessionId(null);
+        }, waitTime);
+        
+        // 最多尝试3次
         while (!success && attempts < 3) {
           attempts++;
           try {
@@ -836,6 +886,13 @@ export const MessageItem = ({
       if (ttsIntervalRef.current) {
         clearInterval(ttsIntervalRef.current);
         ttsIntervalRef.current = null;
+      }
+      
+      // 清除TTS播放计时器
+      if (ttsTimeoutRef.current) {
+        clearTimeout(ttsTimeoutRef.current);
+        ttsTimeoutRef.current = null;
+        console.log('已清除TTS播放计时器');
       }
       
       // 清空音频队列
@@ -1110,6 +1167,54 @@ export const MessageItem = ({
             // 成功发送请求
             success = true;
             console.log(`文本已成功发送并正在直接播放(尝试 #${attempts})`);
+            
+            // 添加自动检测播放完成的逻辑
+            // 设置一个计时器，在适当的时间后检查播放状态并自动重置按钮状态
+            // 根据文本长度估算播放时间（每分钟约150个字）
+            const estimatedDuration = (text.length / 150) * 60 * 1000; // 毫秒
+            const minDuration = 3000; // 最少等待3秒
+            const maxDuration = 180000; // 最多等待3分钟
+            const waitTime = Math.min(Math.max(estimatedDuration, minDuration), maxDuration);
+            
+            console.log(`预计播放时间: ${waitTime/1000}秒，等待播放完成...`);
+            
+            // 清除之前的计时器
+            if (ttsTimeoutRef.current) {
+              clearTimeout(ttsTimeoutRef.current);
+              ttsTimeoutRef.current = null;
+            }
+            
+            // 设置新的计时器
+            ttsTimeoutRef.current = setTimeout(() => {
+              console.log('TTS播放计时器触发，重置播放状态');
+              
+              // 使用函数式更新确保状态正确更新
+              setIsTtsPlaying(false);
+              setIsPlayingLocked(false);
+              console.log('TTS播放已完成，已重置按钮状态');
+              
+              // 在下一个事件循环中再次确认状态已重置（双重保障）
+              setTimeout(() => {
+                setIsTtsPlaying(false);
+                setIsPlayingLocked(false);
+                console.log('二次确认：确保TTS按钮状态已重置');
+              }, 100);
+              
+              // 可选：清理会话资源
+              fetch(`${TTS_SERVER_URL}/api/tts/stop`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  session_id: sessionId
+                }),
+              }).catch(e => console.error('清理TTS会话资源失败:', e));
+              
+              // 重置会话ID
+              setTtsSessionId(null);
+            }, waitTime);
+            
             break;
             
           } catch (retryError) {
@@ -1231,6 +1336,43 @@ export const MessageItem = ({
   
   // 处理TTS播放按钮点击
   const handleTtsPlayback = async () => {
+    // 检查按钮是否被长时间锁定（超过30秒），如果是，强制重置状态
+    if (isPlayingLocked) {
+      const now = Date.now();
+      const lastTtsTime = lastTtsActionTimeRef.current || 0;
+      
+      if (now - lastTtsTime > 30000) { // 如果超过30秒还锁定，强制重置
+        console.log('检测到TTS按钮长时间锁定，强制重置状态');
+        setIsTtsPlaying(false);
+        setIsPlayingLocked(false);
+        setTtsSessionId(null);
+        
+        // 尝试停止任何可能存在的TTS会话
+        try {
+          if (ttsSessionId) {
+            await fetch(`${TTS_SERVER_URL}/api/tts/stop`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                session_id: ttsSessionId
+              }),
+            });
+          }
+        } catch (error) {
+          console.error('强制停止TTS会话失败:', error);
+        }
+        
+        // 记录当前时间
+        lastTtsActionTimeRef.current = now;
+        return;
+      }
+    }
+    
+    // 记录TTS操作时间
+    lastTtsActionTimeRef.current = Date.now();
+    
     if (isTtsPlaying) {
       // 如果当前正在播放，则停止
       await stopTtsPlayback();
@@ -1436,6 +1578,119 @@ export const MessageItem = ({
     // 提供空的清理函数以避免react hooks警告
     return () => {};
   }, [message.content, message.generating, isStreamTtsEnabled]);
+
+  // 组件卸载时清理资源
+  useEffect(() => {
+    return () => {
+      // 清理所有TTS相关资源
+      if (ttsSessionId) {
+        console.log('组件卸载，清理TTS资源:', ttsSessionId);
+        
+        // 清除计时器
+        if (ttsIntervalRef.current) {
+          clearInterval(ttsIntervalRef.current);
+          ttsIntervalRef.current = null;
+        }
+        
+        if (ttsTimeoutRef.current) {
+          clearTimeout(ttsTimeoutRef.current);
+          ttsTimeoutRef.current = null;
+        }
+        
+        // 停止音频播放
+        if (currentPlayingAudioRef.current) {
+          currentPlayingAudioRef.current.pause();
+          currentPlayingAudioRef.current = null;
+        }
+        
+        // 通知服务器停止TTS会话
+        fetch(`${TTS_SERVER_URL}/api/tts/stop`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: ttsSessionId
+          }),
+        }).catch(e => console.error('组件卸载时清理TTS会话失败:', e));
+      }
+    };
+  }, [ttsSessionId]); // 依赖于ttsSessionId，确保使用最新的会话ID
+
+  // 添加监控TTS会话状态的逻辑
+  useEffect(() => {
+    if (isTtsPlaying) {
+      // 当TTS开始播放时，启动监控计时器
+      const monitorId = setInterval(() => {
+        // 检查是否已经播放了很长时间（超过2分钟）
+        const now = Date.now();
+        const lastTtsTime = lastTtsActionTimeRef.current || 0;
+        
+        if (now - lastTtsTime > 120000) { // 如果已播放超过2分钟，可能异常
+          console.log('检测到TTS播放时间过长，可能存在异常，自动重置状态');
+          setIsTtsPlaying(false);
+          setIsPlayingLocked(false);
+          
+          // 尝试清理会话
+          if (ttsSessionId) {
+            fetch(`${TTS_SERVER_URL}/api/tts/stop`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                session_id: ttsSessionId
+              }),
+            }).catch(e => console.error('清理长时间TTS会话失败:', e));
+            
+            setTtsSessionId(null);
+          }
+        }
+      }, 30000); // 每30秒检查一次
+      
+      return () => {
+        clearInterval(monitorId);
+      };
+    }
+  }, [isTtsPlaying, ttsSessionId]);
+
+  // TTS播放按钮
+  const renderTtsButton = () => {
+    // 计算按钮禁用状态
+    const isButtonDisabled = isPlayingLocked && isTtsPlaying;
+    // 检查按钮状态是否异常（长时间锁定）
+    const now = Date.now();
+    const lastTtsTime = lastTtsActionTimeRef.current || 0;
+    const isAbnormalLock = isPlayingLocked && (now - lastTtsTime > 30000);
+    
+    // 如果检测到异常锁定状态，强制启用按钮
+    const finalDisabledState = isAbnormalLock ? false : isButtonDisabled;
+    
+    return (
+      <button
+        onClick={handleTtsPlayback}
+        disabled={finalDisabledState}
+        className={`flex items-center p-1 rounded-md text-xs ${
+          isTtsPlaying
+            ? 'bg-red-500/10 text-red-600 hover:bg-red-500/20'
+            : 'bg-gray-500/10 text-gray-500 hover:bg-gray-500/20'
+        }`}
+        title={isTtsPlaying ? 'Stop Playback' : 'Read Text'}
+      >
+        {isTtsPlaying ? (
+          <>
+            <StopIcon className="w-3.5 h-3.5 mr-1" />
+            <span>Stop Playback</span>
+          </>
+        ) : (
+          <>
+            <SpeakerWaveIcon className="w-3.5 h-3.5 mr-1" />
+            <span>Read Text</span>
+          </>
+        )}
+      </button>
+    );
+  };
 
   return (
     <>
@@ -1837,23 +2092,7 @@ export const MessageItem = ({
                 {/* 添加TTS播放按钮 - 根据消息状态决定显示哪种按钮 */}
                 {message.type === 'assistant' && !message.files?.length && (
                   <div className="relative inline-block">
-                    <button
-                      className="btn btn-ghost btn-xs"
-                      onClick={handleTtsPlayback}
-                      title={isTtsPlaying ? '停止语音播放' : '朗读文本'}
-                      disabled={isPlayingLocked}
-                    >
-                      {isTtsPlaying ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.414a5 5 0 001.414 1.414m0 0l4.243 4.242-1.415 1.415L4 16.657v-2.829l5.414-5.414 4.242 4.242-1.414 1.415L7.414 9.242" />
-                        </svg>
-                      )}
-                    </button>
+                    {renderTtsButton()}
                   </div>
                 )}
               </>
