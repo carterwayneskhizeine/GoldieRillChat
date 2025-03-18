@@ -1938,12 +1938,12 @@ export const MessageItem = ({
         {isTtsPlaying ? (
           <>
             <StopIcon className="w-3.5 h-3.5 mr-1 text-white" />
-            <span className="text-white !text-white">{buttonText}</span>
+            <span className="text-white !text-white font-semibold">{buttonText}</span>
           </>
         ) : (
           <>
             <SpeakerWaveIcon className="w-3.5 h-3.5 mr-1 text-white" />
-            <span className="text-white !text-white">{buttonText}</span>
+            <span className="text-white !text-white font-semibold">{buttonText}</span>
           </>
         )}
       </button>
