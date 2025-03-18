@@ -76,6 +76,19 @@ export const SettingsModal = ({
   const handleTtsVoiceChange = (voiceId) => {
     setSelectedTtsVoice(voiceId);
     localStorage.setItem('aichat_tts_voice', voiceId);
+    
+    // 把最新的语音设置也保存到统一的设置对象中供MessageItem使用
+    try {
+      const ttsSettings = {
+        selectedVoice: voiceId,
+        lastUpdated: Date.now()
+      };
+      localStorage.setItem('ttsVoiceSettings', JSON.stringify(ttsSettings));
+    } catch (e) {
+      console.error('保存TTS设置失败:', e);
+    }
+    
+    console.log(`TTS音色已更改为: ${voiceId}`);
   };
   
   // 添加翻译 API 设置相关状态
@@ -1845,6 +1858,20 @@ export const SettingsModal = ({
                       const value = e.target.value;
                       setCustomVoiceId(value);
                       localStorage.setItem('aichat_custom_voice_id', value);
+                      
+                      // 如果当前已启用自定义Voice ID，同时更新ttsVoiceSettings
+                      if (useCustomVoice && value.trim() !== '') {
+                        try {
+                          const ttsSettings = {
+                            selectedVoice: value,
+                            isCustomVoice: true,
+                            lastUpdated: Date.now()
+                          };
+                          localStorage.setItem('ttsVoiceSettings', JSON.stringify(ttsSettings));
+                        } catch (e) {
+                          console.error('保存自定义TTS设置失败:', e);
+                        }
+                      }
                     }}
                   />
                   <input 
@@ -1855,6 +1882,20 @@ export const SettingsModal = ({
                       const checked = e.target.checked;
                       setUseCustomVoice(checked);
                       localStorage.setItem('aichat_use_custom_voice', checked ? 'true' : 'false');
+                      
+                      // 更新ttsVoiceSettings以反映当前选择
+                      try {
+                        const ttsSettings = {
+                          selectedVoice: checked && customVoiceId.trim() !== '' 
+                            ? customVoiceId 
+                            : selectedTtsVoice,
+                          isCustomVoice: checked,
+                          lastUpdated: Date.now()
+                        };
+                        localStorage.setItem('ttsVoiceSettings', JSON.stringify(ttsSettings));
+                      } catch (e) {
+                        console.error('更新TTS设置失败:', e);
+                      }
                     }}
                   />
                 </div>

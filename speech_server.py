@@ -14,6 +14,10 @@ import uuid
 import json
 import io
 import glob
+import signal
+import base64
+import traceback
+from logging.handlers import RotatingFileHandler
 
 # 配置日志
 logging.basicConfig(
@@ -610,85 +614,75 @@ def synthesize_text():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api/tts/stop', methods=['POST'])
-def stop_tts():
+def stop_tts_session():
     try:
         data = request.get_json(silent=True) or {}
         session_id = data.get('session_id')
         
         if not session_id:
-            logger.warning('停止TTS请求没有提供会话ID')
             return jsonify({'status': 'error', 'message': '会话ID不能为空'}), 400
             
         logger.info(f'准备停止TTS会话: {session_id}')
-        success = False
         
-        # 关闭回调中的音频流
+        # 检查回调对象是否存在
         if session_id in tts_callbacks:
-            callback = tts_callbacks[session_id]
-            logger.info(f'找到会话 {session_id} 的回调对象')
-            
-            if hasattr(callback, '_stream') and callback._stream:
+            try:
+                callback = tts_callbacks[session_id]
+                logger.info(f'找到会话 {session_id} 的回调对象')
+                
+                # 先关闭音频流
                 try:
-                    callback._stream.stop_stream()
-                    callback._stream.close()
-                    logger.info(f'已关闭音频流: {session_id}')
-                    success = True
+                    if callback._stream:
+                        logger.info(f'已关闭音频流: {session_id}')
+                        callback._stream.stop_stream()
+                        callback._stream.close()
+                        callback._stream = None
                 except Exception as e:
-                    logger.error(f'关闭音频流时出错: {e}')
-                    
-            if hasattr(callback, '_player') and callback._player:
+                    logger.warning(f'关闭音频流出错: {e}')
+                
+                # 再终止播放器
                 try:
-                    callback._player.terminate()
-                    logger.info(f'已终止音频播放器: {session_id}')
-                    success = True
+                    if callback._player:
+                        logger.info(f'已终止音频播放器: {session_id}')
+                        callback._player.terminate()
+                        callback._player = None
                 except Exception as e:
-                    logger.error(f'终止音频播放器时出错: {e}')
-        else:
-            logger.warning(f'未找到会话 {session_id} 的回调对象')
-            
-        # 关闭合成器会话
+                    logger.warning(f'终止音频播放器出错: {e}')
+                
+                # 从回调字典中移除
+                del tts_callbacks[session_id]
+            except Exception as e:
+                logger.error(f'停止TTS回调出错: {e}', exc_info=True)
+        
+        # 检查合成器对象是否存在
         if session_id in tts_sessions:
             try:
                 synthesizer = tts_sessions[session_id]
                 logger.info(f'找到会话 {session_id} 的合成器对象')
                 
-                # 尝试结束流式合成
+                # 安全关闭合成器
                 try:
-                    synthesizer.streaming_complete()
-                    logger.info(f'已完成会话 {session_id} 的流式合成')
-                    success = True
+                    if synthesizer:
+                        # 在新线程中执行finish操作，防止阻塞
+                        def safe_finish():
+                            try:
+                                synthesizer.finish()
+                                logger.info(f'已完成TTS合成任务: {session_id}')
+                            except Exception as e:
+                                logger.warning(f'完成TTS合成任务出错: {e}')
+                        
+                        threading.Thread(target=safe_finish).start()
                 except Exception as e:
-                    logger.error(f'完成流式合成时出错: {e}')
+                    logger.warning(f'关闭TTS合成器出错: {e}')
                 
-                # 删除会话
+                # 从会话字典中移除
                 del tts_sessions[session_id]
-                logger.info(f'已删除合成器会话: {session_id}')
-                success = True
             except Exception as e:
-                logger.error(f'关闭合成器会话时出错: {e}')
-        else:
-            logger.warning(f'未找到会话 {session_id} 的合成器对象')
-            
-        # 清理回调对象
-        if session_id in tts_callbacks:
-            try:
-                del tts_callbacks[session_id]
-                logger.info(f'已删除回调对象: {session_id}')
-                success = True
-            except Exception as e:
-                logger.error(f'删除回调对象时出错: {e}')
-                
-        # 额外检查会话资源是否已被清理
-        is_session_cleared = session_id not in tts_sessions and session_id not in tts_callbacks
+                logger.error(f'停止TTS会话出错: {e}', exc_info=True)
         
-        logger.info(f'TTS会话 {session_id} 清理操作完成，结果: 成功={success}, 资源已清理={is_session_cleared}')
-        
-        return jsonify({
-            'status': 'success' if success or is_session_cleared else 'warning',
-            'message': '已停止并清理TTS会话' if success else '会话可能不存在，但已尝试清理'
-        })
+        return jsonify({'status': 'success'})
     except Exception as e:
-        logger.error(f'停止TTS会话失败: {e}', exc_info=True)
+        logger.error(f'处理停止TTS会话请求出错: {e}', exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # 获取TTS可用音色列表
@@ -739,6 +733,56 @@ def home():
             '/api/tts/voices'
         ]
     })
+
+# 添加TTS会话状态检查端点
+@app.route('/api/tts/status', methods=['POST'])
+def check_tts_session():
+    try:
+        data = request.get_json(silent=True) or {}
+        session_id = data.get('session_id')
+        
+        if not session_id:
+            return jsonify({'status': 'error', 'message': '会话ID不能为空'}), 400
+            
+        # 检查会话是否存在
+        if session_id in tts_sessions and session_id in tts_callbacks:
+            synthesizer = tts_sessions[session_id]
+            callback = tts_callbacks[session_id]
+            
+            # 检查会话状态
+            is_synthesizer_valid = synthesizer is not None
+            is_callback_valid = callback is not None
+            is_initialized = callback.is_initialized if callback else False
+            is_ready = callback.is_ready if callback else False
+            
+            logger.info(f'检查TTS会话状态: {session_id}, 合成器有效={is_synthesizer_valid}, 回调有效={is_callback_valid}, 已初始化={is_initialized}, 已就绪={is_ready}')
+            
+            # 如果会话存在但未初始化，尝试等待一小段时间
+            if is_synthesizer_valid and is_callback_valid and not is_initialized:
+                logger.info(f'会话 {session_id} 存在但未初始化，等待100ms')
+                time.sleep(0.1)
+                is_initialized = callback.is_initialized
+                is_ready = callback.is_ready
+            
+            status = 'active' if is_synthesizer_valid and is_callback_valid else 'invalid'
+            
+            return jsonify({
+                'status': status,
+                'session_id': session_id,
+                'is_synthesizer_valid': is_synthesizer_valid,
+                'is_callback_valid': is_callback_valid,
+                'is_initialized': is_initialized,
+                'is_ready': is_ready
+            })
+        else:
+            return jsonify({
+                'status': 'not_found',
+                'message': '未找到会话'
+            }), 404
+            
+    except Exception as e:
+        logger.error(f'检查TTS会话状态失败: {e}', exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # 关闭时清理资源
 def cleanup():
