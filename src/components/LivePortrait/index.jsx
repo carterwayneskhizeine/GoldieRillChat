@@ -160,9 +160,13 @@ const LivePortrait = ({ storagePath }) => {
 
     try {
       if (ipcAvailable && window.electron && window.electron.ipcRenderer) {
+        // 获取API密钥
+        const apiKey = localStorage.getItem('dashscope_api_key') || null;
+        
         // 通过Electron IPC发送请求
         window.electron.ipcRenderer.send('dashscope-detect', {
-          imageUrl: imageUrl
+          imageUrl: imageUrl,
+          apiKey: apiKey // 传递API密钥
         });
       } else {
         // 回退到直接调用API（可能会有CORS问题）
@@ -245,10 +249,14 @@ const LivePortrait = ({ storagePath }) => {
       });
       
       if (ipcAvailable && window.electron && window.electron.ipcRenderer) {
+        // 获取API密钥
+        const apiKey = localStorage.getItem('dashscope_api_key') || null;
+        
         // 通过Electron IPC发送请求
         window.electron.ipcRenderer.send('dashscope-synthesis', {
           imageUrl: imageUrl,
-          audioUrl: audioUrl
+          audioUrl: audioUrl,
+          apiKey: apiKey // 传递API密钥
         });
       } else {
         // 回退到直接调用API（可能会有CORS问题）
@@ -478,12 +486,16 @@ const LivePortrait = ({ storagePath }) => {
       });
       
       if (ipcAvailable && window.electron && window.electron.ipcRenderer) {
+        // 获取API密钥
+        const apiKey = localStorage.getItem('dashscope_api_key') || null;
+        
         // 通过Electron IPC发送请求
         window.electron.ipcRenderer.send('dashscope-videoretalk', {
           videoUrl: videoUrl,
           audioUrl: audioUrl,
           refImageUrl: refImageUrl,
-          videoExtension: videoExtension
+          videoExtension: videoExtension,
+          apiKey: apiKey // 传递API密钥
         });
       } else {
         // 回退到直接调用API（可能会有CORS问题）

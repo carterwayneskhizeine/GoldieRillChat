@@ -277,6 +277,10 @@ export const SettingsModal = ({
     { value: '720x1280', label: '720×1280 (9:16 竖版)' }
   ];
 
+  // 添加阿里云百炼API相关状态
+  const [dashScopeApiKey, setDashScopeApiKey] = useState('');
+  const [showDashScopeApiKey, setShowDashScopeApiKey] = useState(false);
+
   // 初始化时加载翻译 API 配置
   useEffect(() => {
     const { apiKey, apiHost } = getTranslationApiConfig();
@@ -287,6 +291,16 @@ export const SettingsModal = ({
     const { apiKey: imgApiKey, apiHost: imgApiHost } = getImageGenApiConfig();
     setImageGenApiKey(imgApiKey || '');
     setImageGenApiHost(imgApiHost || '');
+    
+    // 加载翻译API配置
+    const savedTranslationApiKey = localStorage.getItem('translation_deepseek_api_key') || '';
+    const savedTranslationApiHost = localStorage.getItem('translation_deepseek_api_host') || '';
+    setTranslationApiKey(savedTranslationApiKey);
+    setTranslationApiHost(savedTranslationApiHost);
+    
+    // 加载阿里云百炼API配置
+    const savedDashScopeApiKey = localStorage.getItem('dashscope_api_key') || '';
+    setDashScopeApiKey(savedDashScopeApiKey);
   }, []);
   
   // 初始化滑动条进度效果
@@ -708,6 +722,24 @@ export const SettingsModal = ({
   const [useCustomVoice, setUseCustomVoice] = useState(() => 
     localStorage.getItem('aichat_use_custom_voice') === 'true'
   );
+
+  // 处理阿里云百炼API密钥变更
+  const handleDashScopeApiKeyChange = (value) => {
+    setDashScopeApiKey(value);
+    localStorage.setItem('dashscope_api_key', value);
+  };
+  
+  // 处理阿里云百炼API密钥粘贴
+  const handleDashScopeApiKeyPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        handleDashScopeApiKeyChange(text);
+      }
+    } catch (error) {
+      console.error('无法粘贴内容:', error);
+    }
+  };
 
   return (
     <div className="fixed inset-0 settings-modal-backdrop flex items-center justify-center z-50">
@@ -1902,6 +1934,53 @@ export const SettingsModal = ({
                 <label className="label">
                   <span className="label-text-alt">勾选后将使用此ID，而非下拉菜单中的音色</span>
                 </label>
+              </div>
+
+              {/* 阿里云百炼API设置 */}
+              <div className="divider my-6"></div>
+              <div className="space-y-4 px-0">
+                <h3 className="text-lg font-medium">阿里云百炼API设置</h3>
+                
+                {/* 阿里云百炼API密钥 */}
+                <div className="mb-4">
+                  <div className="form-control w-full max-w-none">
+                    <label className="label">
+                      <span className="label-text font-medium text-base">阿里云百炼API密钥</span>
+                    </label>
+                    <div className="input-group w-full max-w-none flex">
+                      <input
+                        type={showDashScopeApiKey ? "text" : "password"}
+                        className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
+                        value={dashScopeApiKey}
+                        onChange={(e) => handleDashScopeApiKeyChange(e.target.value)}
+                        placeholder="请输入阿里云百炼API密钥..."
+                      />
+                      <button 
+                        type="button"
+                        className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
+                        onClick={handleDashScopeApiKeyPaste}
+                        title="点击粘贴"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
+                        onClick={() => setShowDashScopeApiKey(!showDashScopeApiKey)}
+                        title={showDashScopeApiKey ? "隐藏密钥" : "显示密钥"}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showDashScopeApiKey ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"} />
+                        </svg>
+                      </button>
+                    </div>
+                    <label className="label">
+                      <span className="label-text-alt text-opacity-70">用于语音识别、声动/灵动人像等阿里云百炼功能</span>
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

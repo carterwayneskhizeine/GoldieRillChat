@@ -307,27 +307,27 @@ app.whenReady().then(async () => {
 
   // 添加阿里云百炼API相关IPC处理程序
   ipcMain.on('dashscope-detect', async (event, params) => {
-    const { imageUrl } = params;
-    const result = await proxyDashscopeDetect(null, imageUrl);
+    const { imageUrl, apiKey } = params;
+    const result = await proxyDashscopeDetect(apiKey, imageUrl);
     event.sender.send('dashscope-detect-response', result);
   });
 
   ipcMain.on('dashscope-synthesis', async (event, params) => {
-    const { imageUrl, audioUrl } = params;
-    const result = await proxyDashscopeSynthesis(null, imageUrl, audioUrl);
+    const { imageUrl, audioUrl, apiKey } = params;
+    const result = await proxyDashscopeSynthesis(apiKey, imageUrl, audioUrl);
     event.sender.send('dashscope-synthesis-response', result);
   });
 
   ipcMain.on('dashscope-poll-task', (event, params) => {
-    const { taskId } = params;
+    const { taskId, apiKey } = params;
     // 启动轮询
-    pollTaskStatus(taskId, null, event.sender);
+    pollTaskStatus(taskId, apiKey, event.sender);
   });
   
   // 添加声动人像VideoRetalk的IPC处理
   ipcMain.on('dashscope-videoretalk', async (event, params) => {
-    const { videoUrl, audioUrl, refImageUrl, videoExtension } = params;
-    const result = await proxyDashscopeVideoRetalk(null, videoUrl, audioUrl, refImageUrl, videoExtension);
+    const { videoUrl, audioUrl, refImageUrl, videoExtension, apiKey } = params;
+    const result = await proxyDashscopeVideoRetalk(apiKey, videoUrl, audioUrl, refImageUrl, videoExtension);
     event.sender.send('dashscope-videoretalk-response', result);
   });
 })
@@ -3283,29 +3283,50 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
 
 // 添加获取环境变量API密钥的函数
 function getDashscopeApiKey() {
-  // 首先尝试从环境变量获取
-  const apiKey = process.env.DASHSCOPE_API_KEY;
-  
-  if (!apiKey) {
-    console.error('警告: 未设置DASHSCOPE_API_KEY环境变量');
-    return '';
+  // 首先尝试从localStorage获取API密钥
+  const storedApiKey = global.localStorage?.getItem('dashscope_api_key');
+  if (storedApiKey) {
+    return storedApiKey;
   }
   
-  return apiKey;
+  // 如果localStorage中没有，尝试从环境变量获取
+  if (process.env.DASHSCOPE_API_KEY) {
+    return process.env.DASHSCOPE_API_KEY;
+  }
+  
+  // 最后尝试从配置文件获取
+  const envPath = path.join(__dirname, '../.env.local');
+  if (fs.existsSync(envPath)) {
+    try {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const match = content.match(/DASHSCOPE_API_KEY=(.+)/);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    } catch (error) {
+      console.error('读取配置文件失败:', error.message);
+    }
+  }
+  
+  return null;
 }
 
 async function proxyDashscopeDetect(apiKey, imageUrl) {
   try {
-    // 从环境变量获取API密钥
-    const dashscopeApiKey = getDashscopeApiKey();
+    // 优先使用传入的API密钥，如果没有则获取默认的API密钥
+    const key = apiKey || getDashscopeApiKey();
     
-    if (!dashscopeApiKey) {
-      return {
-        success: false,
-        error: '未设置阿里云API密钥环境变量(DASHSCOPE_API_KEY)'
-      };
+    if (!key) {
+      return { error: '未配置阿里云百炼API密钥，请在设置页面配置' };
     }
     
+    // 设置请求头
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`
+    };
+    
+    // 发送API请求
     const response = await axios.post(
       'https://dashscope.aliyuncs.com/api/v1/services/aigc/image2video/face-detect',
       {
@@ -3314,36 +3335,36 @@ async function proxyDashscopeDetect(apiKey, imageUrl) {
           image_url: imageUrl
         }
       },
-      {
-        headers: {
-          'Authorization': `Bearer ${dashscopeApiKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
+      { headers }
     );
     
-    return { success: true, ...response.data };
+    return { output: response.data.output };
   } catch (error) {
-    console.error('代理阿里云百炼API请求失败:', error);
-    return {
-      success: false,
-      error: error.response?.data?.message || error.message 
+    console.error('百炼API请求失败:', error.message, error.response?.data);
+    return { 
+      error: error.response?.data?.message || error.message,
+      code: error.response?.status
     };
   }
 }
 
 async function proxyDashscopeSynthesis(apiKey, imageUrl, audioUrl) {
   try {
-    // 从环境变量获取API密钥
-    const dashscopeApiKey = getDashscopeApiKey();
+    // 优先使用传入的API密钥，如果没有则获取默认的API密钥
+    const key = apiKey || getDashscopeApiKey();
     
-    if (!dashscopeApiKey) {
-      return {
-        success: false,
-        error: '未设置阿里云API密钥环境变量(DASHSCOPE_API_KEY)'
-      };
+    if (!key) {
+      return { error: '未配置阿里云百炼API密钥，请在设置页面配置' };
     }
     
+    // 设置请求头
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`,
+      'X-DashScope-Async': 'enable'
+    };
+    
+    // 发送API请求
     const response = await axios.post(
       'https://dashscope.aliyuncs.com/api/v1/services/aigc/image2video/video-synthesis/',
       {
@@ -3361,94 +3382,93 @@ async function proxyDashscopeSynthesis(apiKey, imageUrl, audioUrl) {
           head_move_strength: 0.7
         }
       },
-      {
-        headers: {
-          'Authorization': `Bearer ${dashscopeApiKey}`,
-          'Content-Type': 'application/json',
-          'X-DashScope-Async': 'enable'
-        }
-      }
+      { headers }
     );
     
-    return { success: true, ...response.data };
+    return { output: response.data.output };
   } catch (error) {
-    console.error('代理阿里云百炼API请求失败:', error);
-    return {
-      success: false,
-      error: error.response?.data?.message || error.message 
+    console.error('百炼API请求失败:', error.message, error.response?.data);
+    return { 
+      error: error.response?.data?.message || error.message,
+      code: error.response?.status
     };
   }
 }
 
 async function proxyDashscopeTaskStatus(apiKey, taskId) {
   try {
-    // 从环境变量获取API密钥
-    const dashscopeApiKey = getDashscopeApiKey();
+    // 优先使用传入的API密钥，如果没有则获取默认的API密钥
+    const key = apiKey || getDashscopeApiKey();
     
-    if (!dashscopeApiKey) {
-      return {
-        success: false,
-        error: '未设置阿里云API密钥环境变量(DASHSCOPE_API_KEY)'
-      };
+    if (!key) {
+      return { error: '未配置阿里云百炼API密钥，请在设置页面配置' };
     }
     
-    console.log(`正在查询任务状态，任务ID: ${taskId}, API Key前几位: ${dashscopeApiKey.substring(0, 5)}...`);
+    // 设置请求头
+    const headers = {
+      'Authorization': `Bearer ${key}`
+    };
     
+    // 查询任务状态
     const response = await axios.get(
       `https://dashscope.aliyuncs.com/api/v1/tasks/${taskId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${dashscopeApiKey}`
-        }
-      }
+      { headers }
     );
     
-    // 输出完整响应结构，帮助调试
-    console.log('任务状态查询响应:', JSON.stringify(response.data, null, 2));
-    
-    return { success: true, ...response.data };
+    return { output: response.data.output };
   } catch (error) {
-    console.error('代理阿里云任务状态请求失败:', error);
-    return {
-      success: false,
-      error: error.response?.data?.message || error.message 
+    console.error('查询任务状态失败:', error.message, error.response?.data);
+    return { 
+      error: error.response?.data?.message || error.message,
+      code: error.response?.status
     };
   }
 }
 
-// 轮询任务状态的辅助函数
+// 轮询任务状态的函数
 function pollTaskStatus(taskId, apiKey, webContents) {
   setTimeout(async () => {
-    const result = await proxyDashscopeTaskStatus(apiKey, taskId);
-    
-    if (result.success) {
-      webContents.send('dashscope-task-status', result);
+    try {
+      const result = await proxyDashscopeTaskStatus(apiKey, taskId);
       
-      const status = result.output.task_status;
-      if (status !== 'SUCCEEDED' && status !== 'FAILED') {
-        // 继续轮询
+      // 向渲染进程发送状态更新
+      if (webContents && !webContents.isDestroyed()) {
+        webContents.send('dashscope-task-status', result);
+      }
+      
+      // 如果任务还在进行中，继续轮询
+      if (
+        result.output && 
+        (result.output.task_status === 'PENDING' || result.output.task_status === 'RUNNING')
+      ) {
         pollTaskStatus(taskId, apiKey, webContents);
       }
-    } else {
-      webContents.send('dashscope-task-status', {
-        error: result.error
-      });
+    } catch (error) {
+      console.error('轮询任务状态失败:', error);
+      if (webContents && !webContents.isDestroyed()) {
+        webContents.send('dashscope-task-status', { 
+          error: error.message
+        });
+      }
     }
-  }, 5000); // 每5秒检查一次
+  }, 5000); // 5秒轮询一次
 }
 
-// 添加VideoRetalk代理函数
 async function proxyDashscopeVideoRetalk(apiKey, videoUrl, audioUrl, refImageUrl = '', videoExtension = false) {
   try {
-    // 从环境变量获取API密钥
-    const dashscopeApiKey = getDashscopeApiKey();
+    // 优先使用传入的API密钥，如果没有则获取默认的API密钥
+    const key = apiKey || getDashscopeApiKey();
     
-    if (!dashscopeApiKey) {
-      return {
-        success: false,
-        error: '未设置阿里云API密钥环境变量(DASHSCOPE_API_KEY)'
-      };
+    if (!key) {
+      return { error: '未配置阿里云百炼API密钥，请在设置页面配置' };
     }
+    
+    // 设置请求头
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`,
+      'X-DashScope-Async': 'enable'
+    };
     
     // 准备请求数据
     const requestData = {
@@ -3467,24 +3487,19 @@ async function proxyDashscopeVideoRetalk(apiKey, videoUrl, audioUrl, refImageUrl
       requestData.input.ref_image_url = refImageUrl;
     }
     
+    // 发送API请求
     const response = await axios.post(
       'https://dashscope.aliyuncs.com/api/v1/services/aigc/image2video/video-synthesis/',
       requestData,
-      {
-        headers: {
-          'Authorization': `Bearer ${dashscopeApiKey}`,
-          'Content-Type': 'application/json',
-          'X-DashScope-Async': 'enable'
-        }
-      }
+      { headers }
     );
     
-    return { success: true, ...response.data };
+    return { output: response.data.output };
   } catch (error) {
-    console.error('代理阿里云VideoRetalk API请求失败:', error);
-    return {
-      success: false,
-      error: error.response?.data?.message || error.message 
+    console.error('VideoRetalk API请求失败:', error.message, error.response?.data);
+    return { 
+      error: error.response?.data?.message || error.message,
+      code: error.response?.status
     };
   }
 }

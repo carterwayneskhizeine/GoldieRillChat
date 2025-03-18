@@ -60,40 +60,58 @@ stream = None
 def init_dashscope_api_key():
     """
     初始化DashScope API密钥
-    优先从环境变量中获取，如果没有则使用默认值
+    1. 优先从localStorage文件读取
+    2. 然后尝试从环境变量读取
+    3. 最后尝试从.env.local文件读取
     """
-    if 'DASHSCOPE_API_KEY' in os.environ:
-        api_key = os.environ['DASHSCOPE_API_KEY']
-        # 检查API密钥格式
-        if api_key and len(api_key) > 10:  # 简单长度检查
-            dashscope.api_key = api_key
-            logger.info('从环境变量中加载DASHSCOPE_API_KEY')
-            # 遮盖API密钥前后部分
-            masked_key = api_key[:4] + '****' + api_key[-4:] if len(api_key) > 8 else '********'
-            logger.debug(f'API密钥格式: {masked_key}')
-            return True
-        else:
-            logger.warning('环境变量中的DASHSCOPE_API_KEY格式可能不正确')
+    global api_key
     
-    # 如果环境变量中没有有效的API密钥，尝试从配置文件加载
-    config_path = os.path.join(os.path.dirname(__file__), '.env.local')
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, 'r') as f:
-                for line in f:
-                    if line.startswith('DASHSCOPE_API_KEY='):
-                        api_key = line.strip().split('=', 1)[1]
-                        if api_key and len(api_key) > 10:
-                            dashscope.api_key = api_key
-                            logger.info('从配置文件加载DASHSCOPE_API_KEY')
-                            return True
-        except Exception as e:
-            logger.error(f'从配置文件加载API密钥失败: {e}')
-    
-    # 使用默认值（不推荐）
-    dashscope.api_key = '<your-dashscope-api-key>'
-    logger.warning('使用默认API密钥，请替换为您自己的API密钥')
-    return False
+    try:
+        # 1. 首先尝试从localStorage文件读取
+        # 获取localStorage文件路径
+        user_path = get_user_storage_path()
+        localStorage_path = os.path.join(user_path, 'localStorage')
+        
+        if os.path.exists(localStorage_path):
+            try:
+                with open(localStorage_path, 'r', encoding='utf-8') as f:
+                    localStorage_content = f.read()
+                    # 尝试解析localStorage内容，查找dashscope_api_key
+                    import re
+                    match = re.search(r'"dashscope_api_key":\s*"([^"]+)"', localStorage_content)
+                    if match:
+                        api_key = match.group(1)
+                        print("从localStorage加载API密钥成功")
+                        return api_key
+            except Exception as e:
+                print(f"从localStorage读取API密钥失败: {e}")
+        
+        # 2. 尝试从环境变量读取
+        if 'DASHSCOPE_API_KEY' in os.environ:
+            api_key = os.environ['DASHSCOPE_API_KEY']
+            print("从环境变量加载API密钥成功")
+            return api_key
+            
+        # 3. 尝试从.env.local文件读取
+        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env.local')
+        if os.path.exists(env_path):
+            try:
+                with open(env_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        if line.startswith('DASHSCOPE_API_KEY='):
+                            api_key = line.strip().split('=', 1)[1]
+                            print("从.env.local文件加载API密钥成功")
+                            return api_key
+            except Exception as e:
+                print(f"从.env.local读取API密钥失败: {e}")
+                
+        # 如果都没有找到API密钥，使用默认值
+        print("警告: 未找到阿里云百炼API密钥，语音功能可能无法正常工作")
+        return "<your-dashscope-api-key>"
+        
+    except Exception as e:
+        print(f"初始化API密钥时发生错误: {e}")
+        return "<your-dashscope-api-key>"
 
 # 获取用户选择的存储目录
 def get_user_storage_path():
