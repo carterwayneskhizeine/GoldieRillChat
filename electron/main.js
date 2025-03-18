@@ -6,7 +6,6 @@ const fsSync = require('fs')  // 添加同步版本的 fs 模块
 const BrowserLikeWindow = require('electron-as-browser')
 const axios = require('axios') // 添加axios用于图片下载
 const crypto = require('crypto') // 添加crypto用于生成文件名
-const { spawn } = require('child_process')
 
 let mainWindow = null
 let browserWindow = null
@@ -97,121 +96,8 @@ async function ensureIconAvailable() {
   }
 }
 
-// 存储Python服务进程的引用
-let pythonProcess = null
-let pythonServiceReady = false
-const pythonServicePort = 5000
-
-// 启动Python服务函数
-function startPythonService() {
-  try {
-    // 获取可执行文件路径（区分开发环境和生产环境）
-    const isProduction = process.env.NODE_ENV === 'production'
-    let pythonExecutable
-    
-    if (isProduction) {
-      // 生产环境中，可执行文件位于resources目录
-      pythonExecutable = path.join(process.resourcesPath, 'speech_server.exe')
-    } else {
-      // 开发环境中，使用项目目录中的可执行文件
-      pythonExecutable = path.join(__dirname, '../dist/speech_server.exe')
-    }
-    
-    console.log(`启动Python服务，路径: ${pythonExecutable}`)
-    
-    // 检查文件是否存在
-    if (!fsSync.existsSync(pythonExecutable)) {
-      console.error(`Python服务可执行文件不存在: ${pythonExecutable}`)
-      return false
-    }
-    
-    // 在启动Python服务前，确保API密钥已写入文件供Python服务读取
-    updatePythonConfigFile()
-    
-    // 启动Python服务
-    pythonProcess = spawn(pythonExecutable)
-    
-    // 处理Python服务输出
-    pythonProcess.stdout.on('data', (data) => {
-      const output = data.toString().trim()
-      console.log(`Python服务输出: ${output}`)
-      
-      // 检测服务是否已准备好
-      if (output.includes('* Running on')) {
-        pythonServiceReady = true
-        console.log('Python语音服务已准备就绪')
-      }
-    })
-    
-    pythonProcess.stderr.on('data', (data) => {
-      console.error(`Python服务错误: ${data}`)
-    })
-    
-    // 服务终止时的处理
-    pythonProcess.on('close', (code) => {
-      console.log(`Python服务已关闭，退出码 ${code}`)
-      pythonProcess = null
-      pythonServiceReady = false
-    })
-    
-    // 处理启动错误
-    pythonProcess.on('error', (err) => {
-      console.error(`Python服务启动错误: ${err.message}`)
-      pythonProcess = null
-      pythonServiceReady = false
-    })
-    
-    return true
-  } catch (error) {
-    console.error(`启动Python服务失败: ${error.message}`)
-    return false
-  }
-}
-
-// 更新Python配置文件
-function updatePythonConfigFile() {
-  try {
-    const userDataPath = app.getPath('userData')
-    const apiKeyFilePath = path.join(userDataPath, 'dashscope_api_key.txt')
-    
-    // 从localStorage获取API密钥
-    const apiKey = global.localStorage?.getItem('dashscope_api_key') || 
-                   process.env.DASHSCOPE_API_KEY || 
-                   ''
-    
-    // 写入文件供Python读取
-    fsSync.writeFileSync(apiKeyFilePath, apiKey, 'utf8')
-    console.log(`已将API密钥写入: ${apiKeyFilePath}`)
-    
-    // 创建配置文件供Python服务读取存储路径
-    const configFilePath = path.join(userDataPath, 'user_config.json')
-    const config = {
-      storagePath: userDataPath
-    }
-    fsSync.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8')
-    
-    return true
-  } catch (error) {
-    console.error(`更新Python配置文件失败: ${error.message}`)
-    return false
-  }
-}
-
-// 停止Python服务
-function stopPythonService() {
-  if (pythonProcess) {
-    console.log('正在关闭Python服务...')
-    pythonProcess.kill()
-    pythonProcess = null
-    pythonServiceReady = false
-  }
-}
-
 // Register file protocol and initialize app
 app.whenReady().then(async () => {
-  // 启动Python服务
-  startPythonService()
-  
   // 确保图标文件可用
   await ensureIconAvailable();
   
@@ -444,11 +330,6 @@ app.whenReady().then(async () => {
     const result = await proxyDashscopeVideoRetalk(apiKey, videoUrl, audioUrl, refImageUrl, videoExtension);
     event.sender.send('dashscope-videoretalk-response', result);
   });
-
-  // 监听API密钥变更，更新配置文件
-  ipcMain.on('dashscope-api-key-changed', () => {
-    updatePythonConfigFile()
-  })
 })
 
 // Handle folder selection
@@ -3187,8 +3068,7 @@ async function resetDefaultShaderPreset() {
 app.on('will-quit', () => {
   // 取消注册所有快捷键
   globalShortcut.unregisterAll();
-  stopPythonService()
-})
+});
 
 // 添加目录选择功能
 ipcMain.handle('select-directory', async () => {

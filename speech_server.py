@@ -60,31 +60,17 @@ stream = None
 def init_dashscope_api_key():
     """
     初始化DashScope API密钥
-    1. 优先从应用数据目录中的专用文件读取
-    2. 然后尝试从localStorage文件读取
-    3. 再尝试从环境变量读取
-    4. 最后尝试从.env.local文件读取
+    1. 优先从localStorage文件读取
+    2. 然后尝试从环境变量读取
+    3. 最后尝试从.env.local文件读取
     """
     global api_key
     
     try:
-        # 1. 首先尝试从应用数据目录中的专用文件读取
+        # 1. 首先尝试从localStorage文件读取
+        # 获取localStorage文件路径
         user_path = get_user_storage_path()
-        api_key_file_path = os.path.join(os.path.dirname(user_path), 'dashscope_api_key.txt')
-        
-        if os.path.exists(api_key_file_path):
-            try:
-                with open(api_key_file_path, 'r', encoding='utf-8') as f:
-                    api_key = f.read().strip()
-                    if api_key:
-                        dashscope.api_key = api_key
-                        print(f"从应用数据目录加载API密钥成功: {api_key[:4]}...{api_key[-4:] if len(api_key) > 8 else ''}")
-                        return api_key
-            except Exception as e:
-                print(f"从应用数据目录读取API密钥失败: {e}")
-        
-        # 2. 尝试从localStorage文件读取
-        localStorage_path = os.path.join(os.path.dirname(user_path), 'localStorage')
+        localStorage_path = os.path.join(user_path, 'localStorage')
         
         if os.path.exists(localStorage_path):
             try:
@@ -95,20 +81,18 @@ def init_dashscope_api_key():
                     match = re.search(r'"dashscope_api_key":\s*"([^"]+)"', localStorage_content)
                     if match:
                         api_key = match.group(1)
-                        dashscope.api_key = api_key
-                        print(f"从localStorage加载API密钥成功: {api_key[:4]}...{api_key[-4:] if len(api_key) > 8 else ''}")
+                        print("从localStorage加载API密钥成功")
                         return api_key
             except Exception as e:
                 print(f"从localStorage读取API密钥失败: {e}")
         
-        # 3. 尝试从环境变量读取
+        # 2. 尝试从环境变量读取
         if 'DASHSCOPE_API_KEY' in os.environ:
             api_key = os.environ['DASHSCOPE_API_KEY']
-            dashscope.api_key = api_key
-            print(f"从环境变量加载API密钥成功: {api_key[:4]}...{api_key[-4:] if len(api_key) > 8 else ''}")
+            print("从环境变量加载API密钥成功")
             return api_key
             
-        # 4. 尝试从.env.local文件读取
+        # 3. 尝试从.env.local文件读取
         env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env.local')
         if os.path.exists(env_path):
             try:
@@ -116,8 +100,7 @@ def init_dashscope_api_key():
                     for line in f:
                         if line.startswith('DASHSCOPE_API_KEY='):
                             api_key = line.strip().split('=', 1)[1]
-                            dashscope.api_key = api_key
-                            print(f"从.env.local文件加载API密钥成功: {api_key[:4]}...{api_key[-4:] if len(api_key) > 8 else ''}")
+                            print("从.env.local文件加载API密钥成功")
                             return api_key
             except Exception as e:
                 print(f"从.env.local读取API密钥失败: {e}")
@@ -134,54 +117,22 @@ def init_dashscope_api_key():
 def get_user_storage_path():
     """获取用户在设置中选择的存储路径"""
     try:
-        # 首先尝试从应用程序数据目录读取配置
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # 确定应用数据目录位置
-        # 在开发环境和生产环境中，路径可能不同
-        # 首先尝试获取当前目录下的user_config.json
-        config_path = os.path.join(script_dir, 'user_config.json')
-        
-        # 如果在应用根目录找不到，尝试从固定位置找
-        if not os.path.exists(config_path):
-            # 尝试从不同的操作系统用户数据目录读取
-            if os.name == 'nt':  # Windows
-                appdata = os.environ.get('APPDATA', '')
-                if appdata:
-                    config_path = os.path.join(appdata, 'goldie-rill-chat', 'user_config.json')
-            else:  # macOS/Linux
-                home = os.path.expanduser('~')
-                if os.name == 'posix':  # macOS
-                    config_path = os.path.join(home, 'Library', 'Application Support', 'goldie-rill-chat', 'user_config.json')
-                else:  # Linux
-                    config_path = os.path.join(home, '.config', 'goldie-rill-chat', 'user_config.json')
-        
-        print(f"尝试读取配置文件: {config_path}")
-        
+        config_path = os.path.join(os.path.dirname(__file__), 'user_config.json')
         if os.path.exists(config_path):
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
                 if 'storagePath' in config and config['storagePath']:
+                    # 确保路径存在
                     storage_path = config['storagePath']
                     audio_path = os.path.join(storage_path, 'audio_output')
-                    # 确保路径存在
-                    os.makedirs(audio_path, exist_ok=True)
+                    if not os.path.exists(audio_path):
+                        os.makedirs(audio_path)
                     logger.info(f'使用用户存储路径: {audio_path}')
                     return audio_path
     except Exception as e:
         logger.error(f'获取用户存储路径失败: {e}')
     
-    # 如果没有找到配置或出错，使用应用程序目录创建音频输出目录
-    try:
-        app_dir = os.path.dirname(os.path.abspath(__file__))
-        audio_path = os.path.join(app_dir, 'audio_output')
-        os.makedirs(audio_path, exist_ok=True)
-        logger.info(f'使用应用程序目录作为存储路径: {audio_path}')
-        return audio_path
-    except Exception as e:
-        logger.error(f'创建默认音频目录失败: {e}')
-        
-    # 最后的回退方案，使用预定义常量
+    # 如果没有用户设置的路径或出错，返回默认路径
     logger.info(f'使用默认存储路径: {TTS_OUTPUT_DIR}')
     return TTS_OUTPUT_DIR
 

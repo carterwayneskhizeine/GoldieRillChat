@@ -727,11 +727,6 @@ export const SettingsModal = ({
   const handleDashScopeApiKeyChange = (value) => {
     setDashScopeApiKey(value);
     localStorage.setItem('dashscope_api_key', value);
-    
-    // 通知主进程API密钥已更改，以便更新配置文件
-    if (window.electron && window.electron.ipcRenderer) {
-      window.electron.ipcRenderer.send('dashscope-api-key-changed');
-    }
   };
   
   // 处理阿里云百炼API密钥粘贴
