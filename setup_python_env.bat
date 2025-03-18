@@ -1,85 +1,85 @@
 @echo on
-title Python环境安装
+title Python Environment Setup
 setlocal enabledelayedexpansion
 
 echo =============================================
-echo 正在创建Python虚拟环境...
+echo Creating Python virtual environment...
 echo =============================================
 
-:: 检查Python是否已安装
-echo 检查Python安装...
+:: Check if Python is installed
+echo Checking Python installation...
 where python >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-  echo 错误：未检测到Python，请安装Python 3.7或更高版本。
-  echo Python可能没有添加到系统PATH中。
+  echo Error: Python not detected, please install Python 3.7 or higher.
+  echo Python may not be added to system PATH.
   pause
   exit /b 1
 )
 
-:: 显示Python版本
+:: Display Python version
 python --version
 if %ERRORLEVEL% NEQ 0 (
-  echo Python版本检查失败，请确认Python安装正确。
+  echo Python version check failed, please confirm Python is installed correctly.
   pause
   exit /b 1
 )
 
-:: 检查虚拟环境文件夹是否已存在
+:: Check if virtual environment folder exists
 if exist python_env (
-  echo python_env文件夹已存在，是否删除并重新创建？(Y/N)
+  echo python_env folder already exists, delete and recreate? (Y/N)
   set /p answer=
   if /i "!answer!"=="Y" (
-    echo 删除现有环境...
+    echo Deleting existing environment...
     rmdir /s /q python_env
   ) else (
-    echo 保留现有环境，将尝试更新依赖...
+    echo Keeping existing environment, will try to update dependencies...
     goto install_deps
   )
 )
 
-:: 创建虚拟环境
-echo 创建虚拟环境文件夹...
+:: Create virtual environment
+echo Creating virtual environment folder...
 python -m venv python_env
 if %ERRORLEVEL% NEQ 0 (
-  echo 创建虚拟环境失败，请检查Python venv模块是否可用。
-  echo 尝试安装venv模块: pip install virtualenv
+  echo Failed to create virtual environment, please check if Python venv module is available.
+  echo Try installing venv module: pip install virtualenv
   pause
   exit /b 1
 )
 
 :install_deps
-:: 激活环境并安装依赖
+:: Activate environment and install dependencies
 echo =============================================
-echo 安装依赖...
+echo Installing dependencies...
 echo =============================================
 
 if not exist requirements.txt (
-  echo 错误: requirements.txt不存在，请确保文件在当前目录。
+  echo Error: requirements.txt not found, please ensure file is in current directory.
   pause
   exit /b 1
 )
 
 call python_env\Scripts\activate.bat
 if %ERRORLEVEL% NEQ 0 (
-  echo 激活虚拟环境失败。
+  echo Failed to activate virtual environment.
   pause
   exit /b 1
 )
 
-echo 当前使用的Python: 
+echo Current Python path: 
 where python
 
-echo 安装依赖中...请稍候...
+echo Installing dependencies... Please wait...
 pip install -r requirements.txt
 if %ERRORLEVEL% NEQ 0 (
-  echo 安装依赖失败，请检查requirements.txt文件是否正确。
-  echo 错误代码: %ERRORLEVEL%
+  echo Failed to install dependencies, please check requirements.txt file.
+  echo Error code: %ERRORLEVEL%
   pause
   exit /b 1
 )
 
 echo =============================================
-echo Python虚拟环境设置完成！
-echo 现在可以运行start.bat启动应用程序。
+echo Python virtual environment setup complete!
+echo You can now run start.bat to launch the application.
 echo =============================================
 pause

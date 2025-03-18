@@ -1,9 +1,9 @@
 @echo off
-echo 更新Python虚拟环境...
+echo Updating Python virtual environment...
 
-:: 激活环境并更新依赖
+:: Activate environment and update dependencies
 call python_env\Scripts\activate.bat
 pip install -r requirements.txt --upgrade
 
-echo Python虚拟环境更新完成！
+echo Python virtual environment update complete!
 pause
