@@ -1,5 +1,5 @@
 // 工具列表配置
-export const tools = ['threejs-shaders', 'browser', 'aichat', 'chat', 'monaco', 'embedding', 'liveportrait']
+export const tools = ['threejs-shaders', 'browser', 'aichat', 'chat', 'monaco', 'embedding']
 
 // 工具显示名称映射
 export const toolDisplayNames = {
@@ -9,8 +9,7 @@ export const toolDisplayNames = {
   monaco: 'Monaco Editor',
   editor: 'Image Editor',
   'threejs-shaders': 'ThreeJS Shaders',
-  embedding: 'Embedding',
-  liveportrait: '灵动人像'
+  embedding: 'Embedding'
 }
 
 // 获取工具显示名称的函数
@@ -31,3 +30,19 @@ export const createToolSwitcher = (setActiveTool) => {
     })
   }
 } 
+
+
+// 工具列表配置
+//export const tools = ['threejs-shaders', 'browser', 'aichat', 'chat', 'monaco', 'embedding', 'liveportrait']
+
+// 工具显示名称映射
+//export const toolDisplayNames = {
+//  browser: 'Browser',
+//  aichat: 'AI Chat',
+//  chat: 'Chat',
+//  monaco: 'Monaco Editor',
+//  editor: 'Image Editor',
+//  'threejs-shaders': 'ThreeJS Shaders',
+//  embedding: 'Embedding',
+//  liveportrait: '灵动人像'
+//}
