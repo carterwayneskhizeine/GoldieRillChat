@@ -808,13 +808,21 @@ def cleanup():
     stop_thread.set()
     logger.info("服务器关闭，清理资源...")
 
-if __name__ == '__main__':
-    logger.info('正在启动语音识别服务器...')
+# 合并为一个统一的入口点
+if __name__ == "__main__":
     try:
-        # 确保监听所有接口，而不仅是localhost
-        app.run(host='0.0.0.0', port=2047, debug=False, threaded=True)
+        logger.info('正在启动语音识别服务器...')
+        print(f"阿里云百炼语音服务正在启动，监听端口: {PORT}")
+        print(f"请确保Electron应用配置使用相同的端口: {PORT}")
+        print(f"API状态: {'已配置' if api_key != '<your-dashscope-api-key>' else '未配置'}")
+        print("="*50)
+        # 启动Flask应用
+        app.run(host='127.0.0.1', port=PORT, debug=False, threaded=True)
+    except KeyboardInterrupt:
+        print("\n服务已手动停止")
+        logger.info("服务已手动停止")
     except Exception as e:
+        print(f"服务启动失败: {e}")
         logger.error(f'启动服务器失败: {e}')
     finally:
         cleanup()
-        sys.exit(1) 
