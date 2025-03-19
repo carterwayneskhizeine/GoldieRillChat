@@ -1,3 +1,20 @@
+在片段着色器Fragment Shader中使用 u_intensity 值来控制视觉效果，例如：
+
+```glsl
+   // 噪声计算    
+   float noiseScale = 2.0 + u_intensity * 1.5;
+   
+   // 最终颜色计算
+   float finalColor = mix(    
+       mix(baseColor, color2, n),    
+       activeColor,    
+       u_intensity * 0.3    
+   );
+   
+   // 透明度计算
+   float alpha = 0.7 + 0.15 * sin(u_time + distortedUV.y * 3.0) + u_intensity * 0.15;
+```
+
 ThreeJS_Shaders AI提问示例，使用Ctrl+Shift+i打开Console控制台查看Shader报错返回给AI修改代码直到成功：
 
 按照以下格式，帮我写一个 DVD 形状的圆环在电视机上四处弹跳的经典效果。具体要求如下：

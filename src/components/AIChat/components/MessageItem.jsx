@@ -140,6 +140,7 @@ export const MessageItem = ({
   const [isCopied, setIsCopied] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [forceRerender, setForceRerender] = useState(0);
   const [isImageOverlayOpen, setIsImageOverlayOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -2533,38 +2534,92 @@ export const MessageItem = ({
               {/* 编辑器头部 */}
               <div className="flex-none message-editor-toolbar flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {/* 语言选择 */}
-                  <select 
-                    className="select select-bordered select-sm"
-                    value={editorLanguage}
-                    onChange={(e) => setEditorLanguage(e.target.value)}
-                  >
-                    <option value="plaintext">plaintext</option>
-                    <option value="javascript">javascript</option>
-                    <option value="typescript">typescript</option>
-                    <option value="python">python</option>
-                    <option value="java">java</option>
-                    <option value="cpp">cpp</option>
-                    <option value="csharp">csharp</option>
-                    <option value="html">html</option>
-                    <option value="css">css</option>
-                    <option value="json">json</option>
-                    <option value="markdown">markdown</option>
-                    <option value="sql">sql</option>
-                    <option value="xml">xml</option>
-                    <option value="yaml">yaml</option>
-                  </select>
+                  {/* 语言选择 - 自定义下拉菜单 */}
+                  <div className="relative">
+                    <button
+                      className="select select-bordered select-sm flex items-center justify-between min-w-[120px]"
+                      onClick={() => setMenuOpen(!menuOpen)}
+                    >
+                      <span>{editorLanguage}</span>
+                    </button>
+                    {menuOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0" 
+                          onClick={() => setMenuOpen(false)}
+                        />
+                        <div className="absolute z-50 mt-1 w-full bg-[rgba(0,0,0,0.9)] border border-[rgba(255,255,255,0.2)] rounded-md shadow-lg max-h-60 overflow-auto">
+                          {[
+                            "plaintext",
+                            "javascript",
+                            "typescript",
+                            "python",
+                            "java",
+                            "cpp",
+                            "csharp",
+                            "html",
+                            "css",
+                            "json",
+                            "markdown",
+                            "sql",
+                            "xml",
+                            "yaml"
+                          ].map((lang) => (
+                            <button
+                              key={lang}
+                              className={`w-full text-left px-4 py-2 text-sm hover:bg-[rgba(255,215,0,0.2)] ${
+                                editorLanguage === lang ? 'bg-[rgba(255,215,0,0.3)]' : ''
+                              }`}
+                              onClick={() => {
+                                setEditorLanguage(lang);
+                                setMenuOpen(false);
+                              }}
+                            >
+                              {lang}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
 
-                  {/* 主题选择 */}
-                  <select 
-                    className="select select-bordered select-sm"
-                    value={editorTheme}
-                    onChange={(e) => setEditorTheme(e.target.value)}
-                  >
-                    <option value="vs-dark">vs-dark</option>
-                    <option value="light">light</option>
-                    <option value="hc-black">hc-black</option>
-                  </select>
+                  {/* 主题选择 - 自定义下拉菜单 */}
+                  <div className="relative">
+                    <button
+                      className="select select-bordered select-sm flex items-center justify-between min-w-[100px]"
+                      onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+                    >
+                      <span>{editorTheme}</span>
+                    </button>
+                    {themeMenuOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0" 
+                          onClick={() => setThemeMenuOpen(false)}
+                        />
+                        <div className="absolute z-50 mt-1 w-full bg-[rgba(0,0,0,0.9)] border border-[rgba(255,255,255,0.2)] rounded-md shadow-lg overflow-hidden">
+                          {[
+                            "vs-dark",
+                            "light",
+                            "hc-black"
+                          ].map((theme) => (
+                            <button
+                              key={theme}
+                              className={`w-full text-left px-4 py-2 text-sm hover:bg-[rgba(255,215,0,0.2)] ${
+                                editorTheme === theme ? 'bg-[rgba(255,215,0,0.3)]' : ''
+                              }`}
+                              onClick={() => {
+                                setEditorTheme(theme);
+                                setThemeMenuOpen(false);
+                              }}
+                            >
+                              {theme}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
 
                   {/* 字体大小调整 */}
                   <div className="flex items-center gap-1 font-size-selector">

@@ -130,6 +130,20 @@ export default function TitleBar({
   const lastProviderRef = useRef(null);
   // 添加下拉菜单状态
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNewChatDropdownOpen, setIsNewChatDropdownOpen] = useState(false);
+  const [showSearchBar, setShowSearchBar] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const [translationDialogOpen, setTranslationDialogOpen] = useState(false);
+  const searchBarRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const headerRef = useRef(null);
+  const [isStickyNoteVisible, setIsStickyNoteVisible] = useState(false);
+  const [activeNote, setActiveNote] = useState(1);
+  const [recording, setRecording] = useState(false);
+  const [recognition, setRecognition] = useState(null);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [finalTranscript, setFinalTranscript] = useState('');
+  const [silenceTimer, setSilenceTimer] = useState(null);
   
   // 使用自定义语音识别Hook替代原来的状态和函数
   const [isCheckingServer, setIsCheckingServer] = useState(false);
@@ -152,10 +166,31 @@ export default function TitleBar({
     return parseInt(localStorage.getItem('aichat_max_history_messages') || '5');
   });
   
-  // 安全的temperature和maxTokens值
-  const safeMaxTokens = maxTokens || parseInt(localStorage.getItem('aichat_max_tokens') || '4096');
+  // 获取保存的temperature和maxTokens
   const safeTemperature = temperature !== undefined ? temperature : parseFloat(localStorage.getItem('aichat_temperature') || '0.7');
+  const safeMaxTokens = maxTokens !== undefined ? maxTokens : parseInt(localStorage.getItem('aichat_max_tokens') || '4096');
   
+  // 在组件挂载时检查聊天气泡背景设置
+  useEffect(() => {
+    // 检查localStorage中的设置
+    const isChatBubbleSolid = localStorage.getItem('chat-bubble-solid') === 'true';
+    
+    // 应用样式
+    if (isChatBubbleSolid) {
+      document.documentElement.classList.add('chat-bubble-solid');
+    } else {
+      document.documentElement.classList.remove('chat-bubble-solid');
+    }
+    
+    // 设置按钮高亮状态
+    setBubbleBackground(isChatBubbleSolid ? 'black' : 'transparent');
+  }, []);
+
+  // 添加状态来管理按钮高亮
+  const [bubbleBackground, setBubbleBackground] = useState(
+    localStorage.getItem('chat-bubble-solid') === 'true' ? 'black' : 'transparent'
+  );
+
   // 在组件卸载后和参数变化时更新滑动条
   useEffect(() => {
     const updateAllRanges = () => {
@@ -1018,17 +1053,43 @@ export default function TitleBar({
                           position: 'relative', 
                           zIndex: 5,
                           "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`,
-                          // 自定义滑动条样式，增加透明度
                           backgroundColor: 'rgba(0, 0, 0, 0.15)',
                           borderRadius: '4px',
                           height: '6px',
-                          // 自定义滑动圆点
                           '--range-thumb-bg': 'rgb(255, 215, 0)',
                           '--range-thumb-shadow': '0 0 8px rgba(255, 215, 0, 0.5)'
                         }}
                         onInput={(e) => updateRangeProgress(e.target)}
                       />
-                      <div className="flex justify-end mt-0.5">
+                      <div className="flex justify-between mt-0.5">
+                        <button
+                          className="btn btn-ghost"
+                          onClick={() => {
+                            // 切换聊天气泡背景
+                            const newValue = bubbleBackground === 'transparent' ? 'black' : 'transparent';
+                            setBubbleBackground(newValue);
+                            localStorage.setItem('chat-bubble-solid', newValue === 'black' ? 'true' : 'false');
+                            if (newValue === 'black') {
+                              document.documentElement.classList.add('chat-bubble-solid');
+                            } else {
+                              document.documentElement.classList.remove('chat-bubble-solid');
+                            }
+                          }}
+                          title={bubbleBackground === 'transparent' ? "使用黑色背景" : "使用透明背景"}
+                          style={{
+                            ...(isImageBackground ? { 
+                              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                              color: 'white',
+                              borderColor: 'rgba(255, 255, 255, 0.2)'
+                            } : {}),
+                            ...(bubbleBackground === 'transparent' || bubbleBackground === 'black' ? {
+                              borderColor: 'rgb(255, 215, 0)',
+                              color: 'rgb(255, 215, 0)'
+                            } : {})
+                          }}
+                        >
+                          {bubbleBackground === 'transparent' ? "Transparent" : "Black"}
+                        </button>
                         <button
                           className="btn btn-ghost"
                           onClick={() => {
@@ -1039,9 +1100,7 @@ export default function TitleBar({
                             // 手动更新滑动条样式
                             const rangeElement = document.querySelector('.dropdown-content input[type="range"][min="1024"]');
                             if (rangeElement) {
-                              // 更新滑动条的值
                               rangeElement.value = Math.min(value, 8192);
-                              // 更新滑动条的进度效果
                               updateRangeProgress(rangeElement);
                             }
                           }}

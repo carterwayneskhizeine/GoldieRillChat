@@ -41,7 +41,7 @@ GoldieRillChat 是一款高级人工智能对话平台，集成多项前沿技�
 
 - 在图片文件消息的按钮下点击**BG**设置图片为背景
 - 在视频消息下点击**MBG**设置视频为背景
-- ThreeJS Shaders 的 AI 提问模板在[这里](ThreeJS_Shaders示列.txt)
+- ThreeJS Shaders 的 AI 提问模板在[这里](ThreeJS_Shaders示列.txt)，在片段着色器Fragment Shader中使用 u_intensity 值来通过键盘的输入控制视觉效果。
 
 ### 右键菜单功能
 

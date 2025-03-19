@@ -231,3 +231,21 @@ body > .modal-backdrop,
   backdrop-filter: blur(5px) !important;
   -webkit-backdrop-filter: blur(5px) !important;
 } 
+
+/* 聊天气泡黑色背景样式 - 对所有主题生效 */
+html.chat-bubble-solid .chat-bubble {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 黑色背景模式下文本颜色调整 */
+html.chat-bubble-solid .chat-bubble {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+html.chat-bubble-solid .chat-bubble * {
+  text-shadow: none !important;
+} 
