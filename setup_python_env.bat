@@ -79,7 +79,8 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo =============================================
-echo Python virtual environment setup complete!
-echo You can now run start.bat to launch the application.
+echo Python virtual environment setup completed!
+echo Tip: Please ensure the Alibabai Cloud API key is configured in the "Interactive" tab of the application settings.
+echo Now you can run start.bat to start the application.
 echo =============================================
 pause
