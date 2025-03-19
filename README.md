@@ -182,6 +182,16 @@ npm run start:speech
 npm run electron:build
 ```
 
+7. 快速进入python_env虚拟环境
+```bash
+C:\Users\gotmo\Desktop\GoldieRillChat\python_env\Scripts\activate
+```
+
+8. 对于Anaconda环境打包speech_server.exe
+```bash
+python -m PyInstaller --name speech_server --add-data "python_env\Lib\site-packages\flask;flask" --add-data "python_env\Lib\site-packages\dashscope;dashscope" --add-data "python_env\Lib\site-packages\flask_cors;flask_cors" --add-data "python_env\Lib\site-packages\werkzeug;werkzeug" --add-data "python_env\Lib\site-packages\pyaudio;pyaudio" --hidden-import=engineio.async_drivers.threading --hidden-import=werkzeug --hidden-import=flask --hidden-import=flask_cors --hidden-import=pyaudio --hidden-import=dashscope --hidden-import=json --hidden-import=os --hidden-import=re --collect-all dashscope --collect-all flask --collect-all flask_cors --collect-all pyaudio --onefile --icon=resources\favicon.ico speech_server.py
+```
+
 ### 快捷批处理脚本
 
 对于Windows用户，可以使用以下快捷批处理脚本：
@@ -198,9 +208,9 @@ npm run electron:build
 ```
 此脚本将Python语音服务器打包为独立的exe文件，无需安装Python即可运行。
 
-3. 启动应用程序与语音服务
+3. 启动语音服务
 ```bash
-3start_with_exe.bat
+3start_server.bat
 ```
 此脚本将启动打包好的语音服务exe文件，并同时启动主应用程序，适合日常使用。
 

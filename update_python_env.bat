@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 > nul
 echo Updating Python virtual environment...
 
 :: Activate environment and update dependencies

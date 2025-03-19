@@ -1,4 +1,5 @@
 @echo on
+chcp 65001 > nul
 title Python Environment Setup
 setlocal enabledelayedexpansion
 

@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 > nul
 echo Starting to package the speech service into an EXE file...
 
 call python_env\Scripts\activate.bat

@@ -2,9 +2,9 @@
       "name": "goldie-rill-chat",
       "private": true,
       "version": "2.0.1",
-      "description": "A powerful desktop chat application with AI capabilities, supporting file management, image generation, built-in browser, and Markdown rendering",
+      "description": "Goldie Rill`s Chatbox",
       "author": {
-            "name": "Goldie",
+            "name": "GoldieRill",
             "email": "carterwayneskhizeine@gmail.com",
             "url": "https://github.com/carterwayneskhizeine"
       },
