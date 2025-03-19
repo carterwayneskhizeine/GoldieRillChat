@@ -106,21 +106,6 @@ function setupApiKey() {
         console.error('保存API Key到配置文件失败:', error.message);
       }
       
-      // 更新speech_server.py文件中的API Key
-      const serverPath = path.join(__dirname, 'speech_server.py');
-      
-      if (fs.existsSync(serverPath)) {
-        try {
-          let content = fs.readFileSync(serverPath, 'utf8');
-          content = content.replace(/<your-dashscope-api-key>/, trimmedApiKey);
-          fs.writeFileSync(serverPath, content, 'utf8');
-          
-          console.log('已更新API Key到speech_server.py');
-        } catch (error) {
-          console.error('更新speech_server.py中的API Key失败:', error.message);
-        }
-      }
-      
       resolve();
     });
   });

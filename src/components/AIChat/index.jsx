@@ -242,11 +242,11 @@ export const AIChat = ({
     return settings;
   });
 
-  // 添加视频生成参数的全局状态
+  // 添加视频生成参数的全局状态（保留但使用默认值）
   const [videoSettings, setVideoSettings] = useState(() => {
     return {
-      model: localStorage.getItem('aichat_video_model') || 'Lightricks/LTX-Video',
-      seed: parseInt(localStorage.getItem('aichat_video_seed')) || Math.floor(Math.random() * 9999999999)
+      model: 'default-video-model', // 使用默认值，不再从localStorage获取
+      seed: Math.floor(Math.random() * 9999999999) // 使用随机种子，不再从localStorage获取
     };
   });
 
@@ -270,12 +270,7 @@ export const AIChat = ({
       localStorage.setItem('aichat_image_size', settings.image.image_size);
     }
 
-    // 更新视频设置
-    setVideoSettings(settings.video);
-    
-    // 更新视频设置到 localStorage
-    localStorage.setItem('aichat_video_model', settings.video.model);
-    localStorage.setItem('aichat_video_seed', settings.video.seed.toString());
+    // 视频设置部分已移除
   };
 
   // 创建输入处理函数的引用
@@ -313,7 +308,6 @@ export const AIChat = ({
       updateMessage: messageState.updateMessage,
       deleteMessage: messageState.deleteMessage,
       imageSettings,
-      videoSettings,  // 添加视频设置参数
       systemPrompt: systemPromptState.systemPrompt,
       systemPromptEnabled: systemPromptState.systemPromptEnabled
     });
@@ -366,7 +360,6 @@ export const AIChat = ({
     inputState.setMessageInput,
     window,
     imageSettings,
-    videoSettings,
     messageState.editContent,
     systemPromptState.systemPrompt,
     systemPromptState.systemPromptEnabled

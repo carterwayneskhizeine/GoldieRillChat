@@ -167,10 +167,42 @@ npm install
 npm run electron:dev
 ```
 
-4. 构建应用
+4. 开发模式设置语音服务器
+```bash
+npm run speech:setup
+```
+
+4. 开发模式运行语音模式
+```bash
+npm run start:speech
+```
+
+6. 构建应用
 ```bash
 npm run electron:build
 ```
+
+### 快捷批处理脚本
+
+对于Windows用户，可以使用以下快捷批处理脚本：
+
+1. 设置Python环境和依赖
+```bash
+1setup_python_env.bat
+```
+此脚本将检查Python安装情况，并安装必要的Python依赖，还会提示输入DashScope API Key。
+
+2. 构建语音服务可执行文件
+```bash
+2build_exe.bat
+```
+此脚本将Python语音服务器打包为独立的exe文件，无需安装Python即可运行。
+
+3. 启动应用程序与语音服务
+```bash
+3start_with_exe.bat
+```
+此脚本将启动打包好的语音服务exe文件，并同时启动主应用程序，适合日常使用。
 
 ## 🤝 贡献
 

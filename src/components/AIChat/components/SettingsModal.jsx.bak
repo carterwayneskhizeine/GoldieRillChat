@@ -135,6 +135,16 @@ export const SettingsModal = ({
     return localStorage.getItem('aichat_image_model') || 'black-forest-labs/FLUX.1-schnell';
   });
 
+  // 添加视频模型状态
+  const [videoModel, setVideoModel] = useState(() => {
+    return localStorage.getItem('aichat_video_model') || 'Lightricks/LTX-Video';
+  });
+
+  // 添加视频随机种子状态
+  const [videoSeed, setVideoSeed] = useState(() => 
+    parseInt(localStorage.getItem('aichat_video_seed')) || Math.floor(Math.random() * 9999999999)
+  );
+
   // 添加图片分辨率状态
   const [imageSize, setImageSize] = useState(() => {
     return localStorage.getItem('aichat_image_size') || '1024x576';
@@ -245,6 +255,13 @@ export const SettingsModal = ({
     'Pro/black-forest-labs/FLUX.1-schnell',
     'LoRA/black-forest-labs/FLUX.1-dev',
     'Kwai-Kolors/Kolors'
+  ];
+
+  // 视频模型列表
+  const VIDEO_MODELS = [
+    'Lightricks/LTX-Video',
+    'tencent/HunyuanVideo',
+    'genmo/mochi-1-preview'
   ];
 
   // 图片分辨率列表
@@ -462,12 +479,15 @@ export const SettingsModal = ({
         image_size: imageSize
       })
     };
-    
-    // 视频设置已移除
+
+    const videoSettings = {
+      model: videoModel,
+      seed: videoSeed
+    };
     
     return {
-      image: imageSettings
-      // video设置已移除
+      image: imageSettings,
+      video: videoSettings
     };
   };
 
@@ -1424,7 +1444,78 @@ export const SettingsModal = ({
 
               <div className="divider"></div>
 
-              {/* 视频参数设置部分已移除 */}
+              {/* 视频参数设置 */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold">视频参数设置</h3>
+                
+                {/* 视频模型选择 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">视频生成模型</h3>
+                  <select 
+                    className="select select-bordered w-full"
+                    value={videoModel}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setVideoModel(value);
+                      localStorage.setItem('aichat_video_model', value);
+                    }}
+                  >
+                    {VIDEO_MODELS.map(model => (
+                      <option key={model} value={model}>{model}</option>
+                    ))}
+                  </select>
+                  <div className="text-xs opacity-70 mt-2">
+                    选择用于视频生成的模型，使用 /video 命令时会使用此模型
+                  </div>
+                </div>
+
+                {/* 随机种子设置 */}
+                <div>
+                  <h3 className="text-lg font-medium mb-2">随机种子 (Seed)</h3>
+                  <div className="flex items-center gap-0 w-full input-group flex">
+                    <input
+                      type="number"
+                      min="0"
+                      max="9999999999"
+                      value={videoSeed}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (value >= 0 && value <= 9999999999) {
+                          setVideoSeed(value);
+                          localStorage.setItem('aichat_video_seed', value.toString());
+                        }
+                      }}
+                      className="input input-bordered flex-grow h-11 px-4 transition-all focus:border-primary focus:ring-1 focus:ring-primary min-w-0"
+                    />
+                    <button
+                      className="btn btn-square btn-outline h-11 min-w-[3.5rem]"
+                      onClick={() => {
+                        const newSeed = Math.floor(Math.random() * 9999999999);
+                        setVideoSeed(newSeed);
+                        localStorage.setItem('aichat_video_seed', newSeed.toString());
+                      }}
+                      title="生成新的随机种子"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="text-xs opacity-70 mt-1">设置随机种子以获得可重复的结果，留空则随机生成</div>
+                </div>
+
+                {/* 帮助信息 */}
+                <div className="text-xs opacity-70 space-y-2">
+                  <div className="settings-help-text">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      生成的视频链接有效期为1小时，请及时下载保存
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

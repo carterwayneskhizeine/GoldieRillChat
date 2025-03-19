@@ -60,39 +60,19 @@ stream = None
 def init_dashscope_api_key():
     """
     初始化DashScope API密钥
-    1. 优先从localStorage文件读取
-    2. 然后尝试从环境变量读取
-    3. 最后尝试从.env.local文件读取
+    1. 优先从环境变量读取
+    2. 然后尝试从.env.local文件读取
     """
     global api_key
     
     try:
-        # 1. 首先尝试从localStorage文件读取
-        # 获取localStorage文件路径
-        user_path = get_user_storage_path()
-        localStorage_path = os.path.join(user_path, 'localStorage')
-        
-        if os.path.exists(localStorage_path):
-            try:
-                with open(localStorage_path, 'r', encoding='utf-8') as f:
-                    localStorage_content = f.read()
-                    # 尝试解析localStorage内容，查找dashscope_api_key
-                    import re
-                    match = re.search(r'"dashscope_api_key":\s*"([^"]+)"', localStorage_content)
-                    if match:
-                        api_key = match.group(1)
-                        print("从localStorage加载API密钥成功")
-                        return api_key
-            except Exception as e:
-                print(f"从localStorage读取API密钥失败: {e}")
-        
-        # 2. 尝试从环境变量读取
+        # 1. 尝试从环境变量读取
         if 'DASHSCOPE_API_KEY' in os.environ:
             api_key = os.environ['DASHSCOPE_API_KEY']
             print("从环境变量加载API密钥成功")
             return api_key
             
-        # 3. 尝试从.env.local文件读取
+        # 2. 尝试从.env.local文件读取
         env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env.local')
         if os.path.exists(env_path):
             try:
@@ -687,7 +667,7 @@ def stop_tts_session():
                                 synthesizer.finish()
                                 logger.info(f'已完成TTS合成任务: {session_id}')
                             except Exception as e:
-                                logger.warning(f'完成TTS合成任务出错: {e}')
+                                logger.warning(f'完成TTS合成任务: {e}')
                         
                         threading.Thread(target=safe_finish).start()
                 except Exception as e:

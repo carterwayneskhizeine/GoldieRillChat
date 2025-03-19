@@ -7,6 +7,18 @@ const BrowserLikeWindow = require('electron-as-browser')
 const axios = require('axios') // 添加axios用于图片下载
 const crypto = require('crypto') // 添加crypto用于生成文件名
 
+// 在文件顶部导入常量
+// ... existing imports ...
+let STORAGE_KEYS;
+try {
+  STORAGE_KEYS = require('../src/components/AIChat/constants').STORAGE_KEYS;
+} catch (error) {
+  // 如果导入失败，提供默认值
+  STORAGE_KEYS = {
+    DASHSCOPE_API_KEY: 'dashscope_api_key'
+  };
+}
+
 let mainWindow = null
 let browserWindow = null
 
@@ -3283,18 +3295,12 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
 
 // 添加获取环境变量API密钥的函数
 function getDashscopeApiKey() {
-  // 首先尝试从localStorage获取API密钥
-  const storedApiKey = global.localStorage?.getItem('dashscope_api_key');
-  if (storedApiKey) {
-    return storedApiKey;
-  }
-  
-  // 如果localStorage中没有，尝试从环境变量获取
+  // 从环境变量获取API密钥
   if (process.env.DASHSCOPE_API_KEY) {
     return process.env.DASHSCOPE_API_KEY;
   }
   
-  // 最后尝试从配置文件获取
+  // 从.env.local文件获取API密钥
   const envPath = path.join(__dirname, '../.env.local');
   if (fs.existsSync(envPath)) {
     try {
@@ -3308,6 +3314,7 @@ function getDashscopeApiKey() {
     }
   }
   
+  console.warn('未找到DASHSCOPE_API_KEY，相关功能可能无法正常工作');
   return null;
 }
 

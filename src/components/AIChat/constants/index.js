@@ -9,7 +9,8 @@ export const STORAGE_KEYS = {
   SYSTEM_PROMPT: 'aichat_system_prompt',
   SYSTEM_PROMPT_ENABLED: 'aichat_system_prompt_enabled',
   SYSTEM_PROMPT_TEMPLATES: 'aichat_system_prompt_templates',
-  SELECTED_TEMPLATE_ID: 'aichat_selected_template_id'
+  SELECTED_TEMPLATE_ID: 'aichat_selected_template_id',
+  DASHSCOPE_API_KEY: 'dashscope_api_key'
 };
 
 // 代码编辑器主题常量

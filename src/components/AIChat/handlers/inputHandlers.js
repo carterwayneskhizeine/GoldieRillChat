@@ -43,7 +43,6 @@ export const createInputHandlers = ({
   updateMessage,
   deleteMessage,
   imageSettings,
-  videoSettings,  // 添加视频设置参数
   systemPrompt,
   systemPromptEnabled
 }) => {
@@ -125,7 +124,6 @@ export const createInputHandlers = ({
         await handleVideoCommand({
           content,
           currentConversation,
-          videoSettings,
           apiKey,
           apiHost,
           addMessage,

@@ -21,7 +21,6 @@ const parseVideoCommand = (content) => {
 export const handleVideoCommand = async ({
   content,
   currentConversation,
-  videoSettings,
   apiKey,
   apiHost,
   addMessage,
@@ -36,7 +35,7 @@ export const handleVideoCommand = async ({
     }
 
     // 使用命令中指定的模型或默认模型
-    const model = commandModel || videoSettings.model;
+    const model = commandModel || 'default-video-model';
 
     // 添加用户消息
     const userMessage = {
@@ -74,7 +73,7 @@ export const handleVideoCommand = async ({
       prompt,
       model,
       image,
-      seed: videoSettings.seed,
+      seed: Math.floor(Math.random() * 9999999999), // 使用随机种子
       conversationPath: currentConversation.path,
       apiKey,
       apiHost
