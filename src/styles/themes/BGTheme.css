@@ -65,6 +65,7 @@
   /* 确保文本可读性 */
   .prose, .chat-bubble {
     text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.5);  /* 修改文本阴影使文本更清晰 */
+    color: rgba(255, 255, 255, 0.8) !important;
   }
 
   /* 聊天气泡背景 */

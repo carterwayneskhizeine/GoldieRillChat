@@ -248,4 +248,5 @@ html.chat-bubble-solid .chat-bubble {
 
 html.chat-bubble-solid .chat-bubble * {
   text-shadow: none !important;
+  color: rgba(255, 255, 255, 0.8) !important; /* 确保所有子元素文本也是80%的白色 */
 } 
