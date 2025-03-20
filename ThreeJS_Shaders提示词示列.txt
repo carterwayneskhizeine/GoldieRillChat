@@ -17,13 +17,13 @@
 
 ThreeJS_Shaders AI提问示例，使用Ctrl+Shift+i打开Console控制台查看Shader报错返回给AI修改代码直到成功：
 
-按照以下格式，帮我写一个 DVD 形状的圆环在电视机上四处弹跳的经典效果。具体要求如下：
+按照以下格式，帮我写一个黑白柔和迷幻循环的效果。具体要求如下：
 
 **效果描述**：  
-  - 显示一个代表 DVD 标志的圆环，在黑色背景上运动；  
-  - 当圆环碰到屏幕边界时，应产生反弹效果，一直循环运动；  
-  - 圆环下方需要显示“2002 DVD”的文字（可以使用占位符区域模拟）；  
-  - 如果能够遵循物理规则（例如弹性碰撞）来模拟运动则更佳，不遵循物理规则也行。
+  - 由黑白颜色组成;
+  - 其中有一个圆形图案;  
+  - 可能是螺旋形或一系列同心圆;
+  - 圆形在循环旋转。
 
 ---
 
@@ -51,54 +51,63 @@ void main() {
 ```glsl
 precision mediump float;
 
-uniform float u_time;       // 当前动画时间
-uniform vec2  u_resolution; // 屏幕分辨率
+uniform float u_time;
+uniform float u_intensity;
+uniform vec2 u_resolution;
 
-// 模拟弹跳效果：将时间映射到 [0,1] 的区间并做镜像循环
-float bounceMotion(float t, float speed) {
-    float cycle = fract(t * speed * 0.5) * 2.0;
-    if (cycle > 1.0) {
-        cycle = 2.0 - cycle;
-    }
-    return cycle;
+// 生成流动线条的噪声函数
+float flowNoise(vec2 uv) {
+    float phase = u_time * 0.3;
+    return sin(uv.x * 10.0 + phase) * 
+           sin(uv.y * 7.0 + phase * 1.3) * 
+           sin((uv.x + uv.y) * 5.0 + phase * 0.7);
 }
 
-// 绘制圆环：若像素与圆心的距离在内外半径之间，则返回 1.0
-float drawRing(vec2 uv, vec2 center, float innerR, float outerR) {
-    float dist = distance(uv, center);
-    return step(innerR, dist) * step(dist, outerR);
+// 动态网格生成器
+float dynamicGrid(vec2 uv) {
+    uv *= 8.0 + u_intensity * 4.0; // 网格密度随强度变化
+    vec2 grid = fract(uv) - 0.5;
+    float cell = smoothstep(0.35, 0.45, length(grid));
+    
+    // 让网格线随时间波动
+    float pulse = 0.5 + 0.5 * sin(u_time * 2.0 + uv.x * 3.0);
+    return cell * pulse;
 }
 
-// 简单模拟“2002 DVD”文字区域（占位符）：在特定矩形内返回 1.0
-float drawTextPlaceholder(vec2 uv, vec2 textCenter, vec2 textSize) {
-    vec2 diff = abs(uv - textCenter);
-    return step(diff.x, textSize.x * 0.5) * step(diff.y, textSize.y * 0.5);
+// 分形生成器（三层叠加）
+float fractalPattern(vec2 uv) {
+    float layer1 = flowNoise(uv * 2.0);
+    float layer2 = flowNoise(uv * 4.0 + vec2(u_time * 0.2));
+    float layer3 = flowNoise(uv * 8.0 - vec2(u_time * 0.3));
+    return (layer1 * 0.6 + layer2 * 0.3 + layer3 * 0.1);
 }
 
 void main() {
-    // 将像素坐标归一化到 [0,1]
-    vec2 uv = gl_FragCoord.xy / u_resolution;
-    vec3 color = vec3(0.0); // 默认背景为黑色
+    // 坐标系统调整
+    vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution) / min(u_resolution.x, u_resolution.y);
+    uv *= 1.0 + u_intensity * 0.5; // 强度控制画面缩放
     
-    // 计算 DVD 圆环中心位置，利用 bounceMotion 实现弹跳效果
-    float centerX = 0.1 + 0.8 * bounceMotion(u_time, 0.60);
-    float centerY = 0.1 + 0.8 * bounceMotion(u_time, 0.83);
-    vec2 ringCenter = vec2(centerX, centerY);
+    // 基础图案组合
+    float fractal = fractalPattern(uv);
+    float grid = dynamicGrid(uv * 2.0);
     
-    // 绘制 DVD 圆环：内半径 0.10，外半径 0.13
-    float ringMask = drawRing(uv, ringCenter, 0.10, 0.13);
-    if(ringMask > 0.5) {
-        color = vec3(1.0); // 圆环区域设置为白色
-    }
+    // 动态旋转系统
+    float rotation = u_time * 0.1 + u_intensity * 0.3;
+    uv = mat2(cos(rotation), -sin(rotation),
+              sin(rotation), cos(rotation)) * uv;
     
-    // 绘制 “2002 DVD” 的占位文本：位于圆环下方
-    vec2 textCenter = ringCenter + vec2(0.0, -0.08);
-    vec2 textSize = vec2(0.20, 0.03);
-    float textMask = drawTextPlaceholder(uv, textCenter, textSize);
-    if(textMask > 0.5) {
-        color = vec3(1.0);
-    }
+    // 核心视觉效果
+    float wave = sin(length(uv * 3.0) * 5.0 - u_time * 2.0);
+    float mask = smoothstep(0.3, 0.7, wave + fractal);
     
-    gl_FragColor = vec4(color, 1.0);
+    // 多层叠加效果
+    float final = mask * 0.7 + grid * 0.3;
+    final *= 1.0 - length(uv) * 0.4; // 中心强化
+    
+    // 强度控制的辉光效果
+    float glow = pow(final, 2.0) * (1.0 + u_intensity * 3.0);
+    final = min(final + glow, 1.0);
+    
+    gl_FragColor = vec4(vec3(final * 0.9), 1.0);
 }
 ```
