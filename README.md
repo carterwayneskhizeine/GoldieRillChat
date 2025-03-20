@@ -212,7 +212,7 @@ python -m PyInstaller --name speech_server --add-data "python_env\Lib\site-packa
 ```bash
 3start_server.bat
 ```
-此脚本将启动打包好的语音服务exe文件，并同时启动主应用程序，适合日常使用。
+此脚本将启动打包好的语音服务exe文件。
 
 ## 🤝 贡献
 
