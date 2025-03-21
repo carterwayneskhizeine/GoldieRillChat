@@ -6,7 +6,7 @@ ThreeJS_Shaders AI提问示例，使用Ctrl+Shift+i打开Console控制台查看S
   - 由紫色和蓝色为主;
   - 要非常迷幻;  
   - 可能会使用一些柏林噪声Perlin noise;
-  - 使用float mouseRadius、float mouseStrength、float mouseFactor 和 u_intensity 值来控制视觉效果。
+  - 视觉效果自由发挥你的想象力。
 
 ---
 
@@ -15,7 +15,7 @@ ThreeJS_Shaders AI提问示例，使用Ctrl+Shift+i打开Console控制台查看S
 - 创建全新的 Vertex Shader 和 Fragment Shader；  
 - 直接使用内置的 **position** 属性，无需重复声明；  
 - 避免版本声明：代码中完全没有 `#version` 行，防止与 Three.js 自动注入的版本声明冲突。
-- 在片段着色器Fragment Shader中使用 u_intensity 值来控制视觉效果，例如：
+- 在片段着色器Fragment Shader中使用float mouseRadius、float mouseStrength、float mouseFactor 和 u_intensity 值来控制视觉效果，例如：
 
 ```glsl
    // 噪声计算    
