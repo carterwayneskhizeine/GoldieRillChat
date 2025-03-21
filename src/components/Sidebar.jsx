@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getToolDisplayName, tools } from '../config/toolsConfig';
 import { BrowserTabs } from './BrowserTabs';
 import { ChatView } from './ChatView';
+import ConversationTimeGrouping from './ConversationTimeGrouping';
 import '../styles/sidebar-buttons.css';
 
 export default function Sidebar({
@@ -427,142 +428,28 @@ export default function Sidebar({
           {activeTool === 'chat' && (
             <div className="flex-1 mt-2 overflow-hidden h-full flex flex-col">
               <div className="flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50">
-                <div className="flex flex-col gap-2 p-2">
-                  {conversations.map(conversation => (
-                    <div
-                      key={conversation.id}
-                      className={`btn btn-ghost justify-between mb-4
-                        ${currentConversation?.id === conversation.id ? 'btn-active' : ''} 
-                        ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}
-                        ${isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? 'keyboard-selected-conversation' : ''}
-                        ${expandedFolderId === conversation.id ? 'expanded' : ''}
-                        conversation-item conversation-item-${conversation.id}`}
-                      draggable={editingFolderName === null}
-                      onDragStart={() => {
-                        if (editingFolderName !== null) return;
-                        handleDragStart(conversation, setDraggedConversation);
-                      }}
-                      onDragOver={(e) => {
-                        if (editingFolderName !== null) return;
-                        handleDragOver(e);
-                      }}
-                      onDrop={(e) => {
-                        if (editingFolderName !== null) return;
-                        handleDrop(conversation, draggedConversation, conversations, setConversations, setDraggedConversation);
-                      }}
-                      onContextMenu={(e) => {
-                        if (editingFolderName !== null) return;
-                        e.preventDefault();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setContextMenu({
-                          visible: true,
-                          x: rect.right,
-                          y: rect.top,
-                          type: 'chat',
-                          data: conversation,
-                          options: [
-                            {
-                              label: 'Delete',
-                              onClick: () => setDeletingFolder(conversation)
-                            },
-                            {
-                              label: 'Rename',
-                              onClick: () => handleConversationRename(conversation)
-                            }
-                          ]
-                        });
-                      }}
-                      onClick={() => handleConversationClick(conversation)}
-                      style={isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? {
-                        borderColor: 'gold',
-                        borderWidth: '2px',
-                        boxShadow: '0 0 4px gold'
-                      } : {}}
-                    >
-                      <div className="flex items-center gap-2 flex-1">
-                        {editingFolderName === conversation.id ? (
-                          <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="text"
-                              value={folderNameInput}
-                              onChange={(e) => setFolderNameInput(e.target.value)}
-                              className="input input-xs input-bordered w-full"
-                              placeholder="输入新的文件夹名称"
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleRenameConfirm(
-                                    conversation,
-                                    folderNameInput
-                                  );
-                                }
-                              }}
-                              autoFocus
-                            />
-                            <div className="flex gap-2 justify-end">
-                              <button
-                                className="btn btn-xs btn-primary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRenameConfirm(
-                                    conversation,
-                                    folderNameInput
-                                  );
-                                }}
-                              >
-                                Confirm
-                              </button>
-                              <button
-                                className="btn btn-xs"
-                                onClick={() => {
-                                  setEditingFolderName(null);
-                                  setFolderNameInput('');
-                                }}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <span className="truncate">{conversation.name}</span>
-                          </>
-                        )}
-                      </div>
-                      {!editingFolderName && expandedFolderId === conversation.id && (
-                        <div 
-                          className="folder-actions absolute left-0 right-0 p-1 flex justify-center gap-2" 
-                          style={{zIndex: 100, borderTop: '1px solid rgba(255, 215, 0, 0.1)'}}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button 
-                            className="btn btn-xs flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleConversationRename(conversation);
-                            }}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Rename
-                          </button>
-                          <button 
-                            className="btn btn-xs btn-ghost flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeletingFolder(conversation);
-                            }}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m5-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <ConversationTimeGrouping
+                  conversations={conversations}
+                  currentConversation={currentConversation}
+                  draggedConversation={draggedConversation}
+                  handleDragStart={handleDragStart}
+                  handleDragOver={handleDragOver}
+                  handleDrop={handleDrop}
+                  handleConversationClick={handleConversationClick}
+                  handleConversationRename={handleConversationRename}
+                  handleConversationDelete={handleConversationDelete}
+                  setDraggedConversation={setDraggedConversation}
+                  editingFolderName={editingFolderName}
+                  setEditingFolderName={setEditingFolderName}
+                  folderNameInput={folderNameInput}
+                  setFolderNameInput={setFolderNameInput}
+                  setContextMenu={setContextMenu}
+                  expandedFolderId={expandedFolderId}
+                  setDeletingFolder={setDeletingFolder}
+                  isKeyboardNavigating={isKeyboardNavigating}
+                  keyboardSelectedConversationId={keyboardSelectedConversationId}
+                  handleRenameConfirm={handleRenameConfirm}
+                />
               </div>
             </div>
           )}
@@ -647,142 +534,28 @@ export default function Sidebar({
                 {sidebarMode === 'default' ? (
                   <div className="h-full flex flex-col">
                     <div className="flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50">
-                      <div className="flex flex-col gap-2 p-2">
-                        {conversations.map(conversation => (
-                          <div
-                            key={conversation.id}
-                            className={`btn btn-ghost justify-between mb-4
-                              ${currentConversation?.id === conversation.id ? 'btn-active' : ''} 
-                              ${draggedConversation?.id === conversation.id ? 'opacity-50' : ''}
-                              ${isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? 'keyboard-selected-conversation' : ''}
-                              ${expandedFolderId === conversation.id ? 'expanded' : ''}
-                              conversation-item conversation-item-${conversation.id}`}
-                            draggable={editingFolderName === null}
-                            onDragStart={() => {
-                              if (editingFolderName !== null) return;
-                              handleDragStart(conversation, setDraggedConversation);
-                            }}
-                            onDragOver={(e) => {
-                              if (editingFolderName !== null) return;
-                              handleDragOver(e);
-                            }}
-                            onDrop={(e) => {
-                              if (editingFolderName !== null) return;
-                              handleDrop(conversation, draggedConversation, conversations, setConversations, setDraggedConversation);
-                            }}
-                            onContextMenu={(e) => {
-                              if (editingFolderName !== null) return;
-                              e.preventDefault();
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setContextMenu({
-                                visible: true,
-                                x: rect.right,
-                                y: rect.top,
-                                type: 'chat',
-                                data: conversation,
-                                options: [
-                                  {
-                                    label: 'Delete',
-                                    onClick: () => setDeletingFolder(conversation)
-                                  },
-                                  {
-                                    label: 'Rename',
-                                    onClick: () => handleConversationRename(conversation)
-                                  }
-                                ]
-                              });
-                            }}
-                            onClick={() => handleConversationClick(conversation)}
-                            style={isKeyboardNavigating && keyboardSelectedConversationId === conversation.id ? {
-                              borderColor: 'gold',
-                              borderWidth: '2px',
-                              boxShadow: '0 0 4px gold'
-                            } : {}}
-                          >
-                            <div className="flex items-center gap-2 flex-1">
-                              {editingFolderName === conversation.id ? (
-                                <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
-                                  <input
-                                    type="text"
-                                    value={folderNameInput}
-                                    onChange={(e) => setFolderNameInput(e.target.value)}
-                                    className="input input-xs input-bordered w-full"
-                                    placeholder="输入新的文件夹名称"
-                                    onKeyPress={(e) => {
-                                      if (e.key === 'Enter') {
-                                        handleRenameConfirm(
-                                          conversation,
-                                          folderNameInput
-                                        );
-                                      }
-                                    }}
-                                    autoFocus
-                                  />
-                                  <div className="flex gap-2 justify-end">
-                                    <button
-                                      className="btn btn-xs btn-primary"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRenameConfirm(
-                                          conversation,
-                                          folderNameInput
-                                        );
-                                      }}
-                                    >
-                                      Confirm
-                                    </button>
-                                    <button
-                                      className="btn btn-xs"
-                                      onClick={() => {
-                                        setEditingFolderName(null);
-                                        setFolderNameInput('');
-                                      }}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <span className="truncate">{conversation.name}</span>
-                                </>
-                              )}
-                            </div>
-                            {!editingFolderName && expandedFolderId === conversation.id && (
-                              <div 
-                                className="folder-actions absolute left-0 right-0 p-1 flex justify-center gap-2" 
-                                style={{zIndex: 100, borderTop: '1px solid rgba(255, 215, 0, 0.1)'}}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button 
-                                  className="btn btn-xs flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleConversationRename(conversation);
-                                  }}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                  Rename
-                                </button>
-                                <button 
-                                  className="btn btn-xs btn-ghost flex items-center gap-1 hover:bg-gold hover:bg-opacity-30 hover:text-white hover:border-gold hover:border-opacity-40"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeletingFolder(conversation);
-                                  }}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m5-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                      <ConversationTimeGrouping
+                        conversations={conversations}
+                        currentConversation={currentConversation}
+                        draggedConversation={draggedConversation}
+                        handleDragStart={handleDragStart}
+                        handleDragOver={handleDragOver}
+                        handleDrop={handleDrop}
+                        handleConversationClick={handleConversationClick}
+                        handleConversationRename={handleConversationRename}
+                        handleConversationDelete={handleConversationDelete}
+                        setDraggedConversation={setDraggedConversation}
+                        editingFolderName={editingFolderName}
+                        setEditingFolderName={setEditingFolderName}
+                        folderNameInput={folderNameInput}
+                        setFolderNameInput={setFolderNameInput}
+                        setContextMenu={setContextMenu}
+                        expandedFolderId={expandedFolderId}
+                        setDeletingFolder={setDeletingFolder}
+                        isKeyboardNavigating={isKeyboardNavigating}
+                        keyboardSelectedConversationId={keyboardSelectedConversationId}
+                        handleRenameConfirm={handleRenameConfirm}
+                      />
                     </div>
                   </div>
                 ) : (

@@ -317,6 +317,7 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
             const timeData = JSON.parse(data);
             if (timeData.length > 0 && timeData[0].folderMtime) {
               modifiedTime = new Date(timeData[0].folderMtime).getTime();
+              conv.folderMtime = timeData[0].folderMtime; // 直接将folderMtime添加到对话对象
             } else {
               throw new Error('无效的时间数据');
             }
@@ -351,6 +352,7 @@ export const mergeConversationsWithPath = async (existing, scanned, currentPath)
             const timeData = JSON.parse(data);
             if (timeData.length > 0 && timeData[0].folderMtime) {
               modifiedTime = new Date(timeData[0].folderMtime).getTime();
+              conv.folderMtime = timeData[0].folderMtime; // 直接将folderMtime添加到对话对象
             } else {
               throw new Error('无效的时间数据');
             }
