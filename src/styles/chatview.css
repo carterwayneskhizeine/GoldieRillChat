@@ -119,6 +119,7 @@
 
 /* 为Firefox添加滚动条样式 */
 .chat-view-messages {
+  z-index: 1; /* 提高滑动条的层级 */
   scrollbar-width: thin;
   scrollbar-color: rgba(100, 100, 100, 0.6) rgba(0, 0, 0, 0.1);
 }
