@@ -397,8 +397,15 @@ export default function Sidebar({
                 tabIndex={0} 
                 className="btn btn-outline btn-sm w-full flex justify-between items-center"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
+                title={openChatFolder?.name || '选择对话文件夹'}
               >
-                <span className="truncate">{openChatFolder?.name || '选择对话文件夹'}</span>
+                <span className="overflow-hidden whitespace-nowrap" style={{ display: 'inline-block', maxWidth: '80%' }}>
+                  {openChatFolder?.name 
+                    ? (openChatFolder.name.length > 18 
+                        ? `${openChatFolder.name.substring(0, 15)}\u2026` 
+                        : openChatFolder.name)
+                    : '选择对话文件夹'}
+                </span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -416,8 +423,11 @@ export default function Sidebar({
                         handleOpenChatFolderChange(conversation.id);
                         setDropdownOpen(false);
                       }}
+                      title={conversation.name}
                     >
-                      {conversation.name}
+                      {conversation.name.length > 18 
+                        ? `${conversation.name.substring(0, 15)}\u2026` 
+                        : conversation.name}
                     </a>
                   </li>
                 ))}

@@ -288,7 +288,15 @@ export const ConversationTimeGrouping = ({
               </div>
             </div>
           ) : (
-            <span className="truncate">{conversation.name}</span>
+            <span 
+              className="overflow-hidden whitespace-nowrap"
+              title={conversation.name}
+              style={{ display: 'inline-block', maxWidth: '100%' }}
+            >
+              {conversation.name.length > 18 
+                ? `${conversation.name.substring(0, 15)}\u2026` 
+                : conversation.name}
+            </span>
           )}
         </div>
         {!editingFolderName && expandedFolderId === conversation.id && (
