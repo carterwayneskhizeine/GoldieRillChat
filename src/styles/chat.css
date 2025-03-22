@@ -1,11 +1,23 @@
 /* 在文件顶部导入BGTheme */
 @import './themes/BGTheme.css';
 
-/* 网络搜索按钮样式 */
+/* 网络搜索按钮样式 - 适用于所有主题 */
 .search-enabled {
-  border: 1px solid var(--p);
-  box-shadow: 0 0 0 1px rgba(var(--p-rgb), 0.1);
+  border: 1px solid rgb(255, 215, 0) !important;
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.1) !important;
   transition: all 0.2s ease;
+}
+
+.search-enabled svg {
+  stroke: rgb(255, 215, 0) !important;
+  fill: none !important;
+}
+
+/* 网络搜索按钮开启状态 - 适用于所有主题 */
+.btn-ghost.text-primary {
+  color: rgb(255, 215, 0) !important;
+  border-color: rgb(255, 215, 0) !important;
+  background-color: rgba(255, 215, 0, 0.1) !important;
 }
 
 .search-disabled {

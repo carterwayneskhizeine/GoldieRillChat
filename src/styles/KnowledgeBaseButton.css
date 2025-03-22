@@ -26,7 +26,7 @@
 }
 
 .knowledge-base-button.active {
-  background-color: var(--active-bg, rgba(42, 133, 255, 0.1));
+  background-color: rgba(255, 215, 0, 0.1);
 }
 
 .knowledge-base-button.disabled {
@@ -47,7 +47,7 @@
   min-width: 18px;
   height: 18px;
   border-radius: 9px;
-  background-color: var(--primary-color, #2a85ff);
+  background-color: rgb(255, 215, 0);
   color: white;
   font-size: 12px;
   font-weight: 600;

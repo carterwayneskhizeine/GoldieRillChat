@@ -266,6 +266,12 @@
     fill: none !important;
   }
 
+  /* 网络搜索按钮开启状态的SVG图标样式 */
+  .search-enabled svg {
+    stroke: rgb(255, 215, 0) !important;
+    fill: none !important;
+  }
+
   /* 修改滚动条相关样式 */
   .scrollbar-thin {
     scrollbar-width: thin;
@@ -458,9 +464,9 @@
 
   /* 网络搜索按钮 - 开启状态 */
   .btn-ghost.text-primary {
-    color: var(--p) !important;
-    border-color: var(--p) !important;
-    background-color: rgba(var(--p-rgb), 0.1) !important;
+    color: rgb(255, 215, 0) !important;
+    border-color: rgb(255, 215, 0) !important;
+    background-color: rgba(255, 215, 0, 0.1) !important;
   }
   
   /* 网络搜索按钮 - 关闭状态 - 与其他按钮保持一致 */

@@ -60,9 +60,9 @@ const KnowledgeBaseButton = ({ selectedBases = [], onSelect, disabled = false })
     onSelect(bases);
   };
   
-  // 知识库图标样式，始终保持白色，选中知识库时显示主题色
+  // 知识库图标样式，始终保持白色，选中知识库时显示金色
   const iconStyle = {
-    color: selectedBases && selectedBases.length > 0 ? 'var(--primary-color, #2a85ff)' : 'currentColor'
+    color: selectedBases && selectedBases.length > 0 ? 'rgb(255, 215, 0)' : 'currentColor'
   };
   
   return (
