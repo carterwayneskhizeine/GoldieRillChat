@@ -11,6 +11,7 @@ import * as cheerio from 'cheerio';
 import FileProcessingService from './FileProcessingService';
 import { detectFileType, isSitemapUrl } from '../utils/fileTypes';
 import { nanoid } from 'nanoid';
+import { callSiliconFlowRerank } from './modelProviders';
 
 // 向量相似度计算函数
 const cosineSimilarity = (vecA, vecB) => {
@@ -65,20 +66,31 @@ export const getKnowledgeBaseParams = (base) => {
  * @returns {Object} API配置
  */
 export const getEmbeddingApiConfig = (provider) => {
-  if (provider === 'SiliconFlow') {
-    let apiHost = localStorage.getItem(`${STORAGE_KEYS.API_HOST}_siliconflow`) || 'https://api.siliconflow.cn/v1/embeddings';
-    if (!apiHost.includes('/v1/embeddings')) {
-      apiHost = apiHost.replace(/\/+$/, '') + '/v1/embeddings';
+  const providerKey = (provider || 'siliconflow').toLowerCase();
+  
+  if (providerKey === 'siliconflow') {
+    let apiHost = localStorage.getItem(`${STORAGE_KEYS.API_HOST}_siliconflow`) || 'https://api.siliconflow.cn';
+    
+    // 如果保存的是完整嵌入URL，则提取基本域名
+    if (apiHost.includes('/v1/embeddings')) {
+      apiHost = apiHost.split('/v1/')[0];
     }
+    
+    // 移除尾部斜杠
+    apiHost = apiHost.replace(/\/+$/, '');
+    
+    // 返回配置，包括基本URL和嵌入专用URL
     return {
       apiKey: getApiKey('siliconflow'),
-      apiHost
+      apiHost: apiHost,
+      embedEndpoint: `${apiHost}/v1/embeddings`
     };
   }
   
   return {
     apiKey: '',
-    apiHost: ''
+    apiHost: '',
+    embedEndpoint: ''
   };
 };
 
@@ -117,10 +129,10 @@ const mockEmbedText = (text, dimensions = 1536) => {
  * @param {string} text 要嵌入的文本
  * @param {string} model 嵌入模型
  * @param {string} apiKey API密钥
- * @param {string} apiHost API主机地址
+ * @param {string} embedEndpoint 嵌入API端点
  * @returns {Promise<Array<number>>} 嵌入向量
  */
-const siliconFlowEmbed = async (text, model, apiKey, apiHost) => {
+const siliconFlowEmbed = async (text, model, apiKey, embedEndpoint) => {
   try {
     // 检查文本长度，SiliconFlow对输入文本有大小限制
     const MAX_TEXT_LENGTH = 8000; // SiliconFlow在8K左右有限制
@@ -129,11 +141,12 @@ const siliconFlowEmbed = async (text, model, apiKey, apiHost) => {
       text = text.substring(0, MAX_TEXT_LENGTH);
     }
     
-    const response = await fetch(apiHost, {
+    const response = await fetch(embedEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey}`,
+        'X-API-Version': '2024-02'
       },
       body: JSON.stringify({
         model: model,
@@ -197,7 +210,7 @@ export const embedText = async (text, model) => {
     // 根据提供商选择不同的嵌入方法
     let embedding;
     if (model.provider === 'SiliconFlow') {
-      embedding = await siliconFlowEmbed(text, model.id, config.apiKey, config.apiHost);
+      embedding = await siliconFlowEmbed(text, model.id, config.apiKey, config.embedEndpoint);
     } else if (model.provider === 'OpenAI') {
       embedding = await openaiEmbed(text, model.id, config.apiKey, config.apiHost);
     } else {
@@ -221,9 +234,10 @@ export const embedText = async (text, model) => {
  * @param {Object} base 知识库
  * @param {string} message 用户消息
  * @param {number} limit 最大返回数量
+ * @param {boolean} bypassCache 是否绕过缓存
  * @returns {Promise<Array>} 相关引用列表
  */
-export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
+export const getKnowledgeBaseReference = async (base, message, limit = 5, bypassCache = false) => {
   if (!base || !message) return [];
   
   try {
@@ -237,8 +251,11 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
       return [];
     }
     
+    // 如需绕过缓存，为消息添加随机字符串
+    const queryText = bypassCache ? `${message} [${Date.now()}]` : message;
+    
     // 计算消息的向量嵌入
-    const queryEmbedding = await embedText(message, base.model);
+    const queryEmbedding = await embedText(queryText, base.model);
     
     if (!queryEmbedding) {
       console.error('无法为消息生成向量嵌入');
@@ -247,7 +264,7 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
     
     // 计算相似度并排序
     const results = [];
-    const processedParents = new Set(); // 跟踪已处理的父项目
+    const processedParents = new Set();
     
     // 首先处理所有普通项目和父项目
     for (const item of items) {
@@ -370,12 +387,57 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
       }
     }
     
-    // 按相似度降序排序并限制数量
-    const finalResults = results
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
+    // 按相似度降序排序
+    let finalResults = results.sort((a, b) => b.similarity - a.similarity);
+    
+    // 使用重排序API提高相关性（如果结果数量足够）
+    if (finalResults.length > 1) {
+      try {
+        // 获取API配置
+        const apiConfig = getEmbeddingApiConfig(base.provider || 'siliconflow');
+        
+        // 提取文档内容数组
+        const documents = finalResults.map(item => item.content);
+        
+        console.log(`尝试对${documents.length}个文档进行重排序`);
+        
+        // 调用重排序API
+        const rerankResult = await callSiliconFlowRerank({
+          apiKey: apiConfig.apiKey,
+          apiHost: apiConfig.apiHost,
+          query: message,
+          documents,
+          topK: Math.min(documents.length, limit) // 确保不超过文档总数
+        });
+        
+        // 处理重排序结果
+        if (rerankResult && rerankResult.results && rerankResult.results.length > 0) {
+          // 创建新的结果数组，保留原始信息但使用新的顺序和分数
+          const rerankedResults = rerankResult.results.map(item => {
+            const originalItem = finalResults[item.index];
+            return {
+              ...originalItem,
+              originalSimilarity: originalItem && originalItem.similarity !== undefined ? originalItem.similarity : 0, // 保留原始相似度
+              similarity: item.score || 0, // 使用重排序分数，如果不存在则使用0
+              reranked: true // 标记为已重排序
+            };
+          });
+          
+          console.log(`重排序成功，结果数量: ${rerankedResults.length}`);
+          finalResults = rerankedResults;
+        } else {
+          console.warn('重排序API返回无效结果，使用原始排序');
+        }
+      } catch (rerankError) {
+        console.error('重排序失败，使用原始搜索结果:', rerankError);
+        // 失败时使用原始排序结果
+      }
+    }
+    
+    // 限制返回数量
+    finalResults = finalResults.slice(0, limit);
       
-    console.log(`知识库 ${base.name} 找到 ${finalResults.length} 个相关引用`);
+    console.log(`知识库 ${base.name} 找到 ${finalResults.length} 个相关引用${finalResults[0]?.reranked ? '（已重排序）' : ''}`);
     return finalResults;
   } catch (error) {
     console.error('获取知识库引用失败:', error);
@@ -389,9 +451,10 @@ export const getKnowledgeBaseReference = async (base, message, limit = 5) => {
  * @param {string} params.message 用户消息
  * @param {Array<string>} params.knowledgeBaseIds 知识库ID列表
  * @param {number} params.limit 每个知识库的最大返回数量
+ * @param {boolean} params.useCache 是否使用缓存，默认为true
  * @returns {Promise<Array>} 所有相关引用列表
  */
-export const getKnowledgeBaseReferences = async ({ message, knowledgeBaseIds, limit = 5 }) => {
+export const getKnowledgeBaseReferences = async ({ message, knowledgeBaseIds, limit = 5, useCache = true }) => {
   if (!message || !knowledgeBaseIds || knowledgeBaseIds.length === 0) {
     return [];
   }
@@ -408,9 +471,16 @@ export const getKnowledgeBaseReferences = async ({ message, knowledgeBaseIds, li
     // 从每个知识库获取引用
     const allReferences = [];
     
+    // 添加请求唯一ID以避免缓存问题
+    const requestId = !useCache ? Date.now().toString() : undefined;
+    console.log(`知识库引用请求ID: ${requestId || '使用缓存'}`);
+    
     for (const base of bases) {
       try {
-      const references = await getKnowledgeBaseReference(base, message, limit);
+        // 如果不使用缓存，在消息末尾添加随机字符串，强制重新嵌入
+        const messageWithoutCache = !useCache ? `${message} [${requestId}]` : message;
+        
+        const references = await getKnowledgeBaseReference(base, messageWithoutCache, limit, !useCache);
         
         // 格式化引用对象，优化LLM处理
         const formattedReferences = references.map(ref => {
@@ -419,11 +489,14 @@ export const getKnowledgeBaseReferences = async ({ message, knowledgeBaseIds, li
             id: ref.id,
             title: ref.title || (ref.isChunk ? `${base.name} (文档块)` : base.name),
             content: ref.content,
-            similarity: parseFloat(ref.similarity.toFixed(4)),
+            similarity: ref.similarity && typeof ref.similarity === 'number' 
+              ? parseFloat(ref.similarity.toFixed(4)) 
+              : 0, // 如果相似度不存在或不是数字，使用0作为默认值
             source: ref.isChunk 
               ? `${base.name} - ${ref.title}`
               : (ref.chunked ? `${base.name} - ${ref.title} (多块文档)` : `${base.name} - ${ref.title}`),
-            type: ref.type
+            type: ref.type,
+            reranked: ref.reranked // 保留重排序标记
           };
         });
         
@@ -436,9 +509,50 @@ export const getKnowledgeBaseReferences = async ({ message, knowledgeBaseIds, li
     
     console.log(`总共找到 ${allReferences.length} 条相关引用`);
     
+    // 如果来自多个知识库的结果需要合并重排序
+    if (bases.length > 1 && allReferences.length > 1) {
+      try {
+        // 获取第一个知识库的API配置（假设所有知识库使用同一配置）
+        const apiConfig = getEmbeddingApiConfig(bases[0].provider || 'siliconflow');
+        
+        // 提取文档内容数组
+        const documents = allReferences.map(item => item.content);
+        
+        console.log(`尝试对来自${bases.length}个知识库的${documents.length}个文档进行最终重排序`);
+        
+        // 调用重排序API
+        const rerankResult = await callSiliconFlowRerank({
+          apiKey: apiConfig.apiKey,
+          apiHost: apiConfig.apiHost,
+          query: message,
+          documents,
+          topK: Math.min(documents.length, limit) // 确保不超过文档总数
+        });
+        
+        // 处理重排序结果
+        if (rerankResult && rerankResult.results && rerankResult.results.length > 0) {
+          // 创建新的结果数组
+          const rerankedResults = rerankResult.results.map(item => {
+            const originalItem = allReferences[item.index];
+            return {
+              ...originalItem,
+              originalSimilarity: originalItem && originalItem.similarity !== undefined ? originalItem.similarity : 0, // 保留原始相似度
+              similarity: item.score || 0, // 使用重排序分数，如果不存在则使用0
+              reranked: true // 标记为已重排序
+            };
+          });
+          
+          console.log(`多知识库结果重排序成功，最终结果数量: ${rerankedResults.length}`);
+          return rerankedResults; // 直接返回重排序结果
+        }
+      } catch (finalRerankError) {
+        console.error('最终重排序失败，使用原始排序:', finalRerankError);
+        // 失败时继续使用原始排序
+      }
+    }
+    
     // 对所有引用按相似度排序
-    const sortedReferences = allReferences
-      .sort((a, b) => b.similarity - a.similarity);
+    const sortedReferences = allReferences.sort((a, b) => b.similarity - a.similarity);
     
     // 进行去重 - 移除内容几乎相同的引用
     const uniqueReferences = [];

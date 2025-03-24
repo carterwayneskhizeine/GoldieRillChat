@@ -749,4 +749,73 @@ export const callModelAPI = async ({
     default:
       throw new Error(`不支持的模型提供方: ${provider}`);
   }
+};
+
+/**
+ * 调用SiliconFlow的重排序API
+ * @param {string} apiKey - API密钥
+ * @param {string} apiHost - API主机地址
+ * @param {string} query - 查询文本
+ * @param {Array<string>} documents - 要重排序的文档内容数组
+ * @param {number} topK - 返回的最相关文档数量
+ * @returns {Promise<Object>} 重排序结果
+ */
+export const callSiliconFlowRerank = async ({ apiKey, apiHost, query, documents, topK = 5 }) => {
+  try {
+    // 固定使用BAAI/bge-reranker-v2-m3模型
+    const model = 'BAAI/bge-reranker-v2-m3';
+    
+    console.log(`执行重排序，使用模型: ${model}, 查询: ${query}, 文档数量: ${documents.length}`);
+    
+    // 确保API主机地址正确
+    if (!apiHost || !apiHost.includes('siliconflow.cn')) {
+      console.warn('重排序API: 强制使用默认的SiliconFlow API地址，原地址:', apiHost);
+      apiHost = 'https://api.siliconflow.cn';
+    }
+
+    console.log(`重排序API请求: ${apiHost}/v1/rerank, 使用API密钥: ${apiKey ? '已配置' : '未配置'}`);
+    
+    const response = await fetch(`${apiHost}/v1/rerank`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'X-API-Version': '2024-02' // 添加API版本头，与嵌入API保持一致
+      },
+      body: JSON.stringify({
+        model,
+        query,
+        documents,
+        topK,
+        return_documents: true
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage;
+      
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error?.message || errorJson.message || `重排序请求失败 (${response.status})`;
+        
+        // 特殊错误处理
+        if (response.status === 401) {
+          errorMessage = 'API密钥无效或没有重排序权限，请确认您的密钥支持该模型';
+          console.error('重排序API返回401错误，可能是密钥无效或没有权限');
+        }
+      } catch (e) {
+        errorMessage = `重排序请求失败 (${response.status}): ${errorText}`;
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    console.log(`重排序成功，结果数量: ${result.results?.length || 0}`);
+    return result;
+  } catch (error) {
+    console.error('重排序API调用失败:', error);
+    throw new Error(`重排序API调用失败: ${error.message}`);
+  }
 }; 

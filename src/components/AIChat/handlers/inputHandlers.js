@@ -459,7 +459,8 @@ export const createInputHandlers = ({
           knowledgeReferences = await getKnowledgeBaseReferences({
             message: content,
             knowledgeBaseIds: knowledgeBaseIds,
-            limit: 5
+            limit: 5,
+            useCache: false  // 重要：禁用缓存，确保每次查询都是新结果
           });
           
           console.log('获取到知识库引用原始数据:', JSON.stringify(knowledgeReferences));
@@ -467,8 +468,11 @@ export const createInputHandlers = ({
           if (knowledgeReferences && Array.isArray(knowledgeReferences) && knowledgeReferences.length > 0) {
             console.log('获取到知识库引用数量:', knowledgeReferences.length);
             
-            // 对引用进行排序和过滤
-            const processedReferences = sortAndFilterReferences(knowledgeReferences);
+            // 对引用进行排序和过滤，降低相似度阈值
+            const processedReferences = sortAndFilterReferences(knowledgeReferences, {
+              similarityThreshold: 0, // 设置为0，接受所有结果
+              removeDuplicates: true
+            });
             console.log('处理后的引用数量:', processedReferences.length);
             
             // 格式化系统提示词

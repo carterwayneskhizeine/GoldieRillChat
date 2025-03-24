@@ -107,11 +107,19 @@ export const formatReferencesForModel = (references, options = {}) => {
  */
 export const sortAndFilterReferences = (references, options = {}) => {
   if (!references || references.length === 0) {
+    console.log('sortAndFilterReferences接收到空引用数组');
     return [];
   }
   
+  console.log('sortAndFilterReferences接收到引用数组:', JSON.stringify(references.map(ref => ({
+    id: ref.id,
+    title: ref.title,
+    similarity: ref.similarity,
+    content: ref.content?.substring(0, 50) + '...'
+  }))));
+  
   const {
-    similarityThreshold = 0.1,
+    similarityThreshold = 0, // 降低为0，接受所有结果
     maxResults = 5,
     removeDuplicates = true,
     duplicateContentThreshold = 0.9
@@ -119,8 +127,16 @@ export const sortAndFilterReferences = (references, options = {}) => {
   
   // 按相似度筛选和排序
   let filtered = references
-    .filter(ref => ref.similarity >= similarityThreshold)
+    .filter(ref => {
+      const passed = typeof ref.similarity === 'number' && ref.similarity >= similarityThreshold;
+      if (!passed) {
+        console.log(`引用被过滤掉，相似度不符合要求:`, ref.id, ref.similarity);
+      }
+      return passed;
+    })
     .sort((a, b) => b.similarity - a.similarity);
+  
+  console.log('按相似度筛选和排序后剩余引用数量:', filtered.length);
   
   // 去除内容重复的引用
   if (removeDuplicates) {
@@ -133,12 +149,17 @@ export const sortAndFilterReferences = (references, options = {}) => {
       if (!contentSet.has(contentPreview)) {
         contentSet.add(contentPreview);
         uniqueRefs.push(ref);
+      } else {
+        console.log(`引用被去重过滤:`, ref.id);
       }
     }
     
     filtered = uniqueRefs;
+    console.log('去重后剩余引用数量:', filtered.length);
   }
   
   // 限制结果数量
-  return filtered.slice(0, maxResults);
+  const result = filtered.slice(0, maxResults);
+  console.log('最终返回引用数量:', result.length);
+  return result;
 }; 
