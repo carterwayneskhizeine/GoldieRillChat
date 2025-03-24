@@ -14,6 +14,7 @@ GoldieRillChat 是一款只有我自己用的 Chatbox 。该系统架构包括�
 - **视觉渲染引擎**：支持自定义主题系统，ThreeJS着色器背景渲染技术
 - **多模态处理能力**：系统提示词、输入框中英互译、AI图像生成、图片编辑器（支持颜色调整与图像裁剪）、语音识别输入
 - **文本转语音（TTS）**：集成高质量语音合成引擎，支持多种音色和阅读消息内容
+- **数字人交互**：通过Goldie Talk与数字人视频对话，基于LiveTalking框架支持实时LLM生成和语音合成
 - **开发者工具集**：内置Monaco编辑器、浏览器环境、书签管理系统、Pyodide Python运行时（支持requests库实现API调用）
 - **跨界面工具集成**：
   - **全局便签系统**：支持跨界面的Sticky Note功能，可存储和管理多达10个独立便签
@@ -143,6 +144,7 @@ GoldieRillChat 是一款只有我自己用的 Chatbox 。该系统架构包括�
 - `Ctrl+4`: Chat
 - `Ctrl+5`: Monaco Editor
 - `Ctrl+6`: Embedding
+- `Ctrl+7`: Goldie Talk
 
 ### Sticky Note (便签)
 - `Ctrl+Q`: 显示/隐藏全局便签
@@ -230,6 +232,33 @@ python -m PyInstaller --name speech_server --add-data "python_env\Lib\site-packa
 start_server.bat
 ```
 此脚本将启动打包好的语音服务exe文件。
+
+4. 启动LiveTalking数字人服务
+```bash
+start_livetalk.bat
+```
+此脚本将激活nerfstream环境并启动LiveTalking数字人服务。
+
+### Goldie Talk使用说明
+
+Goldie Talk是一个与LiveTalking框架集成的工具，提供实时数字人对话体验。
+
+**使用前准备**:
+1. 确保已安装并配置好nerfstream conda环境
+2. 设置DASHSCOPE_API_KEY环境变量，用于连接阿里云千问大模型
+3. 启动LiveTalking服务：运行`start_livetalk.bat`或手动执行命令
+
+**功能特点**:
+- 实时数字人视频对话
+- 集成千问大模型实现智能对话
+- 使用CosyVoice高质量中文语音合成
+- 支持WebRTC实时音视频传输
+
+**使用方法**:
+1. 启动GoldieRillChat应用
+2. 按`Ctrl+7`切换到Goldie Talk工具
+3. 在Goldie Talk界面中输入文字与数字人交流
+4. 数字人会通过视频和语音实时回应
 
 ## 🤝 贡献
 

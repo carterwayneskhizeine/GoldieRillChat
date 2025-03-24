@@ -3,6 +3,7 @@ import TitleBar from './components/TitleBar'
 import ThreeBackground from './components/ThreeBackground'
 import Embedding from './components/Embedding'
 import LivePortrait from './components/LivePortrait'
+import GoldieTalk from './components/GoldieTalk'
 import { 
   updateMessage,
   sendMessage as sendMessageOp,
@@ -45,6 +46,7 @@ import './styles/chat-titles.css'
 import './styles/embedding.css'
 import './styles/monaco-editor.css'
 import './styles/sidebar-buttons.css'
+import './styles/goldie-talk.css'
 import { tools, getToolDisplayName, createToolSwitcher } from './config/toolsConfig'
 import { initializeBrowserState, useBrowserEvents, useSidebarEffect } from './components/browserHandlers'
 import { useKeyboardEvents } from './components/keyboardHandlers'
@@ -1738,6 +1740,11 @@ export default function App() {
           {/* ThreeJS Shaders content */}
           <div style={{ display: activeTool === 'threejs-shaders' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
             <ThreeJSShaders />
+          </div>
+
+          {/* Goldie Talk content */}
+          <div style={{ display: activeTool === 'goldie-talk' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
+            <GoldieTalk />
           </div>
 
           {/* AI Chat content */}
