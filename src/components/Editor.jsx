@@ -78,7 +78,7 @@ export default function Editor({
             Import
           </button>
 
-          <div className="dropdown">
+          <div className="dropdown" style={{ position: 'relative', zIndex: 9999 }}>
             <button tabIndex={0} className="btn btn-sm">Res</button>
             <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
               <li><button onClick={() => setResolution(1920, 1080, setCanvasSize, setTempCanvasSize)} className="whitespace-nowrap">1920 × 1080</button></li>
@@ -113,7 +113,7 @@ export default function Editor({
             </svg>
           </button>
 
-          <div className="dropdown">
+          <div className="dropdown" style={{ position: 'relative', zIndex: 9999 }}>
             <button tabIndex={0} className="btn btn-sm btn-square">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -125,7 +125,7 @@ export default function Editor({
             </ul>
           </div>
 
-          <div className="dropdown">
+          <div className="dropdown" style={{ position: 'relative', zIndex: 9999 }}>
             <button tabIndex={0} className="btn btn-sm">AR</button>
             <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box">
               <li><button onClick={() => {

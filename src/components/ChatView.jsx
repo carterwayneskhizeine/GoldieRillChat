@@ -1784,7 +1784,7 @@ export function ChatView({
             <div className="absolute inset-0 message-editor-backdrop" onClick={exitEditMode}></div>
             <div className="relative message-editor-container w-[90vw] max-w-[1200px] h-[80vh] flex flex-col">
               <div className="flex-none message-editor-toolbar flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" style={{ position: 'relative', zIndex: 9999 }}>
                   <select 
                     className="select select-bordered select-sm"
                     value={editorLanguage}

@@ -84,7 +84,7 @@ nav .tab,
 
 /* 下拉菜单样式覆盖已移至embedding.css */ 
 
-/* 全局Alert弹窗Monaco风格样式 */
+p/* 全局Alert弹窗Monaco风格样式 */
 .alert,
 [role="alert"],
 .modal-box,

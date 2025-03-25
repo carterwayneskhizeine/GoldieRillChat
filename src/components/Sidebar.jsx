@@ -392,7 +392,7 @@ export default function Sidebar({
           </div>
 
           {sidebarMode === 'chat' && activeTool !== 'chat' && (
-            <div className="dropdown dropdown-bottom w-full mb-4">
+            <div className="dropdown dropdown-bottom w-full mb-4" style={{ position: 'relative', zIndex: 9999 }}>
               <label 
                 tabIndex={0} 
                 className="btn btn-outline btn-sm w-full flex justify-between items-center"
