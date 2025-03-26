@@ -1405,8 +1405,8 @@ export default function App() {
         return;
       }
       
-      // 添加工具页面快捷键切换功能 (Ctrl + 1-6)
-      if (e.ctrlKey && /^[1-6]$/.test(e.key)) {
+      // 添加工具页面快捷键切换功能 (Ctrl + 1-7)
+      if (e.ctrlKey && /^[1-7]$/.test(e.key)) {
         const index = parseInt(e.key) - 1;
         if (index >= 0 && index < tools.length) {
           // 直接切换到对应的工具页面
