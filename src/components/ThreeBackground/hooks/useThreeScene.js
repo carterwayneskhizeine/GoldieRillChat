@@ -270,6 +270,7 @@ export const useThreeScene = () => {
       const newScene = new THREE.Scene();
       console.log('Scene created:', newScene);
       
+      // 使用正确的相机设置
       const newCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
       newCamera.position.z = 1;
       console.log('Camera created:', newCamera);
@@ -295,10 +296,25 @@ export const useThreeScene = () => {
       };
       console.log('Uniforms created:', newUniforms);
 
+      // 创建一个填满整个视图的平面
       const geometry = new THREE.PlaneGeometry(2, 2);
+      
+      // 需要修改导入的顶点着色器来适配Three.js
+      // 因为Three.js需要矩阵变换，所以我们需要调整着色器代码
+      let modifiedVertexShader = vertexShader;
+      
+      // 如果顶点着色器中有 gl_Position = vec4(position, 1.0);
+      // 需要替换为 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      if (modifiedVertexShader.includes('gl_Position = vec4(position, 1.0)')) {
+        modifiedVertexShader = modifiedVertexShader.replace(
+          'gl_Position = vec4(position, 1.0);',
+          'gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);'
+        );
+      }
+      
       const material = new THREE.ShaderMaterial({
         uniforms: newUniforms,
-        vertexShader,
+        vertexShader: modifiedVertexShader,
         fragmentShader,
         transparent: true
       });
@@ -313,8 +329,8 @@ export const useThreeScene = () => {
       meshRef.current = mesh;
       shaderMaterialRef.current = material;
       
-      // 保存原始着色器代码到eventBus
-      eventBus.saveOriginalShaders(vertexShader, fragmentShader);
+      // 保存原始着色器代码到eventBus (保存修改后的顶点着色器)
+      eventBus.saveOriginalShaders(modifiedVertexShader, fragmentShader);
 
       setScene(newScene);
       setCamera(newCamera);
@@ -431,7 +447,17 @@ export const useThreeScene = () => {
   
   // 提供着色器更新API
   const updateShaders = useCallback((vertexShader, fragmentShader) => {
-    eventBus.updateShaders(vertexShader, fragmentShader);
+    // 如果更新的顶点着色器中有 gl_Position = vec4(position, 1.0);
+    // 需要自动替换为Three.js所需的版本
+    let modifiedVertexShader = vertexShader;
+    if (modifiedVertexShader.includes('gl_Position = vec4(position, 1.0)')) {
+      modifiedVertexShader = modifiedVertexShader.replace(
+        'gl_Position = vec4(position, 1.0);',
+        'gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);'
+      );
+    }
+    
+    eventBus.updateShaders(modifiedVertexShader, fragmentShader);
   }, []);
   
   // 提供着色器重置API
