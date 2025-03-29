@@ -33,7 +33,6 @@ const float LINE_THICKNESS = 0.04;   // 网格线相对粗细 (相对于单元�
 const vec3 COLOR_BG = vec3(0.05, 0.0, 0.1); // 背景基础色 (深紫)
 const vec3 COLOR_LINE = vec3(0.702, 0.502, 0.027); // 网格线基础色 (亮紫粉) - 也用于鼠标圆环
 const vec3 COLOR_DOT = vec3(0.702, 0.502, 0.027);  // 交叉点基础色 (青色)
-// const vec3 COLOR_MOUSE = vec3(1.0, 1.0, 0.0); // 不再需要黄色高亮
 const float DOT_SIZE = 0.1;         // 交叉点基础大小
 const float ANIMATION_SPEED = 0.1;   // 整体动画速度倍率
 const float MOUSE_RING_THICKNESS = 0.001; // 鼠标圆环线框的粗细 (UV 单位)
@@ -53,120 +52,107 @@ float random (vec2 st) {
 }
 
 // 鼠标影响计算函数 (现在主要用于变形和透明度)
-// uv: 当前片元 UV
+// uv: 当前片元 UV (期望是原始屏幕比例 vUv)
 // mouse: 鼠标 UV
 // radius: 影响半径
 // strength: 影响强度 (最大影响程度)
 // 返回值: [0, 1]，0 表示在鼠标中心，1 表示在半径外
 float mouseInfluence(vec2 uv, vec2 mouse, float radius, float strength) {
+    // !!! 使用 distance(uv, mouse) 计算圆形距离 !!!
     float dist = distance(uv, mouse);
     // smoothstep 在 [radius * (1.0 - strength), radius] 范围内从 1 平滑过渡到 0
     return smoothstep(radius * (1.0 - strength), radius, dist);
 }
 
 // 创建平滑圆环遮罩的函数
-// dist: 到圆心的距离
+// dist: 到圆心的距离 (期望是基于原始屏幕比例 vUv 计算的距离)
 // radius: 圆环的外半径
 // thickness: 圆环的厚度
 // smoothness: 边缘平滑度
 // 返回值: [0, 1], 在环内为 1, 环外为 0, 边缘平滑过渡
 float smoothRingMask(float dist, float radius, float thickness, float smoothness) {
     float innerRadius = radius - thickness;
-    // 计算内边缘 (从 0 平滑到 1)
     float inner = smoothstep(innerRadius - smoothness, innerRadius, dist);
-    // 计算外边缘 (从 1 平滑到 0)
     float outer = smoothstep(radius + smoothness, radius, dist);
-    return inner * outer; // 两者相乘得到环状遮罩
+    return inner * outer;
 }
 
 
 // --- 主函数 ---
 void main() {
     // --- 1. 鼠标交互参数计算 ---
-    // 鼠标影响半径，受 u_intensity 影响 (用于变形、透明度和圆环定位)
-    float mouseRadius = 0.12 + u_intensity * 0.3; // 基础 0.2，最大 0.5
-    // 鼠标影响强度，受 u_intensity 影响 (主要用于变形)
-    float mouseStrength = 0.6 + u_intensity * 0.4; // 基础 0.6，最大 1.0
-    // 计算鼠标影响因子 (用于变形和透明度)，值越小表示离鼠标越近
-    // 使用原始 vUv 计算距离，使变形效果更可预测
+    float mouseRadius = 0.12 + u_intensity * 0.03;
+    float mouseStrength = 0.6 + u_intensity * 0.04;
+    // !!! 使用 vUv 计算 mouseFactor，确保影响区域是圆形的 !!!
     float mouseFactor = mouseInfluence(vUv, u_mouse, mouseRadius, mouseStrength);
 
     // --- 2. UV 处理与变形 ---
     vec2 uv = vUv; // 从原始 vUv 开始
 
-    // 鼠标附近 UV 轻微扭曲效果：将 UV 推离鼠标中心
+    // 鼠标附近 UV 轻微扭曲效果 (基于圆形 mouseFactor 和 vUv 距离)
     float mouseDistortionStrength = (1.0 - mouseFactor) * (0.1 + u_intensity * 0.1);
-    // 仅当距离大于一个小阈值时才应用变形，避免中心奇点
     if (distance(vUv, u_mouse) > 0.001) {
+       // 方向基于 vUv，强度基于圆形 mouseFactor
        uv += normalize(vUv - u_mouse) * mouseDistortionStrength;
     }
 
+    // === 处理屏幕宽高比 (仅用于后续的空间计算如网格、旋转) ===
+    float aspectRatio = u_resolution.x / u_resolution.y;
+    vec2 spatialUV = uv; // 使用可能已被鼠标扭曲的 uv 作为基础
+    spatialUV.x *= aspectRatio; // 校正 X 轴
 
-    // 添加基于时间的全局旋转和缩放，制造动态感
+    // 时间相关的全局旋转和缩放 (作用在 spatialUV 上)
     float timeScaled = u_time * ANIMATION_SPEED;
-    float angle = timeScaled * 0.2; // 缓慢旋转
-    float scale = 1.0 + sin(timeScaled * 0.3) * 0.05; // 轻微缩放脉动
-
-    // 将 UV 中心移到 (0,0)，应用旋转和缩放，再移回
-    uv = (uv - 0.5) * rotate2d(angle) * scale + 0.5;
+    float angle = timeScaled * 0.05;
+    float scale = 1.0 + sin(timeScaled * 0.03) * 0.05;
+    vec2 centerOffset = vec2(0.5 * aspectRatio, 0.5);
+    spatialUV = (spatialUV - centerOffset) * rotate2d(angle) * scale + centerOffset;
 
     // --- 3. 网格计算 ---
-    // 根据 u_intensity 调整网格密度
-    float dynamicGridScale = GRID_SCALE * (1.0 + u_intensity * 0.5);
-    vec2 gridUv = uv * dynamicGridScale;
+    // (基于 spatialUV，所以网格本身会适应宽高比)
+    float dynamicGridScale = GRID_SCALE * (1.0 + u_intensity * 0.05);
+    vec2 gridUv = spatialUV * dynamicGridScale;
     vec2 fractGrid = fract(gridUv);
     vec2 cellId = floor(gridUv);
-
-    // 计算到网格线的距离
     float distToLineX = min(fractGrid.x, 1.0 - fractGrid.x);
     float distToLineY = min(fractGrid.y, 1.0 - fractGrid.y);
-
-    // 使用 smoothstep 创建平滑的网格线
     float lineThicknessAdj = LINE_THICKNESS * (0.5 + u_intensity * 0.5);
     float lineX = smoothstep(0.0, lineThicknessAdj, distToLineX);
     float lineY = smoothstep(0.0, lineThicknessAdj, distToLineY);
-    float gridMask = 1.0 - min(lineX, lineY); // 线条为 1，内部为 0
+    float gridMask = 1.0 - min(lineX, lineY);
 
     // --- 4. 交叉点计算 ---
+    // (基于 fractGrid，网格单元内部)
     float distToCenter = distance(fractGrid, vec2(0.5));
     float dotSizeAdj = DOT_SIZE * (0.5 + 0.5 * sin(timeScaled * 2.0 + cellId.x * 0.5 + cellId.y * 0.3) + u_intensity * 0.5);
     dotSizeAdj *= (0.8 + random(cellId) * 0.4);
-    float dotMask = 1.0 - smoothstep(0.0, dotSizeAdj, distToCenter); // 圆点区域为 1
+    float dotMask = 1.0 - smoothstep(0.0, dotSizeAdj, distToCenter);
 
     // --- 5. 鼠标圆环计算 ---
-    // 计算当前原始 UV 到鼠标的距离，以获得稳定的圆环
+    // !!! 使用 vUv 计算到鼠标的距离，确保圆环是圆形的 !!!
     float distToMouse = distance(vUv, u_mouse);
-    // 使用辅助函数创建圆环遮罩
-    // 圆环半径与 mouseRadius 一致，厚度和边缘平滑度由常量定义
     float mouseRingMask = smoothRingMask(distToMouse, mouseRadius, MOUSE_RING_THICKNESS, MOUSE_RING_SMOOTHNESS);
 
     // --- 6. 颜色混合 ---
-    // 基础背景色
     vec3 finalColor = COLOR_BG;
-
-    // 混合网格线颜色，亮度受 intensity 影响
     vec3 dynamicLineColor = COLOR_LINE * (0.7 + u_intensity * 0.6);
     finalColor = mix(finalColor, dynamicLineColor, gridMask);
-
-    // 混合交叉点颜色，亮度也受 intensity 影响
     vec3 dynamicDotColor = COLOR_DOT * (0.7 + u_intensity * 0.6);
-    finalColor = mix(finalColor, dynamicDotColor, dotMask * (1.0 - gridMask)); // 仅在非线条区域显示圆点
-
-    // 混合鼠标圆环效果 (替换原来的黄色高亮)
-    // 使用与网格线类似的颜色逻辑
-    vec3 mouseRingColor = COLOR_LINE * (0.8 + u_intensity * 0.4); // 圆环颜色和亮度
-    // 使用 mouseRingMask 进行混合，圆环会叠加在背景、网格线和点之上
+    finalColor = mix(finalColor, dynamicDotColor, dotMask * (1.0 - gridMask));
+    // 混合鼠标圆环 (基于圆形的 mouseRingMask)
+    vec3 mouseRingColor = COLOR_LINE * (0.8 + u_intensity * 0.4);
     finalColor = mix(finalColor, mouseRingColor, mouseRingMask);
 
     // --- 7. 透明度计算 ---
+    // (透明度效果基于原始 vUv 或时间)
     float baseAlpha = 0.7;
-    float timeAlphaFactor = 0.1 * sin(timeScaled + vUv.y * 5.0); // 使用原始 vUv
-    // 鼠标附近透明度变化 (使用 mouseFactor)
-    float mouseAlphaFactor = (1.0 - mouseFactor) * 0.1; // 鼠标附近略微更不透明 (减小影响范围)
+    float timeAlphaFactor = 0.1 * sin(timeScaled + vUv.y * 5.0);
+    // 鼠标附近透明度变化 (基于圆形的 mouseFactor)
+    float mouseAlphaFactor = (1.0 - mouseFactor) * 0.1;
     float finalAlpha = baseAlpha + timeAlphaFactor + mouseAlphaFactor + u_intensity * 0.1;
     finalAlpha = clamp(finalAlpha, 0.1, 1.0);
 
     // --- 输出最终颜色 ---
     gl_FragColor = vec4(finalColor, finalAlpha);
-}  
+}
 `; 
