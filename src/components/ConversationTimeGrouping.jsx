@@ -4,6 +4,36 @@
  */
 import React, { useState, useEffect } from 'react';
 
+// 添加截断名称的辅助组件
+export const TruncatedName = ({ name, maxLength = 18 }) => {
+  // 确保输入值是字符串
+  let nameStr = String(name || '');
+  
+  // 确保nameStr是有效值
+  nameStr = nameStr || '未命名';
+  
+  // 手动截断逻辑，确保超长文本一定会被截断
+  const forceDisplayName = nameStr.length > maxLength
+    ? `${nameStr.substring(0, maxLength - 3)}\u2026` 
+    : nameStr;
+  
+  // 返回渲染的名称
+  return (
+    <span
+      className="whitespace-nowrap overflow-hidden"
+      style={{ 
+        color: 'hsl(180, 0%, 85%)',
+        display: 'block',
+        textOverflow: 'ellipsis',
+        maxWidth: '125px'
+      }}
+      title={nameStr}
+    >
+      {forceDisplayName}
+    </span>
+  );
+};
+
 /**
  * 按日期将对话分组
  * @param {Array} conversations - 对话列表
@@ -244,7 +274,7 @@ export const ConversationTimeGrouping = ({
           boxShadow: '0 0 4px gold'
         } : {}}
       >
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
           {editingFolderName === conversation.id ? (
             <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
               <input
@@ -288,15 +318,9 @@ export const ConversationTimeGrouping = ({
               </div>
             </div>
           ) : (
-            <span 
-              className="overflow-hidden whitespace-nowrap"
-              title={conversation.name}
-              style={{ display: 'inline-block', maxWidth: '100%' }}
-            >
-              {conversation.name.length > 18 
-                ? `${conversation.name.substring(0, 15)}\u2026` 
-                : conversation.name}
-            </span>
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <TruncatedName name={conversation.name} />
+            </div>
           )}
         </div>
         {!editingFolderName && expandedFolderId === conversation.id && (

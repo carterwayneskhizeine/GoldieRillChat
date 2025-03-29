@@ -301,7 +301,7 @@ export default function App() {
     }
 
     try {
-      // 生成新会话ID和名称
+      // Generate unique ID and folder name
       const newId = Date.now().toString();
       const now = new Date();
       const year = now.getFullYear().toString().slice(-2);
@@ -311,6 +311,14 @@ export default function App() {
       const minutes = now.getMinutes().toString().padStart(2, '0');
       const seconds = now.getSeconds().toString().padStart(2, '0');
       const newName = `${day}${month}${year}_${hours}${minutes}${seconds}`;
+      
+      // 调试日志：新创建的文件夹名称
+      console.log('创建新对话文件夹:', {
+        id: newId,
+        name: newName,
+        nameType: typeof newName,
+        nameLength: newName.length
+      });
 
       // 在选定的存储路径下创建新的会话文件夹
       const folderPath = window.electron.path.join(storagePath, newName);
@@ -1024,22 +1032,54 @@ export default function App() {
   // 添加实际执行重命名的函数
   const handleRenameConfirm = async (conversation, newName) => {
     try {
+      // 调试日志：重命名前
+      console.log('重命名文件夹之前:', {
+        originalName: conversation.name,
+        originalType: typeof conversation.name,
+        newName: newName,
+        newNameType: typeof newName
+      });
+      
+      // 确保newName始终是字符串并进行清理
+      let nameStr = String(newName || '').trim();
+      
+      // 如果名称为空，使用默认名称
+      if (!nameStr) {
+        const now = new Date();
+        const formatted = now.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        nameStr = `对话 ${formatted}`;
+      }
+      
+      // 调试日志：处理后的新名称
+      console.log('处理后的新名称:', {
+        nameStr: nameStr,
+        type: typeof nameStr,
+        length: nameStr.length
+      });
+      
       // 保存旧路径，用于更新消息路径
       const oldPath = conversation.path;
       
       // 重命名文件夹
-      const result = await window.electron.renameChatFolder(conversation.path, newName);
+      const result = await window.electron.renameChatFolder(conversation.path, nameStr);
       
       // 更新状态
       const updatedConversations = conversations.map(conv => 
         conv.id === conversation.id 
-          ? { ...conv, name: newName, path: result.path }
+          ? { ...conv, name: nameStr, path: result.path }
           : conv
       );
       
       setConversations(updatedConversations);
       if (currentConversation?.id === conversation.id) {
-        setCurrentConversation({ ...currentConversation, name: newName, path: result.path });
+        setCurrentConversation({ ...currentConversation, name: nameStr, path: result.path });
       }
       
       // 更新本地存储

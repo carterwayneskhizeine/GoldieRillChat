@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getToolDisplayName, tools } from '../config/toolsConfig';
 import { BrowserTabs } from './BrowserTabs';
 import { ChatView } from './ChatView';
-import ConversationTimeGrouping from './ConversationTimeGrouping';
+import ConversationTimeGrouping, { TruncatedName } from './ConversationTimeGrouping';
 import '../styles/sidebar-buttons.css';
 
 export default function Sidebar({
@@ -399,11 +399,9 @@ export default function Sidebar({
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 title={openChatFolder?.name || '选择对话文件夹'}
               >
-                <span className="overflow-hidden whitespace-nowrap" style={{ display: 'inline-block', maxWidth: '80%' }}>
+                <span className="overflow-hidden whitespace-nowrap" style={{ display: 'inline-block', maxWidth: '80%', color: 'hsl(180, 0%, 85%)' }}>
                   {openChatFolder?.name 
-                    ? (openChatFolder.name.length > 18 
-                        ? `${openChatFolder.name.substring(0, 15)}\u2026` 
-                        : openChatFolder.name)
+                    ? <div className="min-w-0 max-w-[125px] overflow-hidden"><TruncatedName name={openChatFolder.name} /></div>
                     : '选择对话文件夹'}
                 </span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -414,6 +412,7 @@ export default function Sidebar({
                 tabIndex={0} 
                 className={`dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50 ${dropdownOpen ? '' : 'hidden'}`}
                 onBlur={() => setDropdownOpen(false)}
+                style={{ color: 'hsl(180, 0%, 85%)' }}
               >
                 {conversations.map(conversation => (
                   <li key={conversation.id}>
@@ -425,9 +424,9 @@ export default function Sidebar({
                       }}
                       title={conversation.name}
                     >
-                      {conversation.name.length > 18 
-                        ? `${conversation.name.substring(0, 15)}\u2026` 
-                        : conversation.name}
+                      <div className="min-w-0 max-w-[125px] overflow-hidden">
+                        <TruncatedName name={conversation.name} />
+                      </div>
                     </a>
                   </li>
                 ))}
