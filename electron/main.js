@@ -2724,6 +2724,44 @@ async function initShaderPresets() {
       if (err.code !== 'EEXIST') throw err;
     }
     
+    // 添加从打包的预设资源目录复制文件的逻辑
+    if (app.isPackaged) {
+      // 打包环境下，检查和复制预设资源文件
+      const resourcePresetsDir = path.join(process.resourcesPath, 'shader-presets');
+      
+      try {
+        // 检查打包的着色器预设资源目录是否存在
+        await fs.access(resourcePresetsDir);
+        
+        // 读取资源目录中的预设文件列表
+        const presetFiles = await fs.readdir(resourcePresetsDir);
+        const jsonFiles = presetFiles.filter(file => file.endsWith('.json'));
+        
+        if (jsonFiles.length > 0) {
+          console.log(`找到${jsonFiles.length}个打包的着色器预设文件`);
+          
+          // 复制每个预设文件到用户数据目录
+          for (const file of jsonFiles) {
+            const sourcePath = path.join(resourcePresetsDir, file);
+            const targetPath = path.join(shaderPresetsFolder, file);
+            
+            // 只有在目标文件不存在时才复制，避免覆盖用户的自定义预设
+            try {
+              await fs.access(targetPath);
+              console.log(`预设文件已存在，跳过复制: ${file}`);
+            } catch {
+              // 文件不存在，可以复制
+              const fileContent = await fs.readFile(sourcePath, 'utf8');
+              await fs.writeFile(targetPath, fileContent);
+              console.log(`预设文件已复制: ${file}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('无法访问打包的着色器预设目录，将使用默认值:', error.message);
+      }
+    }
+    
     // 获取默认着色器代码（用于Shaders1）
     const appPath = app.getAppPath();
     // 根据是否打包使用不同的路径

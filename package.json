@@ -70,6 +70,13 @@
                               "filter": [
                                     "**/*"
                               ]
+                        },
+                        {
+                              "from": "resources/shader-presets/",
+                              "to": "shader-presets",
+                              "filter": [
+                                    "*.json"
+                              ]
                         }
                   ]
             },
