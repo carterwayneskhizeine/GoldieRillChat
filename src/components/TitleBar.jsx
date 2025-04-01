@@ -683,7 +683,7 @@ export default function TitleBar({
               zIndex: 5,
               position: 'relative'
             }}
-            title={isRecording ? "停止语音输入 (Ctrl+Shift+M)" : "开始语音输入 (Ctrl+Shift+M)"}
+            title={isRecording ? "停止语音输入 (Ctrl+R)" : "开始语音输入 (Ctrl+R)"}
             onMouseOver={(e) => {
               if (!isRecording) {
                 e.currentTarget.style.color = 'rgb(255, 215, 0)';

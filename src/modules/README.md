@@ -7,7 +7,7 @@
 - 实时语音识别与文本转换
 - 标题栏实时显示识别的文本（白色高亮显示）
 - 自动插入文本到活跃输入框
-- 支持键盘快捷键(Ctrl+Shift+M)
+- 支持键盘快捷键(Ctrl+R)
 - 智能的输入焦点检测和处理
 - 自动超时停止（默认60秒）
 - 多级错误处理与用户友好的通知系统
@@ -95,7 +95,7 @@ showNotification('提示信息', 'info');
 - `recordingSessionId`: 字符串，当前录音会话的ID
 - `startRecording`: 函数，开始录音
 - `stopRecording`: 函数，停止录音
-- `handleVoiceShortcut`: 函数，处理键盘快捷键(Ctrl+Shift+M)
+- `handleVoiceShortcut`: 函数，处理键盘快捷键(Ctrl+R)
 
 ### showNotification
 
