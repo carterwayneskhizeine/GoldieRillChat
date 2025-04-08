@@ -4,3 +4,4 @@ dashscope==1.22.2
 PyAudio==0.2.14
 PyInstaller==6.12.0
 werkzeug==2.2.3
+python-dotenv==1.0.0
