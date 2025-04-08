@@ -1725,7 +1725,15 @@ function createWindow() {
     if (!app.isQuitting) {
       event.preventDefault()
       mainWindow.hide()
+    } else {
+      // 如果是退出操作，确保窗口被销毁
+      mainWindow = null
     }
+  })
+  
+  // 添加窗口关闭事件
+  mainWindow.on('closed', () => {
+    mainWindow = null
   })
 }
 
@@ -3675,7 +3683,22 @@ function createTray() {
   const contextMenu = Menu.buildFromTemplate([
     { label: '显示', click: () => mainWindow.show() },
     { label: '退出', click: () => {
+      // 设置退出标志
       app.isQuitting = true
+      
+      // 关闭所有窗口
+      if (mainWindow) {
+        mainWindow.removeAllListeners('close')
+        mainWindow.close()
+      }
+      
+      // 销毁托盘图标
+      if (tray) {
+        tray.destroy()
+        tray = null
+      }
+      
+      // 退出应用程序
       app.quit()
     }}
   ])
