@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { nanoid } from 'nanoid';
-import '../styles/Embedding.css';
+import '../styles/embedding.css';
 import '../styles/settings-modal.css';
 import { useKnowledgeBases, useKnowledge } from '../hooks/useKnowledgeBase';
 import AddKnowledgeBaseDialog from './AddKnowledgeBaseDialog';
