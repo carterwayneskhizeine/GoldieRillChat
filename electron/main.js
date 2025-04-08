@@ -21,6 +21,7 @@ try {
 
 let mainWindow = null
 let browserWindow = null
+let tray = null  // 添加系统托盘变量
 
 // 添加应用程序退出标志
 app.isQuitting = false;
@@ -60,17 +61,26 @@ if (process.platform === 'win32') {
 function getIconPath() {
   let iconPath;
   
-  if (process.env.NODE_ENV === 'development') {
-    // 开发环境优先使用项目根目录的resources文件夹
-    iconPath = path.join(process.cwd(), 'resources/favicon.ico');
-    
-    // 如果不存在则使用构建目录的resources
-    if (!require('fs').existsSync(iconPath)) {
-      iconPath = path.join(__dirname, '../resources/favicon.ico');
+  if (process.platform === 'linux') {
+    // Linux 系统优先使用 PNG 格式
+    if (process.env.NODE_ENV === 'development') {
+      iconPath = path.join(process.cwd(), 'resources/GoldieRillIcon.png');
+      if (!require('fs').existsSync(iconPath)) {
+        iconPath = path.join(__dirname, '../resources/GoldieRillIcon.png');
+      }
+    } else {
+      iconPath = path.join(process.resourcesPath, 'GoldieRillIcon.png');
     }
   } else {
-    // 生产环境使用打包后的resources目录
-    iconPath = path.join(process.resourcesPath, 'favicon.ico');
+    // 其他系统使用原有逻辑
+    if (process.env.NODE_ENV === 'development') {
+      iconPath = path.join(process.cwd(), 'resources/favicon.ico');
+      if (!require('fs').existsSync(iconPath)) {
+        iconPath = path.join(__dirname, '../resources/favicon.ico');
+      }
+    } else {
+      iconPath = path.join(process.resourcesPath, 'favicon.ico');
+    }
   }
 
   console.log('最终图标路径:', iconPath);
@@ -981,6 +991,7 @@ function createWindow() {
     frame: false,
     transparent: false,
     backgroundColor: '#2e2e2e',
+    icon: getIconPath(),  // 添加窗口图标
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -988,7 +999,6 @@ function createWindow() {
       webSecurity: true,
       additionalArguments: ['--js-flags=--max-old-space-size=4096'],
     },
-    icon: iconPath,
     title: 'Goldie Rill Chat'
   });
   
@@ -1705,6 +1715,17 @@ function createWindow() {
     viewMap.clear()
     browserView = null
     mainWindow = null
+  })
+
+  // 在窗口创建后添加系统托盘
+  createTray()
+  
+  // 修改窗口关闭行为
+  mainWindow.on('close', (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault()
+      mainWindow.hide()
+    }
   })
 }
 
@@ -3632,3 +3653,42 @@ ipcMain.handle('google-search', async (event, searchText) => {
   // 通知渲染进程显示对话框
   mainWindow.webContents.send('show-link-dialog', url);
 });
+
+// 创建系统托盘
+function createTray() {
+  const iconPath = getIconPath()
+  
+  // 确保图标文件存在
+  if (!require('fs').existsSync(iconPath)) {
+    console.error('托盘图标文件不存在:', iconPath);
+    return;
+  }
+
+  // 创建托盘图标
+  tray = new Tray(iconPath)
+  
+  // 在 Linux 上设置图标大小
+  if (process.platform === 'linux') {
+    tray.setImage(iconPath)
+  }
+  
+  const contextMenu = Menu.buildFromTemplate([
+    { label: '显示', click: () => mainWindow.show() },
+    { label: '退出', click: () => {
+      app.isQuitting = true
+      app.quit()
+    }}
+  ])
+  
+  tray.setToolTip('GoldieRillChat')
+  tray.setContextMenu(contextMenu)
+  
+  // 点击托盘图标显示/隐藏窗口
+  tray.on('click', () => {
+    if (mainWindow.isVisible()) {
+      mainWindow.hide()
+    } else {
+      mainWindow.show()
+    }
+  })
+}
