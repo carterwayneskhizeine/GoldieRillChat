@@ -309,7 +309,7 @@ class TtsCallback(ResultCallback):
                 self._stream = self._player.open(
                     format=pyaudio.paInt16,
                     channels=1,
-                    rate=22050,
+                    rate=16000,
                     output=True
                 )
                 self.is_ready = True
@@ -538,7 +538,7 @@ def start_tts():
             synthesizer = SpeechSynthesizer(
                 model="cosyvoice-v1",
                 voice=voice,
-                format=AudioFormat.PCM_22050HZ_MONO_16BIT,
+                format=AudioFormat.WAV_16000HZ_MONO_16BIT,
                 callback=callback
             )
             
@@ -639,7 +639,7 @@ def synthesize_text():
                     new_synthesizer = SpeechSynthesizer(
                         model="cosyvoice-v1",
                         voice=voice,
-                        format=AudioFormat.PCM_22050HZ_MONO_16BIT,
+                        format=AudioFormat.WAV_16000HZ_MONO_16BIT,
                         callback=new_callback
                     )
                     
