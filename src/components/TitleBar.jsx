@@ -1045,9 +1045,9 @@ export default function TitleBar({
                       <input
                         type="range"
                         min="1024"
-                        max="8192"
-                        step="128"
-                        value={safeMaxTokens > 8192 ? 8192 : safeMaxTokens}
+                        max="163840"
+                        step="1024"
+                        value={safeMaxTokens > 163840 ? 163840 : safeMaxTokens}
                         onChange={(e) => {
                           const value = parseInt(e.target.value);
                           setMaxTokens && setMaxTokens(value);
@@ -1058,7 +1058,7 @@ export default function TitleBar({
                         style={{
                           position: 'relative', 
                           zIndex: 5,
-                          "--range-shdw": `${((Math.min(safeMaxTokens, 8192) - 1024) / (8192 - 1024)) * 100}%`,
+                          "--range-shdw": `${((Math.min(safeMaxTokens, 163840) - 1024) / (163840 - 1024)) * 100}%`,
                           backgroundColor: 'rgba(0, 0, 0, 0.15)',
                           borderRadius: '4px',
                           height: '6px',
@@ -1106,7 +1106,7 @@ export default function TitleBar({
                             // 手动更新滑动条样式
                             const rangeElement = document.querySelector('.dropdown-content input[type="range"][min="1024"]');
                             if (rangeElement) {
-                              rangeElement.value = Math.min(value, 8192);
+                              rangeElement.value = Math.min(value, 163840);
                               updateRangeProgress(rangeElement);
                             }
                           }}
