@@ -4,6 +4,12 @@
 
 一个好看的，可自定义背景的 AI Chatbox，可以把你喜欢的图片、视频、ThreeJS Shaders作为聊天背景。
 
+## 🎥 宣传视频
+
+[![GoldieRillChat 宣传视频](https://img.youtube.com/vi/XA0QBflDvSE/0.jpg)](https://youtu.be/XA0QBflDvSE?si=S5EPil22onsy93kD)
+
+点击上方图片观看宣传视频
+
 ## 🌟 系统特点
 
 GoldieRillChat 是一款只有我自己用的 Chatbox 。该系统架构包括：
