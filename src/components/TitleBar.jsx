@@ -6,6 +6,8 @@ import { TextareaState } from '../components/DaisyTextarea'
 // import { toast } from 'react-hot-toast'
 
 import toastManager from '../utils/toastManager'
+import useToolStore from '../stores/useToolStore'
+import useUIStore from '../stores/useUIStore'
 
 // 导入翻译服务
 // import { translateText, getGoogleTranslateConfig } from '../services/webTranslationService'
@@ -78,13 +80,12 @@ const TranslateButton = ({ currentUrl, activeTabId }) => {
   );
 };
 
-export default function TitleBar({ 
-  title, 
+export default function TitleBar({
+  title,
   onBackClick,
   onNewChat,
   onRetry,
   showBackButton = false,
-  onAction,
   temperature,
   setTemperature,
   maxTokens,
@@ -93,12 +94,9 @@ export default function TitleBar({
   onDeleteChat,
   onUpdateImage,
   onClose,
-  activeTool,
   currentUrl,
   setCurrentUrl,
   isLoading,
-  currentTheme,
-  setCurrentTheme,
   onAddBookmark,
   onToggleBookmarksPanel,
   showBookmarksPanel,
@@ -109,10 +107,10 @@ export default function TitleBar({
   availableModels,
   currentConversation,
   systemPromptEnabled,
-  setShowSettings,
   selectedProvider,
-  sidebarOpen
 }) {
+  const { activeTool, switchTool } = useToolStore();
+  const { currentTheme, setCurrentTheme, setShowSettings, sidebarOpen } = useUIStore();
   const [isNavigating, setIsNavigating] = useState(false); // 添加导航状态
   const [isImageBackground, setIsImageBackground] = useState(false); // 添加图片背景状态
   const [chatTitle, setChatTitle] = useState(title || '新对话');
@@ -520,7 +518,7 @@ export default function TitleBar({
           <div className="flex items-center ml-3 gap-2">
             <button 
               className="btn btn-ghost px-1.5"
-              onClick={() => onAction && onAction('switchTool', 'prev')}
+              onClick={() => switchTool('prev')}
               style={{
                 WebkitAppRegion: 'no-drag',
                 transition: 'all 0.3s ease',
@@ -549,7 +547,7 @@ export default function TitleBar({
             </button>
             <button 
               className="btn btn-ghost px-1.5"
-              onClick={() => onAction && onAction('switchTool', 'next')}
+              onClick={() => switchTool('next')}
               style={{
                 WebkitAppRegion: 'no-drag',
                 transition: 'all 0.3s ease',

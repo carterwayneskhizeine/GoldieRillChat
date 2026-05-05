@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import useToolStore from '../stores/useToolStore';
+import useUIStore from '../stores/useUIStore';
 import { getToolDisplayName, tools } from '../config/toolsConfig';
 import { BrowserTabs } from './BrowserTabs';
 import { ChatView } from './ChatView';
@@ -6,9 +8,6 @@ import ConversationTimeGrouping, { TruncatedName } from './ConversationTimeGroup
 import '../styles/sidebar-buttons.css';
 
 export default function Sidebar({
-  sidebarOpen,
-  sidebarMode,
-  activeTool,
   conversations,
   currentConversation,
   draggedConversation,
@@ -20,7 +19,6 @@ export default function Sidebar({
   setContextMenu,
   loadConversation,
   createNewConversation,
-  switchTool,
   handleSidebarModeToggle,
   handleDragStart,
   handleDragOver,
@@ -49,11 +47,7 @@ export default function Sidebar({
   fileInputRef,
   browserTabs,
   activeTabId,
-  previousMode,
   window,
-  setShowSettings,
-  setSidebarMode,
-  setPreviousMode,
   editingFileName,
   setEditingFileName,
   fileNameInput,
@@ -80,6 +74,9 @@ export default function Sidebar({
   keyboardSelectedConversationId,
   isKeyboardNavigating
 }) {
+  const { activeTool, switchTool } = useToolStore();
+  const { sidebarOpen, sidebarMode, previousMode, setSidebarMode, setPreviousMode, setShowSettings } = useUIStore();
+
   const [openChatFolder, setOpenChatFolder] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isImageBackground, setIsImageBackground] = useState(false);

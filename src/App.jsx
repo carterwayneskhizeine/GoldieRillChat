@@ -3,9 +3,7 @@ import useToolStore from './stores/useToolStore'
 import useUIStore from './stores/useUIStore'
 import TitleBar from './components/TitleBar'
 import ThreeBackground from './components/ThreeBackground'
-import Embedding from './components/Embedding'
-import LivePortrait from './components/LivePortrait'
-import GoldieTalk from './components/GoldieTalk'
+import ToolRouter from './components/ToolRouter'
 import { 
   updateMessage,
   sendMessage as sendMessageOp,
@@ -40,7 +38,6 @@ import { toggleTheme, themes } from './components/themeHandlers'
 import { ImageLightbox } from './components/ImageLightbox'
 import { getAllMessageMedia, findMediaIndex, getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
 import './styles/lightbox.css'
-import { ChatView } from './components/ChatView'
 import './styles/chatview.css'
 import './styles/panel-titles.css'
 import './styles/global-overrides.css'
@@ -62,19 +59,19 @@ import {
   initializeShaderPresetsState
 } from './components/stateInitializers'
 import Sidebar from './components/Sidebar'
-import { AIChat } from './components/AIChat'
 import './styles/aichat.css'
 import { 
   handleDeleteConversation, 
   handleRenameConversation,
   handleContextMenu
 } from './components/conversationHandlers'
-import { MonacoEditor } from './components/MonacoEditor'
 import ToastContainer from './components/ToastContainer'
 import toastManager from './utils/toastManager'
 import BookmarksPanel from './components/BookmarksPanel'
-import ThreeJSShaders from './components/ThreeJSShaders'
+import SettingsModal from './components/SettingsModal'
+import DeleteConversationModal from './components/DeleteConversationModal'
 import { openUrl, switchToBrowserEvent } from './utils/browserUtils'
+import { useGlobalKeyboard } from './hooks/useGlobalKeyboard'
 import './styles/settings-modal.css'
 import './styles/audio-player.css'
 import DaisyTextarea, { TextareaState } from './components/DaisyTextarea'
@@ -1411,111 +1408,17 @@ export default function App() {
     };
   }, []);
 
-  // 添加侧边栏快捷键控制和工具页面快捷键
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // 如果当前正在编辑消息，或者当前有输入框被选中，不处理快捷键
-      if (editingMessage || document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
-        return;
-      }
-           
-      // 切换侧边栏显示/隐藏
-      if (e.ctrlKey && e.key === 'g') {
-        e.preventDefault(); // 阻止默认行为
-        
-        // 切换侧边栏状态
-        setSidebarOpen(!sidebarOpen);
-        return;
-      }
-      
-      // 添加工具页面快捷键切换功能 (Ctrl + 1-7)
-      if (e.ctrlKey && /^[1-7]$/.test(e.key)) {
-        const index = parseInt(e.key) - 1;
-        if (index >= 0 && index < tools.length) {
-          // 直接切换到对应的工具页面
-          const targetTool = tools[index];
-          setActiveTool(targetTool);
-        }
-        return;
-      }
-
-      // 添加Ctrl+左右方向键切换工具功能
-      if (e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-        const direction = e.key === 'ArrowLeft' ? 'prev' : 'next';
-        switchTool(direction);
-        return;
-      }
-
-      // 添加Ctrl+上下方向键导航对话文件夹功能 (仅在AI Chat和Chat面板有效)
-      if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && 
-          (activeTool === 'aichat' || activeTool === 'chat') && 
-          conversations.length > 0) {
-        
-        e.preventDefault(); // 防止页面滚动
-        
-        // 设置键盘导航模式
-        setIsKeyboardNavigating(true);
-        
-        // 确定当前选中的对话索引
-        let currentIndex = -1;
-        if (keyboardSelectedConversationId) {
-          currentIndex = conversations.findIndex(c => c.id === keyboardSelectedConversationId);
-        } else if (currentConversation) {
-          currentIndex = conversations.findIndex(c => c.id === currentConversation.id);
-        }
-        
-        // 计算新的索引
-        let newIndex;
-        if (e.key === 'ArrowUp') {
-          // 向上导航 (如果已经是第一个则循环到最后一个)
-          newIndex = currentIndex <= 0 ? conversations.length - 1 : currentIndex - 1;
-        } else {
-          // 向下导航 (如果已经是最后一个则循环到第一个)
-          newIndex = currentIndex >= conversations.length - 1 ? 0 : currentIndex + 1;
-        }
-        
-        // 更新键盘选中的对话ID
-        setKeyboardSelectedConversationId(conversations[newIndex].id);
-        
-        // 确保选中的对话在视野内
-        setTimeout(() => {
-          const selectedElement = document.querySelector(`.conversation-item-${conversations[newIndex].id}`);
-          if (selectedElement) {
-            selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }, 50);
-        return;
-      }
-      
-      // 处理Enter键确认选择对话
-      if (e.key === 'Enter' && isKeyboardNavigating && keyboardSelectedConversationId) {
-        const selectedConversation = conversations.find(c => c.id === keyboardSelectedConversationId);
-        if (selectedConversation) {
-          // 加载选中的对话
-          handleConversationSelect(keyboardSelectedConversationId);
-          
-          // 退出键盘导航模式
-          setIsKeyboardNavigating(false);
-        }
-        return;
-      }
-      
-      // 按ESC键取消键盘导航
-      if (e.key === 'Escape' && isKeyboardNavigating) {
-        setIsKeyboardNavigating(false);
-        setKeyboardSelectedConversationId(null);
-        return;
-      }
-    };
-
-    // 添加全局键盘事件监听器
-    window.addEventListener('keydown', handleKeyDown);
-
-    // 清理函数，组件卸载时移除事件监听器
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [sidebarOpen, setActiveTool, switchTool, activeTool, conversations, currentConversation, keyboardSelectedConversationId, isKeyboardNavigating, handleConversationSelect]); // 更新依赖数组
+  // 全局键盘快捷键
+  useGlobalKeyboard({
+    editingMessage,
+    conversations,
+    currentConversation,
+    keyboardSelectedConversationId,
+    isKeyboardNavigating,
+    setKeyboardSelectedConversationId,
+    setIsKeyboardNavigating,
+    handleConversationSelect,
+  })
 
   // localStorage 持久化与 tool-changed 事件现由 useToolStore.setActiveTool 统一处理
 
@@ -1547,13 +1450,10 @@ export default function App() {
     <div className="h-screen flex flex-col bg-base-100">
       <ThreeBackground />
       <style>{globalStyles}</style>
-      <TitleBar 
-        activeTool={activeTool}
+      <TitleBar
         currentUrl={currentUrl}
         setCurrentUrl={setCurrentUrl}
         isLoading={isLoading}
-        currentTheme={currentTheme}
-        setCurrentTheme={setCurrentTheme}
         onAddBookmark={handleAddBookmark}
         onToggleBookmarksPanel={handleToggleBookmarksPanel}
         showBookmarksPanel={showBookmarksPanel}
@@ -1568,14 +1468,7 @@ export default function App() {
         temperature={temperature}
         setTemperature={setTemperature}
         systemPromptEnabled={false}
-        setShowSettings={setShowSettings}
         selectedProvider={selectedProvider}
-        onAction={(action, ...args) => {
-          if (action === 'switchTool') {
-            switchTool(args[0]);
-          }
-        }}
-        sidebarOpen={sidebarOpen}
       />
       <ToastContainer />
       <div className="flex-1 flex overflow-hidden">
@@ -1590,10 +1483,7 @@ export default function App() {
         </div>
 
         {/* Sidebar */}
-        <Sidebar 
-          sidebarOpen={sidebarOpen}
-          sidebarMode={sidebarMode}
-          activeTool={activeTool}
+        <Sidebar
           conversations={conversations}
           currentConversation={currentConversation}
           draggedConversation={draggedConversation}
@@ -1605,7 +1495,6 @@ export default function App() {
           setContextMenu={setContextMenu}
           loadConversation={handleConversationSelect}
           createNewConversation={createNewConversation}
-          switchTool={switchTool}
           handleSidebarModeToggle={handleSidebarModeToggle}
           handleDragStart={handleDragStart}
           handleDragOver={handleDragOver}
@@ -1634,11 +1523,7 @@ export default function App() {
           fileInputRef={fileInputRef}
           browserTabs={browserTabs}
           activeTabId={activeTabId}
-          previousMode={previousMode}
           window={window}
-          setShowSettings={setShowSettings}
-          setSidebarMode={setSidebarMode}
-          setPreviousMode={setPreviousMode}
           editingFileName={editingFileName}
           setEditingFileName={setEditingFileName}
           fileNameInput={fileNameInput}
@@ -1667,128 +1552,63 @@ export default function App() {
         />
 
         {/* Main content area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Chat content */}
-          <div 
-            style={{ 
-              display: activeTool === 'chat' ? 'flex' : 'none',
-              height: 'calc(100vh - 40px)'
-            }} 
-            className="flex-1 flex flex-col overflow-hidden">
-            <ChatView
-              messages={messages}
-              setMessages={setMessages}
-              currentConversation={currentConversation}
-              editingMessage={editingMessage}
-              setEditingMessage={setEditingMessage}
-              messageInput={messageInput}
-              setMessageInput={setMessageInput}
-              selectedFiles={selectedFiles}
-              setSelectedFiles={setSelectedFiles}
-              sendMessage={sendMessage}
-              deleteMessage={confirmDeleteMessage}
-              updateMessage={updateMessageInApp}
-              moveMessage={moveMessageInApp}
-              enterEditMode={enterEditMode}
-              exitEditMode={exitEditMode}
-              collapsedMessages={collapsedMessages}
-              setCollapsedMessages={setCollapsedMessages}
-              handleImageClick={handleImageClick}
-              fileInputRef={fileInputRef}
-              editingFileName={editingFileName}
-              setEditingFileName={setEditingFileName}
-              fileNameInput={fileNameInput}
-              setFileNameInput={setFileNameInput}
-              renameMessageFile={renameMessageFile}
-              openFileLocation={openFileLocation}
-              copyMessageContent={copyMessageContent}
-              deletingMessageId={deletingMessageId}
-              setDeletingMessageId={setDeletingMessageId}
-              cancelDeleteMessage={cancelDeleteMessage}
-              confirmDeleteMessage={confirmDeleteMessage}
-              scrollToMessage={scrollToMessage}
-              window={window}
-              sendToMonaco={sendToMonaco}
-              sendToEditor={sendToEditor}
-              shouldScrollToBottom={shouldScrollToBottom}
-              setShouldScrollToBottom={setShouldScrollToBottom}
-              sidebarOpen={sidebarOpen}
-              sidebarMode={sidebarMode}
-            />
-          </div>
-          
-          {/* Embedding content */}
-          <div 
-            style={{ 
-              display: activeTool === 'embedding' ? 'flex' : 'none',
-              height: 'calc(100vh - 40px)'
-            }} 
-            className="flex-1 flex flex-col overflow-hidden">
-            <Embedding isActive={activeTool === 'embedding'} />
-          </div>
-
-          {/* Browser content */}
-          <div style={{ display: activeTool === 'browser' ? 'flex' : 'none' }} className="flex-1 flex flex-col relative">
-            <div className="flex-1 bg-base-100 overflow-auto" style={{ height: 'calc(100vh - 28px)' }}>
-              {/* Browser view managed by main process */}
-            </div>
-          </div>
-
-          {/* Monaco Editor content */}
-          <div style={{ display: activeTool === 'monaco' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
-            <MonacoEditor 
-              currentNote={currentNote}
-              saveNote={saveNote}
-            />
-          </div>
-
-          {/* ThreeJS Shaders content */}
-          <div style={{ display: activeTool === 'threejs-shaders' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
-            <ThreeJSShaders />
-          </div>
-
-          {/* Goldie Talk content */}
-          <div style={{ display: activeTool === 'goldie-talk' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
-            <GoldieTalk />
-          </div>
-
-          {/* AI Chat content */}
-          <div style={{ display: activeTool === 'aichat' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
-            <AIChat 
-              sendToSidebar={handleSendToSidebar}
-              createNewConversation={createNewConversation}
-              storagePath={storagePath}
-              currentConversation={currentConversation}
-              conversations={conversations}
-              onConversationSelect={handleConversationSelect}
-              onConversationDelete={handleConversationDelete}
-              onConversationRename={handleConversationRename}
-              window={window}
-              electron={window.electron}
-              openInBrowserTab={openInBrowserTab}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              availableModels={availableModels}
-              setAvailableModels={setAvailableModels}
-              maxTokens={maxTokens}
-              setMaxTokens={setMaxTokens}
-              temperature={temperature}
-              setTemperature={setTemperature}
-              selectedProvider={selectedProvider}
-              setSelectedProvider={setSelectedProvider}
-              isCompact={isCompact}
-              sidebarOpen={sidebarOpen}
-            />
-          </div>
-
-          {/* LivePortrait content */}
-          <div style={{ display: activeTool === 'liveportrait' ? 'flex' : 'none' }} className="flex-1 overflow-hidden">
-            <LivePortrait 
-              storagePath={storagePath}
-            />
-          </div>
-
-        </div>
+        <ToolRouter
+          messages={messages}
+          setMessages={setMessages}
+          currentConversation={currentConversation}
+          editingMessage={editingMessage}
+          setEditingMessage={setEditingMessage}
+          messageInput={messageInput}
+          setMessageInput={setMessageInput}
+          selectedFiles={selectedFiles}
+          setSelectedFiles={setSelectedFiles}
+          sendMessage={sendMessage}
+          confirmDeleteMessage={confirmDeleteMessage}
+          updateMessageInApp={updateMessageInApp}
+          moveMessageInApp={moveMessageInApp}
+          enterEditMode={enterEditMode}
+          exitEditMode={exitEditMode}
+          collapsedMessages={collapsedMessages}
+          setCollapsedMessages={setCollapsedMessages}
+          handleImageClick={handleImageClick}
+          fileInputRef={fileInputRef}
+          editingFileName={editingFileName}
+          setEditingFileName={setEditingFileName}
+          fileNameInput={fileNameInput}
+          setFileNameInput={setFileNameInput}
+          renameMessageFile={renameMessageFile}
+          openFileLocation={openFileLocation}
+          copyMessageContent={copyMessageContent}
+          deletingMessageId={deletingMessageId}
+          setDeletingMessageId={setDeletingMessageId}
+          cancelDeleteMessage={cancelDeleteMessage}
+          scrollToMessage={scrollToMessage}
+          sendToMonaco={sendToMonaco}
+          sendToEditor={sendToEditor}
+          shouldScrollToBottom={shouldScrollToBottom}
+          setShouldScrollToBottom={setShouldScrollToBottom}
+          handleSendToSidebar={handleSendToSidebar}
+          createNewConversation={createNewConversation}
+          storagePath={storagePath}
+          conversations={conversations}
+          handleConversationSelect={handleConversationSelect}
+          handleConversationDelete={handleConversationDelete}
+          handleConversationRename={handleConversationRename}
+          openInBrowserTab={openInBrowserTab}
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
+          availableModels={availableModels}
+          setAvailableModels={setAvailableModels}
+          maxTokens={maxTokens}
+          setMaxTokens={setMaxTokens}
+          temperature={temperature}
+          setTemperature={setTemperature}
+          selectedProvider={selectedProvider}
+          setSelectedProvider={setSelectedProvider}
+          isCompact={isCompact}
+          currentNote={currentNote}
+          saveNote={saveNote}
+        />
 
         {/* All components need to be wrapped in the same parent element */}
         <div className="overlays">
@@ -1818,97 +1638,24 @@ export default function App() {
         />
       )}
 
-      {/* Modals and overlays */}
-      {showSettings && (
-        <div className="modal modal-open settings-modal">
-          <div className="modal-box">
-            <button 
-              onClick={() => setShowSettings(false)}
-              className="close-btn"
-            >
-              ✕
-            </button>
-            
-            <h1 className="text-2xl font-bold mb-6">Settings</h1>
-            
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Storage</h2>
-                
-              <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg">Folder</h3>
-                    <div className="flex flex-col items-center gap-2">
-                      <button className="shader-btn save-btn" onClick={() => handleSelectFolder(setStoragePath, currentConversation, messages, window, setConversations, setCurrentConversation)}>
-                        Modify Folder
-                      </button>
-                      <span className="text-sm opacity-70 text-center">{storagePath || 'No folder selected'}</span>
-                    </div>
-                  </div>
-              
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg">Update</h3>
-                  <button className="shader-btn" onClick={() => handleUpdateFolders(storagePath, setConversations, window)}>
-                    Update Folders
-                  </button>
-              </div>
-
-                <div className="divider"></div>
-
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg">Theme</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm opacity-70">{currentTheme}</span>
-                    <button onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)} className="shader-btn">
-                      Change Theme
-                    </button>
-              </div>
-                </div>
-              </div>
-              </div>
-            </div>
-          </div>
-          <div 
-            className="modal-backdrop" 
-            onClick={() => setShowSettings(false)}
-          />
-        </div>
-      )}
-
-      {deletingConversation && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">Delete Chat</h3>
-            <p className="py-4">Are you sure you want to delete this chat?</p>
-            <div className="modal-action">
-              <button 
-                className="btn btn-ghost"
-                onClick={() => setDeletingConversation(null)}
-              >
-                No
-              </button>
-              <button 
-                className="btn btn-error"
-                onClick={() => {
-                  deleteConversation(
-                    deletingConversation.id,
-                    conversations,
-                    currentConversation,
-                    setConversations,
-                    setCurrentConversation,
-                    setMessages,
-                    window
-                  )
-                  setDeletingConversation(null)
-                }}
-              >
-                Yes
-              </button>
-            </div>
-          </div>
-          <div className="modal-backdrop" onClick={() => setDeletingConversation(null)}></div>
-        </div>
-      )}
+      {/* Modals */}
+      <SettingsModal
+        storagePath={storagePath}
+        setStoragePath={setStoragePath}
+        currentConversation={currentConversation}
+        messages={messages}
+        setConversations={setConversations}
+        setCurrentConversation={setCurrentConversation}
+      />
+      <DeleteConversationModal
+        deletingConversation={deletingConversation}
+        setDeletingConversation={setDeletingConversation}
+        conversations={conversations}
+        currentConversation={currentConversation}
+        setConversations={setConversations}
+        setCurrentConversation={setCurrentConversation}
+        setMessages={setMessages}
+      />
 
       {/* 全局文本编辑器 - 使用 Ctrl+Q 控制显示/隐藏 */}
       <DaisyTextarea

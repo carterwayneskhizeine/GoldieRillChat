@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import useUIStore from '../../stores/useUIStore';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { InputArea } from './components/InputArea';
@@ -45,8 +46,8 @@ export const AIChat = ({
   selectedProvider: appSelectedProvider,
   setSelectedProvider: appSetSelectedProvider,
   isCompact = false,
-  sidebarOpen = true
 }) => {
+  const { sidebarOpen } = useUIStore();
   // 使用状态管理 hooks，但优先使用从App传递的状态
   const messageState = useMessageState(currentConversation);
   const modelState = useModelState();
