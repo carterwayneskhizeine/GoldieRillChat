@@ -5,13 +5,7 @@ import { TextareaState } from '../components/DaisyTextarea'
 // 移除 react-hot-toast 导入
 // import { toast } from 'react-hot-toast'
 
-// 导入语音识别模块
-import { useSpeechRecognition, showNotification } from '../modules/SpeechRecognition'
-
-// 添加语音识别文字滚动的样式
-const speechRecognitionStyles = `
-// 删除所有动画和容器样式
-`;
+import toastManager from '../utils/toastManager'
 
 // 导入翻译服务
 // import { translateText, getGoogleTranslateConfig } from '../services/webTranslationService'
@@ -42,19 +36,19 @@ const TranslateButton = ({ currentUrl, activeTabId }) => {
       
       // 检查URL是否有效
       if (!url || url.startsWith('file:') || url.startsWith('electron:') || url.startsWith('about:')) {
-        showNotification('当前页面无法翻译', 'error');
+        toastManager.error('当前页面无法翻译');
         setIsTranslating(false);
         return;
       }
       
       // 使用Google翻译服务在新窗口打开
-      showNotification('正在使用Google翻译服务...');
+      toastManager.info('正在使用Google翻译服务...');
       openGoogleTranslateInNewWindow(url, 'zh-CN');
       
       setIsTranslating(false);
     } catch (error) {
       console.error('翻译失败:', error);
-      showNotification(`翻译失败: ${error.message}`, 'error');
+      toastManager.error(`翻译失败: ${error.message}`);
       setIsTranslating(false);
     }
   };
@@ -63,7 +57,7 @@ const TranslateButton = ({ currentUrl, activeTabId }) => {
   const openGoogleTranslateInNewWindow = (url, targetLang) => {
     const googleTranslateUrl = `https://translate.google.com/translate?sl=auto&tl=${targetLang}&u=${encodeURIComponent(url)}`;
     openUrlDirectly(googleTranslateUrl);
-    showNotification('网页翻译中...', 'success');
+    toastManager.success('网页翻译中...');
   };
 
   return (
@@ -139,27 +133,6 @@ export default function TitleBar({
   const headerRef = useRef(null);
   const [isStickyNoteVisible, setIsStickyNoteVisible] = useState(false);
   const [activeNote, setActiveNote] = useState(1);
-  const [recording, setRecording] = useState(false);
-  const [recognition, setRecognition] = useState(null);
-  const [interimTranscript, setInterimTranscript] = useState('');
-  const [finalTranscript, setFinalTranscript] = useState('');
-  const [silenceTimer, setSilenceTimer] = useState(null);
-  
-  // 使用自定义语音识别Hook替代原来的状态和函数
-  const [isCheckingServer, setIsCheckingServer] = useState(false);
-  
-  // 使用语音识别Hook，设置超时时间和轮询间隔
-  const {
-    isRecording,
-    recordedText,
-    recordingSessionId,
-    startRecording,
-    stopRecording,
-    handleVoiceShortcut
-  } = useSpeechRecognition({
-    timeout: 60000, // 60秒超时
-    pollingInterval: 1000 // 每秒轮询一次
-  });
   
   // 添加maxHistoryMessages状态
   const [maxHistoryMessages, setMaxHistoryMessages] = useState(() => {
@@ -467,46 +440,10 @@ export default function TitleBar({
       });
     } else {
       // 使用备用通知方法
-      showNotification(`历史消息数量已设置为${numValue === 21 ? '全部' : numValue}条`, 'success');
+      toastManager.success(`历史消息数量已设置为${numValue === 21 ? '全部' : numValue}条`);
     }
   };
 
-  // 测试Flask连接
-  const testFlaskConnection = async () => {
-    if (isCheckingServer) return;
-    
-    setIsCheckingServer(true);
-    
-    try {
-      // 添加超时控制
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
-      
-      // 测试连接到Flask服务器
-      const response = await fetch('http://127.0.0.1:2047/api/ping', {
-        signal: controller.signal
-      });
-      
-      // 清除超时
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        console.log('Flask服务器连接成功');
-        setIsCheckingServer(false);
-        return true;
-      } else {
-        console.error('Flask服务器响应错误:', response.status);
-        showNotification('语音识别服务连接失败', 'error');
-        setIsCheckingServer(false);
-        return false;
-      }
-    } catch (error) {
-      console.error('连接Flask服务器失败:', error);
-      showNotification('无法连接到语音识别服务', 'error');
-      setIsCheckingServer(false);
-      return false;
-    }
-  };
 
   // 音量计算函数
   const calculateVolume = (array) => {
@@ -521,26 +458,6 @@ export default function TitleBar({
     return values / length;
   };
 
-  // 添加样式到文档
-  useEffect(() => {
-    // 创建样式元素
-    const styleElement = document.createElement('style');
-    styleElement.textContent = speechRecognitionStyles;
-    styleElement.id = 'speech-recognition-styles';
-    
-    // 只有在没有相同ID的样式元素时才添加
-    if (!document.getElementById('speech-recognition-styles')) {
-      document.head.appendChild(styleElement);
-    }
-    
-    // 组件卸载时清理
-    return () => {
-      const existingStyle = document.getElementById('speech-recognition-styles');
-      if (existingStyle) {
-        existingStyle.remove();
-      }
-    };
-  }, []);
 
   // 在组件内添加一个获取标题样式的函数
   const getTitleStyle = (isImage) => {
@@ -662,57 +579,6 @@ export default function TitleBar({
           </div>
         )}
         
-        {/* 添加话筒按钮 - 用于实时语音输入 */}
-        <div className="flex items-center ml-3 gap-2">
-          <button 
-            className={`btn btn-ghost px-1.5 ${isRecording ? 'btn-error text-white' : ''}`}
-            onClick={() => {
-              if (isRecording) {
-                stopRecording();
-              } else {
-                startRecording();
-              }
-            }}
-            style={{
-              WebkitAppRegion: 'no-drag',
-              transition: 'all 0.3s ease',
-              borderRadius: '4px',
-              height: '26px',
-              minHeight: '26px',
-              lineHeight: '1',
-              zIndex: 5,
-              position: 'relative'
-            }}
-            title={isRecording ? "停止语音输入 (Ctrl+R)" : "开始语音输入 (Ctrl+R)"}
-            onMouseOver={(e) => {
-              if (!isRecording) {
-                e.currentTarget.style.color = 'rgb(255, 215, 0)';
-                e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
-                e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!isRecording) {
-                e.currentTarget.style.color = '';
-                e.currentTarget.style.borderColor = '';
-                e.currentTarget.style.backgroundColor = '';
-              }
-            }}
-          >
-            {isRecording ? (
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <rect x="6" y="6" width="12" height="12" rx="1" strokeWidth="2" fill="currentColor" />
-            </svg>
-            ) : (
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <line x1="8" y1="16" x2="8" y2="8" strokeWidth="2" strokeLinecap="round" />
-              <line x1="12" y1="18" x2="12" y2="6" strokeWidth="3" strokeLinecap="round" />
-              <line x1="16" y1="16" x2="16" y2="8" strokeWidth="2" strokeLinecap="round" />
-              <circle cx="20" cy="12" r="1.5" strokeWidth="0" fill="currentColor" />
-            </svg>
-            )}
-          </button>
-        </div>
 
         {/* 便签按钮 - 切换DaisyTextarea的可见性（无论侧边栏状态如何都显示） */}
         <div className="flex items-center ml-3 gap-2">
@@ -850,17 +716,9 @@ export default function TitleBar({
           <div className="w-full flex items-center">
             {/* 中间会话名称区域 - 保持拖拽 */}
             <div className="flex-1 h-full flex items-center justify-center">
-              {isRecording && recordedText ? (
-                <div>
-                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
-                    🎙️ {recordedText}
-                  </h2>
-                </div>
-              ) : (
-                <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
-                  {currentConversation?.name || 'Current session'}
-                </h2>
-              )}
+              <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
+                {currentConversation?.name || 'Current session'}
+              </h2>
             </div>
 
             {/* 右侧控制区域 */}
@@ -1131,56 +989,25 @@ export default function TitleBar({
           <div className="w-full flex items-center">
             {/* 中间会话名称区域 - 保持拖拽 */}
             <div className="flex-1 h-full flex items-center justify-center">
-              {isRecording && recordedText ? (
-                <div>
-                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
-                    🎙️ {recordedText}
-                  </h2>
-                </div>
-              ) : (
-                <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
-                  {currentConversation?.name || 'Current session'}
-                </h2>
-              )}
+              <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
+                {currentConversation?.name || 'Current session'}
+              </h2>
             </div>
           </div>
         ) : activeTool === 'monaco' ? (
           <div className="w-full flex items-center">
-            {/* Monaco编辑器标题区域 */}
-            <div className="flex-1 h-full flex items-center justify-center">
-              {isRecording && recordedText ? (
-                <div>
-                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
-                    🎙️ {recordedText}
-                  </h2>
-                </div>
-              ) : null}
-            </div>
+            <div className="flex-1 h-full flex items-center justify-center" />
           </div>
         ) : activeTool === 'threejs-shaders' ? (
           <div className="w-full flex items-center">
-            {/* ThreeJS Shaders标题区域 */}
-            <div className="flex-1 h-full flex items-center justify-center">
-              {isRecording && recordedText ? (
-                <div>
-                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
-                    🎙️ {recordedText}
-                  </h2>
-                </div>
-              ) : null}
-            </div>
+            <div className="flex-1 h-full flex items-center justify-center" />
           </div>
         ) : activeTool === 'embedding' ? (
           <div className="w-full flex items-center">
-            {/* Embedding标题区域 */}
             <div className="flex-1 h-full flex items-center justify-center">
-              {isRecording && recordedText ? (
-                <div>
-                  <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
-                    🎙️ {recordedText}
-                  </h2>
-                </div>
-              ) : null}
+              <h2 className="text-sm text-center font-medium" style={getTitleStyle(isImageBackground)}>
+                Embedding
+              </h2>
             </div>
           </div>
         ) : null}

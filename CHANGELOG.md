@@ -2,6 +2,21 @@
 
 All notable changes to GoldieRillChat will be documented in this file.
 
+## [Unreleased] — Refactoring (Phase 1)
+
+### Added
+- Zustand state management (`npm i zustand`)
+- `src/stores/useToolStore.js` — `activeTool`, `setActiveTool`, `switchTool(direction|toolName)`; persists to localStorage and fires backward-compat `tool-changed` event
+- `src/stores/useUIStore.js` — sidebar (`open/mode/previousMode`), `showSettings`, `currentTheme`; `setCurrentTheme` syncs DOM + localStorage automatically
+- `src/stores/useConversationStore.js` — minimal placeholder; full migration in Phase 2
+- `src/stores/useSettingsStore.js` — `storagePath` placeholder; full migration in Phase 4
+- `src/utils/eventBus.js` — typed `on/off/emit` wrapper for events that can't be replaced by stores
+
+### Changed
+- `App.jsx`: replaced `useState` for `activeTool`, sidebar state, `showSettings`, `currentTheme` with Zustand store reads; removed local `switchTool` function and `tool-changed` dispatch useEffect
+- `BookmarksPanel.jsx`: replaced `window.dispatchEvent(new CustomEvent('switchTool', ...))` with `useToolStore.getState().setActiveTool('browser')`
+- `TitleBar.jsx`: removed all speech recognition code (import, hook, button, state, Flask check function, styles effect); replaced `showNotification` with `toastManager`
+
 ## [Unreleased] — Refactoring (Phase 0)
 
 ### Removed

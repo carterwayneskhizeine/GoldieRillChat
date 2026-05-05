@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import useToolStore from './stores/useToolStore'
+import useUIStore from './stores/useUIStore'
 import TitleBar from './components/TitleBar'
 import ThreeBackground from './components/ThreeBackground'
 import Embedding from './components/Embedding'
@@ -34,7 +36,7 @@ import { renameChatFolder } from './components/conversationRenameHandlers'
 import { deleteConversation } from './components/conversationDeleteHandlers'
 import { handleSelectFolder } from './components/folderHandlers'
 import { handleUpdateFolders, mergeConversations } from './components/folderUpdateHandlers'
-import { toggleTheme, themes, initializeTheme, useThemeEffect } from './components/themeHandlers'
+import { toggleTheme, themes } from './components/themeHandlers'
 import { ImageLightbox } from './components/ImageLightbox'
 import { getAllMessageMedia, findMediaIndex, getAllMessageImages, findImageIndex } from './components/imagePreviewUtils'
 import './styles/lightbox.css'
@@ -55,7 +57,6 @@ import {
   initializeChatState,
   initializeUIState,
   initializeStoragePath,
-  initializeSidebarState,
   initializeEditorState,
   initializeNotesState,
   initializeShaderPresetsState
@@ -90,22 +91,24 @@ const useBookmarkStore = {
 };
 
 export default function App() {
-  // 修改初始工具为 aichat
-  const [activeTool, setActiveTool] = useState('aichat')
-  
-  // 侧边栏状态
-  const initialSidebarState = initializeSidebarState()
-  const [sidebarOpen, setSidebarOpen] = useState(initialSidebarState.sidebarOpen)
-  const [sidebarMode, setSidebarMode] = useState(initialSidebarState.sidebarMode)
-  const [previousMode, setPreviousMode] = useState(initialSidebarState.previousMode)
+  // 工具状态 — 来自 Zustand store
+  const { activeTool, setActiveTool, switchTool } = useToolStore()
+
+  // 侧边栏状态 — 来自 Zustand store
+  const {
+    sidebarOpen, setSidebarOpen,
+    sidebarMode, setSidebarMode,
+    previousMode, setPreviousMode,
+    showSettings, setShowSettings,
+    currentTheme, setCurrentTheme,
+  } = useUIStore()
 
   // 添加键盘导航状态
   const [keyboardSelectedConversationId, setKeyboardSelectedConversationId] = useState(null)
   const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false)
 
-  // UI状态
+  // UI状态 (showSettings / currentTheme 已移至 useUIStore)
   const initialUIState = initializeUIState()
-  const [showSettings, setShowSettings] = useState(initialUIState.showSettings)
   const [isCtrlPressed, setIsCtrlPressed] = useState(initialUIState.isCtrlPressed)
   const [contextMenu, setContextMenu] = useState(initialUIState.contextMenu)
   const [selectedText, setSelectedText] = useState(initialUIState.selectedText)
@@ -150,12 +153,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(initialBrowserState.isLoading)
   const [pageTitle, setPageTitle] = useState(initialBrowserState.pageTitle)
 
-  // 使用初始化函数替换原有的主题状态声明
-  const [currentTheme, setCurrentTheme] = useState(initializeTheme())
-  
-  // 使用主题效果
-  useThemeEffect(currentTheme)
-  
   // Refs
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -778,21 +775,7 @@ export default function App() {
     setFolderNameInput(conversation.name)
   }
 
-  // 创建工具切换函数
-  const switchTool = (direction) => {
-    // 使用工具切换器
-    setActiveTool(currentTool => {
-      const currentIndex = tools.indexOf(currentTool);
-      if (direction === 'next') {
-        return tools[(currentIndex + 1) % tools.length];
-      } else if (direction === 'prev') {
-        return tools[(currentIndex - 1 + tools.length) % tools.length];
-      } else {
-        // 如果direction是一个具体的工具名，直接切换到该工具
-        return direction;
-      }
-    });
-  };
+  // switchTool 已移至 useToolStore
 
   // 添加处理创建对话的函数
   const handleConversationCreate = async (conversation) => {
@@ -1534,32 +1517,14 @@ export default function App() {
     };
   }, [sidebarOpen, setActiveTool, switchTool, activeTool, conversations, currentConversation, keyboardSelectedConversationId, isKeyboardNavigating, handleConversationSelect]); // 更新依赖数组
 
-  // 添加activeTool变更时的处理，将当前工具记录到localStorage
-  useEffect(() => {
-    // 将当前活动工具保存到localStorage，供其他组件判断当前界面使用
-    localStorage.setItem('active_tool', activeTool);
-    
-    // 触发自定义事件通知其他组件工具已切换
-    const event = new CustomEvent('tool-changed', { 
-      detail: { tool: activeTool } 
-    });
-    window.dispatchEvent(event);
-  }, [activeTool]);
+  // localStorage 持久化与 tool-changed 事件现由 useToolStore.setActiveTool 统一处理
 
-  // 添加监听Chat界面设置事件的处理
+  // 监听 open-chat-settings 事件（通过 eventBus 统一管理）
   useEffect(() => {
-    const handleOpenChatSettings = () => {
-      // 直接打开设置弹窗
-      setShowSettings(true);
-      console.log('打开Chat设置事件被触发');
-    };
-    
+    const handleOpenChatSettings = () => setShowSettings(true);
     window.addEventListener('open-chat-settings', handleOpenChatSettings);
-    
-    return () => {
-      window.removeEventListener('open-chat-settings', handleOpenChatSettings);
-    };
-  }, []);
+    return () => window.removeEventListener('open-chat-settings', handleOpenChatSettings);
+  }, [setShowSettings]);
 
   // 在useEffect中添加事件监听
   useEffect(() => {

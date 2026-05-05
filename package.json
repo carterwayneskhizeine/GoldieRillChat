@@ -144,7 +144,8 @@
             "three": "^0.174.0",
             "unist-util-visit": "^5.0.0",
             "uuid": "^11.1.0",
-            "yet-another-react-lightbox": "^3.21.7"
+            "yet-another-react-lightbox": "^3.21.7",
+            "zustand": "^5.0.13"
       },
       "devDependencies": {
             "@eslint/js": "^10.0.1",

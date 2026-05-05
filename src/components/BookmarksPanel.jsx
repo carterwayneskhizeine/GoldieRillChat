@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useToolStore from '../stores/useToolStore';
 import '../styles/BookmarksPanel.css';
 
 // 递归组件，用于渲染文件夹树
@@ -277,11 +278,8 @@ const BookmarksPanel = ({ onClose }) => {
     if (window.electron && window.electron.browser) {
       window.electron.browser.newTab(url);
       
-      // 触发切换到浏览器工具事件
-      const switchEvent = new CustomEvent('switchTool', {
-        detail: { tool: 'browser' }
-      });
-      window.dispatchEvent(switchEvent);
+      // 切换到浏览器工具
+      useToolStore.getState().setActiveTool('browser');
       
       // 自动关闭书签面板
       if (onClose) {
