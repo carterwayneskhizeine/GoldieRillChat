@@ -63,3 +63,7 @@ audio_output
 build
 python_envuser_config.json
 python_env
+
+# Backup and temp files
+*.bak
+*.tmp
