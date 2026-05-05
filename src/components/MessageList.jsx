@@ -6,6 +6,72 @@ import { openUrl } from '../utils/browserUtils'
 import eventBus from './ThreeBackground/utils/eventBus'
 import ReactAudioPlayer from 'react-audio-player'
 
+const renderAudioMessage = (message) => {
+  const audioFile = message.files?.find(file => file.type && file.type.startsWith('audio/'))
+  if (!audioFile) return null
+  return (
+    <div className="audio-message">
+      {message.audioParams && (
+        <div className="audio-info mb-4">
+          <div className="font-medium mb-2">文本：{message.audioParams?.text}</div>
+          <div className="text-sm opacity-70">
+            <span className="mr-4">音色：{message.audioParams?.voice}</span>
+            <span className="mr-4">音量：{message.audioParams?.volume}</span>
+            <span>语速：{message.audioParams?.speed}</span>
+          </div>
+        </div>
+      )}
+      <div className="audio-player relative overflow-hidden p-4 rounded-md">
+        <ReactAudioPlayer
+          src={`local-file://${audioFile.path}`}
+          controls
+          autoPlay={false}
+          className="w-full"
+          controlsList="nodownload"
+          preload="metadata"
+          style={{ width: '380px', maxWidth: '100%' }}
+        />
+      </div>
+    </div>
+  )
+}
+
+const renderMediaContent = (file, onImageClick) => {
+  if (file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+    return (
+      <div key={file.path} className="media-container my-2">
+        <img
+          src={`local-file://${file.path}`}
+          alt={file.name}
+          className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={(e) => onImageClick(e, file)}
+          style={{ maxHeight: '300px', objectFit: 'contain' }}
+          loading="lazy"
+        />
+      </div>
+    )
+  } else if (file.name && file.name.match(/\.mp4$/i)) {
+    return (
+      <div key={file.path} className="chat-media-container my-2">
+        <video
+          src={`local-file://${file.path}`}
+          controls
+          className="rounded-lg max-w-full"
+          style={{ maxHeight: '300px' }}
+          preload="metadata"
+          onClick={(e) => { e.stopPropagation(); onImageClick(e, file) }}
+          onError={(e) => {
+            e.target.outerHTML = `<div class="p-2 bg-error text-error-content rounded-lg">视频加载失败: ${file.path}</div>`
+          }}
+        >
+          您的浏览器不支持视频播放。
+        </video>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function MessageList({
   messages,
   messagesEndRef,
@@ -26,8 +92,6 @@ export default function MessageList({
   currentConversation,
   // handlers
   handleRenameFile,
-  renderAudioMessage,
-  renderMediaContent,
   handleImageClick,
   handleEditImage,
   openFileLocation,
