@@ -7,7 +7,7 @@ const TextareaState = {
   position: { top: 50, left: 5 }, // 初始位置：垂直居中，左侧5px
   size: { width: 200, height: 300 }, // 初始尺寸
   // 共享位置的界面
-  sharedPositionTools: ['aichat', 'chat', 'threejs-shaders', 'monaco', 'embedding'],
+  sharedPositionTools: ['aichat', 'chat', 'threejs-shaders', 'monaco'],
   // 当前活动工具
   currentTool: localStorage.getItem('active_tool') || 'aichat',
   // 切换可见性

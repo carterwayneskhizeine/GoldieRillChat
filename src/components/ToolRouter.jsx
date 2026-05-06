@@ -3,7 +3,7 @@ import useToolStore from '../stores/useToolStore'
 import { ChatView } from './ChatView'
 import { AIChat } from './AIChat'
 import { MonacoEditor } from './MonacoEditor'
-import Embedding from './Embedding'
+
 import ThreeJSShaders from './ThreeJSShaders'
 import GoldieTalk from './GoldieTalk'
 import LivePortrait from './LivePortrait'
@@ -115,14 +115,6 @@ export default function ToolRouter({
           shouldScrollToBottom={shouldScrollToBottom}
           setShouldScrollToBottom={setShouldScrollToBottom}
         />
-      </div>
-
-      {/* Embedding */}
-      <div
-        style={{ display: activeTool === 'embedding' ? 'flex' : 'none', height: 'calc(100vh - 40px)' }}
-        className="flex-1 flex flex-col overflow-hidden"
-      >
-        <Embedding isActive={activeTool === 'embedding'} />
       </div>
 
       {/* Browser (view managed by main process) */}

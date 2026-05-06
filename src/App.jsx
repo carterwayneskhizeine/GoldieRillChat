@@ -42,7 +42,7 @@ import './styles/chatview.css'
 import './styles/panel-titles.css'
 import './styles/global-overrides.css'
 import './styles/chat-titles.css'
-import './styles/embedding.css'
+
 import './styles/monaco-editor.css'
 import './styles/sidebar-buttons.css'
 import './styles/goldie-talk.css'
