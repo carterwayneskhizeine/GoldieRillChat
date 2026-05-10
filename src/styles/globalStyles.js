@@ -1,7 +1,3 @@
-// 添加styled-components导入
-import { createGlobalStyle } from 'styled-components';
-
-// 定义全局样式常量
 export const globalStyles = `
   /* 基础滚动条样式 */
   ::-webkit-scrollbar {
@@ -111,17 +107,3 @@ export const globalStyles = `
     border-top: 1px solid var(--border-color);
   }
 ` 
-
-// 在全局样式中添加滚动条变量
-export const GlobalStyles = createGlobalStyle`
-  :root {
-    // ...原有变量
-    --scrollbar-track: #f1f1f1;
-    --scrollbar-thumb: #c1c1c1;
-    --scrollbar-thumb-hover: #a8a8a8;
-  }
-
-  body {
-    overflow: hidden; /* 防止整个页面滚动 */
-  }
-`; 
