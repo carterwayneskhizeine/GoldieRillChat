@@ -9,4 +9,21 @@ export const STORAGE_KEYS = {
   SYSTEM_PROMPT: 'aichat_system_prompt',
   SYSTEM_PROMPT_ENABLED: 'aichat_system_prompt_enabled',
   SYSTEM_PROMPT_TEMPLATES: 'aichat_system_prompt_templates'
-}; 
+};
+
+// AI 后端类型
+export const BACKEND_TYPES = {
+  DIRECT: 'direct',       // 现有直连模式 (OpenAI / Claude / DeepSeek 等)
+  OPENCLAW: 'openclaw',   // OpenClaw WebSocket 网关
+  HERMES: 'hermes',       // Hermes Agent HTTP SSE
+}
+
+export const BACKEND_STORAGE_KEY = 'aichat_backend'
+
+// 内容块类型
+export const CONTENT_BLOCK_TYPES = {
+  TEXT: 'text',
+  THINKING: 'thinking',
+  TOOL_CALL: 'toolCall',
+  TOOL_RESULT: 'toolResult',
+}

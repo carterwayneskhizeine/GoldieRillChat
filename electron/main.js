@@ -174,6 +174,8 @@ app.whenReady().then(async () => {
   require(path.join(electronDir, 'ipc', 'notes'))()
   require(path.join(electronDir, 'ipc', 'liveportrait'))()
   require(path.join(electronDir, 'shaderPresets'))()
+  require(path.join(electronDir, 'ipc', 'openclaw'))(() => state.mainWindow)
+  require(path.join(electronDir, 'ipc', 'hermes'))(() => state.mainWindow)
 
   // Dev shortcut
   globalShortcut.register('CommandOrControl+Shift+I', () => {

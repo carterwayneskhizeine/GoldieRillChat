@@ -491,4 +491,53 @@ contextBridge.exposeInMainWorld('video', {
 // 在electron对象中添加选择目录的方法
 contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: () => ipcRenderer.invoke('select-directory')
+})
+
+// Hermes Agent 后端桥接（通过主进程代理，绕过 CORS）
+contextBridge.exposeInMainWorld('hermesAPI', {
+  health: (cfg) => ipcRenderer.invoke('hermes:health', cfg),
+  startChatStream: (params) => ipcRenderer.invoke('hermes:chat-stream', params),
+  onChunk: (requestId, callback) => {
+    const handler = (_, data) => callback(data)
+    ipcRenderer.on(`hermes:chunk:${requestId}`, handler)
+    return () => ipcRenderer.removeListener(`hermes:chunk:${requestId}`, handler)
+  },
+  onDone: (requestId, callback) => {
+    const handler = (_, data) => callback(data)
+    ipcRenderer.on(`hermes:done:${requestId}`, handler)
+    return () => ipcRenderer.removeListener(`hermes:done:${requestId}`, handler)
+  },
+  onError: (requestId, callback) => {
+    const handler = (_, data) => callback(data)
+    ipcRenderer.on(`hermes:error:${requestId}`, handler)
+    return () => ipcRenderer.removeListener(`hermes:error:${requestId}`, handler)
+  },
+  getHistory: (cfg, sessionId) => ipcRenderer.invoke('hermes:get-history', { cfg, sessionId }),
+  listSessions: (cfg, limit, offset) => ipcRenderer.invoke('hermes:list-sessions', { cfg, limit, offset }),
+})
+
+// OpenClaw & Hermes AI 后端桥接
+contextBridge.exposeInMainWorld('openclawAPI', {
+  connect: (config) => ipcRenderer.invoke('openclaw:connect', config),
+  disconnect: () => ipcRenderer.invoke('openclaw:disconnect'),
+  getDeviceId: () => ipcRenderer.invoke('openclaw:get-device-id'),
+  sendMessage: (sessionKey, message, attachments) =>
+    ipcRenderer.invoke('openclaw:send-message', { sessionKey, message, attachments }),
+  getHistory: (sessionKey, limit) =>
+    ipcRenderer.invoke('openclaw:get-history', { sessionKey, limit }),
+  listSessions: () => ipcRenderer.invoke('openclaw:list-sessions'),
+  createSession: (label) => ipcRenderer.invoke('openclaw:create-session', { label }),
+  deleteSession: (sessionKey) => ipcRenderer.invoke('openclaw:delete-session', { sessionKey }),
+  renameSession: (sessionKey, label) => ipcRenderer.invoke('openclaw:rename-session', { sessionKey, label }),
+  abort: (sessionKey, runId) => ipcRenderer.invoke('openclaw:abort', { sessionKey, runId }),
+  onStreamChunk: (callback) => {
+    const handler = (_, data) => callback(data)
+    ipcRenderer.on('openclaw:stream-chunk', handler)
+    return () => ipcRenderer.removeListener('openclaw:stream-chunk', handler)
+  },
+  onConnectionState: (callback) => {
+    const handler = (_, data) => callback(data)
+    ipcRenderer.on('openclaw:connection-state', handler)
+    return () => ipcRenderer.removeListener('openclaw:connection-state', handler)
+  },
 }) 

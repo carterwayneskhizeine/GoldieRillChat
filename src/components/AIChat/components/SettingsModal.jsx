@@ -4,6 +4,159 @@ import { getTranslationApiConfig, setTranslationApiConfig } from '../../../servi
 import { getImageGenApiConfig, setImageGenApiConfig } from '../../../services/imageGenerationService';
 import { openUrl } from '../../../utils/browserUtils';
 import { tavilyService } from '../../../services/tavilyService';
+import { getOpenClawConfig, saveOpenClawConfig, connectOpenClaw } from '../../../services/openclawService';
+import { getHermesConfig, saveHermesConfig } from '../../../services/hermesService';
+
+function BackendConfigPanel() {
+  const [ocCfg, setOcCfg] = useState(() => getOpenClawConfig())
+  const [hmCfg, setHmCfg] = useState(() => getHermesConfig())
+  const [saved, setSaved] = useState(false)
+  const [connecting, setConnecting] = useState(false)
+  const [connectResult, setConnectResult] = useState(null)
+  const [hermesConnecting, setHermesConnecting] = useState(false)
+  const [hermesResult, setHermesResult] = useState(null)
+
+  const handleSave = () => {
+    saveOpenClawConfig(ocCfg)
+    saveHermesConfig(hmCfg)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleTestConnect = async () => {
+    saveOpenClawConfig(ocCfg)
+    setConnecting(true)
+    setConnectResult(null)
+    try {
+      const res = await connectOpenClaw(ocCfg)
+      setConnectResult(res.ok ? `连接成功，设备 ID: ${res.deviceId?.slice(0, 12)}…` : `连接失败: ${res.error}`)
+    } catch (e) {
+      setConnectResult(`错误: ${e.message}`)
+    } finally {
+      setConnecting(false)
+    }
+  }
+
+  const handleTestHermes = async () => {
+    saveHermesConfig(hmCfg)
+    setHermesConnecting(true)
+    setHermesResult(null)
+    try {
+      const res = await window.hermesAPI.health(hmCfg)
+      setHermesResult(res.ok ? `连接成功 (${res.status})` : `连接失败: HTTP ${res.status}`)
+    } catch (e) {
+      setHermesResult(`错误: ${e.message}`)
+    } finally {
+      setHermesConnecting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6 py-2">
+      {/* OpenClaw */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">OpenClaw 配置</h3>
+        <label className="form-control">
+          <span className="label-text text-xs mb-1">Gateway URL (ws:// 或 wss://)</span>
+          <input
+            className="input input-sm input-bordered"
+            placeholder="wss://your-gateway.example.com"
+            value={ocCfg.url || ''}
+            onChange={(e) => setOcCfg({ ...ocCfg, url: e.target.value })}
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text text-xs mb-1">Token（可选）</span>
+          <input
+            className="input input-sm input-bordered"
+            type="password"
+            placeholder="留空则仅用设备认证"
+            value={ocCfg.token || ''}
+            onChange={(e) => setOcCfg({ ...ocCfg, token: e.target.value })}
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text text-xs mb-1">Client Name</span>
+          <input
+            className="input input-sm input-bordered"
+            placeholder="GoldieRillChat"
+            value={ocCfg.clientName || ''}
+            onChange={(e) => setOcCfg({ ...ocCfg, clientName: e.target.value })}
+          />
+        </label>
+        <div className="flex items-center gap-2">
+          <button className="btn btn-xs btn-outline" onClick={handleTestConnect} disabled={connecting || !ocCfg.url}>
+            {connecting ? '连接中…' : '测试连接'}
+          </button>
+          {connectResult && <span className="text-xs">{connectResult}</span>}
+        </div>
+      </div>
+
+      <div className="divider my-1" />
+
+      {/* Hermes */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">Hermes 配置</h3>
+        <label className="form-control">
+          <span className="label-text text-xs mb-1">API URL</span>
+          <input
+            className="input input-sm input-bordered"
+            placeholder="http://127.0.0.1:8651"
+            value={hmCfg.apiUrl || ''}
+            onChange={(e) => setHmCfg({ ...hmCfg, apiUrl: e.target.value })}
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text text-xs mb-1">Dashboard URL（历史记录）</span>
+          <input
+            className="input input-sm input-bordered"
+            placeholder="http://127.0.0.1:9119"
+            value={hmCfg.dashboardUrl || ''}
+            onChange={(e) => setHmCfg({ ...hmCfg, dashboardUrl: e.target.value })}
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text text-xs mb-1">API Token（Bearer）</span>
+          <input
+            className="input input-sm input-bordered"
+            type="password"
+            placeholder="API_SERVER_KEY 中的值"
+            value={hmCfg.apiToken || ''}
+            onChange={(e) => setHmCfg({ ...hmCfg, apiToken: e.target.value })}
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text text-xs mb-1">Dashboard Token（可选）</span>
+          <input
+            className="input input-sm input-bordered"
+            type="password"
+            placeholder="可选"
+            value={hmCfg.dashboardToken || ''}
+            onChange={(e) => setHmCfg({ ...hmCfg, dashboardToken: e.target.value })}
+          />
+        </label>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn btn-xs btn-outline"
+            onClick={handleTestHermes}
+            disabled={hermesConnecting || !window.hermesAPI}
+          >
+            {hermesConnecting ? '测试中…' : '测试连接'}
+          </button>
+          {hermesResult && (
+            <span className={`text-xs ${hermesResult.startsWith('连接成功') ? 'text-success' : 'text-error'}`}>
+              {hermesResult}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <button className="btn btn-sm btn-primary w-full" onClick={handleSave}>
+        {saved ? '已保存 ✓' : '保存配置'}
+      </button>
+    </div>
+  )
+}
 
 export const SettingsModal = ({
   selectedProvider,
@@ -738,12 +891,23 @@ export const SettingsModal = ({
             >
               Search
             </a>
-            <a 
+            <a
               className={`tab ${activeTab === 'interactive' ? 'tab-active' : ''}`}
               onClick={() => setActiveTab('interactive')}
             >
               Interactive
             </a>
+            <a
+              className={`tab ${activeTab === 'backends' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('backends')}
+            >
+              后端
+            </a>
+          </div>
+
+          {/* Tab: 后端连接配置 */}
+          <div className={activeTab === 'backends' ? '' : 'hidden'}>
+            <BackendConfigPanel />
           </div>
           
           {/* Tab 1: 模型设置 */}

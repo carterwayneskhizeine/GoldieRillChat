@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import Editor from "@monaco-editor/react";
 import ReactAudioPlayer from 'react-audio-player';
 import { MarkdownRenderer } from '../../shared/MarkdownRenderer';
+import { ContentBlockList } from './ContentBlocks';
 import { shouldCollapseMessage, getMessageContentStyle } from '../utils/messageCollapse';
 import '../styles/messages.css';
 import { openUrl } from '../../../utils/browserUtils';
@@ -2110,8 +2111,17 @@ export const MessageItem = ({
                           </div>
                         </div>
                       )}
-                      {/* 判断是否是音频消息 */}
-                      {message.files?.some(file => file.type && file.type.startsWith('audio/')) ? (
+                      {/* contentBlocks 渲染（OpenClaw / Hermes 后端） */}
+                      {message.contentBlocks && message.contentBlocks.length > 0 ? (
+                        <ContentBlockList
+                          blocks={message.contentBlocks}
+                          isStreaming={message.generating}
+                          streamingReasoning={message.streamingReasoning}
+                          openInBrowserTab={openInBrowserTab}
+                        />
+                      ) : (
+                      /* 判断是否是音频消息 */
+                      message.files?.some(file => file.type && file.type.startsWith('audio/')) ? (
                         renderAudioMessage(message)
                       ) : message.files?.some(file => 
                         file.name && file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
@@ -2331,7 +2341,7 @@ export const MessageItem = ({
                             </>
                           )}
                         </div>
-                      )}
+                      ))}
                     </>
                   )}
                 </div>

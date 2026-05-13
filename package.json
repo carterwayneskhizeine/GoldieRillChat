@@ -126,6 +126,7 @@
             "three": "^0.174.0",
             "unist-util-visit": "^5.0.0",
             "uuid": "^11.1.0",
+            "ws": "^8.20.1",
             "yet-another-react-lightbox": "^3.21.7",
             "zustand": "^5.0.13"
       },
