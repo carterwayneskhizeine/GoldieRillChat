@@ -50,7 +50,10 @@ export default function ToolRouter({
   handleSendToSidebar,
   createNewConversation,
   storagePath,
+  setStoragePath,
   conversations,
+  setConversations,
+  setCurrentConversation,
   handleConversationSelect,
   handleConversationDelete,
   handleConversationRename,
@@ -161,8 +164,11 @@ export default function ToolRouter({
           sendToSidebar={handleSendToSidebar}
           createNewConversation={createNewConversation}
           storagePath={storagePath}
+          setStoragePath={setStoragePath}
           currentConversation={currentConversation}
           conversations={conversations}
+          setConversations={setConversations}
+          setCurrentConversation={setCurrentConversation}
           onConversationSelect={handleConversationSelect}
           onConversationDelete={handleConversationDelete}
           onConversationRename={handleConversationRename}

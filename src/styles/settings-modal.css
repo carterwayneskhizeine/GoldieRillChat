@@ -19,6 +19,16 @@
   backdrop-filter: blur(3px);
 }
 
+.settings-sidebar-content {
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.settings-sidebar-content .settings-sidebar-panel {
+  width: 100%;
+  max-width: 100%;
+}
+
 /* 模态框容器 */
 .settings-modal .modal-box {
   background-color: rgba(0, 0, 0, 0.5) !important;

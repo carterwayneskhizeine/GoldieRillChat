@@ -692,6 +692,144 @@
   padding: 1.5rem !important;
 }
 
+#aichat-settings-sidebar-root {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#aichat-settings-sidebar-root .settings-panel {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 100%;
+  padding: 18px 18px 20px !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: rgba(0, 0, 0, 0.28) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+#settings-tab-rail-root {
+  width: 100%;
+  min-height: 0;
+}
+
+.settings-rail-tabs {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.settings-rail-tab {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  transition: all 0.16s ease;
+}
+
+.settings-rail-tab:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.settings-rail-tab.is-active {
+  color: #fff;
+  background: rgba(255, 215, 0, 0.28);
+  border-color: rgba(255, 215, 0, 0.52);
+  box-shadow: inset 3px 0 0 rgba(255, 215, 0, 0.75);
+}
+
+#aichat-settings-sidebar-root .settings-panel h1 {
+  font-size: 1.5rem !important;
+  line-height: 2rem !important;
+  letter-spacing: 0 !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .tabs {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.35rem !important;
+  overflow: visible !important;
+  padding: 0 0 0.75rem !important;
+  margin-bottom: 1rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .tab {
+  flex: 1 1 calc(50% - 0.35rem) !important;
+  min-width: auto !important;
+  height: 2.15rem !important;
+  min-height: 2.15rem !important;
+  padding: 0.35rem 0.5rem !important;
+  font-size: 0.78rem !important;
+  white-space: nowrap !important;
+  justify-content: center !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .tab-active {
+  background: rgba(255, 215, 0, 0.25) !important;
+  border-color: rgba(255, 215, 0, 0.35) !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .form-control,
+#aichat-settings-sidebar-root .settings-panel .input-group,
+#aichat-settings-sidebar-root .settings-panel input,
+#aichat-settings-sidebar-root .settings-panel select,
+#aichat-settings-sidebar-root .settings-panel textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .input-group {
+  display: flex !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .flex.justify-between.items-center:not(:first-child) {
+  gap: 0.75rem !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .close-btn {
+  display: none !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel h3 {
+  font-size: 1rem !important;
+  line-height: 1.35rem !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .label {
+  padding: 0.35rem 0 !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .space-y-4 > * {
+  margin-top: 0.85rem !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .space-y-6 > * {
+  margin-top: 1rem !important;
+}
+
+#aichat-settings-sidebar-root .settings-panel .divider {
+  margin: 1rem 0 !important;
+}
+
 .settings-panel .space-y-4 > * {
   margin-top: 1rem !important;
   margin-bottom: 0 !important;

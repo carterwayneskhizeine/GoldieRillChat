@@ -87,6 +87,12 @@ const useBookmarkStore = {
   })
 };
 
+const SidebarChevronIcon = ({ open }) => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d={open ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'} />
+  </svg>
+);
+
 export default function App() {
   // 工具状态 — 来自 Zustand store
   const { activeTool, setActiveTool, switchTool } = useToolStore()
@@ -95,7 +101,7 @@ export default function App() {
   const {
     sidebarOpen, setSidebarOpen,
     sidebarMode, setSidebarMode,
-    showSettings, setShowSettings,
+    setShowSettings,
     currentTheme, setCurrentTheme,
   } = useUIStore()
 
@@ -1411,6 +1417,7 @@ export default function App() {
       setShowSettings(true);
       setSidebarOpen(true);
       setSidebarMode('settings');
+      window.aichat?.setShowSettings?.(true);
     };
     window.addEventListener('open-chat-settings', handleOpenChatSettings);
     return () => window.removeEventListener('open-chat-settings', handleOpenChatSettings);
@@ -1460,14 +1467,23 @@ export default function App() {
       <ToolTabBar />
       <ToastContainer />
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar toggle bar */}
+        {/* Sidebar control rail */}
         <div
-          className="h-full w-[10px] cursor-pointer hover:bg-base-300 flex items-center justify-center no-drag"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="h-full w-[36px] shrink-0 border-r border-base-content/10 bg-base-300/35 no-drag flex flex-col items-center justify-between py-2"
         >
-          <div className="text-base-content">
-            {sidebarOpen ? '◂' : '▸'}
-          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs h-8 w-8 min-h-0 p-0 text-base-content/75 hover:text-base-content"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
+            <SidebarChevronIcon open={sidebarOpen} />
+          </button>
+          <div
+            id="settings-tab-rail-root"
+            className={sidebarMode === 'settings' ? 'flex flex-1 flex-col items-center gap-2 py-4' : 'hidden'}
+          />
         </div>
 
         {/* Sidebar */}
@@ -1579,7 +1595,10 @@ export default function App() {
           handleSendToSidebar={handleSendToSidebar}
           createNewConversation={createNewConversation}
           storagePath={storagePath}
+          setStoragePath={setStoragePath}
           conversations={conversations}
+          setConversations={setConversations}
+          setCurrentConversation={setCurrentConversation}
           handleConversationSelect={handleConversationSelect}
           handleConversationDelete={handleConversationDelete}
           handleConversationRename={handleConversationRename}

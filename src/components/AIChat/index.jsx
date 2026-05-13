@@ -29,8 +29,11 @@ export const AIChat = ({
   sendToSidebar,
   createNewConversation,
   storagePath,
+  setStoragePath,
   currentConversation,
   conversations,
+  setConversations,
+  setCurrentConversation,
   onConversationSelect,
   onConversationDelete,
   onConversationRename,
@@ -53,6 +56,7 @@ export const AIChat = ({
     sidebarOpen,
     setSidebarOpen,
     setSidebarMode,
+    showSettings: globalShowSettings,
     setShowSettings: setGlobalShowSettings,
   } = useUIStore();
   // 使用状态管理 hooks，但优先使用从App传递的状态
@@ -663,7 +667,7 @@ export const AIChat = ({
       const currentTool = event?.detail?.tool || localStorage.getItem('active_tool');
       
       // 如果当前工具不是AIChat且设置面板是打开的，则关闭设置面板
-      if (currentTool && currentTool !== 'aichat' && modelState.showSettings) {
+      if (currentTool && currentTool !== 'aichat' && modelState.showSettings && !globalShowSettings) {
         modelState.setShowSettings(false);
       }
     };
@@ -677,7 +681,7 @@ export const AIChat = ({
     return () => {
       window.removeEventListener('tool-changed', handleToolChange);
     };
-  }, [modelState.showSettings, modelState.setShowSettings]);
+  }, [globalShowSettings, modelState.showSettings, modelState.setShowSettings]);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -787,10 +791,16 @@ export const AIChat = ({
                 updateTemplate={systemPromptState.updateTemplate}
                 deleteTemplate={systemPromptState.deleteTemplate}
                 resetTemplates={systemPromptState.resetTemplates}
+                storagePath={storagePath}
+                setStoragePath={setStoragePath}
+                currentConversation={currentConversation}
+                messages={messageState.messages}
+                setConversations={setConversations}
+                setCurrentConversation={setCurrentConversation}
               />
             );
             const portalRoot = document.getElementById('aichat-settings-sidebar-root');
-            return portalRoot ? createPortal(settingsPanel, portalRoot) : settingsPanel;
+            return portalRoot ? createPortal(settingsPanel, portalRoot) : null;
           })()}
         </>
       ) : (

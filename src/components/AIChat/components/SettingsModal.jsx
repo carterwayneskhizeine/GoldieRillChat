@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import useUIStore from '../../../stores/useUIStore';
 import '../../../styles/aichat-settings.css';
 import { getTranslationApiConfig, setTranslationApiConfig } from '../../../services/translationService';
 import { getImageGenApiConfig, setImageGenApiConfig } from '../../../services/imageGenerationService';
@@ -6,6 +8,9 @@ import { openUrl } from '../../../utils/browserUtils';
 import { tavilyService } from '../../../services/tavilyService';
 import { getOpenClawConfig, saveOpenClawConfig, connectOpenClaw } from '../../../services/openclawService';
 import { getHermesConfig, saveHermesConfig } from '../../../services/hermesService';
+import { handleSelectFolder } from '../../folderHandlers';
+import { handleUpdateFolders } from '../../folderUpdateHandlers';
+import { toggleTheme, themes } from '../../themeHandlers';
 
 function BackendConfigPanel() {
   const [ocCfg, setOcCfg] = useState(() => getOpenClawConfig())
@@ -158,6 +163,101 @@ function BackendConfigPanel() {
   )
 }
 
+const SETTINGS_TABS = [
+  {
+    id: 'general',
+    label: 'General',
+    icon: (
+      <>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h8M16 6h4M4 12h4M12 12h8M4 18h10M18 18h2" />
+        <circle cx="14" cy="6" r="2" />
+        <circle cx="10" cy="12" r="2" />
+        <circle cx="16" cy="18" r="2" />
+      </>
+    )
+  },
+  {
+    id: 'provider',
+    label: 'API',
+    icon: (
+      <>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a4 4 0 10-7.465 2.002L4 12.536V16h3.464l3.534-3.535A4 4 0 0015 7z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14 6l4 4" />
+      </>
+    )
+  },
+  {
+    id: 'system',
+    label: 'Prompt',
+    icon: (
+      <>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 4h7l5 5v11H7z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14 4v5h5M10 13h6M10 17h4" />
+      </>
+    )
+  },
+  {
+    id: 'media_gen',
+    label: 'Media',
+    icon: (
+      <>
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 14l2.5-2.5L14 15l1.5-1.5L18 16M8 9h.01" />
+      </>
+    )
+  },
+  {
+    id: 'search',
+    label: 'Search',
+    icon: (
+      <>
+        <circle cx="11" cy="11" r="5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16 16l4 4" />
+      </>
+    )
+  },
+  {
+    id: 'interactive',
+    label: 'Interactive',
+    icon: (
+      <>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 4l14 7-6 2-2 6z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 13l5 5" />
+      </>
+    )
+  },
+  {
+    id: 'backends',
+    label: '后端',
+    icon: (
+      <>
+        <rect x="5" y="5" width="14" height="5" rx="1" />
+        <rect x="5" y="14" width="14" height="5" rx="1" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7.5h.01M8 16.5h.01" />
+      </>
+    )
+  }
+];
+
+const SettingsTabRail = ({ activeTab, setActiveTab }) => (
+  <div className="settings-rail-tabs">
+    {SETTINGS_TABS.map((tab) => (
+      <button
+        key={tab.id}
+        type="button"
+        className={`settings-rail-tab ${activeTab === tab.id ? 'is-active' : ''}`}
+        onClick={() => setActiveTab(tab.id)}
+        title={tab.label}
+        aria-label={tab.label}
+      >
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          {tab.icon}
+        </svg>
+      </button>
+    ))}
+  </div>
+);
+
 export const SettingsModal = ({
   selectedProvider,
   setSelectedProvider,
@@ -185,8 +285,15 @@ export const SettingsModal = ({
   addTemplate,
   updateTemplate,
   deleteTemplate,
-  resetTemplates
+  resetTemplates,
+  storagePath,
+  setStoragePath,
+  currentConversation,
+  messages,
+  setConversations,
+  setCurrentConversation
 }) => {
+  const { currentTheme, setCurrentTheme } = useUIStore();
   const [, setForceUpdateState] = useState({});
   const forceUpdate = () => setForceUpdateState({});
   
@@ -847,67 +954,85 @@ export const SettingsModal = ({
   const [useCustomVoice, setUseCustomVoice] = useState(() => 
     localStorage.getItem('aichat_use_custom_voice') === 'true'
   );
+  const tabRailRoot = typeof document !== 'undefined'
+    ? document.getElementById('settings-tab-rail-root')
+    : null;
 
   return (
     <>
+      {tabRailRoot &&
+        createPortal(
+          <SettingsTabRail activeTab={activeTab} setActiveTab={setActiveTab} />,
+          tabRailRoot
+        )}
       <div className="settings-panel rounded-lg w-full max-w-none overflow-visible">
-        {/* 标题和关闭按钮 */}
-        <div className="flex justify-between items-center mb-6 px-2">
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <button 
-            type="button"
-            className="close-btn"
-            onClick={handleClose}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Tabs */}
         <div className="space-y-4 px-2">
-          {/* 标签页 */}
-          <div className="tabs">
-            <a 
-              className={`tab ${activeTab === 'provider' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('provider')}
-            >
-              API
-            </a>
-            <a 
-              className={`tab ${activeTab === 'system' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('system')}
-            >
-              Prompt
-            </a>
-            <a 
-              className={`tab ${activeTab === 'media_gen' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('media_gen')}
-            >
-              Media
-            </a>
-            <a 
-              className={`tab ${activeTab === 'search' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('search')}
-            >
-              Search
-            </a>
-            <a
-              className={`tab ${activeTab === 'interactive' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('interactive')}
-            >
-              Interactive
-            </a>
-            <a
-              className={`tab ${activeTab === 'backends' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('backends')}
-            >
-              后端
-            </a>
-          </div>
-
           {/* Tab: 后端连接配置 */}
           <div className={activeTab === 'backends' ? '' : 'hidden'}>
             <BackendConfigPanel />
+          </div>
+
+          {/* Tab: 通用设置 */}
+          <div className={activeTab === 'general' ? '' : 'hidden'}>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold mb-3">Storage</h3>
+                <div className="space-y-4">
+                  <div className="form-control w-full max-w-none">
+                    <label className="label">
+                      <span className="label-text font-medium text-base">Folder</span>
+                    </label>
+                    <button
+                      className="btn btn-sm btn-primary w-full"
+                      onClick={() =>
+                        handleSelectFolder(
+                          setStoragePath,
+                          currentConversation,
+                          messages,
+                          window,
+                          setConversations,
+                          setCurrentConversation
+                        )
+                      }
+                      disabled={!setStoragePath || !setConversations || !setCurrentConversation}
+                    >
+                      Modify Folder
+                    </button>
+                    <div className="settings-help-text mt-2 break-all">
+                      {storagePath || 'No folder selected'}
+                    </div>
+                  </div>
+
+                  <div className="form-control w-full max-w-none">
+                    <label className="label">
+                      <span className="label-text font-medium text-base">Update</span>
+                    </label>
+                    <button
+                      className="btn btn-sm w-full"
+                      onClick={() => handleUpdateFolders(storagePath, setConversations, window)}
+                      disabled={!storagePath || !setConversations}
+                    >
+                      Update Folders
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="divider" />
+
+              <div>
+                <h3 className="text-lg font-bold mb-3">Theme</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm opacity-70 min-w-0 flex-1 truncate">{currentTheme}</span>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => toggleTheme(currentTheme, themes, setCurrentTheme)}
+                  >
+                    Change Theme
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
           
           {/* Tab 1: 模型设置 */}

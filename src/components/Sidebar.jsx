@@ -4,7 +4,6 @@ import useUIStore from '../stores/useUIStore';
 import { getToolDisplayName } from '../config/toolsConfig';
 import { BrowserTabs } from './BrowserTabs';
 import ConversationTimeGrouping, { TruncatedName } from './ConversationTimeGrouping';
-import { SettingsPanelContent } from './SettingsModal';
 import '../styles/sidebar-buttons.css';
 
 const SettingsIcon = () => (
@@ -39,8 +38,7 @@ export default function Sidebar({
   sendToMonaco, sendToEditor, shouldScrollToBottom, setShouldScrollToBottom,
   notes, currentNote, loadNote, handleRenameConfirm,
   shaderPresets, setShaderPresets, currentShaderPreset, setCurrentShaderPreset,
-  keyboardSelectedConversationId, isKeyboardNavigating,
-  storagePath, setStoragePath
+  keyboardSelectedConversationId, isKeyboardNavigating
 }) {
   const { activeTool, switchTool } = useToolStore();
   const { sidebarOpen, sidebarMode, setSidebarMode, showSettings, setShowSettings } = useUIStore();
@@ -96,9 +94,7 @@ export default function Sidebar({
 
     setShowSettings(true);
     setSidebarMode('settings');
-    if (activeTool === 'aichat') {
-      window.aichat?.setShowSettings?.(true);
-    }
+    window.aichat?.setShowSettings?.(true);
   };
 
   const handleConversationClick = (conversation) => {
@@ -160,11 +156,11 @@ export default function Sidebar({
   };
 
   return (
-    <div className={`${sidebarOpen ? (sidebarMode === 'settings' ? 'w-[460px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-y-auto overflow-x-hidden transition-all duration-300 flex flex-col`}>
-      <div className={`${sidebarMode === 'settings' ? 'w-[460px]' : 'w-[200px]'} flex flex-col h-full overflow-x-hidden`}>
-        <div className="p-2 flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
+    <div className={`${sidebarOpen ? (sidebarMode === 'settings' ? 'w-[420px]' : 'w-[200px]') : 'w-0'} bg-base-300/45 text-base-content overflow-hidden transition-all duration-300 flex flex-col border-r border-base-content/10`}>
+      <div className={`${sidebarMode === 'settings' ? 'w-[420px]' : 'w-[200px]'} flex flex-col h-full overflow-hidden`}>
+        <div className={`${sidebarMode === 'settings' ? 'p-0' : 'p-2'} flex-1 flex flex-col overflow-y-auto overflow-x-hidden`}>
           {/* New conversation buttons */}
-          {activeTool === 'chat' && (
+          {activeTool === 'chat' && sidebarMode === 'default' && (
             <div className="flex justify-end mb-2">
               <button className="btn btn-circle btn-ghost btn-sm" onClick={() => createNewConversation?.()}>
                 <PlusIcon />
@@ -189,23 +185,13 @@ export default function Sidebar({
 
           {/* === Tool panels === */}
 
-          {sidebarMode === 'settings' && (
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pr-1">
-              {activeTool === 'aichat' ? (
-                <div id="aichat-settings-sidebar-root" />
-              ) : (
-                <SettingsPanelContent
-                  storagePath={storagePath}
-                  setStoragePath={setStoragePath}
-                  currentConversation={currentConversation}
-                  messages={messages}
-                  setConversations={setConversations}
-                  setCurrentConversation={setCurrentConversation}
-                  onClose={handleSettingsClick}
-                />
-              )}
-            </div>
-          )}
+          <div
+            className={`settings-sidebar-content flex-1 min-h-0 overflow-y-auto overflow-x-hidden ${
+              sidebarMode === 'settings' ? '' : 'hidden'
+            }`}
+          >
+            <div id="aichat-settings-sidebar-root" className="h-full w-full min-w-0 overflow-y-auto overflow-x-hidden" />
+          </div>
 
           {/* Chat */}
           {activeTool === 'chat' && sidebarMode !== 'settings' && (
@@ -323,7 +309,7 @@ export default function Sidebar({
         </div>
 
         {/* Bottom bar */}
-        <div className="p-2 border-t border-base-content/10">
+        <div className="p-2 border-t border-base-content/10 bg-base-300/35">
           <button className="btn btn-ghost btn-sm w-full flex justify-start gap-2" onClick={handleSettingsClick}>
             <SettingsIcon /><span>{sidebarMode === 'settings' ? 'Back' : 'Settings'}</span>
           </button>
