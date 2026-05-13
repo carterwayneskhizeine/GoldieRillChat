@@ -1,5 +1,5 @@
 // 工具列表配置
-export const tools = ['threejs-shaders', 'browser', 'aichat', 'chat', 'monaco'] //, 'goldie-talk'
+export const tools = ['threejs-shaders', 'browser', 'aichat', 'chat', 'monaco', 'hermes', 'openclaw']
 
 // 工具显示名称映射
 export const toolDisplayNames = {
@@ -8,8 +8,9 @@ export const toolDisplayNames = {
   chat: 'Chat',
   monaco: 'Monaco Editor',
   editor: 'Image Editor',
-  'threejs-shaders': 'ThreeJS Shaders'
-  //'goldie-talk': 'Goldie Talk'
+  'threejs-shaders': 'ThreeJS Shaders',
+  hermes: 'Hermes',
+  openclaw: 'OpenClaw',
 }
 
 // 获取工具显示名称的函数

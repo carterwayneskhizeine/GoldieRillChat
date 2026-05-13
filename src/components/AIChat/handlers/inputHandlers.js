@@ -659,7 +659,6 @@ export const createInputHandlers = ({
         model: selectedModel,
         tokens: response.usage?.total_tokens || 0,
         searchResults: searchResults,
-        knowledgeReferences: knowledgeReferences
       };
       
       // 如果搜索结果包含图片，添加到finalAiMessage

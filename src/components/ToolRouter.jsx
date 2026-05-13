@@ -3,6 +3,8 @@ import useToolStore from '../stores/useToolStore'
 import { ChatView } from './ChatView'
 import { AIChat } from './AIChat'
 import { MonacoEditor } from './MonacoEditor'
+import HermesPanel from './HermesPanel'
+import OpenClawPanel from './OpenClawPanel'
 
 import ThreeJSShaders from './ThreeJSShaders'
 import GoldieTalk from './GoldieTalk'
@@ -187,6 +189,22 @@ export default function ToolRouter({
         className="flex-1 overflow-hidden"
       >
         <LivePortrait storagePath={storagePath} />
+      </div>
+
+      {/* Hermes Agent Panel */}
+      <div
+        style={{ display: activeTool === 'hermes' ? 'flex' : 'none' }}
+        className="flex-1 flex-col overflow-hidden"
+      >
+        <HermesPanel />
+      </div>
+
+      {/* OpenClaw Panel */}
+      <div
+        style={{ display: activeTool === 'openclaw' ? 'flex' : 'none' }}
+        className="flex-1 flex-col overflow-hidden"
+      >
+        <OpenClawPanel />
       </div>
     </div>
   )
