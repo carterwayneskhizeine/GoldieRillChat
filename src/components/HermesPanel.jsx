@@ -1,6 +1,52 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { sendHermesMessage, checkHermesHealth, listHermesSessions, getHermesHistory } from '../services/hermesService'
+
+const SLASH_COMMANDS = [
+  { name: 'new', description: '开始新会话（清空当前对话）', hint: '' },
+]
+
+function SlashCommandMenu({ commands, activeIndex, onSelect }) {
+  const activeRef = useRef(null)
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex])
+
+  if (commands.length === 0) return null
+
+  return (
+    <div
+      style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 8, maxHeight: 280, overflowY: 'auto', zIndex: 200 }}
+      className="bg-base-100 border border-base-300 rounded-2xl shadow-xl"
+    >
+      {commands.map((cmd, i) => (
+        <button
+          key={cmd.name}
+          ref={i === activeIndex ? activeRef : null}
+          className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${i === activeIndex ? 'bg-base-200' : 'hover:bg-base-200/60'}`}
+          onMouseDown={(e) => { e.preventDefault(); onSelect(cmd) }}
+        >
+          <span className="font-mono font-semibold opacity-90 shrink-0">/{cmd.name}</span>
+          {cmd.hint && <span className="text-xs opacity-40 shrink-0">{cmd.hint}</span>}
+          <span className="text-xs opacity-50 ml-auto truncate">{cmd.description}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function SystemMessage({ lines }) {
+  return (
+    <div style={{ margin: '8px 0', padding: '10px 14px', borderLeft: '3px solid rgba(99,102,241,0.5)', background: 'rgba(99,102,241,0.06)', borderRadius: '0 10px 10px 0', fontSize: 13 }}>
+      {lines.map((line, i) => (
+        <div key={i} style={{ whiteSpace: 'pre-wrap', opacity: line.startsWith('✦') ? 0.45 : 0.8, marginTop: i > 0 && line && !lines[i - 1] ? 6 : 0 }}>
+          {line}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function StatusDot({ healthy }) {
   return (
@@ -34,6 +80,8 @@ function ToolCallBlock({ name, args }) {
 }
 
 function MessageBubble({ msg }) {
+  if (msg.role === 'system') return <SystemMessage lines={msg.lines || [msg.content]} />
+
   const isUser = msg.role === 'user'
   const blocks = msg.contentBlocks || []
 
@@ -155,9 +203,30 @@ export default function HermesPanel() {
   const [sessionId, setSessionId] = useState(null)
   const [healthy, setHealthy] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [activeCommandIndex, setActiveCommandIndex] = useState(0)
   const cancelRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
+
+  const slashFilter = useMemo(() => {
+    if (!input.startsWith('/')) return null
+    if (input.includes(' ')) return null
+    return input.slice(1).toLowerCase()
+  }, [input])
+
+  const filteredCommands = useMemo(() => {
+    if (slashFilter === null) return []
+    const cmds = SLASH_COMMANDS.filter((cmd) => cmd.name.startsWith(slashFilter))
+    setActiveCommandIndex(0)
+    return cmds
+  }, [slashFilter])
+
+  const handleSelectCommand = useCallback((cmd) => {
+    const newVal = `/${cmd.name}${cmd.hint ? ' ' : ' '}`
+    setInput(newVal)
+    setActiveCommandIndex(0)
+    textareaRef.current?.focus()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -198,8 +267,19 @@ export default function HermesPanel() {
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = '100px'
 
+    if (content === '/new') {
+      if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
+      setSessionId(null)
+      setMessages([{
+        id: `sys_${Date.now()}`,
+        role: 'system',
+        lines: ['✨ Session reset! Starting fresh.'],
+      }])
+      return
+    }
+
     const history = messages
-      .filter((m) => !m.generating)
+      .filter((m) => !m.generating && m.role !== 'system')
       .map((m) => ({ role: m.role, content: m.content || '' }))
 
     const userMsg = { id: `u_${Date.now()}`, role: 'user', content }
@@ -251,6 +331,28 @@ export default function HermesPanel() {
   }, [input, messages, sessionId, healthy])
 
   const handleKeyDown = (e) => {
+    if (filteredCommands.length > 0) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setActiveCommandIndex((i) => Math.max(0, i - 1))
+        return
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setActiveCommandIndex((i) => Math.min(filteredCommands.length - 1, i + 1))
+        return
+      }
+      if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
+        e.preventDefault()
+        handleSelectCommand(filteredCommands[activeCommandIndex] || filteredCommands[0])
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setInput('')
+        return
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
@@ -297,6 +399,11 @@ export default function HermesPanel() {
       {/* Input area — matches AIChat InputArea exactly */}
       <div className="flex-none border-t border-base-300 p-4 bg-transparent">
         <div className="relative max-w-[770px] mx-auto">
+          <SlashCommandMenu
+            commands={filteredCommands}
+            activeIndex={activeCommandIndex}
+            onSelect={handleSelectCommand}
+          />
           <textarea
             ref={textareaRef}
             className="textarea textarea-bordered w-full min-h-[100px] max-h-[480px] rounded-3xl resize-none pb-10 bg-transparent scrollbar-hide aichat-input"
