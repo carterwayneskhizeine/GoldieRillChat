@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { translateText } from '../../../services/translationService';
 import toastManager from '../../../utils/toastManager';
-import KnowledgeBaseButton from './KnowledgeBaseButton';
 
 export const InputArea = ({
   messageInput,
@@ -21,14 +20,6 @@ export const InputArea = ({
   isCompact = false
 }) => {
   const [isTranslating, setIsTranslating] = useState(false);
-  const [useKnowledgeBase, setUseKnowledgeBase] = useState(() => {
-    return localStorage.getItem('aichat_use_knowledge_base') === 'true';
-  });
-  const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState(() => {
-    // 从localStorage中恢复已选择的知识库
-    const savedBases = localStorage.getItem('aichat_selected_knowledge_bases');
-    return savedBases ? JSON.parse(savedBases) : [];
-  });
   const textareaRef = useRef(null);
 
   // 在组件挂载或重新渲染后设置正确的初始高度
@@ -36,25 +27,6 @@ export const InputArea = ({
     if (textareaRef.current) {
       textareaRef.current.style.height = '100px';
     }
-  }, []);
-  
-  // 当选中的知识库变化时，保存到localStorage
-  useEffect(() => {
-    localStorage.setItem('aichat_selected_knowledge_bases', JSON.stringify(selectedKnowledgeBases));
-  }, [selectedKnowledgeBases]);
-
-  // 监听localStorage中知识库功能状态的变化
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'aichat_use_knowledge_base') {
-        setUseKnowledgeBase(e.newValue === 'true');
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
   }, []);
 
   // 处理翻译功能
@@ -104,27 +76,21 @@ export const InputArea = ({
       
       // 如果有多行文本，则不阻止默认行为，允许在文本中移动光标
       if (hasMultipleLines) {
-        // 不做任何处理，让浏览器默认行为生效
-        // 这样可以在多行文本中正常移动光标
-        e.stopPropagation(); // 阻止事件冒泡，防止父组件处理
+        e.stopPropagation();
       } else {
-        // 否则，将事件传递给父组件的handleKeyDown
         handleKeyDown(e);
       }
     } else {
-      // 将其他键盘事件传递给原始的handleKeyDown
       handleKeyDown(e);
     }
   };
 
   const handleContextMenu = (e) => {
-    // 在bg-theme模式下，允许默认右键菜单显示
     const currentTheme = document.documentElement.getAttribute('data-theme');
     if (currentTheme === 'bg-theme') {
-      return; // 不阻止默认行为，允许原生右键菜单显示
+      return;
     }
     
-    // 其他主题下继续使用自定义右键菜单
     e.preventDefault();
     e.stopPropagation();
     
@@ -153,35 +119,15 @@ export const InputArea = ({
     window.dispatchEvent(contextMenuEvent);
   };
 
-  // 处理知识库选择
-  const handleKnowledgeBaseSelect = (bases) => {
-    setSelectedKnowledgeBases(bases);
-  };
-
-  // 发送消息时包含知识库信息
+  // 发送消息
   const sendMessage = () => {
-    console.log('发送消息，当前选中的知识库:', selectedKnowledgeBases?.length || 0);
-    
-    // 如果有选择知识库但知识库功能未启用，则自动启用
-    if (selectedKnowledgeBases?.length > 0 && !useKnowledgeBase) {
-      localStorage.setItem('aichat_use_knowledge_base', 'true');
-      setUseKnowledgeBase(true);
-      toastManager.success('已自动启用知识库功能');
-    }
-    
-    // 创建包含知识库信息的参数
     const messageParams = {
-      knowledgeBaseIds: selectedKnowledgeBases.map(base => base.id),
       useWebSearch: isNetworkEnabled
     };
     
-    // 调用父组件的发送消息函数，传递知识库信息
     handleSendMessage(messageParams);
-    
-    // 清空输入框
     setMessageInput('');
     
-    // 重置输入框高度
     const textarea = document.querySelector('.aichat-input');
     if (textarea) {
       textarea.style.height = '64px';
@@ -224,7 +170,7 @@ export const InputArea = ({
             value={messageInput}
             onChange={(e) => {
               setMessageInput(e.target.value);
-              e.target.style.height = '100px'; // 重置为初始高度（3行文字高度）
+              e.target.style.height = '100px';
               const scrollHeight = Math.max(e.target.scrollHeight, 100);
               e.target.style.height = `${scrollHeight}px`;
               if (e.target.scrollHeight > 480) {
@@ -240,15 +186,15 @@ export const InputArea = ({
               msOverflowStyle: 'none',
               backgroundColor: 'transparent',
               backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)', // 为 Safari 添加支持
+              WebkitBackdropFilter: 'blur(8px)',
               position: 'relative',
-              zIndex: 1 // 设置较低的z-index值
+              zIndex: 1
             }}
             rows="2"
             ref={textareaRef}
           />
           
-          {/* 左侧按钮容器 - 绝对定位在textarea底部，增加左侧内边距使按钮位置更明显 */}
+          {/* 左侧按钮容器 */}
           <div className="absolute left-4 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
             {isTranslating ? (
               <div className="relative inline-flex items-center justify-center w-8 h-8">
@@ -284,23 +230,6 @@ export const InputArea = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
-            <KnowledgeBaseButton 
-              selectedBases={selectedKnowledgeBases}
-              onSelect={(bases) => {
-                // 启用知识库功能
-                const newKnowledgeBaseState = true;
-                localStorage.setItem('aichat_use_knowledge_base', 'true');
-                setUseKnowledgeBase(newKnowledgeBaseState);
-                // 显示提示
-                if (bases.length > 0 && !useKnowledgeBase) {
-                  toastManager.success('已启用知识库功能');
-                }
-                // 调用原有的知识库选择处理函数
-                handleKnowledgeBaseSelect(bases);
-              }}
-              disabled={false}
-              title={`${useKnowledgeBase ? '知识库功能已启用' : '点击选择知识库并启用功能'}${selectedKnowledgeBases.length > 0 ? `（已选择${selectedKnowledgeBases.length}个知识库）` : ''}`}
-            />
             <button
               className="btn btn-ghost btn-sm btn-circle"
               onClick={() => fileInputRef.current?.click()}
@@ -312,7 +241,7 @@ export const InputArea = ({
             </button>
           </div>
           
-          {/* 右侧按钮容器 - 绝对定位在textarea底部，增加右侧内边距使按钮位置更明显 */}
+          {/* 右侧按钮容器 */}
           <div className="absolute right-3 bottom-3 flex items-center gap-2" style={{ zIndex: 1500 }}>
             <button 
               className="btn btn-ghost btn-sm btn-circle"
@@ -328,4 +257,4 @@ export const InputArea = ({
       </div>
     </div>
   );
-}; 
+};
