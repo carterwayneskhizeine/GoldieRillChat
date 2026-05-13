@@ -364,10 +364,12 @@ export default function OpenClawPanel() {
             </div>
           </div>
         )}
-        {!historyLoading && !historyError && messages.map((msg) => (
-          <MessageBubble key={msg.id} msg={msg} />
-        ))}
-        <div ref={bottomRef} />
+        <div className="space-y-4 max-w-[770px] mx-auto">
+          {!historyLoading && !historyError && messages.map((msg) => (
+            <MessageBubble key={msg.id} msg={msg} />
+          ))}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Input area — matches AIChat InputArea */}

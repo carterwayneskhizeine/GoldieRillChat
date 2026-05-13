@@ -4,7 +4,6 @@ import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { InputArea } from './components/InputArea';
 import { SettingsModal } from './components/SettingsModal';
-import { BackendSwitcher } from './components/BackendSwitcher';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/captions.css';
 
@@ -12,24 +11,18 @@ import { useMessageState } from './hooks/useMessageState';
 import { useModelState } from './hooks/useModelState';
 import { useInputState } from './hooks/useInputState';
 import { useSystemPrompt } from './hooks/useSystemPrompt';
-import { useBackendState } from './hooks/useBackendState';
 
 import { createMessageHandlers } from './handlers/messageHandlers';
 import { createSettingsHandlers } from './handlers/settingsHandlers';
 import { createInputHandlers } from './handlers/inputHandlers';
 
 import { MODEL_PROVIDERS } from './constants';
-import { BACKEND_TYPES } from './constants/storageKeys';
 import './styles/messages.css';
 import './styles/settings.css';
 import './styles/contentBlocks.css';
 
 // 导入Tavily搜索服务
 import { tavilyService } from '../../services/tavilyService';
-
-// 导入 OpenClaw / Hermes 服务
-import { sendOpenClawMessage, getOpenClawHistory } from '../../services/openclawService';
-import { sendHermesMessage } from '../../services/hermesService';
 
 export const AIChat = ({
   sendToSidebar,
@@ -61,10 +54,6 @@ export const AIChat = ({
   const modelState = useModelState();
   const inputState = useInputState();
   const systemPromptState = useSystemPrompt();
-  const backendState = useBackendState();
-
-  // 取消函数引用（用于中止 OpenClaw/Hermes 流式输出）
-  const cancelStreamRef = useRef(null);
 
   // 添加文件输入引用
   const fileInputRef = useRef(null);
@@ -393,175 +382,6 @@ export const AIChat = ({
     setShowSettings: modelState.setShowSettings
   });
 
-  // --- OpenClaw 发送 ---
-  const handleOpenClawSend = useCallback(async (_messageParams) => {
-    const content = inputState.messageInput
-    if (!content || !content.trim()) return
-    const sessionKey = backendState.openclawSessionKey || 'main'
-
-    // 添加用户消息
-    const userMsg = {
-      id: `u_${Date.now()}`,
-      type: 'user',
-      content,
-      timestamp: Date.now(),
-    }
-    messageState.setMessages((prev) => [...prev, userMsg])
-
-    // 添加占位助手消息
-    const assistantMsgId = `a_${Date.now()}`
-    const assistantMsg = {
-      id: assistantMsgId,
-      type: 'assistant',
-      content: '',
-      contentBlocks: [],
-      generating: true,
-      timestamp: Date.now(),
-    }
-    messageState.setMessages((prev) => [...prev, assistantMsg])
-
-    let textBuffer = ''
-    let reasoningBuffer = ''
-    const toolCallsMap = {}
-
-    if (cancelStreamRef.current) cancelStreamRef.current()
-    cancelStreamRef.current = sendOpenClawMessage({
-      sessionKey,
-      message: content,
-      onChunk: (text, reasoning) => {
-        if (reasoning !== undefined) {
-          reasoningBuffer += reasoning
-          messageState.setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsgId ? { ...m, streamingReasoning: reasoningBuffer } : m
-            )
-          )
-        } else {
-          textBuffer += text
-          messageState.setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsgId ? { ...m, content: textBuffer } : m
-            )
-          )
-        }
-      },
-      onToolCall: (toolCall) => {
-        toolCallsMap[toolCall.id] = toolCall
-        const blocks = [
-          ...(reasoningBuffer ? [{ type: 'thinking', thinking: reasoningBuffer }] : []),
-          ...Object.values(toolCallsMap).map((tc) => ({ type: 'toolCall', id: tc.id, name: tc.name, arguments: tc.arguments })),
-          ...(textBuffer ? [{ type: 'text', text: textBuffer }] : []),
-        ]
-        messageState.setMessages((prev) =>
-          prev.map((m) => (m.id === assistantMsgId ? { ...m, contentBlocks: blocks } : m))
-        )
-      },
-      onFinish: () => {
-        const finalBlocks = [
-          ...(reasoningBuffer ? [{ type: 'thinking', thinking: reasoningBuffer }] : []),
-          ...Object.values(toolCallsMap).map((tc) => ({ type: 'toolCall', id: tc.id, name: tc.name, arguments: tc.arguments })),
-          ...(textBuffer ? [{ type: 'text', text: textBuffer }] : []),
-        ]
-        messageState.setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? { ...m, generating: false, streamingReasoning: undefined, contentBlocks: finalBlocks.length > 0 ? finalBlocks : undefined, content: textBuffer }
-              : m
-          )
-        )
-        cancelStreamRef.current = null
-      },
-      onError: (err) => {
-        messageState.setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? { ...m, generating: false, streamingReasoning: undefined, content: textBuffer || `错误: ${err.message}`, error: true }
-              : m
-          )
-        )
-        cancelStreamRef.current = null
-      },
-    })
-  }, [backendState.openclawSessionKey, inputState.messageInput, messageState.setMessages])
-
-  // --- Hermes 发送 ---
-  const handleHermesSend = useCallback(async (_messageParams) => {
-    const content = inputState.messageInput
-    if (!content || !content.trim()) return
-
-    const history = messageState.messages
-      .filter((m) => !m.generating && (m.type === 'user' || m.type === 'assistant'))
-      .map((m) => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content || '' }))
-
-    // 添加用户消息
-    const userMsg = { id: `u_${Date.now()}`, type: 'user', content, timestamp: Date.now() }
-    messageState.setMessages((prev) => [...prev, userMsg])
-
-    // 添加占位助手消息
-    const assistantMsgId = `a_${Date.now()}`
-    messageState.setMessages((prev) => [
-      ...prev,
-      { id: assistantMsgId, type: 'assistant', content: '', generating: true, timestamp: Date.now() },
-    ])
-
-    let textBuffer = ''
-    const toolProgressItems = []
-
-    if (cancelStreamRef.current) cancelStreamRef.current()
-    cancelStreamRef.current = sendHermesMessage({
-      sessionId: backendState.hermesSessionId,
-      conversationHistory: history,
-      userMessage: content,
-      model: modelState.selectedModel,
-      onChunk: (text) => {
-        textBuffer += text
-        messageState.setMessages((prev) =>
-          prev.map((m) => (m.id === assistantMsgId ? { ...m, content: textBuffer } : m))
-        )
-      },
-      onToolProgress: (progress) => {
-        toolProgressItems.push(progress)
-      },
-      onFinish: ({ sessionId }) => {
-        if (sessionId && sessionId !== backendState.hermesSessionId) {
-          backendState.setHermesSessionId(sessionId)
-        }
-        messageState.setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? { ...m, generating: false, content: textBuffer }
-              : m
-          )
-        )
-        cancelStreamRef.current = null
-      },
-      onError: (err) => {
-        messageState.setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? { ...m, generating: false, content: textBuffer || `错误: ${err.message}`, error: true }
-              : m
-          )
-        )
-        cancelStreamRef.current = null
-      },
-    })
-  }, [backendState.hermesSessionId, backendState.setHermesSessionId, inputState.messageInput, messageState.messages, messageState.setMessages, modelState.selectedModel])
-
-  // 加载 OpenClaw 会话历史
-  useEffect(() => {
-    if (backendState.backend !== BACKEND_TYPES.OPENCLAW) return
-    if (backendState.openclawStatus !== 'connected') return
-    getOpenClawHistory(backendState.openclawSessionKey)
-      .then((msgs) => messageState.setMessages(msgs))
-      .catch(() => {})
-  }, [backendState.backend, backendState.openclawStatus, backendState.openclawSessionKey])
-
-  // 清理流式输出
-  useEffect(() => {
-    return () => { if (cancelStreamRef.current) cancelStreamRef.current() }
-  }, [])
-
   // 添加创建新对话的函数
   const handleCreateNewConversation = async () => {
     try {
@@ -839,21 +659,6 @@ export const AIChat = ({
       {/* 只在 handlers 都准备好后渲染内容 */}
       {inputHandlers && messageHandlers ? (
         <>
-          {/* 后端切换栏 */}
-          <div className="flex-none">
-            <BackendSwitcher
-              backend={backendState.backend}
-              setBackend={backendState.setBackend}
-              openclawStatus={backendState.openclawStatus}
-              hermesHealthy={backendState.hermesHealthy}
-              openclawSessionKey={backendState.openclawSessionKey}
-              setOpenclawSessionKey={backendState.setOpenclawSessionKey}
-              hermesSessionId={backendState.hermesSessionId}
-              setHermesSessionId={backendState.setHermesSessionId}
-              onNewHermesChat={() => messageState.setMessages([])}
-            />
-          </div>
-
           {/* 顶部标题栏 */}
           <div className="flex-none">
             <Header
@@ -902,11 +707,7 @@ export const AIChat = ({
               <InputArea
                 messageInput={inputState.messageInput}
                 setMessageInput={inputState.setMessageInput}
-                handleSendMessage={
-                  backendState.backend === BACKEND_TYPES.OPENCLAW ? handleOpenClawSend
-                  : backendState.backend === BACKEND_TYPES.HERMES ? handleHermesSend
-                  : inputHandlers.handleSendMessage
-                }
+                handleSendMessage={inputHandlers.handleSendMessage}
                 handleKeyDown={inputHandlers.handleKeyDown}
                 fileInputRef={fileInputRef}
                 isNetworkEnabled={isNetworkEnabled}
