@@ -74,7 +74,7 @@ export default function ToolRouter({
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Chat */}
       <div
-        style={{ display: activeTool === 'chat' ? 'flex' : 'none', height: 'calc(100vh - 40px)' }}
+        style={{ display: activeTool === 'chat' ? 'flex' : 'none', height: 'calc(100vh - 74px)' }}
         className="flex-1 flex flex-col overflow-hidden"
       >
         <ChatView
@@ -122,7 +122,7 @@ export default function ToolRouter({
         style={{ display: activeTool === 'browser' ? 'flex' : 'none' }}
         className="flex-1 flex flex-col relative"
       >
-        <div className="flex-1 bg-base-100 overflow-auto" style={{ height: 'calc(100vh - 28px)' }} />
+        <div className="flex-1 bg-base-100 overflow-auto" style={{ height: 'calc(100vh - 62px)' }} />
       </div>
 
       {/* Monaco Editor */}
@@ -141,13 +141,14 @@ export default function ToolRouter({
         <ThreeJSShaders />
       </div>
 
-      {/* Goldie Talk */}
+      {/* Goldie Talk — disabled (webrtc server not running)
       <div
         style={{ display: activeTool === 'goldie-talk' ? 'flex' : 'none' }}
         className="flex-1 overflow-hidden"
       >
         <GoldieTalk />
       </div>
+      */}
 
       {/* AI Chat */}
       <div

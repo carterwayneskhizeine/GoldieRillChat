@@ -14,7 +14,7 @@ export default function TitleBar({
   currentConversation, selectedProvider, temperature, setTemperature,
   maxTokens, setMaxTokens
 }) {
-  const { activeTool, switchTool } = useToolStore()
+  const { activeTool } = useToolStore()
   const { currentTheme, setCurrentTheme, sidebarOpen } = useUIStore()
   const [isImageBackground, setIsImageBackground] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
@@ -100,23 +100,6 @@ export default function TitleBar({
             GoldieRillChat
           </span>
         </div>
-
-        {!sidebarOpen && (
-          <div className="flex items-center ml-3 gap-2">
-            <button className="btn btn-ghost px-1.5" onClick={() => switchTool('prev')}
-              style={navBtnStyle} title="Previous" onMouseOver={navBtnHover} onMouseOut={navBtnOut}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button className="btn btn-ghost px-1.5" onClick={() => switchTool('next')}
-              style={navBtnStyle} title="Next" onMouseOver={navBtnHover} onMouseOut={navBtnOut}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        )}
 
         <div className="flex items-center ml-3 gap-2">
           <button className="btn btn-ghost px-1.5" onClick={() => TextareaState.toggleVisibility()}

@@ -1,24 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import useToolStore from '../stores/useToolStore';
 import useUIStore from '../stores/useUIStore';
-import { getToolDisplayName, tools } from '../config/toolsConfig';
+import { getToolDisplayName } from '../config/toolsConfig';
 import { BrowserTabs } from './BrowserTabs';
 import { ChatView } from './ChatView';
 import ConversationTimeGrouping, { TruncatedName } from './ConversationTimeGrouping';
 import '../styles/sidebar-buttons.css';
-
-const navHoverIn = (e) => {
-  e.currentTarget.style.color = 'rgb(255, 215, 0)';
-  e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
-  e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.2)';
-  e.currentTarget.style.textShadow = '0px 0px 3px rgba(0, 0, 0, 0.6)';
-};
-const navHoverOut = (e) => {
-  e.currentTarget.style.color = '';
-  e.currentTarget.style.borderColor = '';
-  e.currentTarget.style.backgroundColor = '';
-  e.currentTarget.style.textShadow = '';
-};
 
 const SettingsIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -212,43 +199,29 @@ export default function Sidebar({
     <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-y-auto overflow-x-hidden transition-all duration-300 flex flex-col`}>
       <div className={`${sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]'} flex flex-col h-full overflow-x-hidden`}>
         <div className="p-2 flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
-          {/* Navigation buttons */}
-          <div className="join grid grid-cols-2 mb-2">
-            <button className="join-item btn btn-outline btn-sm prev-next-btn"
-              onClick={() => switchTool('prev')} style={{ transition: 'all 0.3s ease' }}
-              onMouseOver={navHoverIn} onMouseOut={navHoverOut}>Previous</button>
-            <button className="join-item btn btn-outline btn-sm prev-next-btn"
-              onClick={() => switchTool('next')} style={{ transition: 'all 0.3s ease' }}
-              onMouseOver={navHoverIn} onMouseOut={navHoverOut}>Next</button>
-          </div>
-
-          {/* Tool dots */}
-          <div className="flex justify-center gap-2 mb-2">
-            {tools.map(tool => (
-              <div key={tool} className={`w-2 h-2 rounded-full ${activeTool === tool ? 'bg-primary' : 'bg-base-content opacity-20'}`} />
-            ))}
-          </div>
-
-          {/* Tool header + new button */}
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-semibold">{getToolDisplayName(activeTool)}</span>
-            {activeTool === 'chat' && (
+          {/* New conversation buttons */}
+          {activeTool === 'chat' && (
+            <div className="flex justify-end mb-2">
               <button className="btn btn-circle btn-ghost btn-sm" onClick={() => createNewConversation?.()}>
                 <PlusIcon />
               </button>
-            )}
-            {activeTool === 'browser' && sidebarMode === 'default' && (
+            </div>
+          )}
+          {activeTool === 'browser' && sidebarMode === 'default' && (
+            <div className="flex justify-end mb-2">
               <button className="btn btn-circle btn-ghost btn-sm" onClick={() => window.electron.browser.newTab()}>
                 <PlusIcon />
               </button>
-            )}
-            {activeTool === 'aichat' && sidebarMode === 'default' && (
+            </div>
+          )}
+          {activeTool === 'aichat' && sidebarMode === 'default' && (
+            <div className="flex justify-end mb-2">
               <button className="btn btn-circle btn-ghost btn-sm"
                 onClick={() => window.aichat?.createNewConversation?.()}>
                 <PlusIcon />
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Conversation folder dropdown (chat mode, non-chat tools) */}
           {sidebarMode === 'chat' && activeTool !== 'chat' && (

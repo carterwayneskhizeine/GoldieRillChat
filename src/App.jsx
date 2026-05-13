@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import useToolStore from './stores/useToolStore'
 import useUIStore from './stores/useUIStore'
 import TitleBar from './components/TitleBar'
+import ToolTabBar from './components/ToolTabBar'
 import ThreeBackground from './components/ThreeBackground'
 import ToolRouter from './components/ToolRouter'
 import { 
@@ -1470,6 +1471,7 @@ export default function App() {
         systemPromptEnabled={false}
         selectedProvider={selectedProvider}
       />
+      <ToolTabBar />
       <ToastContainer />
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar toggle bar */}
