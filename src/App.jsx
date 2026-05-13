@@ -69,7 +69,6 @@ import {
 import ToastContainer from './components/ToastContainer'
 import toastManager from './utils/toastManager'
 import BookmarksPanel from './components/BookmarksPanel'
-import SettingsModal from './components/SettingsModal'
 import DeleteConversationModal from './components/DeleteConversationModal'
 import { openUrl, switchToBrowserEvent } from './utils/browserUtils'
 import { useGlobalKeyboard } from './hooks/useGlobalKeyboard'
@@ -96,7 +95,6 @@ export default function App() {
   const {
     sidebarOpen, setSidebarOpen,
     sidebarMode, setSidebarMode,
-    previousMode, setPreviousMode,
     showSettings, setShowSettings,
     currentTheme, setCurrentTheme,
   } = useUIStore()
@@ -899,22 +897,6 @@ export default function App() {
     setLightboxOpen(true)
   }
 
-  // 添加处理侧边栏模式切换的函数
-  const handleSidebarModeToggle = () => {
-    if (sidebarMode === 'default') {
-      setPreviousMode('default')
-      setSidebarMode('chat')
-      
-      // 如果没有选中的对话，选择第一个
-      if (!currentConversation && conversations.length > 0) {
-        handleConversationSelect(conversations[0].id)
-      }
-    } else {
-      setSidebarMode(previousMode)
-      setPreviousMode(null)
-    }
-  }
-
   // 合并 onMouseUp 和 onMouseLeave 处理函数
   const handleMouseEvent = () => {
     handleMouseUp(setIsRotating, setEditorState)
@@ -1423,12 +1405,16 @@ export default function App() {
 
   // localStorage 持久化与 tool-changed 事件现由 useToolStore.setActiveTool 统一处理
 
-  // 监听 open-chat-settings 事件（通过 eventBus 统一管理）
+  // 监听打开设置侧栏事件（通过 eventBus 统一管理）
   useEffect(() => {
-    const handleOpenChatSettings = () => setShowSettings(true);
+    const handleOpenChatSettings = () => {
+      setShowSettings(true);
+      setSidebarOpen(true);
+      setSidebarMode('settings');
+    };
     window.addEventListener('open-chat-settings', handleOpenChatSettings);
     return () => window.removeEventListener('open-chat-settings', handleOpenChatSettings);
-  }, [setShowSettings]);
+  }, [setShowSettings, setSidebarOpen, setSidebarMode]);
 
   // 在useEffect中添加事件监听
   useEffect(() => {
@@ -1497,7 +1483,6 @@ export default function App() {
           setContextMenu={setContextMenu}
           loadConversation={handleConversationSelect}
           createNewConversation={createNewConversation}
-          handleSidebarModeToggle={handleSidebarModeToggle}
           handleDragStart={handleDragStart}
           handleDragOver={handleDragOver}
           handleDrop={handleDrop}
@@ -1551,6 +1536,8 @@ export default function App() {
           setCurrentShaderPreset={setCurrentShaderPreset}
           keyboardSelectedConversationId={keyboardSelectedConversationId}
           isKeyboardNavigating={isKeyboardNavigating}
+          storagePath={storagePath}
+          setStoragePath={setStoragePath}
         />
 
         {/* Main content area */}
@@ -1641,14 +1628,6 @@ export default function App() {
       )}
 
       {/* Modals */}
-      <SettingsModal
-        storagePath={storagePath}
-        setStoragePath={setStoragePath}
-        currentConversation={currentConversation}
-        messages={messages}
-        setConversations={setConversations}
-        setCurrentConversation={setCurrentConversation}
-      />
       <DeleteConversationModal
         deletingConversation={deletingConversation}
         setDeletingConversation={setDeletingConversation}

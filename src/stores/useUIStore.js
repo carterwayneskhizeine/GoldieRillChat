@@ -4,10 +4,8 @@ const useUIStore = create((set) => ({
   // Sidebar
   sidebarOpen: true,
   sidebarMode: 'default',
-  previousMode: null,
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   setSidebarMode: (mode) => set({ sidebarMode: mode }),
-  setPreviousMode: (mode) => set({ previousMode: mode }),
 
   // Settings modal
   showSettings: false,

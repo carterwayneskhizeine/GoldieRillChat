@@ -30,7 +30,7 @@ export const useBrowserEvents = ({
       window.electron.browser.setVisibility(true)
       
       // 更新浏览器视图位置（考虑当前侧边栏状态和模式）
-      const sidebarWidth = sidebarOpen ? (sidebarMode === 'chat' ? 400 : 200) : 0
+      const sidebarWidth = sidebarOpen ? (sidebarMode === 'settings' ? 460 : 200) : 0
       window.electron.browser.updateSidebarWidth(sidebarWidth)
 
       // 监听标签页更新
@@ -100,7 +100,7 @@ export const useSidebarEffect = ({
   useEffect(() => {
     if (activeTool === 'browser') {
       // 通知主进程侧边栏状态变化
-      const sidebarWidth = sidebarOpen ? (sidebarMode === 'chat' ? 400 : 200) : 0
+      const sidebarWidth = sidebarOpen ? (sidebarMode === 'settings' ? 460 : 200) : 0
       window.electron.browser.updateSidebarWidth(sidebarWidth)
     }
   }, [sidebarOpen, sidebarMode, activeTool])

@@ -849,8 +849,8 @@ export const SettingsModal = ({
   );
 
   return (
-    <div className="fixed inset-0 settings-modal-backdrop flex items-center justify-center z-50">
-      <div className="settings-panel rounded-lg w-[650px] max-h-[80vh] overflow-y-auto">
+    <>
+      <div className="settings-panel rounded-lg w-full max-w-none overflow-visible">
         {/* 标题和关闭按钮 */}
         <div className="flex justify-between items-center mb-6 px-2">
           <h1 className="text-2xl font-bold">Settings</h1>
@@ -2039,6 +2039,6 @@ export const SettingsModal = ({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }; 

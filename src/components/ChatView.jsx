@@ -144,7 +144,7 @@ export function ChatView({
         <div className="drag-subtext">支持图片、视频、音频和其他文件类型</div>
       </div>
 
-      {userScrolled && messages.length > 0 && sidebarMode !== 'chat' && (
+      {userScrolled && messages.length > 0 && sidebarMode !== 'settings' && (
         <div className="fixed w-full flex justify-center items-center z-50 pointer-events-none"
           style={{ bottom: '140px', right: sidebarOpen ? '-106px' : '0px' }}>
           <button

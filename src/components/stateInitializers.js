@@ -91,8 +91,7 @@ export const initializeBrowserState = () => ({
   // 侧边栏状态初始化
   export const initializeSidebarState = () => ({
     sidebarOpen: true,
-    sidebarMode: 'default',
-    previousMode: null
+    sidebarMode: 'default'
   })
   
   // 其他UI状态初始化

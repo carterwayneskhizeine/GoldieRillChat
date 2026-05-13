@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import useUIStore from '../../stores/useUIStore';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
@@ -48,7 +49,12 @@ export const AIChat = ({
   setSelectedProvider: appSetSelectedProvider,
   isCompact = false,
 }) => {
-  const { sidebarOpen } = useUIStore();
+  const {
+    sidebarOpen,
+    setSidebarOpen,
+    setSidebarMode,
+    setShowSettings: setGlobalShowSettings,
+  } = useUIStore();
   // 使用状态管理 hooks，但优先使用从App传递的状态
   const messageState = useMessageState(currentConversation);
   const modelState = useModelState();
@@ -382,6 +388,19 @@ export const AIChat = ({
     setShowSettings: modelState.setShowSettings
   });
 
+  const openSettingsPanel = useCallback(() => {
+    setGlobalShowSettings(true);
+    setSidebarOpen(true);
+    setSidebarMode('settings');
+    modelState.setShowSettings(true);
+  }, [modelState.setShowSettings, setGlobalShowSettings, setSidebarMode, setSidebarOpen]);
+
+  const closeSettingsPanel = useCallback(() => {
+    modelState.setShowSettings(false);
+    setGlobalShowSettings(false);
+    setSidebarMode('default');
+  }, [modelState.setShowSettings, setGlobalShowSettings, setSidebarMode]);
+
   // 添加创建新对话的函数
   const handleCreateNewConversation = async () => {
     try {
@@ -471,7 +490,13 @@ export const AIChat = ({
     if (typeof window !== 'undefined') {
       window.aichat = window.aichat || {};
       window.aichat.createNewConversation = handleCreateNewConversation;
-      window.aichat.setShowSettings = modelState.setShowSettings;
+      window.aichat.setShowSettings = (show) => {
+        if (show) {
+          openSettingsPanel();
+        } else {
+          closeSettingsPanel();
+        }
+      };
     }
     
     return () => {
@@ -480,7 +505,7 @@ export const AIChat = ({
         delete window.aichat.setShowSettings;
       }
     };
-  }, [createNewConversation, modelState.setShowSettings]);
+  }, [createNewConversation, openSettingsPanel, closeSettingsPanel]);
 
   // 添加 openFileLocation 函数
   const openFileLocation = async (file) => {
@@ -666,7 +691,7 @@ export const AIChat = ({
               setSelectedModel={modelState.setSelectedModel}
               availableModels={modelState.availableModels}
               currentConversation={currentConversation}
-              setShowSettings={modelState.setShowSettings}
+              setShowSettings={openSettingsPanel}
               maxTokens={maxTokens}
               setMaxTokens={setMaxTokens}
               temperature={temperature}
@@ -697,32 +722,30 @@ export const AIChat = ({
               handleFileDrop={handleFileDrop}
               fileInputRef={fileInputRef}
               sidebarOpen={sidebarOpen}
-              setShowSettings={modelState.setShowSettings}
+              setShowSettings={openSettingsPanel}
             />
           </div>
 
           {/* 底部输入区域 */}
-          {!modelState.showSettings && (
-            <div className="flex-none">
-              <InputArea
-                messageInput={inputState.messageInput}
-                setMessageInput={inputState.setMessageInput}
-                handleSendMessage={inputHandlers.handleSendMessage}
-                handleKeyDown={inputHandlers.handleKeyDown}
-                fileInputRef={fileInputRef}
-                isNetworkEnabled={isNetworkEnabled}
-                setIsNetworkEnabled={setIsNetworkEnabled}
-                selectedFiles={inputState.selectedFile}
-                handleFileSelect={handleFileSelect}
-                removeFile={removeFile}
-                selectedProvider={modelState.selectedProvider}
-                selectedModel={modelState.selectedModel}
-                apiKey={modelState.apiKey}
-                apiHost={modelState.apiHost}
-                isCompact={isCompact}
-              />
-            </div>
-          )}
+          <div className="flex-none">
+            <InputArea
+              messageInput={inputState.messageInput}
+              setMessageInput={inputState.setMessageInput}
+              handleSendMessage={inputHandlers.handleSendMessage}
+              handleKeyDown={inputHandlers.handleKeyDown}
+              fileInputRef={fileInputRef}
+              isNetworkEnabled={isNetworkEnabled}
+              setIsNetworkEnabled={setIsNetworkEnabled}
+              selectedFiles={inputState.selectedFile}
+              handleFileSelect={handleFileSelect}
+              removeFile={removeFile}
+              selectedProvider={modelState.selectedProvider}
+              selectedModel={modelState.selectedModel}
+              apiKey={modelState.apiKey}
+              apiHost={modelState.apiHost}
+              isCompact={isCompact}
+            />
+          </div>
 
           {/* 隐藏的文件输入 */}
           <input
@@ -733,39 +756,42 @@ export const AIChat = ({
             multiple
           />
 
-          {/* 设置弹窗 */}
-          {modelState.showSettings && (
-            <SettingsModal
-              selectedProvider={modelState.selectedProvider}
-              setSelectedProvider={modelState.setSelectedProvider}
-              selectedModel={modelState.selectedModel}
-              handleModelChange={settingsHandlers.handleModelChange}
-              availableModels={modelState.availableModels}
-              apiHost={modelState.apiHost}
-              handleApiHostChange={settingsHandlers.handleApiHostChange}
-              apiKey={modelState.apiKey}
-              setApiKey={modelState.setApiKey}
-              showApiKey={modelState.showApiKey}
-              setShowApiKey={modelState.setShowApiKey}
-              handleSettingsClose={settingsHandlers.handleSettingsClose}
-              MODEL_PROVIDERS={MODEL_PROVIDERS}
-              onImageSettingsUpdate={handleMediaSettingsUpdate}
-              // 添加系统提示词相关的 props
-              systemPrompt={systemPromptState.systemPrompt}
-              setSystemPrompt={systemPromptState.setSystemPrompt}
-              systemPromptEnabled={systemPromptState.systemPromptEnabled}
-              setSystemPromptEnabled={systemPromptState.setSystemPromptEnabled}
-              systemPromptTemplates={systemPromptState.systemPromptTemplates}
-              setSystemPromptTemplates={systemPromptState.setSystemPromptTemplates}
-              selectedTemplateId={systemPromptState.selectedTemplateId}
-              setSelectedTemplateId={systemPromptState.setSelectedTemplateId}
-              applyTemplate={systemPromptState.applyTemplate}
-              addTemplate={systemPromptState.addTemplate}
-              updateTemplate={systemPromptState.updateTemplate}
-              deleteTemplate={systemPromptState.deleteTemplate}
-              resetTemplates={systemPromptState.resetTemplates}
-            />
-          )}
+          {/* 设置侧栏内容 */}
+          {modelState.showSettings && (() => {
+            const settingsPanel = (
+              <SettingsModal
+                selectedProvider={modelState.selectedProvider}
+                setSelectedProvider={modelState.setSelectedProvider}
+                selectedModel={modelState.selectedModel}
+                handleModelChange={settingsHandlers.handleModelChange}
+                availableModels={modelState.availableModels}
+                apiHost={modelState.apiHost}
+                handleApiHostChange={settingsHandlers.handleApiHostChange}
+                apiKey={modelState.apiKey}
+                setApiKey={modelState.setApiKey}
+                showApiKey={modelState.showApiKey}
+                setShowApiKey={modelState.setShowApiKey}
+                handleSettingsClose={closeSettingsPanel}
+                MODEL_PROVIDERS={MODEL_PROVIDERS}
+                onImageSettingsUpdate={handleMediaSettingsUpdate}
+                systemPrompt={systemPromptState.systemPrompt}
+                setSystemPrompt={systemPromptState.setSystemPrompt}
+                systemPromptEnabled={systemPromptState.systemPromptEnabled}
+                setSystemPromptEnabled={systemPromptState.setSystemPromptEnabled}
+                systemPromptTemplates={systemPromptState.systemPromptTemplates}
+                setSystemPromptTemplates={systemPromptState.setSystemPromptTemplates}
+                selectedTemplateId={systemPromptState.selectedTemplateId}
+                setSelectedTemplateId={systemPromptState.setSelectedTemplateId}
+                applyTemplate={systemPromptState.applyTemplate}
+                addTemplate={systemPromptState.addTemplate}
+                updateTemplate={systemPromptState.updateTemplate}
+                deleteTemplate={systemPromptState.deleteTemplate}
+                resetTemplates={systemPromptState.resetTemplates}
+              />
+            );
+            const portalRoot = document.getElementById('aichat-settings-sidebar-root');
+            return portalRoot ? createPortal(settingsPanel, portalRoot) : settingsPanel;
+          })()}
         </>
       ) : (
         // 加载状态

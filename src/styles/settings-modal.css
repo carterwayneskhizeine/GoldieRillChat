@@ -8,6 +8,17 @@
   background-color: rgba(0, 0, 0, 0.5) !important;
 }
 
+.settings-sidebar-panel {
+  position: relative;
+  min-height: 100%;
+  padding: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.35);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  backdrop-filter: blur(3px);
+}
+
 /* 模态框容器 */
 .settings-modal .modal-box {
   background-color: rgba(0, 0, 0, 0.5) !important;

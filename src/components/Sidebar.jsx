@@ -3,8 +3,8 @@ import useToolStore from '../stores/useToolStore';
 import useUIStore from '../stores/useUIStore';
 import { getToolDisplayName } from '../config/toolsConfig';
 import { BrowserTabs } from './BrowserTabs';
-import { ChatView } from './ChatView';
 import ConversationTimeGrouping, { TruncatedName } from './ConversationTimeGrouping';
+import { SettingsPanelContent } from './SettingsModal';
 import '../styles/sidebar-buttons.css';
 
 const SettingsIcon = () => (
@@ -24,7 +24,7 @@ const PlusIcon = () => (
 export default function Sidebar({
   conversations, currentConversation, draggedConversation, setDraggedConversation,
   editingFolderName, folderNameInput, setEditingFolderName, setFolderNameInput,
-  setContextMenu, loadConversation, createNewConversation, handleSidebarModeToggle,
+  setContextMenu, loadConversation, createNewConversation,
   handleDragStart, handleDragOver, handleDrop,
   handleConversationDelete, handleConversationRename, renameChatFolder,
   setConversations, setCurrentConversation,
@@ -39,40 +39,18 @@ export default function Sidebar({
   sendToMonaco, sendToEditor, shouldScrollToBottom, setShouldScrollToBottom,
   notes, currentNote, loadNote, handleRenameConfirm,
   shaderPresets, setShaderPresets, currentShaderPreset, setCurrentShaderPreset,
-  keyboardSelectedConversationId, isKeyboardNavigating
+  keyboardSelectedConversationId, isKeyboardNavigating,
+  storagePath, setStoragePath
 }) {
   const { activeTool, switchTool } = useToolStore();
-  const { sidebarOpen, sidebarMode, previousMode, setSidebarMode, setPreviousMode, setShowSettings } = useUIStore();
+  const { sidebarOpen, sidebarMode, setSidebarMode, showSettings, setShowSettings } = useUIStore();
 
-  const [openChatFolder, setOpenChatFolder] = useState(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isImageBackground, setIsImageBackground] = useState(false);
   const [expandedFolderId, setExpandedFolderId] = useState(null);
   const [autoHideTimer, setAutoHideTimer] = useState(null);
   const [deletingFolder, setDeletingFolder] = useState(null);
   const [lastClickTime, setLastClickTime] = useState(0);
   const [lastClickId, setLastClickId] = useState(null);
-
-  // Shared ChatView props — eliminates 5x repetition
-  const chatViewProps = useMemo(() => ({
-    messages, currentConversation, editingMessage, setEditingMessage,
-    messageInput, setMessageInput, selectedFiles, setSelectedFiles,
-    sendMessage, deleteMessage: confirmDeleteMessage,
-    updateMessage: updateMessageInApp, moveMessage: moveMessageInApp,
-    enterEditMode, exitEditMode, collapsedMessages, setCollapsedMessages,
-    isCompact: true, handleImageClick, fileInputRef,
-    editingFileName, setEditingFileName, fileNameInput, setFileNameInput,
-    renameMessageFile, openFileLocation, copyMessageContent,
-    deletingMessageId, setDeletingMessageId, cancelDeleteMessage,
-    confirmDeleteMessage, scrollToMessage, window: win,
-    sendToMonaco, sendToEditor, sidebarMode,
-  }), [messages, currentConversation, editingMessage, messageInput, selectedFiles,
-    confirmDeleteMessage, updateMessageInApp, moveMessageInApp, enterEditMode, exitEditMode,
-    collapsedMessages, handleImageClick, fileInputRef, editingFileName, fileNameInput,
-    renameMessageFile, openFileLocation, copyMessageContent, deletingMessageId,
-    cancelDeleteMessage, scrollToMessage, sendToMonaco, sendToEditor, sidebarMode,
-    setEditingMessage, setMessageInput, setSelectedFiles, setCollapsedMessages,
-    setEditingFileName, setFileNameInput, setDeletingMessageId]);
 
   useEffect(() => {
     if (window.isImageBackgroundMode !== undefined) setIsImageBackground(window.isImageBackgroundMode);
@@ -82,9 +60,9 @@ export default function Sidebar({
   }, []);
 
   useEffect(() => {
-    if (activeTool === 'chat' || activeTool === 'aichat') setSidebarMode('default');
-    else if (previousMode) setSidebarMode('chat');
-  }, [activeTool, previousMode]);
+    if (showSettings) return;
+    setSidebarMode('default');
+  }, [activeTool, showSettings, setSidebarMode]);
 
   useEffect(() => {
     const handlePresetsLoaded = (e) => { if (e.detail?.presets) setShaderPresets(e.detail.presets) };
@@ -108,32 +86,18 @@ export default function Sidebar({
     return () => { if (autoHideTimer) clearTimeout(autoHideTimer) };
   }, [autoHideTimer]);
 
-  const handleSidebarModeToggleLocal = () => {
-    if (sidebarMode === 'default') {
-      if (activeTool === 'chat' || activeTool === 'aichat') return;
-      setPreviousMode('default');
-      setSidebarMode('chat');
-      if (activeTool !== 'chat' && !openChatFolder && conversations.length > 0) {
-        setOpenChatFolder(conversations[0]);
-        loadConversation(conversations[0].id);
-      } else if (activeTool === 'chat' && !currentConversation && conversations.length > 0) {
-        loadConversation(conversations[0].id);
-      }
-    } else {
+  const handleSettingsClick = () => {
+    if (showSettings && sidebarMode === 'settings') {
+      setShowSettings(false);
       setSidebarMode('default');
-      setPreviousMode(null);
+      window.aichat?.setShowSettings?.(false);
+      return;
     }
-  };
 
-  const handleOpenChatFolderChange = (conversationId) => {
-    const c = conversations.find(c => c.id === conversationId);
-    if (c) {
-      setOpenChatFolder(c);
-      loadConversation(conversationId);
-      setTimeout(() => {
-        const el = document.querySelector('.chat-view-messages');
-        if (el) el.scrollTop = el.scrollHeight;
-      }, 100);
+    setShowSettings(true);
+    setSidebarMode('settings');
+    if (activeTool === 'aichat') {
+      window.aichat?.setShowSettings?.(true);
     }
   };
 
@@ -196,8 +160,8 @@ export default function Sidebar({
   };
 
   return (
-    <div className={`${sidebarOpen ? (sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-y-auto overflow-x-hidden transition-all duration-300 flex flex-col`}>
-      <div className={`${sidebarMode === 'chat' ? 'w-[400px]' : 'w-[200px]'} flex flex-col h-full overflow-x-hidden`}>
+    <div className={`${sidebarOpen ? (sidebarMode === 'settings' ? 'w-[460px]' : 'w-[200px]') : 'w-0'} bg-base-300 text-base-content overflow-y-auto overflow-x-hidden transition-all duration-300 flex flex-col`}>
+      <div className={`${sidebarMode === 'settings' ? 'w-[460px]' : 'w-[200px]'} flex flex-col h-full overflow-x-hidden`}>
         <div className="p-2 flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
           {/* New conversation buttons */}
           {activeTool === 'chat' && (
@@ -223,42 +187,28 @@ export default function Sidebar({
             </div>
           )}
 
-          {/* Conversation folder dropdown (chat mode, non-chat tools) */}
-          {sidebarMode === 'chat' && activeTool !== 'chat' && (
-            <div className="dropdown dropdown-bottom w-full mb-4" style={{ position: 'relative', zIndex: 9999 }}>
-              <label tabIndex={0} className="btn btn-outline btn-sm w-full flex justify-between items-center"
-                onClick={() => setDropdownOpen(!dropdownOpen)} title={openChatFolder?.name || '选择对话文件夹'}>
-                <span className="overflow-hidden whitespace-nowrap" style={{ display: 'inline-block', maxWidth: '80%', color: 'hsl(180, 0%, 85%)' }}>
-                  {openChatFolder?.name
-                    ? <div className="min-w-0 max-w-[125px] overflow-hidden"><TruncatedName name={openChatFolder.name} /></div>
-                    : '选择对话文件夹'}
-                </span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </label>
-              <ul tabIndex={0}
-                className={`dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-full max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50 ${dropdownOpen ? '' : 'hidden'}`}
-                onBlur={() => setDropdownOpen(false)} style={{ color: 'hsl(180, 0%, 85%)' }}>
-                {conversations.map(conversation => (
-                  <li key={conversation.id}>
-                    <a className={openChatFolder?.id === conversation.id ? 'active' : ''}
-                      onClick={() => { handleOpenChatFolderChange(conversation.id); setDropdownOpen(false) }}
-                      title={conversation.name}>
-                      <div className="min-w-0 max-w-[125px] overflow-hidden">
-                        <TruncatedName name={conversation.name} />
-                      </div>
-                    </a>
-                  </li>
-                ))}
-              </ul>
+          {/* === Tool panels === */}
+
+          {sidebarMode === 'settings' && (
+            <div className="flex-1 overflow-y-auto overflow-x-hidden pr-1">
+              {activeTool === 'aichat' ? (
+                <div id="aichat-settings-sidebar-root" />
+              ) : (
+                <SettingsPanelContent
+                  storagePath={storagePath}
+                  setStoragePath={setStoragePath}
+                  currentConversation={currentConversation}
+                  messages={messages}
+                  setConversations={setConversations}
+                  setCurrentConversation={setCurrentConversation}
+                  onClose={handleSettingsClick}
+                />
+              )}
             </div>
           )}
 
-          {/* === Tool panels === */}
-
           {/* Chat */}
-          {activeTool === 'chat' && (
+          {activeTool === 'chat' && sidebarMode !== 'settings' && (
             <div className="flex-1 mt-2 overflow-hidden h-full flex flex-col">
               <div className="flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50">
                 <ConversationTimeGrouping {...convGroupingProps} />
@@ -267,7 +217,7 @@ export default function Sidebar({
           )}
 
           {/* Browser */}
-          {activeTool === 'browser' && (
+          {activeTool === 'browser' && sidebarMode !== 'settings' && (
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
                 {sidebarMode === 'default' ? (
@@ -275,15 +225,13 @@ export default function Sidebar({
                     onTabClick={(tabId) => window.electron.browser.switchTab(tabId)}
                     onTabClose={(tabId) => window.electron.browser.closeTab(tabId)}
                     onNewTab={() => window.electron.browser.newTab()} />
-                ) : (
-                  <ChatView {...chatViewProps} />
-                )}
+                ) : null}
               </div>
             </div>
           )}
 
           {/* AI Chat */}
-          {activeTool === 'aichat' && (
+          {activeTool === 'aichat' && sidebarMode !== 'settings' && (
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
                 {sidebarMode === 'default' ? (
@@ -292,15 +240,13 @@ export default function Sidebar({
                       <ConversationTimeGrouping {...convGroupingProps} />
                     </div>
                   </div>
-                ) : (
-                  <ChatView {...chatViewProps} />
-                )}
+                ) : null}
               </div>
             </div>
           )}
 
           {/* Monaco */}
-          {activeTool === 'monaco' && (
+          {activeTool === 'monaco' && sidebarMode !== 'settings' && (
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
                 {sidebarMode === 'default' ? (
@@ -319,15 +265,13 @@ export default function Sidebar({
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <ChatView {...chatViewProps} />
-                )}
+                ) : null}
               </div>
             </div>
           )}
 
           {/* ThreeJS Shaders */}
-          {activeTool === 'threejs-shaders' && (
+          {activeTool === 'threejs-shaders' && sidebarMode !== 'settings' && (
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
                 {sidebarMode === 'default' ? (
@@ -346,18 +290,16 @@ export default function Sidebar({
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <ChatView {...chatViewProps} />
-                )}
+                ) : null}
               </div>
             </div>
           )}
 
           {/* LivePortrait */}
-          {activeTool === 'liveportrait' && (
+          {activeTool === 'liveportrait' && sidebarMode !== 'settings' && (
             <div className="flex-1 mt-2 overflow-hidden flex flex-col">
               <div className="flex-1 overflow-hidden">
-                {sidebarMode === 'chat' && <ChatView {...chatViewProps} />}
+                {null}
               </div>
             </div>
           )}
@@ -382,23 +324,9 @@ export default function Sidebar({
 
         {/* Bottom bar */}
         <div className="p-2 border-t border-base-content/10">
-          {activeTool === 'chat' ? (
-            <button className="btn btn-ghost btn-sm w-full flex justify-start gap-2" onClick={() => setShowSettings(true)}>
-              <SettingsIcon /><span>Settings</span>
-            </button>
-          ) : activeTool === 'aichat' ? (
-            <button className="btn btn-ghost btn-sm w-full flex justify-start gap-2"
-              onClick={() => window.aichat?.setShowSettings?.(true)}>
-              <SettingsIcon /><span>Settings</span>
-            </button>
-          ) : (
-            <button className="btn btn-ghost btn-sm w-full flex justify-start gap-2" onClick={handleSidebarModeToggleLocal}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span>{sidebarMode === 'default' ? 'Open Chat' : 'Back'}</span>
-            </button>
-          )}
+          <button className="btn btn-ghost btn-sm w-full flex justify-start gap-2" onClick={handleSettingsClick}>
+            <SettingsIcon /><span>{sidebarMode === 'settings' ? 'Back' : 'Settings'}</span>
+          </button>
         </div>
       </div>
     </div>
