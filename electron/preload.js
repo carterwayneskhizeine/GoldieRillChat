@@ -540,4 +540,5 @@ contextBridge.exposeInMainWorld('openclawAPI', {
     ipcRenderer.on('openclaw:connection-state', handler)
     return () => ipcRenderer.removeListener('openclaw:connection-state', handler)
   },
+  getState: () => ipcRenderer.invoke('openclaw:get-state'),
 }) 

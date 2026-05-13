@@ -5,6 +5,8 @@ import {
   connectOpenClaw,
   onOpenClawConnectionState,
   getOpenClawConfig,
+  getOpenClawState,
+  getOpenClawHistory,
   listOpenClawSessions,
   createOpenClawSession,
 } from '../services/openclawService'
@@ -58,6 +60,17 @@ function ToolCallBlock({ name, args }) {
   )
 }
 
+function ToolResultBlock({ text }) {
+  return (
+    <div style={{ borderLeft: '2px solid rgba(34,197,94,0.4)', paddingLeft: 8, margin: '4px 0', fontSize: 12 }}>
+      <div style={{ color: 'rgba(34,197,94,0.75)', marginBottom: 4 }}>工具结果</div>
+      <pre style={{ margin: 0, opacity: 0.65, fontSize: 11, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+        {text}
+      </pre>
+    </div>
+  )
+}
+
 function MessageBubble({ msg }) {
   const isUser = msg.role === 'user'
   const blocks = msg.contentBlocks || []
@@ -80,6 +93,7 @@ function MessageBubble({ msg }) {
             {blocks.map((b, i) => {
               if (b.type === 'thinking') return <ThinkingBlock key={i} text={b.thinking} done={!msg.generating} />
               if (b.type === 'toolCall') return <ToolCallBlock key={i} name={b.name} args={b.arguments} />
+              if (b.type === 'toolResult') return <ToolResultBlock key={i} text={b.text || ''} />
               if (b.type === 'text') return (
                 <div key={i} className="prose prose-sm max-w-none">
                   <ReactMarkdown>{b.text || ''}</ReactMarkdown>
@@ -117,7 +131,7 @@ function SessionSelector({ sessionKey, onSelect, status }) {
     setCreating(true)
     try {
       const res = await createOpenClawSession('新会话')
-      if (res.sessionKey) onSelect(res.sessionKey)
+      if (res.key || res.sessionKey) onSelect(res.key || res.sessionKey)
       setOpen(false)
     } catch {} finally { setCreating(false) }
   }
@@ -151,11 +165,11 @@ function SessionSelector({ sessionKey, onSelect, status }) {
           {sessions.length > 0 && <div className="divider my-0" />}
           {sessions.map((s) => (
             <button
-              key={s.sessionKey || s.id}
-              className={`w-full text-left px-3 py-2 text-xs hover:bg-base-200 ${(s.sessionKey || s.id) === sessionKey ? 'bg-base-200 font-semibold' : ''}`}
-              onClick={() => { onSelect(s.sessionKey || s.id); setOpen(false) }}
+              key={s.key || s.sessionKey || s.id}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-base-200 ${(s.key || s.sessionKey || s.id) === sessionKey ? 'bg-base-200 font-semibold' : ''}`}
+              onClick={() => { onSelect(s.key || s.sessionKey || s.id); setOpen(false) }}
             >
-              {s.label || s.sessionKey || s.id}
+              {s.label || s.key || s.sessionKey || s.id}
             </button>
           ))}
         </div>
@@ -169,36 +183,73 @@ export default function OpenClawPanel() {
   const [input, setInput] = useState('')
   const [sessionKey, setSessionKey] = useState('main')
   const [status, setStatus] = useState('disconnected')
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState(null)
   const cancelRef = useRef(null)
+  const historyRequestRef = useRef(0)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
 
   useEffect(() => {
     if (!window.openclawAPI) return
     const unsub = onOpenClawConnectionState(({ state }) => setStatus(state))
+    // Sync initial state from main process, then auto-connect if needed
+    getOpenClawState().then(({ state }) => {
+      if (state === 'connected') {
+        setStatus('connected')
+      } else {
+        const cfg = getOpenClawConfig()
+        if (cfg.url) {
+          setStatus('connecting')
+          connectOpenClaw(cfg)
+            .then((res) => { if (res.ok) setStatus('connected') })
+            .catch(() => setStatus('disconnected'))
+        }
+      }
+    }).catch(() => {})
     return () => unsub()
   }, [])
 
   useEffect(() => {
-    const cfg = getOpenClawConfig()
-    if (cfg.url && status === 'disconnected') {
-      setStatus('connecting')
-      connectOpenClaw(cfg).catch(() => setStatus('disconnected'))
-    }
-  }, [])
+    if (status !== 'connected') return
+    const requestId = ++historyRequestRef.current
+    if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
+    setHistoryLoading(true)
+    setHistoryError(null)
+
+    getOpenClawHistory(sessionKey || 'main', 100)
+      .then((historyMessages) => {
+        if (historyRequestRef.current !== requestId) return
+        setMessages(historyMessages)
+      })
+      .catch((err) => {
+        if (historyRequestRef.current !== requestId) return
+        setHistoryError(err.message || '加载历史记录失败')
+        setMessages([])
+      })
+      .finally(() => {
+        if (historyRequestRef.current === requestId) setHistoryLoading(false)
+      })
+  }, [sessionKey, status])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const handleNewChat = useCallback(() => {
+    historyRequestRef.current += 1
     if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
+    setHistoryError(null)
+    setHistoryLoading(false)
     setMessages([])
   }, [])
 
   const handleSend = useCallback(() => {
     const content = input.trim()
     if (!content || status !== 'connected') return
+    historyRequestRef.current += 1
+    setHistoryError(null)
+    setHistoryLoading(false)
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = '100px'
 
@@ -291,7 +342,18 @@ export default function OpenClawPanel() {
 
       {/* Message list */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {messages.length === 0 && (
+        {historyLoading && (
+          <div className="flex items-center justify-center h-full opacity-40 text-sm">
+            <span className="loading loading-dots loading-sm mr-2" />
+            加载历史记录
+          </div>
+        )}
+        {!historyLoading && historyError && (
+          <div className="flex items-center justify-center h-full text-error/80 text-sm">
+            历史记录加载失败: {historyError}
+          </div>
+        )}
+        {!historyLoading && !historyError && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full opacity-20 select-none pointer-events-none">
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
@@ -302,7 +364,7 @@ export default function OpenClawPanel() {
             </div>
           </div>
         )}
-        {messages.map((msg) => (
+        {!historyLoading && !historyError && messages.map((msg) => (
           <MessageBubble key={msg.id} msg={msg} />
         ))}
         <div ref={bottomRef} />

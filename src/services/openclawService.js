@@ -27,6 +27,11 @@ export async function disconnectOpenClaw() {
   return window.openclawAPI.disconnect()
 }
 
+/** 查询当前连接状态（不触发连接） */
+export async function getOpenClawState() {
+  return window.openclawAPI.getState()
+}
+
 /** 获取设备 ID */
 export async function getDeviceId() {
   return window.openclawAPI.getDeviceId()
@@ -48,8 +53,8 @@ export function sendOpenClawMessage({ sessionKey, message, attachments, onChunk,
     if (state === 'delta' && payload) {
       const blocks = Array.isArray(payload.content) ? payload.content : []
       for (const block of blocks) {
-        if (block.type === 'text' && onChunk) onChunk(block.text || '')
-        if (block.type === 'thinking' && onChunk) onChunk('', block.thinking || '')
+        if (block.type === 'text' && onChunk) onChunk(sanitizeOpenClawText(block.text || ''))
+        if (block.type === 'thinking' && onChunk) onChunk('', sanitizeOpenClawText(block.thinking || ''))
         if ((block.type === 'tool_use' || block.type === 'toolCall') && onToolCall) {
           onToolCall({ id: block.id, name: block.name, arguments: block.input || block.arguments })
         }
@@ -65,7 +70,7 @@ export function sendOpenClawMessage({ sessionKey, message, attachments, onChunk,
     if (state === 'error' || state === 'aborted') {
       finished = true
       unsubscribe()
-      if (onError) onError(new Error(event.error || state))
+      if (onError) onError(new Error(event.error || event.errorMessage || state))
     }
   })
 
@@ -109,7 +114,7 @@ export async function getOpenClawHistory(sessionKey, limit = 50) {
 export async function listOpenClawSessions() {
   const res = await window.openclawAPI.listSessions()
   if (!res.ok) throw new Error(res.error || 'Failed to list sessions')
-  return res.sessions || []
+  return normalizeSessions(res.sessions || [])
 }
 
 /** 创建新会话 */
@@ -142,40 +147,76 @@ export async function abortOpenClaw(sessionKey, runId) {
 
 function normalizeHistory(rawMessages) {
   return rawMessages.map((msg) => {
+    if (isToolResultMessage(msg)) return null
+
     const contentBlocks = parseContentBlocks(msg.content)
     const textContent = contentBlocks
       .filter((b) => b.type === 'text')
       .map((b) => b.text)
       .join('\n')
+    const role = msg.role === 'user' ? 'user' : 'assistant'
+    const timestamp = typeof msg.timestamp === 'number'
+      ? msg.timestamp
+      : msg.createdAt
+        ? new Date(msg.createdAt).getTime()
+        : Date.now()
 
     return {
       id: msg.id || msg.messageId || String(Date.now() + Math.random()),
-      type: msg.role === 'user' ? 'user' : 'assistant',
+      role,
+      type: role,
       content: textContent,
       contentBlocks: contentBlocks.length > 0 ? contentBlocks : undefined,
-      timestamp: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
+      timestamp,
       model: msg.model,
       sessionKey: msg.sessionKey,
     }
-  })
+  }).filter(Boolean)
 }
 
 function parseContentBlocks(content) {
   if (!content) return []
-  if (typeof content === 'string') return [{ type: 'text', text: content }]
+  if (typeof content === 'string') return [{ type: 'text', text: sanitizeOpenClawText(content) }]
   if (!Array.isArray(content)) return []
 
   return content.map((block) => {
-    if (block.type === 'text') return { type: 'text', text: block.text || '' }
-    if (block.type === 'thinking') return { type: 'thinking', thinking: block.thinking || '' }
-    if (block.type === 'tool_use') return { type: 'toolCall', id: block.id, name: block.name, arguments: block.input || {} }
-    if (block.type === 'tool_result') return { type: 'toolResult', id: block.tool_use_id, text: extractToolResultText(block.content) }
+    if (block.type === 'text') return { type: 'text', text: sanitizeOpenClawText(block.text || '') }
+    if (block.type === 'thinking') return { type: 'thinking', thinking: sanitizeOpenClawText(block.thinking || '') }
+    if (block.type === 'tool_use' || block.type === 'toolCall') {
+      return { type: 'toolCall', id: block.id, name: block.name, arguments: block.input || block.arguments || {} }
+    }
+    if (block.type === 'tool_result' || block.type === 'toolResult') return null
     return { type: 'text', text: JSON.stringify(block) }
-  })
+  }).filter(Boolean)
 }
 
 function extractToolResultText(content) {
-  if (typeof content === 'string') return content
-  if (Array.isArray(content)) return content.filter((b) => b.type === 'text').map((b) => b.text).join('\n')
+  if (typeof content === 'string') return sanitizeOpenClawText(content)
+  if (Array.isArray(content)) return sanitizeOpenClawText(content.filter((b) => b.type === 'text').map((b) => b.text).join('\n'))
   return ''
+}
+
+function sanitizeOpenClawText(text) {
+  if (typeof text !== 'string' || !text) return ''
+  return text
+    // Standard ANSI/VT escape sequences, e.g. "\x1b[32;1m".
+    .replace(/\u001B\[[0-?]*[ -/]*[@-~]/g, '')
+    // Defensive cleanup for strings where ESC was already stripped before render.
+    .replace(/\[(?:\d{1,3}(?:;\d{1,3})*)m/g, '')
+}
+
+function isToolResultMessage(msg) {
+  return msg?.role === 'toolResult' || msg?.role === 'tool' || Boolean(msg?.toolCallId)
+}
+
+function normalizeSessions(sessions) {
+  return sessions.map((session) => {
+    const key = session.key || session.sessionKey || session.id
+    return {
+      ...session,
+      key,
+      sessionKey: session.sessionKey || key,
+      id: session.id || key,
+    }
+  }).filter((session) => session.key)
 }
