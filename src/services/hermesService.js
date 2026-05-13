@@ -58,22 +58,34 @@ export function sendHermesMessage({
   window.hermesAPI.startChatStream({ cfg: getHermesConfig(), sessionId, messages, model }).then(({ requestId }) => {
     if (finished) return
 
+    let pendingEvent = null  // tracks current SSE event type across lines
+
     unsubChunk = window.hermesAPI.onChunk(requestId, ({ data, sessionId: newSid }) => {
       if (finished) return
       const lines = data.split('\n')
       for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          pendingEvent = line.slice(7).trim()
+          continue
+        }
+        if (line === '') {
+          pendingEvent = null
+          continue
+        }
         if (!line.startsWith('data: ')) continue
         const payload = line.slice(6).trim()
         if (payload === '[DONE]') return
         try {
           const parsed = JSON.parse(payload)
-          if (parsed.type === 'hermes.tool.progress' && onToolProgress) {
-            onToolProgress(parsed)
+          if (pendingEvent === 'hermes.tool.progress') {
+            if (onToolProgress) onToolProgress(parsed)
+            pendingEvent = null
             continue
           }
           const content = parsed.choices?.[0]?.delta?.content
           if (content && onChunk) onChunk(content)
         } catch {}
+        pendingEvent = null
       }
     })
 

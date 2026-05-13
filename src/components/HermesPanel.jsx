@@ -14,32 +14,73 @@ function StatusDot({ healthy }) {
   )
 }
 
+function ToolCallBlock({ name, args }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ borderLeft: '2px solid rgba(59,130,246,0.4)', paddingLeft: 8, margin: '4px 0', fontSize: 12 }}>
+      <button
+        style={{ color: 'rgba(59,130,246,0.7)', display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        onClick={() => setOpen((v) => !v)}
+      >
+        🔧 {name} <span style={{ fontSize: 10 }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <pre style={{ marginTop: 4, opacity: 0.5, fontSize: 11, overflowX: 'auto' }}>
+          {typeof args === 'string' ? args : JSON.stringify(args, null, 2)}
+        </pre>
+      )}
+    </div>
+  )
+}
+
 function MessageBubble({ msg }) {
   const isUser = msg.role === 'user'
+  const blocks = msg.contentBlocks || []
+
   return (
     <div className={`chat ${isUser ? 'chat-end' : 'chat-start'}`}>
-      <div className={`chat-bubble ${isUser ? '' : 'chat-bubble-neutral'} max-w-[80%]`}>
+      <div className={`chat-bubble ${isUser ? '' : 'chat-bubble-neutral'} max-w-[80%] ${msg.error ? 'border border-error' : ''}`}>
         {isUser ? (
           <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
         ) : (
           <>
+            {/* Live tool progress (streaming) */}
             {msg.toolProgress && msg.toolProgress.length > 0 && (
               <div style={{ marginBottom: 8 }}>
                 {msg.toolProgress.map((p, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, opacity: 0.6 }}>
-                    <span>{p.emoji || '⚙️'}</span>
-                    <span>{p.label || p.tool}</span>
-                    {p.status === 'running' && <span className="loading loading-dots loading-xs" />}
+                  <div key={i} style={{ borderLeft: '2px solid rgba(59,130,246,0.3)', paddingLeft: 8, margin: '3px 0', fontSize: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: 0.7 }}>
+                      <span>{p.emoji || '🔧'}</span>
+                      <span style={{ fontWeight: 500 }}>{p.tool}</span>
+                      {p.status === 'running'
+                        ? <span className="loading loading-dots loading-xs" />
+                        : <span style={{ opacity: 0.5 }}>✓</span>}
+                    </div>
+                    {p.label && <div style={{ opacity: 0.5, fontSize: 11, marginTop: 2, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{p.label}</div>}
                   </div>
                 ))}
               </div>
             )}
-            {msg.generating && !msg.content ? (
-              <span className="loading loading-dots loading-sm" />
-            ) : (
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown>{msg.content || ''}</ReactMarkdown>
-              </div>
+            {/* History contentBlocks (tool calls stored in session) */}
+            {blocks.length > 0 && blocks.map((b, i) => {
+              if (b.type === 'toolCall') return <ToolCallBlock key={i} name={b.name} args={b.arguments} />
+              if (b.type === 'text') return (
+                <div key={i} className="prose prose-sm max-w-none">
+                  <ReactMarkdown>{b.text || ''}</ReactMarkdown>
+                </div>
+              )
+              return null
+            })}
+            {/* Plain text content (streaming or simple history) */}
+            {blocks.length === 0 && (
+              msg.generating && !msg.content
+                ? <span className="loading loading-dots loading-sm" />
+                : <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown>{msg.content || ''}</ReactMarkdown>
+                  </div>
+            )}
+            {blocks.length > 0 && msg.generating && (
+              <span className="loading loading-dots loading-xs" style={{ marginTop: 4, opacity: 0.4 }} />
             )}
           </>
         )}
@@ -168,7 +209,7 @@ export default function HermesPanel() {
     setMessages((prev) => [...prev, userMsg, assistantMsg])
 
     let buffer = ''
-    const toolProgress = []
+    const toolProgressMap = {}
 
     if (cancelRef.current) cancelRef.current()
     cancelRef.current = sendHermesMessage({
@@ -183,9 +224,10 @@ export default function HermesPanel() {
         )
       },
       onToolProgress: (p) => {
-        toolProgress.push(p)
+        const key = p.toolCallId || p.tool || String(Date.now())
+        toolProgressMap[key] = { ...(toolProgressMap[key] || {}), ...p }
         setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, toolProgress: [...toolProgress] } : m))
+          prev.map((m) => (m.id === assistantId ? { ...m, toolProgress: Object.values(toolProgressMap) } : m))
         )
       },
       onFinish: ({ sessionId: newSid }) => {
