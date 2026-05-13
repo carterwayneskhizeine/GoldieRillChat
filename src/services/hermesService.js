@@ -111,34 +111,44 @@ export function sendHermesMessage({
   }
 }
 
-/**
- * Hermes API server (/v1/chat/completions) has no session history endpoint.
- * History is managed client-side; session continuity uses X-Hermes-Session-Id header.
- */
-export async function getHermesHistory(_sessionId) {
-  return []
+export async function getHermesHistory(sessionId) {
+  if (!window.hermesAPI || !sessionId) return []
+  try {
+    const res = await window.hermesAPI.getHistory(getHermesConfig(), sessionId)
+    if (!res.ok) return []
+    return normalizeHermesHistory(res.messages || [])
+  } catch {
+    return []
+  }
 }
 
-export async function listHermesSessions(_limit = 20, _offset = 0) {
-  return { sessions: [], total: 0 }
+export async function listHermesSessions(limit = 20, offset = 0) {
+  if (!window.hermesAPI) return { sessions: [], total: 0 }
+  try {
+    const res = await window.hermesAPI.listSessions(getHermesConfig(), limit, offset)
+    if (!res.ok) return { sessions: [], total: 0 }
+    return { sessions: res.sessions || [], total: res.total || 0 }
+  } catch {
+    return { sessions: [], total: 0 }
+  }
 }
 
 // --- Normalize Hermes messages to internal format ---
 
 function normalizeHermesHistory(rawMessages) {
-  return rawMessages.map((msg) => {
-    const contentBlocks = parseHermesContent(msg)
-    const textContent = contentBlocks.filter((b) => b.type === 'text').map((b) => b.text).join('\n')
-
-    return {
-      id: msg.id || String(Date.now() + Math.random()),
-      type: msg.role === 'user' ? 'user' : msg.role === 'tool' ? 'tool' : 'assistant',
-      content: textContent,
-      contentBlocks: contentBlocks.length > 0 ? contentBlocks : undefined,
-      timestamp: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
-      sessionId: msg.sessionId,
-    }
-  })
+  return rawMessages
+    .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
+    .map((msg) => {
+      const contentBlocks = parseHermesContent(msg)
+      const textContent = contentBlocks.filter((b) => b.type === 'text').map((b) => b.text).join('\n')
+      return {
+        id: msg.id || String(Date.now() + Math.random()),
+        role: msg.role,
+        content: textContent,
+        contentBlocks: contentBlocks.length > 0 ? contentBlocks : undefined,
+        timestamp: msg.timestamp || (msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now()),
+      }
+    })
 }
 
 function parseHermesContent(msg) {

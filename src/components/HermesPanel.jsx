@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { sendHermesMessage, checkHermesHealth } from '../services/hermesService'
+import { sendHermesMessage, checkHermesHealth, listHermesSessions, getHermesHistory } from '../services/hermesService'
 
 function StatusDot({ healthy }) {
   return (
@@ -48,11 +48,72 @@ function MessageBubble({ msg }) {
   )
 }
 
+function SessionSelector({ sessionId, onSelect, healthy }) {
+  const [sessions, setSessions] = useState([])
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const load = useCallback(async () => {
+    if (!healthy) return
+    setLoading(true)
+    try {
+      const res = await listHermesSessions(30, 0)
+      setSessions(res.sessions || [])
+    } catch {} finally { setLoading(false) }
+  }, [healthy])
+
+  useEffect(() => { if (open) load() }, [open, load])
+
+  const formatTime = (ts) => {
+    if (!ts) return ''
+    const d = new Date(typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts)
+    return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        className="btn btn-xs btn-ghost opacity-60 hover:opacity-100 font-mono"
+        onClick={() => setOpen((v) => !v)}
+        disabled={!healthy}
+      >
+        {sessionId ? sessionId.slice(0, 10) + '…' : '历史会话'} ▾
+      </button>
+      {open && (
+        <div
+          style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, width: 260, zIndex: 50, maxHeight: 300, overflowY: 'auto' }}
+          className="bg-base-100 border border-base-300 rounded-lg shadow-lg"
+        >
+          <button
+            className="w-full text-left px-3 py-2 text-xs hover:bg-base-200 flex items-center gap-2 font-medium"
+            onClick={() => { onSelect(null); setOpen(false) }}
+          >
+            ＋ 新对话
+          </button>
+          {loading && <div className="px-3 py-2 text-xs opacity-40">加载中…</div>}
+          {sessions.length > 0 && <div className="divider my-0" />}
+          {sessions.map((s) => (
+            <button
+              key={s.id}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-base-200 ${s.id === sessionId ? 'bg-base-200 font-semibold' : ''}`}
+              onClick={() => { onSelect(s.id); setOpen(false) }}
+            >
+              <div className="truncate">{s.title || s.preview || s.id}</div>
+              <div className="opacity-40 mt-0.5">{formatTime(s.last_active)} · {s.message_count ?? '?'} 条</div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function HermesPanel() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [sessionId, setSessionId] = useState(null)
   const [healthy, setHealthy] = useState(false)
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const cancelRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -71,6 +132,18 @@ export default function HermesPanel() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  const handleSelectSession = useCallback(async (id) => {
+    if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
+    setSessionId(id)
+    setMessages([])
+    if (!id) return
+    setLoadingHistory(true)
+    try {
+      const history = await getHermesHistory(id)
+      setMessages(history)
+    } catch {} finally { setLoadingHistory(false) }
+  }, [])
 
   const handleNewChat = useCallback(() => {
     if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
@@ -144,15 +217,11 @@ export default function HermesPanel() {
 
   return (
     <div className="flex flex-col h-full w-full">
-      {/* Header bar — matches BackendSwitcher style */}
+      {/* Header bar */}
       <div className="flex-none flex items-center gap-3 px-4 py-2 border-b border-base-300/50">
         <StatusDot healthy={healthy} />
         <span className="text-sm font-semibold opacity-80">Hermes Agent</span>
-        {sessionId && (
-          <span className="text-xs opacity-30 font-mono truncate max-w-[120px]" title={sessionId}>
-            {sessionId.slice(0, 12)}…
-          </span>
-        )}
+        <SessionSelector sessionId={sessionId} onSelect={handleSelectSession} healthy={healthy} />
         <div className="flex-1" />
         <button className="btn btn-xs btn-ghost opacity-60 hover:opacity-100" onClick={handleNewChat}>
           ＋ 新对话
@@ -161,7 +230,12 @@ export default function HermesPanel() {
 
       {/* Message list */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {messages.length === 0 && (
+        {loadingHistory && (
+          <div className="flex items-center justify-center h-full opacity-40">
+            <span className="loading loading-spinner loading-md" />
+          </div>
+        )}
+        {!loadingHistory && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full opacity-20 select-none pointer-events-none">
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="3" />
@@ -172,7 +246,7 @@ export default function HermesPanel() {
             </div>
           </div>
         )}
-        {messages.map((msg) => (
+        {!loadingHistory && messages.map((msg) => (
           <MessageBubble key={msg.id} msg={msg} />
         ))}
         <div ref={bottomRef} />

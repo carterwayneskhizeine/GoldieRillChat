@@ -5,6 +5,32 @@ const https = require('https')
 let getMainWindow = null
 let reqCounter = 0
 
+// Dashboard session token cache
+let cachedToken = null
+let cachedTokenExpiry = 0
+let cachedDashboardUrl = null
+const TOKEN_TTL = 5 * 60 * 1000
+
+async function getDashboardToken(cfg) {
+  const dashUrl = cfg.dashboardUrl || 'http://127.0.0.1:9119'
+  if (dashUrl !== cachedDashboardUrl || Date.now() >= cachedTokenExpiry) {
+    cachedToken = null
+  }
+  if (cachedToken) return cachedToken
+  try {
+    const opts = getDashboardOptions(cfg, '/')
+    const res = await makeRequest(opts)
+    const match = res.body.match(/window\.__HERMES_SESSION_TOKEN__\s*=\s*["']([^"']+)["']/)
+    if (match) {
+      cachedToken = match[1]
+      cachedTokenExpiry = Date.now() + TOKEN_TTL
+      cachedDashboardUrl = dashUrl
+      return cachedToken
+    }
+  } catch {}
+  return null
+}
+
 function parseUrl(urlStr) {
   try { return new URL(urlStr) } catch { return new URL('http://localhost:8651') }
 }
@@ -42,8 +68,8 @@ function getRequestOptions(cfg, path, method = 'GET', extraHeaders = {}) {
   }
 }
 
-function getDashboardOptions(cfg, path, method = 'GET') {
-  const base = cfg.dashboardUrl || cfg.apiUrl || 'http://127.0.0.1:9119'
+function getDashboardOptions(cfg, path, method = 'GET', extraHeaders = {}) {
+  const base = cfg.dashboardUrl || 'http://127.0.0.1:9119'
   const parsed = parseUrl(base)
   return {
     protocol: parsed.protocol,
@@ -51,7 +77,7 @@ function getDashboardOptions(cfg, path, method = 'GET') {
     port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
     path,
     method,
-    headers: buildHeaders(cfg),
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
   }
 }
 
@@ -127,26 +153,34 @@ module.exports = function registerHermesHandlers(getWindow) {
     return { requestId }
   })
 
-  // Get session history
+  // Get session history — lives on dashboard server (port 9119), needs session token
   ipcMain.handle('hermes:get-history', async (_, { cfg = {}, sessionId }) => {
     if (!sessionId) return { ok: true, messages: [] }
     try {
-      const opts = getDashboardOptions(cfg, `/api/sessions/${sessionId}/messages`)
+      const token = await getDashboardToken(cfg)
+      const authHeaders = token ? { 'X-Hermes-Session-Token': token } : {}
+      const opts = getDashboardOptions(cfg, `/api/sessions/${sessionId}/messages`, 'GET', authHeaders)
       const res = await makeRequest(opts)
+      if (res.status === 401) return { ok: false, error: 'Unauthorized — check Dashboard URL is port 9119', messages: [] }
       const data = JSON.parse(res.body)
-      return { ok: res.status < 400, messages: data.messages || [] }
+      const messages = Array.isArray(data) ? data : (data.messages || [])
+      return { ok: res.status < 400, messages }
     } catch (e) {
       return { ok: false, error: e.message, messages: [] }
     }
   })
 
-  // List sessions
+  // List sessions — lives on dashboard server (port 9119), needs session token
   ipcMain.handle('hermes:list-sessions', async (_, { cfg = {}, limit = 20, offset = 0 } = {}) => {
     try {
-      const opts = getDashboardOptions(cfg, `/api/sessions?limit=${limit}&offset=${offset}`)
+      const token = await getDashboardToken(cfg)
+      const authHeaders = token ? { 'X-Hermes-Session-Token': token } : {}
+      const opts = getDashboardOptions(cfg, `/api/sessions?limit=${limit}&offset=${offset}`, 'GET', authHeaders)
       const res = await makeRequest(opts)
+      if (res.status === 401) return { ok: false, error: 'Unauthorized', sessions: [], total: 0 }
       const data = JSON.parse(res.body)
-      return { ok: res.status < 400, sessions: data.sessions || [], total: data.total || 0 }
+      const sessions = Array.isArray(data) ? data : (data.sessions || [])
+      return { ok: res.status < 400, sessions, total: data.total || sessions.length }
     } catch (e) {
       return { ok: false, error: e.message, sessions: [], total: 0 }
     }
