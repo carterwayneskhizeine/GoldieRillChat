@@ -6,6 +6,12 @@ import { BrowserTabs } from './BrowserTabs';
 import ConversationTimeGrouping, { TruncatedName } from './ConversationTimeGrouping';
 import '../styles/sidebar-buttons.css';
 
+function formatHermesTime(ts) {
+  if (!ts) return ''
+  const d = new Date(typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts)
+  return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
 const SettingsIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -49,6 +55,26 @@ export default function Sidebar({
   const [deletingFolder, setDeletingFolder] = useState(null);
   const [lastClickTime, setLastClickTime] = useState(0);
   const [lastClickId, setLastClickId] = useState(null);
+
+  // Hermes session list synced from HermesPanel via events
+  const [hermesSessions, setHermesSessions] = useState([]);
+  const [hermesActiveSession, setHermesActiveSession] = useState(null);
+
+  useEffect(() => {
+    const onSessionsUpdated = (e) => {
+      if (e.detail?.sessions) setHermesSessions(e.detail.sessions);
+      if (e.detail?.activeSessionId !== undefined) setHermesActiveSession(e.detail.activeSessionId);
+    };
+    const onSessionChanged = (e) => {
+      if (e.detail?.sessionId !== undefined) setHermesActiveSession(e.detail.sessionId);
+    };
+    window.addEventListener('hermes-sessions-updated', onSessionsUpdated);
+    window.addEventListener('hermes-session-changed', onSessionChanged);
+    return () => {
+      window.removeEventListener('hermes-sessions-updated', onSessionsUpdated);
+      window.removeEventListener('hermes-session-changed', onSessionChanged);
+    };
+  }, []);
 
   useEffect(() => {
     if (window.isImageBackgroundMode !== undefined) setIsImageBackground(window.isImageBackgroundMode);
@@ -182,6 +208,14 @@ export default function Sidebar({
               </button>
             </div>
           )}
+          {activeTool === 'hermes' && sidebarMode === 'default' && (
+            <div className="flex justify-end mb-2">
+              <button className="btn btn-circle btn-ghost btn-sm"
+                onClick={() => window.hermesPanel?.newChat?.()}>
+                <PlusIcon />
+              </button>
+            </div>
+          )}
 
           {/* === Tool panels === */}
 
@@ -272,6 +306,39 @@ export default function Sidebar({
                               <span className="truncate">{preset.id}</span>
                             </div>
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {/* Hermes */}
+          {activeTool === 'hermes' && sidebarMode !== 'settings' && (
+            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                {sidebarMode === 'default' ? (
+                  <div className="empty-sidebar h-full flex flex-col">
+                    <div className="p-2 flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50">
+                      <div className="flex flex-col gap-1">
+                        {hermesSessions.length === 0 && (
+                          <div className="text-xs opacity-20 text-center py-4">暂无会话</div>
+                        )}
+                        {hermesSessions.map((s) => (
+                          <button
+                            key={s.id}
+                            className={`btn btn-ghost justify-start text-left btn-sm ${s.id === hermesActiveSession ? 'btn-active' : ''}`}
+                            onClick={() => window.hermesPanel?.selectSession?.(s.id)}
+                          >
+                            <div className="flex flex-col items-start min-w-0 flex-1">
+                              <span className="truncate w-full text-xs">{s.title || s.preview || s.id.slice(0, 16)}</span>
+                              <span className="text-[10px] opacity-40">
+                                {formatHermesTime(s.last_active)} · {s.message_count ?? '?'} 条
+                              </span>
+                            </div>
+                          </button>
                         ))}
                       </div>
                     </div>

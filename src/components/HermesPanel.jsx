@@ -137,66 +137,6 @@ function MessageBubble({ msg }) {
   )
 }
 
-function SessionSelector({ sessionId, onSelect, healthy, profileCfg }) {
-  const [sessions, setSessions] = useState([])
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  const load = useCallback(async () => {
-    if (!healthy) return
-    setLoading(true)
-    try {
-      const res = await listHermesSessions(profileCfg, 30, 0)
-      setSessions(res.sessions || [])
-    } catch {} finally { setLoading(false) }
-  }, [healthy, profileCfg])
-
-  useEffect(() => { if (open) load() }, [open, load])
-
-  const formatTime = (ts) => {
-    if (!ts) return ''
-    const d = new Date(typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts)
-    return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-  }
-
-  return (
-    <div style={{ position: 'relative' }}>
-      <button
-        className="btn btn-xs btn-ghost opacity-60 hover:opacity-100 font-mono"
-        onClick={() => setOpen((v) => !v)}
-        disabled={!healthy}
-      >
-        {sessionId ? sessionId.slice(0, 10) + '…' : '历史会话'} ▾
-      </button>
-      {open && (
-        <div
-          style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, width: 260, zIndex: 50, maxHeight: 300, overflowY: 'auto' }}
-          className="bg-base-100 border border-base-300 rounded-lg shadow-lg"
-        >
-          <button
-            className="w-full text-left px-3 py-2 text-xs hover:bg-base-200 flex items-center gap-2 font-medium"
-            onClick={() => { onSelect(null); setOpen(false) }}
-          >
-            ＋ 新对话
-          </button>
-          {loading && <div className="px-3 py-2 text-xs opacity-40">加载中…</div>}
-          {sessions.length > 0 && <div className="divider my-0" />}
-          {sessions.map((s) => (
-            <button
-              key={s.id}
-              className={`w-full text-left px-3 py-2 text-xs hover:bg-base-200 ${s.id === sessionId ? 'bg-base-200 font-semibold' : ''}`}
-              onClick={() => { onSelect(s.id); setOpen(false) }}
-            >
-              <div className="truncate">{s.title || s.preview || s.id}</div>
-              <div className="opacity-40 mt-0.5">{formatTime(s.last_active)} · {s.message_count ?? '?'} 条</div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function HermesPanel() {
   const [profiles, setProfiles] = useState(() => {
     const data = getHermesProfiles()
@@ -218,11 +158,40 @@ export default function HermesPanel() {
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
 
+  // Session list state
+  const [sessions, setSessions] = useState([])
+  const [sessionsLoading, setSessionsLoading] = useState(false)
+
   // Saved states for inactive tabs
   const savedStates = useRef({})
 
   const healthy = profileHealth[activeIdx] ?? false
   const activeProfile = profiles[activeIdx]
+
+  // --- Load session list ---
+  const loadSessions = useCallback(async () => {
+    if (!activeProfile) return
+    setSessionsLoading(true)
+    try {
+      const res = await listHermesSessions(activeProfile, 50, 0)
+      const list = res.sessions || []
+      setSessions(list)
+      window.dispatchEvent(new CustomEvent('hermes-sessions-updated', { detail: { sessions: list, activeSessionId: sessionId } }))
+    } catch {} finally { setSessionsLoading(false) }
+  }, [activeProfile, sessionId])
+
+  // --- Expose API to Sidebar via window.hermesPanel ---
+  useEffect(() => {
+    window.hermesPanel = {
+      selectSession: (id) => handleSelectSession(id),
+      newChat: () => handleNewChat(),
+      getSessions: () => sessions,
+      getSessionId: () => sessionId,
+      getActiveProfile: () => activeProfile,
+      getHealthy: () => healthy,
+    }
+    return () => { delete window.hermesPanel }
+  })
 
   // --- Auto-discover on mount ---
   useEffect(() => {
@@ -266,6 +235,11 @@ export default function HermesPanel() {
     return () => { cancelled = true; clearInterval(t) }
   }, [profiles])
 
+  // Auto-load sessions when healthy
+  useEffect(() => {
+    if (healthy) loadSessions()
+  }, [healthy, activeProfile])
+
   // --- Auto-scroll ---
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -298,23 +272,25 @@ export default function HermesPanel() {
     // Cancel ongoing stream
     if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
     // Save current state
-    savedStates.current[activeIdx] = { sessionId, messages }
+    savedStates.current[activeIdx] = { sessionId, messages, sessions }
     // Load new tab state
-    const saved = savedStates.current[newIdx] || { sessionId: null, messages: [] }
+    const saved = savedStates.current[newIdx] || { sessionId: null, messages: [], sessions: [] }
     setSessionId(saved.sessionId)
     setMessages(saved.messages)
+    setSessions(saved.sessions || [])
     setActiveIdx(newIdx)
     // Persist
     const data = getHermesProfiles()
     data.activeProfileIndex = newIdx
     saveHermesProfiles(data)
-  }, [activeIdx, sessionId, messages])
+  }, [activeIdx, sessionId, messages, sessions])
 
   // --- Session management ---
   const handleSelectSession = useCallback(async (id) => {
     if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
     setSessionId(id)
     setMessages([])
+    window.dispatchEvent(new CustomEvent('hermes-session-changed', { detail: { sessionId: id } }))
     if (!id) return
     setLoadingHistory(true)
     try {
@@ -327,6 +303,7 @@ export default function HermesPanel() {
     if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
     setSessionId(null)
     setMessages([])
+    window.dispatchEvent(new CustomEvent('hermes-session-changed', { detail: { sessionId: null } }))
   }, [])
 
   // --- Send message ---
@@ -386,6 +363,7 @@ export default function HermesPanel() {
           prev.map((m) => (m.id === assistantId ? { ...m, generating: false } : m))
         )
         cancelRef.current = null
+        loadSessions()
       },
       onError: (err) => {
         setMessages((prev) =>
@@ -398,7 +376,7 @@ export default function HermesPanel() {
         cancelRef.current = null
       },
     })
-  }, [input, messages, sessionId, healthy, activeProfile])
+  }, [input, messages, sessionId, healthy, activeProfile, loadSessions])
 
   const handleKeyDown = (e) => {
     if (filteredCommands.length > 0) {
@@ -472,11 +450,7 @@ export default function HermesPanel() {
         <span className="text-sm font-semibold opacity-80">
           {profiles.length <= 1 ? 'Hermes Agent' : (activeProfile?.name || activeProfile?.id || 'Profile')}
         </span>
-        <SessionSelector sessionId={sessionId} onSelect={handleSelectSession} healthy={healthy} profileCfg={activeProfile} />
         <div className="flex-1" />
-        <button className="btn btn-xs btn-ghost opacity-60 hover:opacity-100" onClick={handleNewChat}>
-          ＋ 新对话
-        </button>
       </div>
 
       {/* Message list */}
