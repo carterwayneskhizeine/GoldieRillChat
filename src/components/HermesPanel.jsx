@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { sendHermesMessage, checkHermesHealth, listHermesSessions, getHermesHistory } from '../services/hermesService'
+import {
+  sendHermesMessage, checkHermesHealth, listHermesSessions, getHermesHistory,
+  getHermesProfiles, saveHermesProfiles, discoverProfiles,
+} from '../services/hermesService'
 
 const SLASH_COMMANDS = [
   { name: 'new', description: '开始新会话（清空当前对话）', hint: '' },
@@ -92,7 +95,6 @@ function MessageBubble({ msg }) {
           <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
         ) : (
           <>
-            {/* Live tool progress (streaming) */}
             {msg.toolProgress && msg.toolProgress.length > 0 && (
               <div style={{ marginBottom: 8 }}>
                 {msg.toolProgress.map((p, i) => (
@@ -109,7 +111,6 @@ function MessageBubble({ msg }) {
                 ))}
               </div>
             )}
-            {/* History contentBlocks (tool calls stored in session) */}
             {blocks.length > 0 && blocks.map((b, i) => {
               if (b.type === 'toolCall') return <ToolCallBlock key={i} name={b.name} args={b.arguments} />
               if (b.type === 'text') return (
@@ -119,7 +120,6 @@ function MessageBubble({ msg }) {
               )
               return null
             })}
-            {/* Plain text content (streaming or simple history) */}
             {blocks.length === 0 && (
               msg.generating && !msg.content
                 ? <span className="loading loading-dots loading-sm" />
@@ -137,7 +137,7 @@ function MessageBubble({ msg }) {
   )
 }
 
-function SessionSelector({ sessionId, onSelect, healthy }) {
+function SessionSelector({ sessionId, onSelect, healthy, profileCfg }) {
   const [sessions, setSessions] = useState([])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -146,10 +146,10 @@ function SessionSelector({ sessionId, onSelect, healthy }) {
     if (!healthy) return
     setLoading(true)
     try {
-      const res = await listHermesSessions(30, 0)
+      const res = await listHermesSessions(profileCfg, 30, 0)
       setSessions(res.sessions || [])
     } catch {} finally { setLoading(false) }
-  }, [healthy])
+  }, [healthy, profileCfg])
 
   useEffect(() => { if (open) load() }, [open, load])
 
@@ -198,16 +198,80 @@ function SessionSelector({ sessionId, onSelect, healthy }) {
 }
 
 export default function HermesPanel() {
+  const [profiles, setProfiles] = useState(() => {
+    const data = getHermesProfiles()
+    return data.profiles || []
+  })
+  const [activeIdx, setActiveIdx] = useState(() => {
+    const data = getHermesProfiles()
+    return Math.min(data.activeProfileIndex || 0, (data.profiles?.length || 1) - 1)
+  })
+  const [profileHealth, setProfileHealth] = useState({})
+
+  // Per-profile state (active only, saved/restored on tab switch)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [sessionId, setSessionId] = useState(null)
-  const [healthy, setHealthy] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [activeCommandIndex, setActiveCommandIndex] = useState(0)
   const cancelRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
 
+  // Saved states for inactive tabs
+  const savedStates = useRef({})
+
+  const healthy = profileHealth[activeIdx] ?? false
+  const activeProfile = profiles[activeIdx]
+
+  // --- Auto-discover on mount ---
+  useEffect(() => {
+    const run = async () => {
+      const discovered = await discoverProfiles()
+      if (discovered.length === 0) return
+
+      const data = getHermesProfiles()
+      const existing = data.profiles || []
+      let changed = false
+
+      for (const d of discovered) {
+        const exists = existing.find((p) => p.id === d.id || p.apiUrl === d.apiUrl)
+        if (!exists) {
+          existing.push({ ...d, dashboardUrl: '', apiToken: '', dashboardToken: '' })
+          changed = true
+        }
+      }
+
+      if (changed) {
+        const updated = { ...data, profiles: existing }
+        saveHermesProfiles(updated)
+        setProfiles(existing)
+      }
+    }
+    run()
+  }, [])
+
+  // --- Health check all profiles ---
+  useEffect(() => {
+    let cancelled = false
+    const check = async () => {
+      const results = {}
+      await Promise.all(profiles.map(async (p, i) => {
+        results[i] = await checkHermesHealth(p)
+      }))
+      if (!cancelled) setProfileHealth(results)
+    }
+    if (profiles.length > 0) check()
+    const t = setInterval(() => { if (profiles.length > 0) check() }, 15000)
+    return () => { cancelled = true; clearInterval(t) }
+  }, [profiles])
+
+  // --- Auto-scroll ---
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // --- Slash commands ---
   const slashFilter = useMemo(() => {
     if (!input.startsWith('/')) return null
     if (input.includes(' ')) return null
@@ -228,21 +292,25 @@ export default function HermesPanel() {
     textareaRef.current?.focus()
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
-    const check = async () => {
-      const ok = await checkHermesHealth()
-      if (!cancelled) setHealthy(ok)
-    }
-    check()
-    const t = setInterval(check, 15000)
-    return () => { cancelled = true; clearInterval(t) }
-  }, [])
+  // --- Tab switching ---
+  const switchTab = useCallback((newIdx) => {
+    if (newIdx === activeIdx) return
+    // Cancel ongoing stream
+    if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
+    // Save current state
+    savedStates.current[activeIdx] = { sessionId, messages }
+    // Load new tab state
+    const saved = savedStates.current[newIdx] || { sessionId: null, messages: [] }
+    setSessionId(saved.sessionId)
+    setMessages(saved.messages)
+    setActiveIdx(newIdx)
+    // Persist
+    const data = getHermesProfiles()
+    data.activeProfileIndex = newIdx
+    saveHermesProfiles(data)
+  }, [activeIdx, sessionId, messages])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
+  // --- Session management ---
   const handleSelectSession = useCallback(async (id) => {
     if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
     setSessionId(id)
@@ -250,10 +318,10 @@ export default function HermesPanel() {
     if (!id) return
     setLoadingHistory(true)
     try {
-      const history = await getHermesHistory(id)
+      const history = await getHermesHistory(activeProfile, id)
       setMessages(history)
     } catch {} finally { setLoadingHistory(false) }
-  }, [])
+  }, [activeProfile])
 
   const handleNewChat = useCallback(() => {
     if (cancelRef.current) { cancelRef.current(); cancelRef.current = null }
@@ -261,9 +329,10 @@ export default function HermesPanel() {
     setMessages([])
   }, [])
 
+  // --- Send message ---
   const handleSend = useCallback(() => {
     const content = input.trim()
-    if (!content || !healthy) return
+    if (!content || !healthy || !activeProfile) return
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = '100px'
 
@@ -293,6 +362,7 @@ export default function HermesPanel() {
 
     if (cancelRef.current) cancelRef.current()
     cancelRef.current = sendHermesMessage({
+      cfg: activeProfile,
       sessionId,
       conversationHistory: history,
       userMessage: content,
@@ -328,7 +398,7 @@ export default function HermesPanel() {
         cancelRef.current = null
       },
     })
-  }, [input, messages, sessionId, healthy])
+  }, [input, messages, sessionId, healthy, activeProfile])
 
   const handleKeyDown = (e) => {
     if (filteredCommands.length > 0) {
@@ -359,13 +429,50 @@ export default function HermesPanel() {
     }
   }
 
+  // No profiles configured
+  if (profiles.length === 0) {
+    return (
+      <div className="flex flex-col h-full w-full">
+        <div className="flex-1 flex flex-col items-center justify-center opacity-30 select-none pointer-events-none">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+          </svg>
+          <div className="mt-3 text-sm">请在设置中配置 Hermes</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-full w-full">
+      {/* Tab bar */}
+      {profiles.length > 1 && (
+        <div className="flex-none flex items-center border-b border-base-300/50 px-2 gap-0.5">
+          {profiles.map((p, i) => (
+            <button
+              key={p.id || i}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 border-b-2 ${
+                i === activeIdx
+                  ? 'border-primary text-primary opacity-90'
+                  : 'border-transparent opacity-50 hover:opacity-80'
+              }`}
+              onClick={() => switchTab(i)}
+            >
+              <StatusDot healthy={profileHealth[i] ?? false} />
+              {p.name || p.id || 'Profile'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Header bar */}
       <div className="flex-none flex items-center gap-3 px-4 py-2 border-b border-base-300/50">
-        <StatusDot healthy={healthy} />
-        <span className="text-sm font-semibold opacity-80">Hermes Agent</span>
-        <SessionSelector sessionId={sessionId} onSelect={handleSelectSession} healthy={healthy} />
+        {profiles.length <= 1 && <StatusDot healthy={healthy} />}
+        <span className="text-sm font-semibold opacity-80">
+          {profiles.length <= 1 ? 'Hermes Agent' : (activeProfile?.name || activeProfile?.id || 'Profile')}
+        </span>
+        <SessionSelector sessionId={sessionId} onSelect={handleSelectSession} healthy={healthy} profileCfg={activeProfile} />
         <div className="flex-1" />
         <button className="btn btn-xs btn-ghost opacity-60 hover:opacity-100" onClick={handleNewChat}>
           ＋ 新对话
@@ -386,7 +493,7 @@ export default function HermesPanel() {
               <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
             </svg>
             <div className="mt-3 text-sm">
-              {healthy ? 'Hermes Agent 已就绪' : '请在设置中配置 Hermes'}
+              {healthy ? 'Hermes Agent 已就绪' : '未连接'}
             </div>
           </div>
         )}
@@ -398,7 +505,7 @@ export default function HermesPanel() {
         </div>
       </div>
 
-      {/* Input area — matches AIChat InputArea exactly */}
+      {/* Input area */}
       <div className="flex-none border-t border-base-300 p-4 bg-transparent">
         <div className="relative max-w-[770px] mx-auto">
           <SlashCommandMenu

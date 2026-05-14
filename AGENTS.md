@@ -76,12 +76,23 @@ Tools communicate via custom DOM events (`switchTool`, `tool-changed`, `editImag
 
 ### Hermes Agent Integration
 
-Hermes Agent is an external AI agent (separate Python process, `D:\Code\hermes-agent`). GoldieRillChat connects to its two-server architecture:
+Hermes Agent is an external AI agent (separate Python process, `D:\Code\hermes-agent`). GoldieRillChat supports **multiple Hermes profiles** running simultaneously, each on its own ports.
 
-- **API server** (port 8651): OpenAI-compatible `/v1/chat/completions` with SSE streaming. Auth: static `API_SERVER_KEY` via `Authorization: Bearer`.
-- **Dashboard server** (port 9119): Session management at `/api/sessions` and `/api/sessions/{id}/messages`. Auth: ephemeral token scraped from dashboard HTML (`window.__HERMES_SESSION_TOKEN__`), sent via `X-Hermes-Session-Token` header. Token cached 5 min in main process.
+**Multi-profile architecture**:
+- Hermes profiles stored at `%LOCALAPPDATA%\hermes\config.yaml` (default) and `%LOCALAPPDATA%\hermes\profiles\<name>\config.yaml` (named profiles).
+- Each profile runs independently with its own API server and Dashboard server on separate ports. Ports configured in `config.yaml` under `platforms.api_server.extra.port`.
+- Config in localStorage key `hermes_profiles`: `{ profiles: [{ id, name, apiUrl, dashboardUrl, apiToken }], activeProfileIndex }`. Old single-config `hermes_config` is auto-migrated on first load.
+- `hermesService.js` provides multi-profile CRUD (`getHermesProfiles`, `saveHermesProfiles`) and backward-compatible `getHermesConfig()` that returns the active profile's config.
+- `HermesPanel.jsx` renders a **tab bar** for switching between profiles. Each tab has independent session/messages state (saved/restored on tab switch via `savedStates` ref). Health checks run in parallel for all profiles.
+- Settings UI (`SettingsModal.jsx`) shows per-profile cards with auto-discovery ("自动发现" button scans Hermes config directory).
 
-Data flow: Renderer → Preload bridge (`window.hermesAPI`) → IPC → `electron/ipc/hermes.js` (main process HTTP proxy, bypasses CORS) → Hermes servers.
+**Auto-discovery**: `hermes:discover-profiles` IPC handler in `electron/ipc/hermes.js` reads `config.yaml` files from the Hermes home directory, extracts API ports via regex, and returns discovered profiles. Renderer merges discovered profiles into the stored list.
+
+**Per-profile servers**:
+- **API server**: OpenAI-compatible `/v1/chat/completions` with SSE streaming. Auth: static `API_SERVER_KEY` via `Authorization: Bearer`.
+- **Dashboard server**: Session management at `/api/sessions` and `/api/sessions/{id}/messages`. Auth: ephemeral token scraped from dashboard HTML (`window.__HERMES_SESSION_TOKEN__`), sent via `X-Hermes-Session-Token` header. Token cached per-dashboard-URL in a `Map` with 5 min TTL.
+
+Data flow: Renderer → Preload bridge (`window.hermesAPI`) → IPC → `electron/ipc/hermes.js` (main process HTTP proxy, bypasses CORS) → Hermes servers. Config is always passed from renderer to main process per-request (not stored in main process).
 
 SSE events include custom `event: hermes.tool.progress` lines (two-line SSE format: `event:` + `data:`). The service layer tracks event types via `pendingEvent` to route tool progress vs text content.
 

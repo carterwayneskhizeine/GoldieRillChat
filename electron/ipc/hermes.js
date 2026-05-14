@@ -1,31 +1,28 @@
 const { ipcMain } = require('electron')
 const http = require('http')
 const https = require('https')
+const fs = require('fs')
+const path = require('path')
 
 let getMainWindow = null
 let reqCounter = 0
 
-// Dashboard session token cache
-let cachedToken = null
-let cachedTokenExpiry = 0
-let cachedDashboardUrl = null
+// Dashboard session token cache (per-dashboard-URL)
+const tokenCache = new Map()
 const TOKEN_TTL = 5 * 60 * 1000
 
 async function getDashboardToken(cfg) {
   const dashUrl = cfg.dashboardUrl || 'http://127.0.0.1:9119'
-  if (dashUrl !== cachedDashboardUrl || Date.now() >= cachedTokenExpiry) {
-    cachedToken = null
-  }
-  if (cachedToken) return cachedToken
+  const cached = tokenCache.get(dashUrl)
+  if (cached && Date.now() < cached.expiry) return cached.token
+  tokenCache.delete(dashUrl)
   try {
     const opts = getDashboardOptions(cfg, '/')
     const res = await makeRequest(opts)
     const match = res.body.match(/window\.__HERMES_SESSION_TOKEN__\s*=\s*["']([^"']+)["']/)
     if (match) {
-      cachedToken = match[1]
-      cachedTokenExpiry = Date.now() + TOKEN_TTL
-      cachedDashboardUrl = dashUrl
-      return cachedToken
+      tokenCache.set(dashUrl, { token: match[1], expiry: Date.now() + TOKEN_TTL })
+      return match[1]
     }
   } catch {}
   return null
@@ -81,8 +78,66 @@ function getDashboardOptions(cfg, path, method = 'GET', extraHeaders = {}) {
   }
 }
 
+function extractPortFromYaml(content) {
+  // Match "port: <number>" — find the last occurrence (under platforms.api_server.extra.port)
+  const matches = content.matchAll(/port:\s*(\d+)/g)
+  let lastMatch = null
+  for (const m of matches) {
+    lastMatch = m
+  }
+  return lastMatch ? parseInt(lastMatch[1], 10) : null
+}
+
 module.exports = function registerHermesHandlers(getWindow) {
   getMainWindow = getWindow
+
+  // --- Auto-discover Hermes profiles ---
+  ipcMain.handle('hermes:discover-profiles', async () => {
+    const results = []
+    try {
+      const hermesDir = path.join(process.env.LOCALAPPDATA || '', 'hermes')
+      if (!hermesDir) return results
+
+      // Default profile
+      const defaultCfgPath = path.join(hermesDir, 'config.yaml')
+      if (fs.existsSync(defaultCfgPath)) {
+        try {
+          const content = fs.readFileSync(defaultCfgPath, 'utf-8')
+          const port = extractPortFromYaml(content)
+          if (port) {
+            results.push({
+              id: 'default',
+              name: 'Default',
+              apiUrl: `http://127.0.0.1:${port}`,
+            })
+          }
+        } catch {}
+      }
+
+      // Named profiles
+      const profilesDir = path.join(hermesDir, 'profiles')
+      if (fs.existsSync(profilesDir)) {
+        const entries = fs.readdirSync(profilesDir, { withFileTypes: true })
+        for (const entry of entries) {
+          if (!entry.isDirectory()) continue
+          const cfgPath = path.join(profilesDir, entry.name, 'config.yaml')
+          if (!fs.existsSync(cfgPath)) continue
+          try {
+            const content = fs.readFileSync(cfgPath, 'utf-8')
+            const port = extractPortFromYaml(content)
+            if (port) {
+              results.push({
+                id: entry.name,
+                name: entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
+                apiUrl: `http://127.0.0.1:${port}`,
+              })
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+    return results
+  })
 
   // Health check — config passed directly from renderer
   ipcMain.handle('hermes:health', async (_, cfg = {}) => {
@@ -153,7 +208,7 @@ module.exports = function registerHermesHandlers(getWindow) {
     return { requestId }
   })
 
-  // Get session history — lives on dashboard server (port 9119), needs session token
+  // Get session history — lives on dashboard server, needs session token
   ipcMain.handle('hermes:get-history', async (_, { cfg = {}, sessionId }) => {
     if (!sessionId) return { ok: true, messages: [] }
     try {
@@ -161,7 +216,7 @@ module.exports = function registerHermesHandlers(getWindow) {
       const authHeaders = token ? { 'X-Hermes-Session-Token': token } : {}
       const opts = getDashboardOptions(cfg, `/api/sessions/${sessionId}/messages`, 'GET', authHeaders)
       const res = await makeRequest(opts)
-      if (res.status === 401) return { ok: false, error: 'Unauthorized — check Dashboard URL is port 9119', messages: [] }
+      if (res.status === 401) return { ok: false, error: 'Unauthorized — check Dashboard URL', messages: [] }
       const data = JSON.parse(res.body)
       const messages = Array.isArray(data) ? data : (data.messages || [])
       return { ok: res.status < 400, messages }
@@ -170,7 +225,7 @@ module.exports = function registerHermesHandlers(getWindow) {
     }
   })
 
-  // List sessions — lives on dashboard server (port 9119), needs session token
+  // List sessions — lives on dashboard server, needs session token
   ipcMain.handle('hermes:list-sessions', async (_, { cfg = {}, limit = 20, offset = 0 } = {}) => {
     try {
       const token = await getDashboardToken(cfg)

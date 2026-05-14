@@ -7,23 +7,94 @@ import { getImageGenApiConfig, setImageGenApiConfig } from '../../../services/im
 import { openUrl } from '../../../utils/browserUtils';
 import { tavilyService } from '../../../services/tavilyService';
 import { getOpenClawConfig, saveOpenClawConfig, connectOpenClaw } from '../../../services/openclawService';
-import { getHermesConfig, saveHermesConfig } from '../../../services/hermesService';
+import {
+  getHermesProfiles, saveHermesProfiles, discoverProfiles, checkHermesHealth,
+} from '../../../services/hermesService';
 import { handleSelectFolder } from '../../folderHandlers';
 import { handleUpdateFolders } from '../../folderUpdateHandlers';
 import { toggleTheme, themes } from '../../themeHandlers';
 
+function HermesProfileCard({ profile, index, onTest, onRemove, onChange, testResult, testing }) {
+  return (
+    <div className="border border-base-300 rounded-lg p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <input
+          className="input input-sm input-bordered font-semibold text-sm w-32"
+          value={profile.name || ''}
+          onChange={(e) => onChange(index, { ...profile, name: e.target.value })}
+          placeholder="Profile 名称"
+        />
+        {index > 0 && (
+          <button className="btn btn-xs btn-ghost text-error" onClick={() => onRemove(index)}>
+            删除
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="form-control">
+          <span className="label-text text-xs mb-0.5">API URL</span>
+          <input
+            className="input input-xs input-bordered"
+            placeholder="http://127.0.0.1:8651"
+            value={profile.apiUrl || ''}
+            onChange={(e) => onChange(index, { ...profile, apiUrl: e.target.value })}
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text text-xs mb-0.5">Dashboard URL</span>
+          <input
+            className="input input-xs input-bordered"
+            placeholder="http://127.0.0.1:9119"
+            value={profile.dashboardUrl || ''}
+            onChange={(e) => onChange(index, { ...profile, dashboardUrl: e.target.value })}
+          />
+        </label>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="form-control">
+          <span className="label-text text-xs mb-0.5">API Token</span>
+          <input
+            className="input input-xs input-bordered"
+            type="password"
+            placeholder="Bearer token"
+            value={profile.apiToken || ''}
+            onChange={(e) => onChange(index, { ...profile, apiToken: e.target.value })}
+          />
+        </label>
+        <div className="flex items-end gap-2">
+          <button
+            className="btn btn-xs btn-outline"
+            onClick={() => onTest(index)}
+            disabled={testing || !profile.apiUrl}
+          >
+            {testing ? '…' : '测试'}
+          </button>
+          {testResult !== undefined && (
+            <span className={`text-xs ${testResult ? 'text-success' : 'text-error'}`}>
+              {testResult ? 'OK' : 'FAIL'}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function BackendConfigPanel() {
   const [ocCfg, setOcCfg] = useState(() => getOpenClawConfig())
-  const [hmCfg, setHmCfg] = useState(() => getHermesConfig())
+  const [profilesData, setProfilesData] = useState(() => getHermesProfiles())
   const [saved, setSaved] = useState(false)
   const [connecting, setConnecting] = useState(false)
   const [connectResult, setConnectResult] = useState(null)
-  const [hermesConnecting, setHermesConnecting] = useState(false)
-  const [hermesResult, setHermesResult] = useState(null)
+  const [testResults, setTestResults] = useState({})
+  const [testingIdx, setTestingIdx] = useState(null)
+  const [discovering, setDiscovering] = useState(false)
+
+  const profiles = profilesData.profiles || []
 
   const handleSave = () => {
     saveOpenClawConfig(ocCfg)
-    saveHermesConfig(hmCfg)
+    saveHermesProfiles(profilesData)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -42,17 +113,62 @@ function BackendConfigPanel() {
     }
   }
 
-  const handleTestHermes = async () => {
-    saveHermesConfig(hmCfg)
-    setHermesConnecting(true)
-    setHermesResult(null)
+  const handleTestProfile = async (idx) => {
+    const cfg = profiles[idx]
+    if (!cfg) return
+    setTestingIdx(idx)
+    setTestResults((r) => ({ ...r, [idx]: undefined }))
     try {
-      const res = await window.hermesAPI.health(hmCfg)
-      setHermesResult(res.ok ? `连接成功 (${res.status})` : `连接失败: HTTP ${res.status}`)
-    } catch (e) {
-      setHermesResult(`错误: ${e.message}`)
+      const ok = await checkHermesHealth(cfg)
+      setTestResults((r) => ({ ...r, [idx]: ok }))
+    } catch {
+      setTestResults((r) => ({ ...r, [idx]: false }))
     } finally {
-      setHermesConnecting(false)
+      setTestingIdx(null)
+    }
+  }
+
+  const handleProfileChange = (idx, updated) => {
+    const newProfiles = [...profiles]
+    newProfiles[idx] = updated
+    setProfilesData({ ...profilesData, profiles: newProfiles })
+  }
+
+  const handleRemoveProfile = (idx) => {
+    const newProfiles = profiles.filter((_, i) => i !== idx)
+    const activeIdx = profilesData.activeProfileIndex || 0
+    setProfilesData({
+      ...profilesData,
+      profiles: newProfiles,
+      activeProfileIndex: Math.min(activeIdx, newProfiles.length - 1),
+    })
+  }
+
+  const handleAddProfile = () => {
+    setProfilesData({
+      ...profilesData,
+      profiles: [...profiles, { id: `profile_${Date.now()}`, name: '', apiUrl: '', dashboardUrl: '', apiToken: '' }],
+    })
+  }
+
+  const handleDiscover = async () => {
+    setDiscovering(true)
+    try {
+      const discovered = await discoverProfiles()
+      if (discovered.length === 0) return
+      const existing = [...profiles]
+      let changed = false
+      for (const d of discovered) {
+        if (!existing.find((p) => p.id === d.id || p.apiUrl === d.apiUrl)) {
+          existing.push({ ...d, dashboardUrl: '', apiToken: '' })
+          changed = true
+        }
+      }
+      if (changed) {
+        setProfilesData({ ...profilesData, profiles: existing })
+      }
+    } finally {
+      setDiscovering(false)
     }
   }
 
@@ -99,61 +215,37 @@ function BackendConfigPanel() {
 
       <div className="divider my-1" />
 
-      {/* Hermes */}
+      {/* Hermes multi-profile */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold">Hermes 配置</h3>
-        <label className="form-control">
-          <span className="label-text text-xs mb-1">API URL</span>
-          <input
-            className="input input-sm input-bordered"
-            placeholder="http://127.0.0.1:8651"
-            value={hmCfg.apiUrl || ''}
-            onChange={(e) => setHmCfg({ ...hmCfg, apiUrl: e.target.value })}
-          />
-        </label>
-        <label className="form-control">
-          <span className="label-text text-xs mb-1">Dashboard URL（历史记录）</span>
-          <input
-            className="input input-sm input-bordered"
-            placeholder="http://127.0.0.1:9119"
-            value={hmCfg.dashboardUrl || ''}
-            onChange={(e) => setHmCfg({ ...hmCfg, dashboardUrl: e.target.value })}
-          />
-        </label>
-        <label className="form-control">
-          <span className="label-text text-xs mb-1">API Token（Bearer）</span>
-          <input
-            className="input input-sm input-bordered"
-            type="password"
-            placeholder="API_SERVER_KEY 中的值"
-            value={hmCfg.apiToken || ''}
-            onChange={(e) => setHmCfg({ ...hmCfg, apiToken: e.target.value })}
-          />
-        </label>
-        <label className="form-control">
-          <span className="label-text text-xs mb-1">Dashboard Token（可选）</span>
-          <input
-            className="input input-sm input-bordered"
-            type="password"
-            placeholder="可选"
-            value={hmCfg.dashboardToken || ''}
-            onChange={(e) => setHmCfg({ ...hmCfg, dashboardToken: e.target.value })}
-          />
-        </label>
-        <div className="flex items-center gap-2">
-          <button
-            className="btn btn-xs btn-outline"
-            onClick={handleTestHermes}
-            disabled={hermesConnecting || !window.hermesAPI}
-          >
-            {hermesConnecting ? '测试中…' : '测试连接'}
-          </button>
-          {hermesResult && (
-            <span className={`text-xs ${hermesResult.startsWith('连接成功') ? 'text-success' : 'text-error'}`}>
-              {hermesResult}
-            </span>
-          )}
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Hermes 配置</h3>
+          <div className="flex items-center gap-2">
+            <button
+              className="btn btn-xs btn-outline"
+              onClick={handleDiscover}
+              disabled={discovering || !window.hermesAPI?.discoverProfiles}
+            >
+              {discovering ? '扫描中…' : '自动发现'}
+            </button>
+          </div>
         </div>
+        <div className="space-y-3">
+          {profiles.map((p, i) => (
+            <HermesProfileCard
+              key={p.id || i}
+              profile={p}
+              index={i}
+              onTest={handleTestProfile}
+              onRemove={handleRemoveProfile}
+              onChange={handleProfileChange}
+              testResult={testResults[i]}
+              testing={testingIdx === i}
+            />
+          ))}
+        </div>
+        <button className="btn btn-xs btn-ghost" onClick={handleAddProfile}>
+          ＋ 添加 Profile
+        </button>
       </div>
 
       <button className="btn btn-sm btn-primary w-full" onClick={handleSave}>

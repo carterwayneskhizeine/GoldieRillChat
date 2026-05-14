@@ -2,24 +2,89 @@
 // 通过 window.hermesAPI (preload 桥接) 与主进程 HTTP 代理通信，绕过 CORS 限制
 
 const STORAGE_KEY_CONFIG = 'hermes_config'
+const STORAGE_KEY_PROFILES = 'hermes_profiles'
 
-export function getHermesConfig() {
+// --- Migration ---
+
+function migrateIfNeeded() {
+  const oldRaw = localStorage.getItem(STORAGE_KEY_CONFIG)
+  const newRaw = localStorage.getItem(STORAGE_KEY_PROFILES)
+
+  if (oldRaw && !newRaw) {
+    try {
+      const oldCfg = JSON.parse(oldRaw)
+      const profiles = []
+      if (oldCfg.apiUrl || oldCfg.dashboardUrl || oldCfg.apiToken) {
+        profiles.push({
+          id: 'default',
+          name: 'Default',
+          apiUrl: oldCfg.apiUrl || 'http://127.0.0.1:8651',
+          dashboardUrl: oldCfg.dashboardUrl || 'http://127.0.0.1:9119',
+          apiToken: oldCfg.apiToken || '',
+          dashboardToken: oldCfg.dashboardToken || '',
+        })
+      }
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify({ profiles, activeProfileIndex: 0 }))
+    } catch {}
+  }
+}
+migrateIfNeeded()
+
+// --- Multi-profile CRUD ---
+
+export function getHermesProfiles() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_CONFIG) || '{}')
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_PROFILES) || '{}')
   } catch {
-    return {}
+    return { profiles: [], activeProfileIndex: 0 }
   }
 }
 
-export function saveHermesConfig(config) {
-  localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config))
+export function saveHermesProfiles(profilesData) {
+  localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(profilesData))
 }
 
-/** 健康检查 */
-export async function checkHermesHealth() {
+export function getActiveProfileIndex() {
+  const data = getHermesProfiles()
+  const idx = data.activeProfileIndex || 0
+  return Math.min(idx, (data.profiles?.length || 1) - 1)
+}
+
+export function setActiveProfileIndex(index) {
+  const data = getHermesProfiles()
+  data.activeProfileIndex = Math.max(0, Math.min(index, (data.profiles?.length || 1) - 1))
+  saveHermesProfiles(data)
+}
+
+function getActiveProfileConfig() {
+  const data = getHermesProfiles()
+  const profiles = data.profiles || []
+  const idx = data.activeProfileIndex || 0
+  return profiles[Math.min(idx, profiles.length - 1)] || {}
+}
+
+// --- Backward-compatible API ---
+
+export function getHermesConfig() {
+  return getActiveProfileConfig()
+}
+
+export function saveHermesConfig(config) {
+  const data = getHermesProfiles()
+  const idx = data.activeProfileIndex || 0
+  if (data.profiles && data.profiles[idx]) {
+    data.profiles[idx] = { ...data.profiles[idx], ...config }
+    saveHermesProfiles(data)
+  }
+}
+
+// --- Health check ---
+
+export async function checkHermesHealth(cfg) {
   if (!window.hermesAPI) return false
   try {
-    const res = await window.hermesAPI.health(getHermesConfig())
+    const config = cfg || getHermesConfig()
+    const res = await window.hermesAPI.health(config)
     return res.ok
   } catch {
     return false
@@ -31,6 +96,7 @@ export async function checkHermesHealth() {
  * 返回清理函数（取消监听）
  */
 export function sendHermesMessage({
+  cfg,
   sessionId,
   conversationHistory,
   userMessage,
@@ -55,7 +121,7 @@ export function sendHermesMessage({
   let unsubDone = null
   let unsubErr = null
 
-  window.hermesAPI.startChatStream({ cfg: getHermesConfig(), sessionId, messages, model }).then(({ requestId }) => {
+  window.hermesAPI.startChatStream({ cfg: cfg || getHermesConfig(), sessionId, messages, model }).then(({ requestId }) => {
     if (finished) return
 
     let pendingEvent = null  // tracks current SSE event type across lines
@@ -123,10 +189,10 @@ export function sendHermesMessage({
   }
 }
 
-export async function getHermesHistory(sessionId) {
+export async function getHermesHistory(cfg, sessionId) {
   if (!window.hermesAPI || !sessionId) return []
   try {
-    const res = await window.hermesAPI.getHistory(getHermesConfig(), sessionId)
+    const res = await window.hermesAPI.getHistory(cfg || getHermesConfig(), sessionId)
     if (!res.ok) return []
     return normalizeHermesHistory(res.messages || [])
   } catch {
@@ -134,14 +200,25 @@ export async function getHermesHistory(sessionId) {
   }
 }
 
-export async function listHermesSessions(limit = 20, offset = 0) {
+export async function listHermesSessions(cfg, limit = 20, offset = 0) {
   if (!window.hermesAPI) return { sessions: [], total: 0 }
   try {
-    const res = await window.hermesAPI.listSessions(getHermesConfig(), limit, offset)
+    const res = await window.hermesAPI.listSessions(cfg || getHermesConfig(), limit, offset)
     if (!res.ok) return { sessions: [], total: 0 }
     return { sessions: res.sessions || [], total: res.total || 0 }
   } catch {
     return { sessions: [], total: 0 }
+  }
+}
+
+// --- Auto-discovery ---
+
+export async function discoverProfiles() {
+  if (!window.hermesAPI?.discoverProfiles) return []
+  try {
+    return await window.hermesAPI.discoverProfiles()
+  } catch {
+    return []
   }
 }
 

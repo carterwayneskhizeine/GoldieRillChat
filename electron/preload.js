@@ -514,6 +514,7 @@ contextBridge.exposeInMainWorld('hermesAPI', {
   },
   getHistory: (cfg, sessionId) => ipcRenderer.invoke('hermes:get-history', { cfg, sessionId }),
   listSessions: (cfg, limit, offset) => ipcRenderer.invoke('hermes:list-sessions', { cfg, limit, offset }),
+  discoverProfiles: () => ipcRenderer.invoke('hermes:discover-profiles'),
 })
 
 // OpenClaw & Hermes AI 后端桥接
