@@ -115,69 +115,6 @@ function MessageBubble({ msg }) {
   )
 }
 
-function SessionSelector({ sessionKey, onSelect, status }) {
-  const [sessions, setSessions] = useState([])
-  const [open, setOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
-
-  const load = useCallback(async () => {
-    if (status !== 'connected') return
-    try { setSessions(await listOpenClawSessions()) } catch {}
-  }, [status])
-
-  useEffect(() => { if (open) load() }, [open, load])
-
-  const handleCreate = async () => {
-    setCreating(true)
-    try {
-      const res = await createOpenClawSession('新会话')
-      if (res.key || res.sessionKey) onSelect(res.key || res.sessionKey)
-      setOpen(false)
-    } catch {} finally { setCreating(false) }
-  }
-
-  return (
-    <div style={{ position: 'relative' }}>
-      <button
-        className="btn btn-xs btn-ghost opacity-60 hover:opacity-100 font-mono"
-        onClick={() => setOpen((v) => !v)}
-        disabled={status !== 'connected'}
-      >
-        {(sessionKey || 'main').slice(0, 12)}{sessionKey && sessionKey.length > 12 ? '…' : ''}
-        {' '}▾
-      </button>
-      {open && (
-        <div
-          style={{
-            position: 'absolute', top: '100%', left: 0, marginTop: 4, width: 220,
-            zIndex: 50, maxHeight: 260, overflowY: 'auto',
-          }}
-          className="bg-base-100 border border-base-300 rounded-lg shadow-lg"
-        >
-          <button className="w-full text-left px-3 py-2 text-xs hover:bg-base-200 flex items-center gap-2 font-medium"
-            onClick={() => { onSelect('main'); setOpen(false) }}>
-            🏠 main（默认）
-          </button>
-          <button className="w-full text-left px-3 py-2 text-xs hover:bg-base-200 flex items-center gap-2"
-            onClick={handleCreate} disabled={creating}>
-            ＋ 新建会话
-          </button>
-          {sessions.length > 0 && <div className="divider my-0" />}
-          {sessions.map((s) => (
-            <button
-              key={s.key || s.sessionKey || s.id}
-              className={`w-full text-left px-3 py-2 text-xs hover:bg-base-200 ${(s.key || s.sessionKey || s.id) === sessionKey ? 'bg-base-200 font-semibold' : ''}`}
-              onClick={() => { onSelect(s.key || s.sessionKey || s.id); setOpen(false) }}
-            >
-              {s.label || s.key || s.sessionKey || s.id}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function OpenClawPanel() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -189,6 +126,38 @@ export default function OpenClawPanel() {
   const historyRequestRef = useRef(0)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
+
+  // Session list state
+  const [sessions, setSessions] = useState([])
+
+  // --- Load session list ---
+  const loadSessions = useCallback(async () => {
+    if (status !== 'connected') return
+    try {
+      const list = await listOpenClawSessions()
+      setSessions(list || [])
+      window.dispatchEvent(new CustomEvent('openclaw-sessions-updated', { detail: { sessions: list || [], activeSessionKey: sessionKey } }))
+    } catch {}
+  }, [status, sessionKey])
+
+  // --- Expose API to Sidebar ---
+  useEffect(() => {
+    window.openclawPanel = {
+      selectSession: (key) => setSessionKey(key),
+      newChat: () => handleNewChat(),
+      createSession: async (label) => {
+        const res = await createOpenClawSession(label || '新会话')
+        const key = res.key || res.sessionKey
+        if (key) setSessionKey(key)
+        loadSessions()
+        return key
+      },
+      getSessions: () => sessions,
+      getSessionKey: () => sessionKey,
+      getStatus: () => status,
+    }
+    return () => { delete window.openclawPanel }
+  })
 
   useEffect(() => {
     if (!window.openclawAPI) return
@@ -210,6 +179,11 @@ export default function OpenClawPanel() {
     return () => unsub()
   }, [])
 
+  // Auto-load sessions when connected
+  useEffect(() => {
+    if (status === 'connected') loadSessions()
+  }, [status])
+
   useEffect(() => {
     if (status !== 'connected') return
     const requestId = ++historyRequestRef.current
@@ -230,6 +204,8 @@ export default function OpenClawPanel() {
       .finally(() => {
         if (historyRequestRef.current === requestId) setHistoryLoading(false)
       })
+
+    window.dispatchEvent(new CustomEvent('openclaw-session-changed', { detail: { sessionKey } }))
   }, [sessionKey, status])
 
   useEffect(() => {
@@ -242,6 +218,8 @@ export default function OpenClawPanel() {
     setHistoryError(null)
     setHistoryLoading(false)
     setMessages([])
+    setSessionKey('main')
+    window.dispatchEvent(new CustomEvent('openclaw-session-changed', { detail: { sessionKey: 'main' } }))
   }, [])
 
   const handleSend = useCallback(() => {
@@ -296,6 +274,7 @@ export default function OpenClawPanel() {
           )
         )
         cancelRef.current = null
+        loadSessions()
       },
       onError: (err) => {
         setMessages((prev) =>
@@ -308,7 +287,7 @@ export default function OpenClawPanel() {
         cancelRef.current = null
       },
     })
-  }, [input, sessionKey, status])
+  }, [input, sessionKey, status, loadSessions])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
@@ -322,7 +301,6 @@ export default function OpenClawPanel() {
       <div className="flex-none flex items-center gap-3 px-4 py-2 border-b border-base-300/50">
         <StatusDot status={status} />
         <span className="text-sm font-semibold opacity-80">OpenClaw</span>
-        <SessionSelector sessionKey={sessionKey} onSelect={setSessionKey} status={status} />
         <div className="flex-1" />
         {!isConnected && (
           <button
@@ -335,9 +313,6 @@ export default function OpenClawPanel() {
             重连
           </button>
         )}
-        <button className="btn btn-xs btn-ghost opacity-60 hover:opacity-100" onClick={handleNewChat}>
-          ＋ 新对话
-        </button>
       </div>
 
       {/* Message list */}
@@ -372,7 +347,7 @@ export default function OpenClawPanel() {
         </div>
       </div>
 
-      {/* Input area — matches AIChat InputArea */}
+      {/* Input area */}
       <div className="flex-none border-t border-base-300 p-4 bg-transparent">
         <div className="relative max-w-[770px] mx-auto">
           <textarea

@@ -76,6 +76,26 @@ export default function Sidebar({
     };
   }, []);
 
+  // OpenClaw session list synced from OpenClawPanel via events
+  const [openclawSessions, setOpenclawSessions] = useState([]);
+  const [openclawActiveSession, setOpenclawActiveSession] = useState('main');
+
+  useEffect(() => {
+    const onSessionsUpdated = (e) => {
+      if (e.detail?.sessions) setOpenclawSessions(e.detail.sessions);
+      if (e.detail?.activeSessionKey !== undefined) setOpenclawActiveSession(e.detail.activeSessionKey);
+    };
+    const onSessionChanged = (e) => {
+      if (e.detail?.sessionKey !== undefined) setOpenclawActiveSession(e.detail.sessionKey);
+    };
+    window.addEventListener('openclaw-sessions-updated', onSessionsUpdated);
+    window.addEventListener('openclaw-session-changed', onSessionChanged);
+    return () => {
+      window.removeEventListener('openclaw-sessions-updated', onSessionsUpdated);
+      window.removeEventListener('openclaw-session-changed', onSessionChanged);
+    };
+  }, []);
+
   useEffect(() => {
     if (window.isImageBackgroundMode !== undefined) setIsImageBackground(window.isImageBackgroundMode);
     const handler = (e) => { if (e.detail?.isImageBackground !== undefined) setIsImageBackground(e.detail.isImageBackground) };
@@ -216,6 +236,14 @@ export default function Sidebar({
               </button>
             </div>
           )}
+          {activeTool === 'openclaw' && sidebarMode === 'default' && (
+            <div className="flex justify-end mb-2">
+              <button className="btn btn-circle btn-ghost btn-sm"
+                onClick={() => window.openclawPanel?.newChat?.()}>
+                <PlusIcon />
+              </button>
+            </div>
+          )}
 
           {/* === Tool panels === */}
 
@@ -340,6 +368,43 @@ export default function Sidebar({
                             </div>
                           </button>
                         ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {/* OpenClaw */}
+          {activeTool === 'openclaw' && sidebarMode !== 'settings' && (
+            <div className="flex-1 mt-2 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                {sidebarMode === 'default' ? (
+                  <div className="empty-sidebar h-full flex flex-col">
+                    <div className="p-2 flex-1 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-base-content scrollbar-thumb-opacity-20 hover:scrollbar-thumb-opacity-50">
+                      <div className="flex flex-col gap-1">
+                        <button
+                          className={`btn btn-ghost justify-start text-left btn-sm ${'main' === openclawActiveSession ? 'btn-active' : ''}`}
+                          onClick={() => window.openclawPanel?.selectSession?.('main')}
+                        >
+                          <span className="truncate text-xs">🏠 main（默认）</span>
+                        </button>
+                        {openclawSessions.length > 0 && openclawSessions.map((s) => {
+                          const key = s.key || s.sessionKey || s.id;
+                          return (
+                            <button
+                              key={key}
+                              className={`btn btn-ghost justify-start text-left btn-sm ${key === openclawActiveSession ? 'btn-active' : ''}`}
+                              onClick={() => window.openclawPanel?.selectSession?.(key)}
+                            >
+                              <span className="truncate w-full text-xs">{s.label || key}</span>
+                            </button>
+                          );
+                        })}
+                        {openclawSessions.length === 0 && (
+                          <div className="text-xs opacity-20 text-center py-2">仅 main 会话</div>
+                        )}
                       </div>
                     </div>
                   </div>
